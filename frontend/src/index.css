@@ -1,1 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Lora:wght@400;700&family=Nunito:wght@400;600&display=swap');
+
 @import "tailwindcss";
+
+body {
+  font-family: 'Inter', sans-serif; /* Change 'Inter' to 'Lora' or 'Nunito' if preferred */
+}
