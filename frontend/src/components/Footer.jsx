@@ -2,18 +2,18 @@ import React from 'react';
 
 const Footer = () => {
   return (
-    <footer className="bg-blue-700 text-white pt-10 pb-4 px-4 mt-auto">
+    <footer className="bg-blue-700 text-white pt-10 pb-4 px-2 sm:px-4 mt-auto">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-8 border-b border-blue-500 pb-6">
         {/* Logo and About */}
-        <div className="flex flex-col items-start gap-2 md:w-1/3">
+        <div className="flex flex-col items-start gap-2 md:w-1/3 w-full">
           <div className="flex items-center gap-2 mb-2">
-            <img src="/skillswap-logo.png" alt="SkillSwapHub Logo" className="h-8 w-8 object-contain" />
+            <img src="/skillswap-logo.jpg" alt="SkillSwapHub Logo" className="h-8 w-8 object-contain" />
             <span className="text-xl font-bold tracking-wide">SkillSwapHub</span>
           </div>
           <p className="text-sm text-blue-100 max-w-xs">Empowering people to learn, teach, and grow together through live sessions, group discussions, and real interview practice.</p>
         </div>
         {/* Links */}
-        <div className="flex flex-col md:flex-row gap-8 md:w-2/3 justify-end">
+        <div className="flex flex-col sm:flex-row gap-8 md:w-2/3 w-full justify-end">
           <div>
             <h4 className="font-semibold mb-2">Product</h4>
             <ul className="text-sm space-y-1">
@@ -42,7 +42,7 @@ const Footer = () => {
         </div>
       </div>
       {/* Socials and Copyright */}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mt-6 text-sm text-blue-200">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center mt-6 text-sm text-blue-200 gap-2">
         <div className="flex gap-4 mb-2 md:mb-0">
           <a href="#" aria-label="Twitter" className="hover:text-white">
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -60,9 +60,7 @@ const Footer = () => {
             </svg>
           </a>
         </div>
-        <div>
-          © 2025 SkillSwapHub. All rights reserved.
-        </div>
+        <div className="text-center md:text-right w-full md:w-auto">© {new Date().getFullYear()} SkillSwapHub. All rights reserved.</div>
       </div>
     </footer>
   );
