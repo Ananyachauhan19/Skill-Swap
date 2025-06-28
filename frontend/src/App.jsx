@@ -6,6 +6,9 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from './user/Home';
 import Login from './auth/Login';
 import Register from './auth/Register';
+import OneOnOne from './user/OneOnOne';
+import Discuss from './user/Discuss';
+import Interview from './user/Interview';
 
 function App() {
   const isRegistered = localStorage.getItem('isRegistered') === 'true';
@@ -21,6 +24,9 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/one-on-one" element={<OneOnOne />} />
+          <Route path="/discuss" element={<Discuss />} />
+          <Route path="/interview" element={<Interview />} />
           <Route path="/profile" element={<div className='min-h-screen flex items-center justify-center text-2xl font-bold'>Profile Page (Coming Soon)</div>} />
         </Routes>
       </div>
