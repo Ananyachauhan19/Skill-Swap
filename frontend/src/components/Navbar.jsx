@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import ProfileDropdown from './ProfileDropdown';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isLoggedIn = localStorage.getItem('isRegistered') === 'true';
+  const isLoggedIn = localStorage.getItem('isRegistered') === 'true' || localStorage.getItem('isLoggedIn') === 'true';
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const menuRef = useRef();
 
-  // Helper to check if a path is active
   const isActive = (path) => location.pathname === path;
 
   return (
@@ -57,13 +59,16 @@ const Navbar = () => {
             Login
           </button>
         ) : (
-          <button
-            className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg border-2 border-blue-300 hover:bg-blue-200 transition"
-            onClick={() => navigate('/profile')}
-            title="Profile"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-          </button>
+          <div className="relative">
+            <button
+              className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg border-2 border-blue-300 hover:bg-blue-200 transition"
+              onClick={() => setShowProfileMenu((v) => !v)}
+              title="Profile"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
+            <ProfileDropdown show={showProfileMenu} onClose={() => setShowProfileMenu(false)} navigate={navigate} menuRef={menuRef} />
+          </div>
         )}
       </div>
     </nav>
