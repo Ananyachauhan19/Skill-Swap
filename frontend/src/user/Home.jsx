@@ -1,97 +1,171 @@
 import React from "react";
+import {
+  FaUser,
+  FaCheckCircle,
+  FaBook,
+  FaChalkboardTeacher,
+  FaUsers,
+  FaComments,
+} from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+import CountUp from "react-countup";
+import { motion } from 'framer-motion';
 
-const features = [
-  { icon: "🤝", title: "Peer-to-peer Micro-tutoring", desc: "Connect directly with peers for focused, short learning sessions." },
-  { icon: "💎", title: "Credit-based Learning", desc: "Earn and spend credits as you teach and learn new skills." },
-  { icon: "🏆", title: "Gamification & Leaderboard", desc: "Climb the leaderboard and unlock achievements as you participate." },
-];
 
-const steps = [
-  { icon: "📝", title: "Sign Up", desc: "Create your free SkillSwap account." },
-  { icon: "🔍", title: "Find or Offer Skills", desc: "Browse or list skills you want to learn or teach." },
-  { icon: "💬", title: "Connect & Learn", desc: "Schedule a session and start swapping skills!" },
-];
+const HomePage = () => {
+  const navigate = useNavigate();
 
-const testimonials = [
-  {
-    quote: "SkillSwap Hub made learning fun and rewarding. I improved my coding and taught design in return!",
-    name: "Jamie Lee",
-  },
-  {
-    quote: "The credit system motivates me to keep sharing my skills. The leaderboard is a great touch!",
-    name: "Priya Singh",
-  },
-];
-
-const Home = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <main className="bg-blue-600 text-white min-h-screen">
       {/* Hero Section */}
-      <section className="bg-white py-16 px-4 text-center shadow-sm">
-        <h1 className="text-4xl md:text-5xl font-bold text-blue-700 mb-4">SkillSwap Hub</h1>
-        <p className="text-lg md:text-xl text-gray-700 mb-6 max-w-2xl mx-auto">
-          A peer-to-peer platform for micro-tutoring, credit-based learning, and gamified skill growth.
+      <section className="text-center py-16 px-4">
+        <h1 className="text-4xl font-bold mb-4">Find & share knowledge</h1>
+        <p className="text-2xl font-light">one-on-one or in groups</p>
+
+        <div className="flex flex-col md:flex-row justify-center gap-6 mt-12 relative">
+          <div className="hidden md:flex flex-col items-center justify-start min-w-[120px] pt-4 absolute left-0 top-1/2 -translate-y-1/2">
+            <FaChalkboardTeacher className="text-blue-200 text-5xl mb-6" />
+            <FaUsers className="text-green-200 text-5xl mb-6" />
+            <FaComments className="text-yellow-300 text-5xl" />
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-6 md:ml-40 w-full justify-center">
+            {/* Card 1 */}
+            <div
+              onClick={() => navigate("/one-on-one")}
+              className="bg-white text-black rounded-xl shadow-lg p-4 w-56 cursor-pointer transition-transform transform hover:scale-105 hover:shadow-2xl flex flex-col items-center group"
+            >
+              <FaChalkboardTeacher className="text-blue-500 text-4xl mb-2 group-hover:scale-110 transition-transform" />
+              <h3 className="text-base font-semibold text-center mt-1">
+                1:1 Live Session
+              </h3>
+            </div>
+
+            {/* Card 2 */}
+            <div
+              onClick={() => navigate("/discuss")}
+              className="bg-white text-black rounded-xl shadow-lg p-4 w-56 cursor-pointer transition-transform transform hover:scale-105 hover:shadow-2xl flex flex-col items-center group"
+            >
+              <FaUsers className="text-green-500 text-4xl mb-2 group-hover:scale-110 transition-transform" />
+              <h3 className="text-base font-semibold text-center mt-1">
+                Group Discussion
+              </h3>
+            </div>
+
+            {/* Card 3 */}
+            <div
+              onClick={() => navigate("/interview")}
+              className="bg-white text-black rounded-xl shadow-lg p-4 w-56 cursor-pointer transition-transform transform hover:scale-105 hover:shadow-2xl flex flex-col items-center group"
+            >
+              <FaComments className="text-yellow-500 text-4xl mb-2 group-hover:scale-110 transition-transform" />
+              <h3 className="text-base font-semibold text-center mt-1">
+                Real-Time Job Interview Practice
+              </h3>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="bg-blue-500 py-12 px-6">
+  <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 text-center">
+    
+    {/* Active Members */}
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="bg-blue-100 text-blue-900 rounded-lg px-4 py-6 flex items-center gap-4 shadow-md hover:shadow-lg transition-all"
+    >
+      <FaUser className="text-3xl text-blue-600" />
+      <div>
+        <p className="text-xl font-bold">
+          <CountUp end={18200} duration={2} separator="," />+
         </p>
-        <div className="flex justify-center gap-4 mb-8">
-          <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition" onClick={() => window.location.href='/register'}>
-            Join Now
-          </button>
-          <button className="bg-white border border-blue-600 text-blue-700 px-6 py-2 rounded hover:bg-blue-50 transition" onClick={() => window.location.href='/skills'}>
-            Explore Skills
-          </button>
-        </div>
-        <img
-          src="https://undraw.co/api/illustrations/learning-collaboration.svg"
-          alt="Learning collaboration"
-          className="mx-auto max-w-xs md:max-w-md"
-        />
-      </section>
+        <p className="text-sm">Active Members</p>
+      </div>
+    </motion.div>
 
-      {/* Features */}
-      <section className="py-12 px-4 bg-gray-50">
-        <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">Key Features</h2>
-        <div className="flex flex-col md:flex-row justify-center gap-8">
-          {features.map((f) => (
-            <div key={f.title} className="bg-white rounded-lg shadow p-6 flex-1 text-center">
-              <div className="text-4xl mb-2">{f.icon}</div>
-              <h3 className="font-semibold text-lg mb-1">{f.title}</h3>
-              <p className="text-gray-600 text-sm">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+    {/* Experts Available */}
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
+      className="bg-green-100 text-green-900 rounded-lg px-4 py-6 flex items-center gap-4 shadow-md hover:shadow-lg transition-all"
+    >
+      <FaCheckCircle className="text-3xl text-green-600" />
+      <div>
+        <p className="text-xl font-bold">
+          <CountUp end={4500} duration={2} separator="," />+
+        </p>
+        <p className="text-sm">Experts Available</p>
+      </div>
+    </motion.div>
 
-      {/* How It Works */}
-      <section className="py-12 px-4 bg-white">
-        <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">How It Works</h2>
-        <div className="flex flex-col md:flex-row justify-center gap-8">
-          {steps.map((step, idx) => (
-            <div key={step.title} className="flex flex-col items-center">
-              <div className="text-4xl mb-2">{step.icon}</div>
-              <div className="font-semibold">{step.title}</div>
-              <div className="text-gray-600 text-sm text-center">{step.desc}</div>
-              {idx < steps.length - 1 && (
-                <div className="hidden md:block h-12 border-l-2 border-gray-200 mx-4"></div>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+    {/* Different Subjects */}
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.4 }}
+      className="bg-indigo-100 text-indigo-900 rounded-lg px-4 py-6 flex items-center gap-4 shadow-md hover:shadow-lg transition-all"
+    >
+      <FaBook className="text-3xl text-indigo-600" />
+      <div>
+        <p className="text-xl font-bold">
+          <CountUp end={50} duration={2} separator="," />+
+        </p>
+        <p className="text-sm">Different Subjects</p>
+      </div>
+    </motion.div>
 
-      {/* Testimonials */}
-      <section className="py-12 px-4 bg-blue-50">
-        <h2 className="text-2xl font-semibold text-center mb-8 text-gray-800">Student Stories</h2>
-        <div className="flex flex-col md:flex-row justify-center gap-8">
-          {testimonials.map((t, i) => (
-            <div key={i} className="bg-white rounded-lg shadow p-6 max-w-md mx-auto">
-              <blockquote className="italic text-gray-700 mb-2">“{t.quote}”</blockquote>
-              <div className="font-semibold text-blue-700">— {t.name}</div>
-            </div>
-          ))}
+  </div>
+</section>
+
+      {/* Top Performers Section */}
+      <section className="bg-blue-100 py-10 text-black px-4">
+        <h2 className="text-2xl font-bold text-center mb-6">
+          This week’s top performers
+        </h2>
+        <div className="flex flex-col md:flex-row justify-center gap-6">
+          {/* Performer 1 */}
+          <div className="bg-white rounded-xl shadow-md p-6 w-64 text-center hover:shadow-xl transition duration-300">
+            <img
+              src="/user1.png"
+              alt="Most Active"
+              className="w-20 h-20 mx-auto rounded-full"
+            />
+            <p className="mt-4 font-semibold">Most Active Learner</p>
+            <p className="font-bold">Aditya Singh</p>
+            <p>15 sessions</p>
+          </div>
+
+          {/* Performer 2 */}
+          <div className="bg-white rounded-xl shadow-md p-6 w-64 text-center hover:shadow-xl transition duration-300">
+            <img
+              src="/user2.png"
+              alt="Top Tutor"
+              className="w-20 h-20 mx-auto rounded-full"
+            />
+            <p className="mt-4 font-semibold">Highest Rated Tutor</p>
+            <p className="font-bold">Ananya S.</p>
+            <p className="text-yellow-500">★★★★★</p>
+          </div>
+
+          {/* Performer 3 */}
+          <div className="bg-white rounded-xl shadow-md p-6 w-64 text-center hover:shadow-xl transition duration-300">
+            <img
+              src="/user3.png"
+              alt="Top Earner"
+              className="w-20 h-20 mx-auto rounded-full"
+            />
+            <p className="mt-4 font-semibold">Top Earner</p>
+            <p className="font-bold">Rahul</p>
+            <p className="text-green-600 font-bold">₹ 8,200 Earned</p>
+          </div>
         </div>
       </section>
-    </div>
+    </main>
   );
 };
 
-export default Home;
+export default HomePage;
