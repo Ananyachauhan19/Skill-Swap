@@ -25,7 +25,7 @@ const Navbar = () => {
         onClick={() => navigate('/')}
       >
         <img
-          src="/skillswap-logo.jpg"
+          src="/assets/skillswap-logo.jpg"
           alt="SkillSwap Logo"
           className="h-8 w-8 object-contain"
         />

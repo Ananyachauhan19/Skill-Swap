@@ -14,11 +14,11 @@ import Profile from './user/Profile';
 function App() {
   const isRegistered = localStorage.getItem('isRegistered') === 'true';
   const location = useLocation();
-  const isLoginPage = location.pathname === '/login';
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
   return (
     <>
-      {!isLoginPage && <Navbar />}
+      {!isAuthPage && <Navbar />}
       <div className={location.pathname === '/home' ? '' : 'pt-8'}>
         <Routes>
           <Route path="/" element={<Navigate to="/home" replace />} />
@@ -31,7 +31,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>
-      {!isLoginPage && <Footer />}
+      {!isAuthPage && <Footer />}
     </>
   );
 }

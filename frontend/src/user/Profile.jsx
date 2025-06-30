@@ -4,6 +4,7 @@ import SkillsTeachSection from "./sections/SkillsTeachSection";
 import SkillsLearnSection from "./sections/SkillsLearnSection";
 import BioSection from "./sections/BioSection";
 import GamificationStats from "./sections/GamificationStats";
+import EducationSection from "./sections/EducationSection";
 import toast, { Toaster } from 'react-hot-toast';
 
 const Profile = () => {
@@ -23,6 +24,14 @@ const Profile = () => {
 
   // Bio
   const [bio, setBio] = useState("");
+
+  // Education
+  const [education, setEducation] = useState({
+    degree: '',
+    university: '',
+    year: '',
+    specialization: ''
+  });
 
   // Gamification Stats (dummy data)
   const [credits] = useState(1200);
@@ -81,37 +90,44 @@ const Profile = () => {
   };
 
   return (
-    <div className="max-w-xl mx-auto bg-white rounded-xl shadow-lg p-6 mt-8">
+    <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6 mt-8">
       <Toaster position="top-center" />
       <h1 className="text-2xl font-bold mb-6 text-center">Create Your SkillSwap Profile</h1>
-      <form className="space-y-6" onSubmit={handleSave}>
-        <UserInfoSection
-          fullName={fullName}
-          setFullName={setFullName}
-          email={email}
-          setEmail={setEmail}
-          profilePicPreview={profilePicPreview}
-          handleProfilePicChange={handleProfilePicChange}
-        />
-        <SkillsTeachSection
-          teachSkillInput={teachSkillInput}
-          setTeachSkillInput={setTeachSkillInput}
-          teachSkills={teachSkills}
-          handleAddTeachSkill={handleAddTeachSkill}
-          handleAttachProof={handleAttachProof}
-          handleRemoveTeachSkill={handleRemoveTeachSkill}
-        />
-        <SkillsLearnSection
-          learnSkillInput={learnSkillInput}
-          setLearnSkillInput={setLearnSkillInput}
-          learnSkills={learnSkills}
-          handleAddLearnSkill={handleAddLearnSkill}
-          handleRemoveLearnSkill={handleRemoveLearnSkill}
-        />
-        <BioSection bio={bio} setBio={setBio} />
-        <GamificationStats credits={credits} badges={badges} rank={rank} />
-        <button type="submit" className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition">Save & Continue</button>
-      </form>
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Left: Main Profile Sections */}
+        <div className="flex-1 md:basis-3/4 space-y-6">
+          <UserInfoSection
+            fullName={fullName}
+            setFullName={setFullName}
+            email={email}
+            setEmail={setEmail}
+            profilePicPreview={profilePicPreview}
+            handleProfilePicChange={handleProfilePicChange}
+          />
+          <EducationSection education={education} setEducation={setEducation} />
+          <BioSection bio={bio} setBio={setBio} />
+          <SkillsTeachSection
+            teachSkillInput={teachSkillInput}
+            setTeachSkillInput={setTeachSkillInput}
+            teachSkills={teachSkills}
+            handleAddTeachSkill={handleAddTeachSkill}
+            handleAttachProof={handleAttachProof}
+            handleRemoveTeachSkill={handleRemoveTeachSkill}
+          />
+          <SkillsLearnSection
+            learnSkillInput={learnSkillInput}
+            setLearnSkillInput={setLearnSkillInput}
+            learnSkills={learnSkills}
+            handleAddLearnSkill={handleAddLearnSkill}
+            handleRemoveLearnSkill={handleRemoveLearnSkill}
+          />
+          <button type="submit" className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition">Save & Continue</button>
+        </div>
+        {/* Right: Gamification Stats */}
+        <div className="md:basis-1/4 flex flex-col">
+          <GamificationStats credits={credits} badges={badges} rank={rank} />
+        </div>
+      </div>
     </div>
   );
 };

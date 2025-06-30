@@ -7,7 +7,7 @@ const Footer = () => {
         {/* Logo and About */}
         <div className="flex flex-col items-start gap-2 md:w-1/3 w-full">
           <div className="flex items-center gap-2 mb-2">
-            <img src="/skillswap-logo.jpg" alt="SkillSwapHub Logo" className="h-8 w-8 object-contain" />
+            <img src="/assets/skillswap-logo.jpg" alt="SkillSwapHub Logo" className="h-8 w-8 object-contain" />
             <span className="text-xl font-bold tracking-wide">SkillSwapHub</span>
           </div>
           <p className="text-sm text-blue-100 max-w-xs">Empowering people to learn, teach, and grow together through live sessions, group discussions, and real interview practice.</p>
