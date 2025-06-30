@@ -254,7 +254,7 @@ const LoginPage = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Field */}
             <div>
-              dares
+            
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
               </label>
