@@ -86,6 +86,11 @@ const LoginPage = () => {
       setError('Please fill in all fields');
       return;
     }
+    // Check registration status
+    if (localStorage.getItem('isRegistered') !== 'true') {
+      setError('You must register before logging in.');
+      return;
+    }
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
