@@ -1,131 +1,239 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import UserInfoSection from "./sections/UserInfoSection";
 import SkillsTeachSection from "./sections/SkillsTeachSection";
 import SkillsLearnSection from "./sections/SkillsLearnSection";
 import BioSection from "./sections/BioSection";
 import GamificationStats from "./sections/GamificationStats";
 import EducationSection from "./sections/EducationSection";
+import ExperienceSection from "./sections/ExperienceSection";
+import CertificatesSection from "./sections/CertificatesSection";
 import toast, { Toaster } from 'react-hot-toast';
 
 const Profile = () => {
-  // User Info
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [profilePic, setProfilePic] = useState(null);
-  const [profilePicPreview, setProfilePicPreview] = useState(null);
-
-  // Skills You Can Teach
-  const [teachSkillInput, setTeachSkillInput] = useState("");
-  const [teachSkills, setTeachSkills] = useState([]); // [{ skill, proof, proofName }]
-
-  // Skills You Want to Learn
-  const [learnSkillInput, setLearnSkillInput] = useState("");
-  const [learnSkills, setLearnSkills] = useState([]);
-
-  // Bio
-  const [bio, setBio] = useState("");
-
-  // Education
-  const [education, setEducation] = useState({
-    degree: '',
-    university: '',
-    year: '',
-    specialization: ''
+  // Unified profile state
+  const [profile, setProfile] = useState({
+    fullName: "",
+    email: "",
+    profilePic: null,
+    profilePicPreview: null,
+    bio: "",
+    education: { degree: '', university: '', year: '', specialization: '' },
+    experience: [],
+    experienceSummary: "",
+    certificates: [],
+    teachSkills: [], // [{ skill, proof, proofName }]
+    learnSkills: [],
+    credits: 1200,
+    badges: ["Starter", "Helper"],
+    rank: "Bronze"
   });
 
-  // Gamification Stats (dummy data)
-  const [credits] = useState(1200);
-  const [badges] = useState(["Starter", "Helper"]);
-  const [rank] = useState("Bronze");
+  // Edit states
+  const [editAll, setEditAll] = useState(false);
+  const [editBio, setEditBio] = useState(false);
+  const [editEducation, setEditEducation] = useState(false);
+  const [editTeach, setEditTeach] = useState(false);
+  const [editLearn, setEditLearn] = useState(false);
+  const [editExperience, setEditExperience] = useState(false);
+  const [editCertificates, setEditCertificates] = useState(false);
+
+  // Fetch profile from backend on mount
+  useEffect(() => {
+    async function fetchProfile() {
+      // Replace with your backend API call
+      
+      const regName = localStorage.getItem('registeredName');
+      const regEmail = localStorage.getItem('registeredEmail');
+      setProfile(prev => ({
+        ...prev,
+        fullName: regName || prev.fullName,
+        email: regEmail || prev.email
+      }));
+    }
+    fetchProfile();
+  }, []);
+
+  // Save profile to backend
+  const saveProfile = async () => {
+    // Replace with your backend API call
+    
+    toast.success("Profile saved!");
+  };
 
   // Profile Pic Handler
   const handleProfilePicChange = (e) => {
     const file = e.target.files[0];
-    setProfilePic(file);
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setProfilePicPreview(reader.result);
+      reader.onloadend = () => setProfile(prev => ({ ...prev, profilePic: file, profilePicPreview: reader.result }));
       reader.readAsDataURL(file);
     } else {
-      setProfilePicPreview(null);
+      setProfile(prev => ({ ...prev, profilePic: null, profilePicPreview: null }));
     }
   };
 
-  // Add teaching skill
+  // Section field handlers
+  const setField = (field, value) => setProfile(prev => ({ ...prev, [field]: value }));
+  const setEducation = (edu) => setProfile(prev => ({ ...prev, education: { ...edu } }));
+  const setExperience = (exp) => setProfile(prev => ({ ...prev, experience: exp }));
+  const setExperienceSummary = (summary) => setProfile(prev => ({ ...prev, experienceSummary: summary }));
+  const setCertificates = (certs) => setProfile(prev => ({ ...prev, certificates: certs }));
+  const setTeachSkills = (skills) => setProfile(prev => ({ ...prev, teachSkills: skills }));
+  const setLearnSkills = (skills) => setProfile(prev => ({ ...prev, learnSkills: skills }));
+
+  // Add/Remove handlers for skills
+  const [teachSkillInput, setTeachSkillInput] = useState("");
   const handleAddTeachSkill = () => {
-    if (teachSkillInput.trim() && !teachSkills.some(s => s.skill === teachSkillInput.trim())) {
-      setTeachSkills([...teachSkills, { skill: teachSkillInput.trim(), proof: null, proofName: null }]);
+    if (teachSkillInput.trim() && !profile.teachSkills.some(s => s.skill === teachSkillInput.trim())) {
+      setTeachSkills([...profile.teachSkills, { skill: teachSkillInput.trim(), proof: null, proofName: null }]);
       setTeachSkillInput("");
     }
   };
-
-  // Attach proof to a teaching skill
   const handleAttachProof = (idx, file) => {
-    setTeachSkills(teachSkills.map((s, i) => i === idx ? { ...s, proof: file, proofName: file?.name } : s));
+    setTeachSkills(profile.teachSkills.map((s, i) => i === idx ? { ...s, proof: file, proofName: file?.name } : s));
   };
-
-  // Remove teaching skill
   const handleRemoveTeachSkill = (idx) => {
-    setTeachSkills(teachSkills.filter((_, i) => i !== idx));
+    setTeachSkills(profile.teachSkills.filter((_, i) => i !== idx));
   };
 
-  // Add learning skill
+  const [learnSkillInput, setLearnSkillInput] = useState("");
   const handleAddLearnSkill = () => {
-    if (learnSkillInput.trim() && !learnSkills.includes(learnSkillInput.trim())) {
-      setLearnSkills([...learnSkills, learnSkillInput.trim()]);
+    if (learnSkillInput.trim() && !profile.learnSkills.includes(learnSkillInput.trim())) {
+      setLearnSkills([...profile.learnSkills, learnSkillInput.trim()]);
       setLearnSkillInput("");
     }
   };
-
-  // Remove learning skill
   const handleRemoveLearnSkill = (idx) => {
-    setLearnSkills(learnSkills.filter((_, i) => i !== idx));
+    setLearnSkills(profile.learnSkills.filter((_, i) => i !== idx));
   };
 
-  // Save & Continue (dummy handler)
-  const handleSave = (e) => {
+  // Save & Continue
+  const handleSave = async (e) => {
     e.preventDefault();
-    // TODO: Send all data to backend
-    toast.success("Profile saved!");
+    setEditAll(false);
+    setEditBio(false);
+    setEditEducation(false);
+    setEditTeach(false);
+    setEditLearn(false);
+    setEditExperience(false);
+    setEditCertificates(false);
+    await saveProfile();
   };
 
   return (
-    <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6 mt-8">
+    <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6 mt-8 relative">
       <Toaster position="top-center" />
-      <h1 className="text-2xl font-bold mb-6 text-center">Create Your SkillSwap Profile</h1>
+      {/* Edit and Save/Cancel buttons */}
+      <div className="absolute top-4 right-4 flex gap-2 z-20">
+        {editAll ? (
+          <>
+            <button
+              onClick={e => { handleSave(e); }}
+              className="text-sm bg-blue-600 text-white px-3 py-1 rounded-md font-medium hover:bg-blue-700 border"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => { setEditAll(false); setEditBio(false); setEditEducation(false); setEditTeach(false); setEditLearn(false); setEditExperience(false); setEditCertificates(false); }}
+              className="text-sm bg-gray-100 hover:bg-gray-200 border px-3 py-1 rounded-md font-medium"
+            >
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => { setEditAll(true); setEditBio(true); setEditEducation(true); setEditTeach(true); setEditLearn(true); setEditExperience(true); setEditCertificates(true); }}
+            className="text-sm bg-gray-100 hover:bg-gray-200 border px-3 py-1 rounded-md font-medium"
+          >
+            Edit
+          </button>
+        )}
+      </div>
       <div className="flex flex-col md:flex-row gap-8">
-        {/* Left: Main Profile Sections */}
+        {/* Main Profile Sections */}
         <div className="flex-1 md:basis-3/4 space-y-6">
           <UserInfoSection
-            fullName={fullName}
-            setFullName={setFullName}
-            email={email}
-            setEmail={setEmail}
-            profilePicPreview={profilePicPreview}
+            fullName={profile.fullName}
+            setFullName={val => setField('fullName', val)}
+            email={profile.email}
+            setEmail={val => setField('email', val)}
+            profilePicPreview={profile.profilePicPreview}
             handleProfilePicChange={handleProfilePicChange}
+            editMode={editAll}
           />
-          <EducationSection education={education} setEducation={setEducation} />
-          <BioSection bio={bio} setBio={setBio} />
+          <hr className="my-6 border-gray-200" />
+          <BioSection
+            bio={profile.bio}
+            setBio={val => setField('bio', val)}
+            editMode={editAll || editBio}
+            onAddClick={() => { setEditBio(true); setEditAll(false); setEditEducation(false); setEditTeach(false); setEditLearn(false); setEditExperience(false); setEditCertificates(false); }}
+            onSave={() => { setEditBio(false); }}
+            onCancel={() => { setEditBio(false); }}
+            autoFocus={!editAll && editBio && !editEducation && !editTeach && !editLearn && !editExperience && !editCertificates}
+          />
+          <hr className="my-6 border-gray-200" />
+          <EducationSection
+            education={profile.education}
+            setEducation={setEducation}
+            editMode={editAll || editEducation}
+            onAddClick={() => { setEditEducation(true); setEditAll(false); setEditBio(false); setEditTeach(false); setEditLearn(false); setEditExperience(false); setEditCertificates(false); }}
+            onSave={() => { setEditEducation(false); }}
+            onCancel={() => { setEditEducation(false); }}
+            autoFocus={!editAll && editEducation && !editBio && !editTeach && !editLearn && !editExperience && !editCertificates}
+          />
+          <hr className="my-6 border-gray-200" />
           <SkillsTeachSection
             teachSkillInput={teachSkillInput}
             setTeachSkillInput={setTeachSkillInput}
-            teachSkills={teachSkills}
+            teachSkills={profile.teachSkills}
             handleAddTeachSkill={handleAddTeachSkill}
             handleAttachProof={handleAttachProof}
             handleRemoveTeachSkill={handleRemoveTeachSkill}
+            editMode={editAll || editTeach}
+            onAddClick={() => { setEditTeach(true); setEditAll(false); setEditBio(false); setEditEducation(false); setEditLearn(false); setEditExperience(false); setEditCertificates(false); }}
+            onSave={() => { setEditTeach(false); }}
+            onCancel={() => { setEditTeach(false); }}
+            autoFocus={!editAll && editTeach && !editBio && !editEducation && !editLearn && !editExperience && !editCertificates}
           />
+          <hr className="my-6 border-gray-200" />
           <SkillsLearnSection
             learnSkillInput={learnSkillInput}
             setLearnSkillInput={setLearnSkillInput}
-            learnSkills={learnSkills}
+            learnSkills={profile.learnSkills}
             handleAddLearnSkill={handleAddLearnSkill}
             handleRemoveLearnSkill={handleRemoveLearnSkill}
+            editMode={editAll || editLearn}
+            onAddClick={() => { setEditLearn(true); setEditAll(false); setEditBio(false); setEditEducation(false); setEditTeach(false); setEditExperience(false); setEditCertificates(false); }}
+            onSave={() => { setEditLearn(false); }}
+            onCancel={() => { setEditLearn(false); }}
+            autoFocus={!editAll && editLearn && !editBio && !editEducation && !editTeach && !editExperience && !editCertificates}
           />
-          <button type="submit" className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition">Save & Continue</button>
+          <hr className="my-6 border-gray-200" />
+          <ExperienceSection
+            experience={profile.experience}
+            setExperience={setExperience}
+            experienceSummary={profile.experienceSummary}
+            setExperienceSummary={setExperienceSummary}
+            editMode={editAll || editExperience}
+            onAddClick={() => { setEditExperience(true); setEditAll(false); setEditBio(false); setEditEducation(false); setEditTeach(false); setEditLearn(false); setEditCertificates(false); }}
+            onSave={() => { setEditExperience(false); }}
+            onCancel={() => { setEditExperience(false); }}
+            autoFocus={!editAll && editExperience && !editBio && !editEducation && !editTeach && !editLearn && !editCertificates}
+          />
+          <hr className="my-6 border-gray-200" />
+          <CertificatesSection
+            certificates={profile.certificates}
+            setCertificates={setCertificates}
+            editMode={editAll || editCertificates}
+            onAddClick={() => { setEditCertificates(true); setEditAll(false); setEditBio(false); setEditEducation(false); setEditTeach(false); setEditLearn(false); setEditExperience(false); }}
+            onSave={() => { setEditCertificates(false); }}
+            onCancel={() => { setEditCertificates(false); }}
+            autoFocus={!editAll && editCertificates && !editBio && !editEducation && !editTeach && !editLearn && !editExperience}
+          />
         </div>
-        {/* Right: Gamification Stats */}
-        <div className="md:basis-1/4 flex flex-col">
-          <GamificationStats credits={credits} badges={badges} rank={rank} />
+        {/* Gamification Stats */}
+        <div className="md:w-1/3 flex flex-col mt-0 md:mt-0">
+          <GamificationStats credits={profile.credits} badges={profile.badges} rank={profile.rank} />
         </div>
       </div>
     </div>

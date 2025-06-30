@@ -1,57 +1,46 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { Camera } from 'lucide-react';
 
-const UserInfoSection = ({ fullName, setFullName, email, setEmail, profilePicPreview, handleProfilePicChange }) => {
-  // Simulate fetching user info from backend
-  useEffect(() => {
-    // Example: fetchUserInfo().then(({ fullName, email }) => { setFullName(fullName); setEmail(email); });
-    // For now, set static sample data
-    // setFullName("Ananya Sharma");
-    // setEmail("ananya@example.com");
-  }, [setFullName, setEmail]);
-
+const UserInfoSection = ({ fullName, setFullName, email, setEmail, profilePicPreview, handleProfilePicChange, editMode }) => {
   return (
-    <div className="space-y-6">
-      {/* Full Name */}
-      <div>
-        <label className="block font-semibold mb-1">Full Name</label>
+    <div className="flex flex-col md:flex-row items-center gap-6 mb-6">
+      {/* Profile Picture */}
+      <div className="relative w-28 h-28">
+        <img
+          src={profilePicPreview}
+          alt="Profile Preview"
+          className="w-full h-full object-cover rounded-full border border-gray-300"
+        />
+        {/* Camera icon (upload trigger) */}
+        <label className={`absolute bottom-0 right-0 bg-white rounded-full p-1 shadow ${!editMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <Camera className="w-5 h-5 text-gray-600" />
+          <input
+            type="file"
+            accept="image/png, image/jpeg"
+            onChange={editMode ? handleProfilePicChange : undefined}
+            className="hidden"
+            disabled={!editMode}
+          />
+        </label>
+      </div>
+      {/* User Info (Full Name and Email) */}
+      <div className="flex flex-col items-start justify-center flex-1 w-full">
         <input
           type="text"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          placeholder="Enter your full name"
           value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          required
+          onChange={e => setFullName(e.target.value)}
+          readOnly={!editMode}
+          className="text-lg font-semibold text-blue-900 break-all bg-transparent border-b focus:outline-none w-full"
+          placeholder="Full Name"
         />
-      </div>
-      {/* Email Address */}
-      <div>
-        <label className="block font-semibold mb-1">Email Address</label>
         <input
           type="email"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-gray-100"
-          placeholder="Enter your email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
+          onChange={e => setEmail(e.target.value)}
+          readOnly={!editMode}
+          className="text-base text-gray-600 break-all bg-transparent border-b focus:outline-none w-full"
+          placeholder="Email"
         />
-      </div>
-      {/* Profile Picture Upload */}
-      <div>
-        <label className="block font-semibold mb-1">Upload Profile Picture <span className="font-normal text-gray-500">(optional, jpg/png)</span></label>
-        <input
-          type="file"
-          accept="image/png, image/jpeg"
-          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          onChange={handleProfilePicChange}
-        />
-        {profilePicPreview && (
-          <img
-            src={profilePicPreview}
-            alt="Profile Preview"
-            className="mt-3 w-24 h-24 rounded-full object-cover border border-gray-300 mx-auto"
-          />
-        )}
       </div>
     </div>
   );
