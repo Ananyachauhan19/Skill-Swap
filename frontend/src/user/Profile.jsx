@@ -4,6 +4,7 @@ import SkillsTeachSection from "./sections/SkillsTeachSection";
 import SkillsLearnSection from "./sections/SkillsLearnSection";
 import BioSection from "./sections/BioSection";
 import GamificationStats from "./sections/GamificationStats";
+import toast, { Toaster } from 'react-hot-toast';
 
 const Profile = () => {
   // User Info
@@ -76,11 +77,12 @@ const Profile = () => {
   const handleSave = (e) => {
     e.preventDefault();
     // TODO: Send all data to backend
-    alert("Profile saved! (Implement backend integration)");
+    toast.success("Profile saved!");
   };
 
   return (
     <div className="max-w-xl mx-auto bg-white rounded-xl shadow-lg p-6 mt-8">
+      <Toaster position="top-center" />
       <h1 className="text-2xl font-bold mb-6 text-center">Create Your SkillSwap Profile</h1>
       <form className="space-y-6" onSubmit={handleSave}>
         <UserInfoSection
