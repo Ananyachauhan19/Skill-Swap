@@ -9,6 +9,7 @@ import Register from './auth/Register';
 import OneOnOne from './user/OneOnOne';
 import Discuss from './user/Discuss';
 import Interview from './user/Interview';
+import Profile from './user/Profile';
 
 function App() {
   const isRegistered = localStorage.getItem('isRegistered') === 'true';
@@ -27,7 +28,7 @@ function App() {
           <Route path="/one-on-one" element={<OneOnOne />} />
           <Route path="/discuss" element={<Discuss />} />
           <Route path="/interview" element={<Interview />} />
-          <Route path="/profile" element={<div className='min-h-screen flex items-center justify-center text-2xl font-bold'>Profile Page (Coming Soon)</div>} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>
       {!isLoginPage && <Footer />}
