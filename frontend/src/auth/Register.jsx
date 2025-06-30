@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaEye, FaEyeSlash, FaGoogle, FaLinkedinIn, FaExclamationCircle, FaMale, FaFemale } from 'react-icons/fa';
+import { FaEye, FaEyeSlash, FaExclamationCircle, FaMale, FaFemale } from 'react-icons/fa';
 import { MdOutlineMoreHoriz } from 'react-icons/md';
 
 const RegisterPage = () => {
@@ -105,36 +105,21 @@ const RegisterPage = () => {
     }, 1500);
   };
 
-  // Social login handlers
-  const handleGoogleLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate('/home');
-    }, 1500);
-  };
-
-  const handleLinkedInLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate('/home');
-    }, 1500);
-  };
-
   return (
     <div 
-      className="min-h-screen flex items-start justify-center pt-16 pb-10 px-4"
+      className="h-screen flex items-center justify-center p-4"
       style={{
         backgroundImage: "url('/assets/background-login.png')",
         backgroundSize: 'cover',
-        backgroundPosition: 'center'
+        backgroundPosition: 'center',
+        overflow: 'hidden'
       }}
     >
       {/* Hide scrollbar globally */}
       <style>
         {`
           body {
+            overflow: hidden;
             -ms-overflow-style: none;
             scrollbar-width: none;
           }
@@ -145,12 +130,12 @@ const RegisterPage = () => {
       </style>
 
       {/* Main Container */}
-      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+      <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
         
         {/* Left Panel - Fixed Background with Floating Carousel */}
         <div 
           ref={leftPanelRef}
-          className="w-full md:w-1/2 relative min-h-[350px] md:min-h-[550px] overflow-hidden"
+          className="w-full md:w-1/2 relative h-[40vh] md:h-auto overflow-hidden"
           style={{
             backgroundImage: "url('/assets/leftpanel-background.png')",
             backgroundSize: 'cover',
@@ -212,8 +197,8 @@ const RegisterPage = () => {
         </div>
 
         {/* Right Panel - Registration Form */}
-        <div className="w-full md:w-1/2 p-8 md:p-10">
-          <h1 className="text-3xl font-bold text-[#154360] mb-8">Create an Account</h1>
+        <div className="w-full md:w-1/2 p-6 md:p-8 overflow-y-auto">
+          <h1 className="text-2xl md:text-3xl font-bold text-[#154360] mb-4 md:mb-6">Create an Account</h1>
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm flex items-center">
               <FaExclamationCircle className="mr-2" />
@@ -221,77 +206,114 @@ const RegisterPage = () => {
             </div>
           )}
 
-          {/* Social Login Buttons */}
-          <div className="space-y-4 mb-6">
-            <button
-              onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <FaGoogle className="text-[#DB4437] mr-3" />
-              <span className="font-medium">Sign up with Google</span>
-            </button>
-            <button
-              onClick={handleLinkedInLogin}
-              className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <FaLinkedinIn className="text-[#0077B5] mr-3" />
-              <span className="font-medium">Sign up with LinkedIn</span>
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className="flex items-center my-6">
-            <div className="flex-grow border-t border-gray-300"></div>
-            <span className="mx-4 text-gray-500">or</span>
-            <div className="flex-grow border-t border-gray-300"></div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex gap-4">
-              <input type="text" name="firstName" placeholder="First Name*" value={form.firstName} onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none" />
-              <input type="text" name="lastName" placeholder="Last Name" value={form.lastName} onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none" />
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="flex gap-3">
+              <input 
+                type="text" 
+                name="firstName" 
+                placeholder="First Name*" 
+                value={form.firstName} 
+                onChange={handleChange}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none text-sm md:text-base" 
+              />
+              <input 
+                type="text" 
+                name="lastName" 
+                placeholder="Last Name" 
+                value={form.lastName} 
+                onChange={handleChange}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none text-sm md:text-base" 
+              />
             </div>
-            <input type="email" name="email" placeholder="Email*" value={form.email} onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none" />
-            <input type="tel" name="phone" placeholder="Phone*" value={form.phone} onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none" />
+            
+            <input 
+              type="email" 
+              name="email" 
+              placeholder="Email*" 
+              value={form.email} 
+              onChange={handleChange}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none text-sm md:text-base" 
+            />
+            
+            <input 
+              type="tel" 
+              name="phone" 
+              placeholder="Phone*" 
+              value={form.phone} 
+              onChange={handleChange}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none text-sm md:text-base" 
+            />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Gender*</label>
-              <div className="flex gap-4">
-                <button type="button" className={`border px-4 py-2 rounded-full flex items-center gap-2 ${form.gender === 'male' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`} onClick={() => setForm({ ...form, gender: 'male' })}>
-                  <FaMale /> Male
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  type="button" 
+                  className={`border px-3 py-1.5 rounded-full flex items-center gap-1 text-sm ${form.gender === 'male' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`} 
+                  onClick={() => setForm({ ...form, gender: 'male' })}
+                >
+                  <FaMale className="text-sm" /> Male
                 </button>
-                <button type="button" className={`border px-4 py-2 rounded-full flex items-center gap-2 ${form.gender === 'female' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`} onClick={() => setForm({ ...form, gender: 'female' })}>
-                  <FaFemale /> Female
+                <button 
+                  type="button" 
+                  className={`border px-3 py-1.5 rounded-full flex items-center gap-1 text-sm ${form.gender === 'female' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`} 
+                  onClick={() => setForm({ ...form, gender: 'female' })}
+                >
+                  <FaFemale className="text-sm" /> Female
                 </button>
-                <button type="button" className={`border px-4 py-2 rounded-full flex items-center gap-2 ${form.gender === 'other' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`} onClick={() => setForm({ ...form, gender: 'other' })}>
-                  <MdOutlineMoreHoriz /> More Options
+                <button 
+                  type="button" 
+                  className={`border px-3 py-1.5 rounded-full flex items-center gap-1 text-sm ${form.gender === 'other' ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`} 
+                  onClick={() => setForm({ ...form, gender: 'other' })}
+                >
+                  <MdOutlineMoreHoriz className="text-sm" /> More
                 </button>
               </div>
             </div>
 
             <div className="relative">
-              <input type={showPassword ? 'text' : 'password'} name="password" placeholder="Password*" value={form.password} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none" />
-              <span onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500">{showPassword ? <FaEyeSlash /> : <FaEye />}</span>
+              <input 
+                type={showPassword ? 'text' : 'password'} 
+                name="password" 
+                placeholder="Password*" 
+                value={form.password} 
+                onChange={handleChange} 
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none text-sm md:text-base" 
+              />
+              <span 
+                onClick={() => setShowPassword(!showPassword)} 
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
             </div>
 
             <div className="relative">
-              <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" placeholder="Confirm Password*" value={form.confirmPassword} onChange={handleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none" />
-              <span onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500">{showConfirmPassword ? <FaEyeSlash /> : <FaEye />}</span>
+              <input 
+                type={showConfirmPassword ? 'text' : 'password'} 
+                name="confirmPassword" 
+                placeholder="Confirm Password*" 
+                value={form.confirmPassword} 
+                onChange={handleChange} 
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none text-sm md:text-base" 
+              />
+              <span 
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)} 
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
             </div>
 
             <div className="text-xs text-gray-500">
-              <input type="checkbox" className="mr-2" />
-              All your information is collected, stored and processed as per our data processing guidelines. By signing up, you agree to our <a href="#" className="text-blue-600">Privacy Policy</a> and <a href="#" className="text-blue-600">Terms of Use</a>.
+              <input type="checkbox" className="mr-2" required />
+              I agree to the <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a> and <a href="#" className="text-blue-600 hover:underline">Terms of Use</a>
             </div>
 
             <button 
               type="submit" 
               disabled={isLoading}
-              className={`w-full py-3.5 bg-gradient-to-r from-blue-800 to-blue-900 rounded-lg font-semibold text-white shadow-md transition-all flex items-center justify-center ${
+              className={`w-full py-3 bg-gradient-to-r from-blue-800 to-blue-900 rounded-lg font-semibold text-white shadow-md transition-all flex items-center justify-center text-sm md:text-base ${
                 isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:opacity-90'
               }`}
             >
@@ -301,13 +323,16 @@ const RegisterPage = () => {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               ) : (
-                'Next'
+                'Create Account'
               )}
             </button>
 
-            <div className="text-center text-sm mt-4">
+            <div className="text-center text-xs md:text-sm mt-3">
               Already have an account?{' '}
-              <button onClick={() => navigate('/login')} className="text-blue-600 hover:underline font-semibold">
+              <button 
+                onClick={() => navigate('/login')} 
+                className="text-blue-600 hover:underline font-semibold"
+              >
                 Login
               </button>
             </div>
