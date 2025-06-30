@@ -94,8 +94,15 @@ const CertificatesSection = ({ certificates, setCertificates, editMode, onAddCli
               {certArray.map((cert, idx) => (
                 <li key={idx} className="border-b border-gray-100 pb-2">
                   <div>
-                    <span className="font-medium">{cert.name}</span> from <span className="font-medium">{cert.issuer}</span> <span className="text-gray-500">({cert.year})</span>
-                    {cert.fileName && <span className="ml-2 text-xs text-green-600">📄 {cert.fileName}</span>}
+                    {cert.name || cert.issuer ? (
+                      <>
+                        {cert.name && <span className="font-medium">{cert.name}</span>}
+                        {cert.name && cert.issuer && ' from '}
+                        {cert.issuer && <span className="font-medium">{cert.issuer}</span>}
+                        {cert.year && <span className="text-gray-500"> ({cert.year})</span>}
+                        {cert.fileName && <span className="ml-2 text-xs text-green-600">📄 {cert.fileName}</span>}
+                      </>
+                    ) : null}
                   </div>
                   {cert.description && <div className="text-sm text-gray-600 mt-1 whitespace-pre-line">{cert.description}</div>}
                 </li>
