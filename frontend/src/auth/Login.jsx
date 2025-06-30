@@ -12,7 +12,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const leftPanelRef = useRef(null);
   
-  // Carousel images with descriptions - using local assets
+  // Carousel images with descriptions
   const carouselImages = [
     { 
       src: '/assets/carousel/live-session.png',
@@ -112,7 +112,10 @@ const LoginPage = () => {
         {/* Left Panel - Image Carousel */}
         <div 
           ref={leftPanelRef}
-          className="w-full md:w-1/2 relative min-h-[350px] md:min-h-[550px] bg-gray-900"
+          className="w-full md:w-1/2 relative min-h-[350px] md:min-h-[550px]"
+          style={{
+            backgroundColor: '#154360' // Fallback background color
+          }}
         >
           {/* Logo */}
           <div className="absolute top-6 left-6 z-20">
@@ -124,45 +127,29 @@ const LoginPage = () => {
           </div>
           
           {/* Carousel Images */}
-          <div className="absolute inset-0 flex items-center justify-center overflow-hidden">
-            {carouselImages.map((image, idx) => (
-              <div
-                key={idx}
-                className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                  currentImageIndex === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'
-                }`}
-              >
-                <img 
-                  src={image.src} 
-                  alt={image.title}
-                  className="w-full h-full object-cover"
-                />
-                {/* Image Title Overlay */}
-                <div className="absolute bottom-6 left-0 right-0 text-center z-20">
-                  <h3 className="text-white text-xl font-bold bg-black bg-opacity-50 px-4 py-2 rounded-lg inline-block">
-                    {image.title}
-                  </h3>
-                </div>
+          {carouselImages.map((image, idx) => (
+            <div
+              key={idx}
+              className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
+                currentImageIndex === idx ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              }`}
+            >
+              <img
+                src={image.src}
+                alt={image.title}
+                className="w-full h-full object-cover"
+              />
+              {/* Image Title Overlay */}
+              <div className="absolute bottom-6 left-0 right-0 text-center z-20">
+                <h3 className="text-white text-xl font-bold bg-black bg-opacity-50 px-4 py-2 rounded-lg inline-block">
+                  {image.title}
+                </h3>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
           
           {/* Dark overlay for better text contrast */}
-          <div className="absolute inset-0 bg-black bg-opacity-30 z-10" />
-          
-          {/* Carousel Indicators */}
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20">
-            {carouselImages.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentImageIndex(idx)}
-                className={`w-2.5 h-2.5 rounded-full mx-1 ${
-                  currentImageIndex === idx ? 'bg-white' : 'bg-gray-400'
-                }`}
-                aria-label={`Go to slide ${idx + 1}`}
-              />
-            ))}
-          </div>
+          <div className="absolute inset-0 bg-black bg-opacity-20 z-0" />
         </div>
         
         {/* Right Panel - Login Form */}
