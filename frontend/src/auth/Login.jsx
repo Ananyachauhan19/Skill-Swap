@@ -11,25 +11,21 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const leftPanelRef = useRef(null);
 
-  // Carousel images
   const carouselImages = [
     '/assets/carousel/live-session.png',
     '/assets/carousel/group-discussion.png',
     '/assets/carousel/job-interview.png'
   ];
 
-  // Duplicate images to create seamless loop (original + original)
   const extendedImages = [...carouselImages, ...carouselImages];
 
-  // Auto-rotate carousel every 5 seconds (right to left)
   useEffect(() => {
     const totalOriginalSlides = carouselImages.length;
-    const totalSlides = extendedImages.length;
 
     const interval = setInterval(() => {
       setCurrentImageIndex(prev => {
         if (prev >= totalOriginalSlides - 1) {
-          return 0; // Reset to start of first set
+          return 0;
         }
         return prev + 1;
       });
@@ -38,20 +34,18 @@ const LoginPage = () => {
     return () => clearInterval(interval);
   }, [carouselImages.length]);
 
-  // Reset transform instantly when reaching the duplicate set
   useEffect(() => {
     if (currentImageIndex >= carouselImages.length) {
       const timeout = setTimeout(() => {
         setCurrentImageIndex(0);
-      }, 1500); // Match transition duration
+      }, 1500);
       return () => clearTimeout(timeout);
     }
   }, [currentImageIndex, carouselImages.length]);
 
-  // Handle cursor movement for carousel navigation
   useEffect(() => {
     let lastMoveTime = 0;
-    const moveThreshold = 500; // 0.5 seconds
+    const moveThreshold = 500;
 
     const handleMouseMove = () => {
       const now = Date.now();
@@ -73,13 +67,11 @@ const LoginPage = () => {
     }
   }, [carouselImages.length]);
 
-  // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
   };
 
-  // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!form.email || !form.password) {
@@ -98,7 +90,6 @@ const LoginPage = () => {
     }, 1500);
   };
 
-  // Social login handlers
   const handleGoogleLogin = () => {
     setIsLoading(true);
     setTimeout(() => {
@@ -115,12 +106,10 @@ const LoginPage = () => {
     }, 1500);
   };
 
-  // Determine login button color based on form input
   const loginButtonColor = form.email && form.password 
     ? 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950'
     : 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700';
 
-  // Hide scrollbar for entire page
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
@@ -137,7 +126,6 @@ const LoginPage = () => {
         backgroundPosition: 'center'
       }}
     >
-      {/* Hide scrollbar globally */}
       <style>
         {`
           body {
@@ -150,10 +138,7 @@ const LoginPage = () => {
         `}
       </style>
 
-      {/* Main Container */}
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
-        
-        {/* Left Panel - Fixed Background with Floating Carousel */}
         <div 
           ref={leftPanelRef}
           className="w-full md:w-1/2 relative min-h-[350px] md:min-h-[550px] overflow-hidden"
@@ -164,7 +149,6 @@ const LoginPage = () => {
             backgroundAttachment: 'fixed',
           }}
         >
-          {/* Logo */}
           <div className="absolute top-6 left-6 z-30">
             <img 
               src="/assets/skillswap-logo.jpg" 
@@ -173,7 +157,6 @@ const LoginPage = () => {
             />
           </div>
 
-          {/* Floating Carousel Container */}
           <div className="absolute inset-0 flex items-center justify-center z-20">
             <div className="relative w-[80%] h-[60%] overflow-hidden">
               <div 
@@ -199,7 +182,6 @@ const LoginPage = () => {
             </div>
           </div>
 
-          {/* Carousel Indicators */}
           <div className="absolute bottom-6 left-0 right-0 flex justify-center space-x-2 z-30">
             {carouselImages.map((_, idx) => (
               <button
@@ -213,16 +195,12 @@ const LoginPage = () => {
             ))}
           </div>
 
-          {/* Subtle gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 z-10" />
         </div>
 
-        {/* Right Panel - Login Form */}
         <div className="w-full md:w-1/2 p-8 md:p-10">
-          {/* Login Heading */}
           <h1 className="text-3xl font-bold text-[#154360] mb-8">Login</h1>
 
-          {/* Error Message */}
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm flex items-center">
               <FaExclamationCircle className="mr-2" />
@@ -230,7 +208,6 @@ const LoginPage = () => {
             </div>
           )}
 
-          {/* Social Login Buttons */}
           <div className="space-y-4 mb-6">
             <button
               onClick={handleGoogleLogin}
@@ -248,16 +225,13 @@ const LoginPage = () => {
             </button>
           </div>
 
-          {/* Divider */}
           <div className="flex items-center my-6">
             <div className="flex-grow border-t border-gray-300"></div>
             <span className="mx-4 text-gray-500">or</span>
             <div className="flex-grow border-t border-gray-300"></div>
           </div>
 
-          {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -273,7 +247,6 @@ const LoginPage = () => {
               />
             </div>
 
-            {/* Password Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Password
@@ -288,7 +261,6 @@ const LoginPage = () => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent outline-none transition-all"
                   autoComplete="current-password"
                 />
-                {/* Password Toggle */}
                 <button
                   type="button"
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
@@ -299,7 +271,6 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Forgot Password Link */}
             <div className="flex justify-end">
               <button
                 type="button"
@@ -310,7 +281,6 @@ const LoginPage = () => {
               </button>
             </div>
 
-            {/* Login Button */}
             <button
               type="submit"
               disabled={isLoading || !(form.email && form.password)}
@@ -329,7 +299,6 @@ const LoginPage = () => {
             </button>
           </form>
 
-          {/* Sign Up Link */}
           <div className="mt-8 text-center text-sm">
             <span className="text-gray-600">I don't have an account? </span>
             <button
