@@ -5,9 +5,11 @@ const Footer = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col lg:flex-row bg-gradient-to-br from-blue-100 to-blue-200 text-blue-800 shadow-lg border-t border-blue-300">
+   <div className="flex flex-col lg:flex-row bg-gradient-to-br from-blue-50 to-blue-100 text-blue-800 shadow-lg border-t border-blue-300">
       {/* Left Side - 30% */}
       <div className="w-full lg:w-[30%] p-6 sm:p-8 flex flex-col justify-between">
+
+        
         {/* Logo and Title */}
         <div
           className="flex items-center gap-4 cursor-pointer transition-transform duration-300 hover:scale-105"
@@ -20,7 +22,7 @@ const Footer = () => {
           />
           <div>
             <h1 className="text-2xl font-extrabold text-blue-900">SkillSwapHub</h1>
-            <p className="text-sm text-blue-600 leading-relaxed">
+            <p className="text-sm text-gray-800 leading-relaxed">
               Empowering people to learn, teach, and grow together
             </p>
           </div>
@@ -29,7 +31,7 @@ const Footer = () => {
         {/* Real-time 1-on-1 Session */}
         <div className="mt-6">
           <h2 className="text-lg font-semibold text-blue-900 mb-2">Real-time 1-on-1 Session</h2>
-          <p className="text-sm text-blue-600 mb-4">Schedule your live session now!</p>
+          <p className="text-sm text-gray-800 mb-4">Schedule your live session now!</p>
           <button
             onClick={() => navigate('/one-on-one')}
             className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:from-blue-800 hover:to-blue-600 hover:scale-105 hover:shadow-lg"
@@ -46,7 +48,7 @@ const Footer = () => {
               <span className="font-semibold text-blue-800 text-sm w-16">Email:</span>
               <a
                 href="mailto:skillswaphub@example.com"
-                className="text-blue-600 hover:underline text-sm break-all"
+                className="text-gray-800 hover:underline text-sm break-all"
               >
                 skillswaphub@example.com
               </a>
@@ -55,7 +57,7 @@ const Footer = () => {
               <span className="font-semibold text-blue-800 text-sm w-16">Mobile:</span>
               <a
                 href="tel:+917508669870"
-                className="text-blue-600 hover:underline text-sm"
+                className="text-gray-800 hover:underline text-sm"
               >
                 +917508669870
               </a>
@@ -87,7 +89,7 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div className="mt-6 text-blue-600 text-sm">
+        <div className="mt-6 text-gray-800 text-sm">
           © {new Date().getFullYear()} SkillSwapHub. All rights reserved.
         </div>
       </div>
@@ -97,7 +99,7 @@ const Footer = () => {
         {/* Header */}
         <div className="mb-8">
           <h2 className="text-3xl font-extrabold text-blue-900 mb-3">Stay Updated</h2>
-          <p className="text-base text-blue-600 max-w-2xl leading-relaxed">
+          <p className="text-base text-gray-800 max-w-2xl leading-relaxed">
             Empowering people to learn, teach, and grow together through live sessions, group discussions, and real interview practice.
           </p>
         </div>
@@ -109,22 +111,22 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-blue-900 mb-3 border-b border-blue-300 pb-2">Product</h3>
             <ul className="space-y-3">
               <li>
-                <a href="/one-on-one" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="/one-on-one" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   1-on-1 Sessions
                 </a>
               </li>
               <li>
-                <a href="/discuss" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="/discuss" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Group Discussion
                 </a>
               </li>
               <li>
-                <a href="/interview" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="/interview" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Interview Practice
                 </a>
               </li>
               <li>
-                <a href="/workshops" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="/workshops" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Workshops
                 </a>
               </li>
@@ -136,22 +138,22 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-blue-900 mb-3 border-b border-blue-300 pb-2">Company</h3>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   About Us
                 </a>
               </li>
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Careers
                 </a>
               </li>
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Blog
                 </a>
               </li>
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Press
                 </a>
               </li>
@@ -163,22 +165,22 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-blue-900 mb-3 border-b border-blue-300 pb-2">Support</h3>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Help Center
                 </a>
               </li>
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Contact Us
                 </a>
               </li>
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   FAQs
                 </a>
               </li>
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Community
                 </a>
               </li>
@@ -190,22 +192,22 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-blue-900 mb-3 border-b border-blue-300 pb-2">Legal</h3>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Terms of Service
                 </a>
               </li>
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Privacy Policy
                 </a>
               </li>
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Cookie Policy
                 </a>
               </li>
               <li>
-                <a href="#" className="text-blue-600 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   GDPR
                 </a>
               </li>
@@ -220,7 +222,7 @@ const Footer = () => {
             <input
               type="email"
               placeholder="Your email address"
-              className="flex-grow px-4 py-2 rounded-full bg-white border border-blue-300 text-blue-800 placeholder-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 hover:shadow-md"
+              className="flex-grow px-4 py-2 rounded-full bg-white border border-blue-300 text-gray-800 placeholder-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 hover:shadow-md"
             />
             <button
               className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:from-blue-800 hover:to-blue-600 hover:scale-105 hover:shadow-lg"

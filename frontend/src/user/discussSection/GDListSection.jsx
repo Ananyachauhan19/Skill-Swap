@@ -54,8 +54,8 @@ const GDRulesModal = ({ open, onClose }) => (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full relative">
         <button className="absolute top-2 right-2 text-gray-500 text-xl" onClick={onClose}>×</button>
-        <h3 className="text-xl font-bold mb-2">GD Rules & Guidelines</h3>
-        <ul className="list-disc pl-5 text-gray-700 text-sm space-y-1">
+        <h3 className="text-xl font-bold text-blue-900 mb-2">GD Rules & Guidelines</h3>
+        <ul className="list-disc pl-5 text-gray-600 text-sm space-y-1">
           <li>Be respectful and let everyone speak.</li>
           <li>Stay on topic and avoid personal attacks.</li>
           <li>Keep your mic muted when not speaking.</li>
@@ -76,7 +76,7 @@ const MiniBioButton = ({ bio }) => {
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg p-4 max-w-xs w-full relative">
             <button className="absolute top-1 right-2 text-gray-500 text-xl" onClick={() => setShow(false)}>×</button>
-            <div className="text-sm text-gray-800">{bio}</div>
+            <div className="text-sm text-gray-600">{bio}</div>
           </div>
         </div>
       )}
@@ -93,19 +93,19 @@ const GDCard = ({ gd, onRules }) => (
         className="w-12 h-12 rounded-full object-cover border border-blue-200"
       />
       <div className="ml-3">
-        <div className="font-semibold text-blue-800">{gd.expert.name}</div>
+        <div className="font-semibold text-blue-900">{gd.expert.name}</div>
         <MiniBioButton bio={gd.expert.miniBio} />
       </div>
     </div>
-    <div className="text-gray-700 text-sm mb-1 flex items-center gap-2">
+    <div className="text-gray-600 text-sm mb-1 flex items-center gap-2">
       <span role="img" aria-label="calendar">📅</span> {new Date(gd.date).toLocaleDateString()} |
       <span role="img" aria-label="clock">🕒</span> {gd.time.replace('-', ' - ')}
     </div>
-    <div className="text-blue-700 font-semibold text-sm mb-1"><span role="img" aria-label="credits">💰</span> {gd.credits} Credits</div>
-    <div className="text-gray-700 text-sm mb-1"><span role="img" aria-label="seats">🎟</span> {gd.seats}/{gd.totalSeats} Remaining</div>
+    <div className="text-blue-900 font-semibold text-sm mb-1"><span role="img" aria-label="credits">💰</span> {gd.credits} Credits</div>
+    <div className="text-gray-600 text-sm mb-1"><span role="img" aria-label="seats">🎟</span> {gd.seats}/{gd.totalSeats} Remaining</div>
     <div className="flex flex-wrap gap-1 mb-2">
       {gd.tags.map((tag, idx) => (
-        <span key={idx} className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-medium">{tag}</span>
+        <span key={idx} className="bg-blue-100 text-blue-900 px-2 py-0.5 rounded-full text-xs font-medium">{tag}</span>
       ))}
     </div>
     <div className="flex gap-2 mt-auto">
@@ -116,7 +116,7 @@ const GDCard = ({ gd, onRules }) => (
         Book Slot
       </button>
       <button
-        className="px-3 py-1 rounded-full text-blue-700 border border-blue-300 bg-blue-50 hover:bg-blue-100 text-xs font-semibold"
+        className="px-3 py-1 rounded-full text-blue-900 border border-blue-300 bg-blue-50 hover:bg-blue-100 text-xs font-semibold"
         onClick={onRules}
         type="button"
       >
@@ -154,7 +154,7 @@ const GDListSection = () => {
   return (
     <>
       <section className="w-full flex flex-col items-center py-8 bg-blue-50 border-t border-blue-200">
-        <h3 className="text-2xl font-bold text-blue-800 mb-6">Upcoming Group Discussions</h3>
+        <h3 className="text-2xl font-bold text-blue-900 mb-6">Upcoming Group Discussions</h3>
         <div className="flex flex-wrap gap-6 justify-center w-full">
           {demoGD.map(gd => (
             <GDCard key={gd.id} gd={gd} onRules={() => setShowRules(true)} />
@@ -162,7 +162,6 @@ const GDListSection = () => {
         </div>
         <GDRulesModal open={showRules} onClose={() => setShowRules(false)} />
       </section>
-      
     </>
   );
 };
