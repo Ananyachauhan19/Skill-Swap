@@ -31,7 +31,7 @@ const OneOnOne = () => {
       <header className="w-full max-w-7xl mx-auto text-center py-16 px-4 relative overflow-hidden">
         <AnimatedHeaderBG />
         <div className="relative z-10">
-          <h2 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-900 to-blue-500 mb-4 drop-shadow-lg">
+          <h2 className="text-3xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-900 to-blue-500 mb-4 drop-shadow-lg">
             1-on-1 Expert Connect
           </h2>
           <p className="text-xl sm:text-2xl text-blue-700 font-medium max-w-2xl mx-auto mb-2">
