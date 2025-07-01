@@ -28,23 +28,23 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] text-blue-800 px-4 sm:px-8 py-3 shadow-md border-b border-blue-200 z-30 animate-fadeIn">
-      <div className="flex items-center justify-between max-w-6xl mx-auto">
+    <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-blue-50 to-blue-100 text-blue-800 px-4 sm:px-8 py-4 shadow-lg border-b border-blue-200 z-50">
+      <div className="flex items-center justify-between max-w-7xl mx-auto">
         {/* Logo Section */}
         <div
-          className="flex items-center gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
+          className="flex items-center gap-3 cursor-pointer transition-transform duration-300 hover:scale-105"
           onClick={() => navigate('/')}
         >
           <img
             src="/assets/skillswap-logo.jpg"
             alt="SkillSwapHub Logo"
-            className="h-8 w-8 object-contain rounded-full shadow-sm"
+            className="h-10 w-10 object-contain rounded-full border-2 border-blue-200 shadow-sm"
           />
-          <span className="text-xl font-bold text-blue-900 tracking-tight">SkillSwapHub</span>
+          <span className="text-2xl font-extrabold text-blue-900 tracking-tight">SkillSwapHub</span>
         </div>
 
         {/* Right Side Nav Links (after logo) */}
-        <div className="hidden sm:flex items-center gap-6">
+        <div className="hidden lg:flex items-center gap-8">
           <div className="flex gap-6">
             {[
               { path: '/home', label: 'Home' },
@@ -54,10 +54,10 @@ const Navbar = () => {
             ].map(({ path, label }) => (
               <button
                 key={path}
-                className={`text-sm font-medium px-3 py-1 rounded-md transition-all duration-300 transform ${
+                className={`text-base font-semibold px-4 py-2 rounded-full transition-all duration-300 ${
                   isActive(path)
-                    ? 'bg-blue-100 text-blue-900 font-semibold border-b-2 border-blue-900 shadow-sm'
-                    : 'text-blue-900 hover:bg-blue-50 hover:text-blue-900 hover:border-b-2 hover:border-blue-900 hover:scale-105'
+                    ? 'bg-blue-200 text-blue-900 shadow-md border-b-2 border-blue-700'
+                    : 'text-blue-800 hover:bg-blue-100 hover:text-blue-900 hover:shadow-sm hover:scale-105'
                 }`}
                 onClick={() => navigate(path)}
               >
@@ -74,14 +74,14 @@ const Navbar = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search skills..."
-                className="pl-8 pr-3 py-1.5 text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-blue-800 placeholder-blue-800 w-40 opacity-80"
+                className="pl-10 pr-4 py-2 text-sm rounded-full bg-white border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-800 placeholder-blue-600 w-48 transition-all duration-300 hover:shadow-md"
               />
               <button
                 type="submit"
-                className="absolute left-2 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-700"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-800"
               >
                 <svg
-                  className="w-4 h-4"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -98,68 +98,11 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Hamburger for Mobile */}
-        <button
-          className="sm:hidden p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-transform duration-300 hover:scale-110"
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="Toggle menu"
-        >
-          <svg className="w-6 h-6 text-blue-600 hover:text-blue-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
-          </svg>
-        </button>
-
-        {/* Mobile Menu */}
-        {menuOpen && (
-          <div className="sm:hidden absolute top-full left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] shadow-xl border-t border-blue-200 p-4 mt-1 z-20">
-            <MobileMenu
-              isLoggedIn={isLoggedIn}
-              navigate={navigate}
-              setShowProfileMenu={setShowProfileMenu}
-              showProfileMenu={showProfileMenu}
-              menuRef={menuRef}
-              setMenuOpen={setMenuOpen}
-              ProfileDropdown={ProfileDropdown}
-            />
-            {/* Mobile Search */}
-            <form onSubmit={handleSearch} className="mt-4">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search skills..."
-                  className="w-full pl-8 pr-3 py-1.5 text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-blue-800 placeholder-blue-800 opacity-80"
-                />
-                <button
-                  type="submit"
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-700"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
         {/* Desktop Login/Profile */}
-        <div className="hidden sm:flex items-center gap-4">
+        <div className="hidden lg:flex items-center gap-6">
           {!isLoggedIn ? (
             <button
-              className="bg-blue-700 text-white px-4 py-1 rounded-md font-medium tracking-wide transition-all duration-300 hover:bg-blue-800 hover:shadow-md hover:scale-105"
-              composición
+              className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:from-blue-800 hover:to-blue-600 hover:scale-105 hover:shadow-lg"
               onClick={() => navigate('/login')}
             >
               Login
@@ -167,9 +110,7 @@ const Navbar = () => {
           ) : (
             <div className="relative">
               <button
-                className="w
-
--10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:text-blue-700 hover:shadow-md hover:scale-110"
+                className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-200 transition-all duration-300 hover:bg-blue-200 hover:text-blue-800 hover:shadow-lg hover:scale-110"
                 onClick={() => setShowProfileMenu((v) => !v)}
                 title="Profile"
                 aria-label="Profile"
@@ -187,6 +128,62 @@ const Navbar = () => {
             </div>
           )}
         </div>
+
+        {/* Hamburger for Mobile */}
+        <button
+          className="lg:hidden p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-transform duration-300 hover:scale-110"
+          onClick={() => setMenuOpen((v) => !v)}
+          aria-label="Toggle menu"
+        >
+          <svg className="w-7 h-7 text-blue-600 hover:text-blue-800" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+          </svg>
+        </button>
+
+        {/* Mobile Menu */}
+        {menuOpen && (
+          <div className="lg:hidden absolute top-full left-0 w-full bg-gradient-to-br from-blue-50 to-blue-100 shadow-xl border-t border-blue-200 p-6 mt-1 z-40">
+            <MobileMenu
+              isLoggedIn={isLoggedIn}
+              navigate={navigate}
+              setShowProfileMenu={setShowProfileMenu}
+              showProfileMenu={showProfileMenu}
+              menuRef={menuRef}
+              setMenuOpen={setMenuOpen}
+              ProfileDropdown={ProfileDropdown}
+            />
+            {/* Mobile Search */}
+            <form onSubmit={handleSearch} className="mt-6">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search skills..."
+                  className="w-full pl-10 pr-4 py-2 text-sm rounded-full bg-white border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-800 placeholder-blue-600 transition-all duration-300 hover:shadow-md"
+                />
+                <button
+                  type="submit"
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-800"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </div>
     </nav>
   );

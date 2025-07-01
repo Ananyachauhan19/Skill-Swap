@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaExchangeAlt, FaChalkboardTeacher, FaUsers, FaComments } from "react-icons/fa";
+import { FaExchangeAlt, FaChalkboardTeacher, FaUsers, FaComments, FaRocket } from "react-icons/fa";
 
 // Image imports
 const oneOnOneImg = "/assets/one-on-one.png";
@@ -100,48 +100,48 @@ const Home = () => {
 
   return (
     <main className="bg-gray-50 text-gray-800 min-h-screen font-[Poppins,Inter,sans-serif] overflow-hidden">
-      {/* Hero Section */}
-      <section className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Left Panel */}
-          <div className="lg:col-span-3 flex flex-col justify-center">
-            <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-800 to-blue-500">
-              Swapping Skills <br /> Together
-            </h1>
-            <p className="text-lg sm:text-xl text-gray-600 mt-6 max-w-2xl leading-relaxed">
-              Empower your learning journey with live sessions, collaborative discussions, and real-world interview practice.
-            </p>
-            <button
-              onClick={() => navigate("/pro")}
-              className="mt-8 bg-gradient-to-r from-blue-700 to-blue-500 text-white px-8 py-3 rounded-full font-semibold flex items-center gap-3 w-fit hover:from-blue-800 hover:to-blue-600 hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg"
-            >
-              <FaExchangeAlt className="w-5 h-5" />
-              <span className="text-lg">Swap Skills Pro</span>
-            </button>
-          </div>
+    /* Hero Section */
+<section className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-8 relative">
+  <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+    {/* Left Panel */}
+    <div className="lg:col-span-3 flex flex-col justify-center">
+      <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-800 to-blue-500">
+        Swapping Skills <br /> Together
+      </h1>
+      <p className="text-lg sm:text-xl text-gray-600 mt-6 max-w-2xl leading-relaxed">
+        Empower your learning journey with live sessions, collaborative discussions, and real-world interview practice.
+      </p>
+      <button
+        onClick={() => navigate("/pro")}
+        className="mt-8 bg-gradient-to-r from-blue-700 to-blue-500 text-white px-8 py-3 rounded-full font-semibold flex items-center gap-3 w-fit hover:from-blue-800 hover:to-blue-600 hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg"
+      >
+        <FaExchangeAlt className="w-5 h-5" />
+        <span className="text-lg">Swap Skills Pro</span>
+      </button>
+    </div>
 
-          {/* Right Panel - Feature Tabs */}
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {featureTabs.map((tab, idx) => (
-              <div
-                key={tab.title}
-                className={`${tab.bg} rounded-2xl p-6 shadow-md border border-blue-100 hover:shadow-xl hover:scale-105 transition-all duration-300 ${
-                  tab.disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
-                }`}
-                onClick={() => !tab.disabled && navigate(tab.path)}
-              >
-                <div className="flex items-center gap-4">
-                  <img src={tab.img} alt={tab.title} className="w-16 h-16 object-contain" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-800">{tab.title}</h3>
-                    <p className="text-sm text-blue-600">{tab.subtitle}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+    {/* Right Panel - Feature Tabs */}
+    <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 z-10">
+      {featureTabs.map((tab, idx) => (
+        <div
+          key={tab.title}
+          className={`${tab.bg} rounded-2xl p-0 shadow-md border border-blue-100 hover:shadow-xl hover:scale-105 transition-all duration-300 ${
+            tab.disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+          } overflow-hidden`}
+          onClick={() => !tab.disabled && navigate(tab.path)}
+        >
+          <img
+            src={tab.img}
+            alt={tab.title}
+            className="w-full h-full object-cover"
+          />
         </div>
-      </section>
+      ))}
+    </div>
+  </div>
+
+ 
+</section>
 
       {/* Activity Section (Stats) */}
       <section className="bg-blue-50 py-16 sm:py-20 px-4 sm:px-8">
@@ -243,6 +243,25 @@ const Home = () => {
               Our platform transforms learning into an interactive experience. Earn credits by sharing your expertise and use them to learn new skills. With live sessions and collaborative projects, Swap Skills Pro empowers you to grow actively within a vibrant community.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Let's Start Section */}
+      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-blue-100">
+        <div className="max-w-7xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-5xl font-bold text-blue-800 mb-6">
+            Let's Start Your Learning Journey
+          </h2>
+          <p className="text-lg sm:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
+            Join thousands of learners and mentors in a community where knowledge is shared, skills are swapped, and growth is limitless. Start today and unlock your potential!
+          </p>
+          <button
+            onClick={() => navigate("/register")}
+            className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-10 py-4 rounded-full font-semibold flex items-center gap-3 mx-auto hover:from-blue-800 hover:to-blue-600 hover:scale-110 transition-all duration-300 shadow-lg hover:shadow-xl"
+          >
+            <FaRocket className="w-6 h-6" />
+            <span className="text-lg">Get Started Now</span>
+          </button>
         </div>
       </section>
     </main>
