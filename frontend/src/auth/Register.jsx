@@ -8,6 +8,7 @@ import {
   FaFemale,
 } from "react-icons/fa";
 import { MdOutlineMoreHoriz } from "react-icons/md";
+import axios from 'axios';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -91,46 +92,72 @@ const RegisterPage = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const {
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    gender,
+    password,
+    confirmPassword,
+  } = form;
+
+  // Basic validations
+  if (
+    !firstName ||
+    !lastName ||
+    !email ||
+    !phone ||
+    !gender ||
+    !password ||
+    !confirmPassword
+  ) {
+    setError("Please fill in all required fields.");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setError("Passwords do not match.");
+    return;
+  }
+
+  try {
+    setIsLoading(true);
+    setError("");
+
+    const res = await axios.post("http://localhost:5000/api/auth/register", {
       firstName,
       lastName,
       email,
       phone,
       gender,
       password,
-      confirmPassword,
-    } = form;
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !phone ||
-      !gender ||
-      !password ||
-      !confirmPassword
-    ) {
-      setError("Please fill in all required fields.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-    setIsLoading(true);
-    setTimeout(() => {
-      localStorage.setItem("isRegistered", "true");
-      setError("");
-      setIsLoading(false);
-      localStorage.setItem(
-        "registeredName",
-        (firstName || "") + (lastName ? " " + lastName : "")
-      );
-      localStorage.setItem("registeredEmail", email);
-      navigate("/home");
-    }, 1500);
-  };
+    });
+
+    const { token, user } = res.data;
+
+    // Save to localStorage
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem(
+      "registeredName",
+      `${firstName}${lastName ? " " + lastName : ""}`
+    );
+    localStorage.setItem("registeredEmail", email);
+
+    // Redirect to home
+    navigate("/home");
+  } catch (err) {
+    const message =
+      err.response?.data?.message || "Registration failed. Please try again.";
+    setError(message);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div

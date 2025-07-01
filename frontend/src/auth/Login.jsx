@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaGoogle, FaLinkedinIn, FaEye, FaEyeSlash, FaExclamationCircle } from 'react-icons/fa';
+import axios from 'axios';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -9,6 +10,8 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
   const leftPanelRef = useRef(null);
 
   const carouselImages = [
@@ -72,31 +75,72 @@ const LoginPage = () => {
     setForm({ ...form, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!form.email || !form.password) {
       setError('Please fill in all fields');
       return;
     }
-    // Check registration status
-    if (localStorage.getItem('isRegistered') !== 'true') {
-      setError('You must register before logging in.');
-      return;
-    }
+
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/login', form);
+
+      if (res.data.otpSent) {
+        setOtpStep(true);
+        setError('');
+      } else if (res.data.token && res.data.user) {
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        navigate('/home');
+      } else {
+        setError('Unexpected response from server.');
+      }
+    } catch (err) {
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Login failed. Try again.');
+      }
+    } finally {
       setIsLoading(false);
-      navigate('/home');
-    }, 1500);
+    }
   };
 
-  const handleGoogleLogin = () => {
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!otp) {
+      setError('Please enter the OTP');
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/verify-otp', {
+        email: form.email,
+        otp,
+      });
+
+      const { token, user } = res.data;
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
       navigate('/home');
-    }, 1500);
+    } catch (err) {
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('OTP verification failed');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  
 
   const handleLinkedInLogin = () => {
     setIsLoading(true);
@@ -106,7 +150,7 @@ const LoginPage = () => {
     }, 1500);
   };
 
-  const loginButtonColor = form.email && form.password 
+  const loginButtonColor = form.email && (otpStep ? otp : form.password)
     ? 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950'
     : 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700';
 
@@ -118,7 +162,7 @@ const LoginPage = () => {
   }, []);
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-start justify-center pt-16 pb-10 px-4"
       style={{
         backgroundImage: "url('/assets/background-login.png')",
@@ -139,7 +183,7 @@ const LoginPage = () => {
       </style>
 
       <div className="w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
-        <div 
+        <div
           ref={leftPanelRef}
           className="w-full md:w-1/2 relative min-h-[350px] md:min-h-[550px] overflow-hidden"
           style={{
@@ -150,16 +194,16 @@ const LoginPage = () => {
           }}
         >
           <div className="absolute top-6 left-6 z-30">
-            <img 
-              src="/assets/skillswap-logo.jpg" 
-              alt="SkillSwap Logo" 
+            <img
+              src="/assets/skillswap-logo.jpg"
+              alt="SkillSwap Logo"
               className="h-10 w-auto"
             />
           </div>
 
           <div className="absolute inset-0 flex items-center justify-center z-20">
             <div className="relative w-[80%] h-[60%] overflow-hidden">
-              <div 
+              <div
                 className="flex transition-transform ease-in-out"
                 style={{
                   transform: `translateX(-${100 * currentImageIndex}%)`,
@@ -167,10 +211,7 @@ const LoginPage = () => {
                 }}
               >
                 {extendedImages.map((src, idx) => (
-                  <div
-                    key={idx}
-                    className="min-w-full h-full"
-                  >
+                  <div key={idx} className="min-w-full h-full">
                     <img
                       src={src}
                       alt={`Feature ${idx + 1}`}
@@ -210,12 +251,13 @@ const LoginPage = () => {
 
           <div className="space-y-4 mb-6">
             <button
-              onClick={handleGoogleLogin}
-              className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <FaGoogle className="text-[#DB4437] mr-3" />
-              <span className="font-medium">Login with Google</span>
-            </button>
+  onClick={() => window.location.href = 'http://localhost:5000/api/auth/google'}
+  className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+>
+  <FaGoogle className="text-[#DB4437] mr-3" />
+  <span className="font-medium">Login with Google</span>
+</button>
+
             <button
               onClick={handleLinkedInLogin}
               className="w-full flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -231,11 +273,9 @@ const LoginPage = () => {
             <div className="flex-grow border-t border-gray-300"></div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={otpStep ? handleOtpSubmit : handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
                 type="email"
                 name="email"
@@ -247,45 +287,61 @@ const LoginPage = () => {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
+            {!otpStep && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    placeholder="Enter your password"
+                    value={form.password}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent outline-none transition-all"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {otpStep && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">OTP</label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  placeholder="Enter your password"
-                  value={form.password}
-                  onChange={handleChange}
+                  type="text"
+                  name="otp"
+                  placeholder="Enter the OTP sent to your email"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent outline-none transition-all"
-                  autoComplete="current-password"
                 />
+              </div>
+            )}
+
+            {!otpStep && (
+              <div className="flex justify-end">
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500"
-                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-sm flex items-center text-[#154360] hover:underline"
                 >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  <FaExclamationCircle className="mr-1" />
+                  Forgot Password?
                 </button>
               </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="button"
-                className="text-sm flex items-center text-[#154360] hover:underline"
-              >
-                <FaExclamationCircle className="mr-1" />
-                Forgot Password?
-              </button>
-            </div>
+            )}
 
             <button
               type="submit"
-              disabled={isLoading || !(form.email && form.password)}
+              disabled={isLoading || !form.email || (otpStep ? !otp : !form.password)}
               className={`w-full py-3.5 ${loginButtonColor} rounded-lg font-semibold text-white shadow-md transition-all flex items-center justify-center ${
-                isLoading || !(form.email && form.password) ? 'opacity-75 cursor-not-allowed' : 'hover:opacity-90'
+                isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:opacity-90'
               }`}
             >
               {isLoading ? (
@@ -294,7 +350,7 @@ const LoginPage = () => {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               ) : (
-                'Login'
+                otpStep ? 'Verify OTP' : 'Login'
               )}
             </button>
           </form>

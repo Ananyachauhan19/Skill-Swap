@@ -159,7 +159,6 @@ const Navbar = () => {
           {!isLoggedIn ? (
             <button
               className="bg-blue-700 text-white px-4 py-1 rounded-md font-medium tracking-wide transition-all duration-300 hover:bg-blue-800 hover:shadow-md hover:scale-105"
-              composición
               onClick={() => navigate('/login')}
             >
               Login
