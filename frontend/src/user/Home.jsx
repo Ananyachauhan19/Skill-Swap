@@ -100,7 +100,7 @@ const Home = () => {
 
   return (
     <main className="bg-gray-50 text-gray-800 min-h-screen font-[Poppins,Inter,sans-serif] overflow-hidden">
-    /* Hero Section */
+    {/* Hero Section */}
 <section className="py-16 sm:py-24 max-w-7xl mx-auto px-4 sm:px-8 relative">
   <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
     {/* Left Panel */}

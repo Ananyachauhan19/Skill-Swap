@@ -50,7 +50,7 @@ const HowItWorks = () => (
 				<span className="font-semibold text-blue-800">
 					Register & Book Session
 				</span>
-				<p className="text-sm text-blue-700 mt-1">
+				<p className="text-sm text-black mt-1">
 					Sign up and select from trending or placement-focused GD topics.
 				</p>
 			</div>
@@ -80,7 +80,7 @@ const HowItWorks = () => (
 					</svg>
 				</div>
 				<span className="font-semibold text-blue-800">Join Live Session</span>
-				<p className="text-sm text-blue-700 mt-1">
+				<p className="text-sm text-black mt-1">
 					Participate in a real-time, expert-moderated group discussion.
 				</p>
 			</div>
@@ -110,7 +110,7 @@ const HowItWorks = () => (
 				<span className="font-semibold text-blue-800">
 					Get Feedback & Improve
 				</span>
-				<p className="text-sm text-blue-700 mt-1">
+				<p className="text-sm text-black mt-1">
 					Receive actionable feedback and ratings to boost your skills.
 				</p>
 			</div>
@@ -147,18 +147,18 @@ const Discuss = () => (
 				<h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-900 to-blue-500 mb-4 drop-shadow-lg">
 					Join High-Impact Group Discussions Curated by Experts
 				</h1>
-				<p className="text-xl sm:text-2xl text-blue-700 font-medium max-w-2xl mx-auto mb-2">
+				<p className="text-xl sm:text-2xl text-black font-medium max-w-2xl mx-auto mb-2">
 					Practice structured communication, debate current topics, and build the
 					confidence you need for placements and beyond.
 				</p>
 				<div className="flex flex-wrap justify-center gap-4 mt-6">
-					<span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold shadow-sm text-sm transition-transform hover:scale-105 hover:bg-blue-200">
+					<span className="inline-block bg-blue-800 text-white px-4 py-2 rounded-full font-semibold shadow-sm text-sm transition-transform hover:scale-105 hover:bg-blue-900">
 						Live Expert Moderation
 					</span>
-					<span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold shadow-sm text-sm transition-transform hover:scale-105 hover:bg-blue-200">
+					<span className="inline-block bg-blue-800 text-white px-4 py-2 rounded-full font-semibold shadow-sm text-sm transition-transform hover:scale-105 hover:bg-blue-900">
 						Placement Focused
 					</span>
-					<span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold shadow-sm text-sm transition-transform hover:scale-105 hover:bg-blue-200">
+					<span className="inline-block bg-blue-800 text-white px-4 py-2 rounded-full font-semibold shadow-sm text-sm transition-transform hover:scale-105 hover:bg-blue-900">
 						Collaborative Growth
 					</span>
 				</div>
