@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Camera } from 'lucide-react';
 
-const UserInfoSection = ({ fullName, setFullName, email, setEmail, profilePicPreview, handleProfilePicChange, editMode }) => {
+const UserInfoSection = ({ fullName, setFullName, email, setEmail, profilePicPreview, handleProfilePicChange, editMode, initials }) => {
   return (
     <div className="flex flex-col md:flex-row items-center gap-6 mb-6">
-      {/* Profile Picture */}
+      {/* Profile Picture or Initials */}
       <div className="relative w-28 h-28">
-        <img
-          src={profilePicPreview}
-          alt="Profile Preview"
-          className="w-full h-full object-cover rounded-full border border-gray-300"
-        />
+        {profilePicPreview ? (
+          <img
+            src={profilePicPreview}
+            alt="Profile Preview"
+            className="w-full h-full object-cover rounded-full border border-gray-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center rounded-full bg-blue-200 text-blue-800 text-3xl font-bold border border-gray-300 select-none">
+            {initials || '?'}
+          </div>
+        )}
         {/* Camera icon (upload trigger) */}
         <label className={`absolute bottom-0 right-0 bg-white rounded-full p-1 shadow ${!editMode ? 'opacity-50 cursor-not-allowed' : ''}`}>
           <Camera className="w-5 h-5 text-gray-600" />

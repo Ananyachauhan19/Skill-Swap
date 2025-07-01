@@ -121,8 +121,11 @@ const Profile = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-lg p-6 mt-8 relative">
+    <div className="max-w-5xl mx-auto bg-gradient-to-br from-blue-50 via-white to-blue-100 rounded-3xl shadow-2xl p-0 md:p-10 mt-10 relative border border-blue-100 overflow-hidden">
       <Toaster position="top-center" />
+      {/* Decorative background shapes */}
+      <div className="absolute -top-10 -left-10 w-48 h-48 bg-blue-200/30 rounded-full blur-2xl z-0 animate-pulse" />
+      <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-blue-400/20 rounded-full blur-3xl z-0 animate-pulse" />
       {/* Edit and Save/Cancel buttons */}
       <div className="absolute top-4 right-4 flex gap-2 z-20">
         {editAll ? (
@@ -149,9 +152,9 @@ const Profile = () => {
           </button>
         )}
       </div>
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-12 relative z-10">
         {/* Main Profile Sections */}
-        <div className="flex-1 md:basis-3/4 space-y-6">
+        <div className="flex-1 md:basis-3/4 space-y-10">
           <UserInfoSection
             fullName={profile.fullName}
             setFullName={val => setField('fullName', val)}
@@ -160,8 +163,9 @@ const Profile = () => {
             profilePicPreview={profile.profilePicPreview}
             handleProfilePicChange={handleProfilePicChange}
             editMode={editAll}
+            initials={profile.fullName ? profile.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) : ''}
           />
-          <hr className="my-6 border-gray-200" />
+          <hr className="my-8 border-blue-200" />
           <BioSection
             bio={profile.bio}
             setBio={val => setField('bio', val)}
@@ -171,7 +175,7 @@ const Profile = () => {
             onCancel={() => { setEditBio(false); }}
             autoFocus={!editAll && editBio && !editEducation && !editTeach && !editLearn && !editExperience && !editCertificates}
           />
-          <hr className="my-6 border-gray-200" />
+          <hr className="my-8 border-blue-200" />
           <EducationSection
             education={profile.education}
             setEducation={setEducation}
@@ -181,7 +185,7 @@ const Profile = () => {
             onCancel={() => { setEditEducation(false); }}
             autoFocus={!editAll && editEducation && !editBio && !editTeach && !editLearn && !editExperience && !editCertificates}
           />
-          <hr className="my-6 border-gray-200" />
+          <hr className="my-8 border-blue-200" />
           <SkillsTeachSection
             teachSkillInput={teachSkillInput}
             setTeachSkillInput={setTeachSkillInput}
@@ -195,7 +199,7 @@ const Profile = () => {
             onCancel={() => { setEditTeach(false); }}
             autoFocus={!editAll && editTeach && !editBio && !editEducation && !editLearn && !editExperience && !editCertificates}
           />
-          <hr className="my-6 border-gray-200" />
+          <hr className="my-8 border-blue-200" />
           <SkillsLearnSection
             learnSkillInput={learnSkillInput}
             setLearnSkillInput={setLearnSkillInput}
@@ -208,7 +212,7 @@ const Profile = () => {
             onCancel={() => { setEditLearn(false); }}
             autoFocus={!editAll && editLearn && !editBio && !editEducation && !editTeach && !editExperience && !editCertificates}
           />
-          <hr className="my-6 border-gray-200" />
+          <hr className="my-8 border-blue-200" />
           <ExperienceSection
             experience={profile.experience}
             setExperience={setExperience}
@@ -220,7 +224,7 @@ const Profile = () => {
             onCancel={() => { setEditExperience(false); }}
             autoFocus={!editAll && editExperience && !editBio && !editEducation && !editTeach && !editLearn && !editCertificates}
           />
-          <hr className="my-6 border-gray-200" />
+          <hr className="my-8 border-blue-200" />
           <CertificatesSection
             certificates={profile.certificates}
             setCertificates={setCertificates}
@@ -233,7 +237,9 @@ const Profile = () => {
         </div>
         {/* Gamification Stats */}
         <div className="md:w-1/3 flex flex-col mt-0 md:mt-0">
-          <GamificationStats credits={profile.credits} badges={profile.badges} rank={profile.rank} />
+          <div className="bg-white/80 rounded-2xl shadow-lg border border-blue-100 p-6 sticky top-24">
+            <GamificationStats credits={profile.credits} badges={profile.badges} rank={profile.rank} />
+          </div>
         </div>
       </div>
     </div>
