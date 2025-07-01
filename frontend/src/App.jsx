@@ -16,6 +16,8 @@ function App() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
+
+
   return (
     <>
       {!isAuthPage && <Navbar />}
@@ -28,7 +30,7 @@ function App() {
           <Route path="/one-on-one" element={<OneOnOne />} />
           <Route path="/discuss" element={<Discuss />} />
           <Route path="/interview" element={<Interview />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<Profile />}/>
         </Routes>
       </div>
       {!isAuthPage && <Footer />}

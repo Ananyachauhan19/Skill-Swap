@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import SearchBar from './oneononeSection/serachBar';
+import TestimonialSection from './oneononeSection/TestimonialSection';
 
 const OneOnOne = () => {
   const [course, setCourse] = useState('');
@@ -15,12 +16,8 @@ const OneOnOne = () => {
         unitValue={unit}
         setUnitValue={setUnit}
       />
-      <div className="flex-1 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg text-center">
-          <h1 className="text-3xl font-bold mb-4">1-on-1 Live Session</h1>
-          <p className="text-lg text-gray-700">Connect with an expert for a personalized, real-time learning experience. Coming soon!</p>
-        </div>
-      </div>
+      <TestimonialSection />
+      
     </div>
   );
 };

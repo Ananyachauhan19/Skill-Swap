@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 
-//Remove this static data later on
 const defaultTestimonials = [
   {
-    username: 'Alice',
-    profilePic: 'https://randomuser.me/api/portraits/women/1.jpg',
+    username: 'Priya',
+    profilePic: 'https://randomuser.me/api/portraits/women/5.jpg',
     rating: 5,
-    description: 'Great platform! Found the perfect tutor for my needs.'
+    description: 'The GD session was very interactive and helped me boost my confidence!'
   },
   {
-    username: 'Bob',
-    profilePic: 'https://randomuser.me/api/portraits/men/2.jpg',
+    username: 'Rahul',
+    profilePic: 'https://randomuser.me/api/portraits/men/6.jpg',
     rating: 4,
-    description: 'Easy to use and lots of options.'
+    description: 'Great expert moderation and diverse topics.'
   }
 ];
 
@@ -22,41 +21,13 @@ const StarRating = ({ rating }) => (
   </span>
 );
 
-const TestimonialSection = () => {
+const GDTestimonialSection = () => {
   const [testimonials, setTestimonials] = useState(defaultTestimonials);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ username: '', rating: 5, description: '' });
-  // const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState('');
-
-  // Simulate fetching user profile (replace with real user context in production)
-  const userProfile = {
-    username: 'Your Name',
-    profilePic: '', // Set to a URL if user has a profile picture
-  };
-
-  // // Fetch testimonials from backend
-  // useEffect(() => {
-  //   const fetchTestimonials = async () => {
-  //     setLoading(true);
-  //     setError('');
-  //     try {
-  //       const res = await fetch('/api/testimonials');
-  //       if (!res.ok) throw new Error('Failed to fetch testimonials');
-  //       const data = await res.json();
-  //       setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
-  //     } catch (err) {
-  //       setError('Could not load testimonials.');
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-  //   fetchTestimonials();
-  // }, []);
 
   const getProfilePic = (t) => {
     if (t.profilePic) return t.profilePic;
-    if (t.username === userProfile.username && userProfile.profilePic) return userProfile.profilePic;
     const initials = t.username
       .split(' ')
       .map((n) => n[0])
@@ -69,25 +40,6 @@ const TestimonialSection = () => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
   };
-
-  // const handleSubmit = async e => {
-  //   e.preventDefault();
-  //   if (!form.username || !form.description) return;
-  //   try {
-  //     const res = await fetch('/api/testimonials', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify(form),
-  //     });
-  //     if (!res.ok) throw new Error('Failed to submit testimonial');
-  //     const newTestimonial = await res.json();
-  //     setTestimonials([newTestimonial, ...testimonials]);
-  //     setForm({ username: '', rating: 5, description: '' });
-  //     setShowForm(false);
-  //   } catch (err) {
-  //     alert('Error submitting testimonial.');
-  //   }
-  // };
 
   const handleSubmit = e => {
     e.preventDefault();
@@ -163,4 +115,4 @@ const TestimonialSection = () => {
   );
 };
 
-export default TestimonialSection;
+export default GDTestimonialSection;

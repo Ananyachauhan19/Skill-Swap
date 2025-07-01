@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import TestimonialSection from './TestimonialSection'; // Adjust the import path as needed
 
 // Static data for demo
 const STATIC_COURSES = [
@@ -228,7 +227,7 @@ const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue }) => 
           </button>
         </div>
       </div>
-      <TestimonialSection />
+     
     </>
   );
 };

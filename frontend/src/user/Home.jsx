@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaExchangeAlt, FaChalkboardTeacher, FaUsers, FaComments } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 // Image imports
 const oneOnOneImg = "/assets/one-on-one.png";
@@ -243,6 +244,36 @@ const Home = () => {
               Our platform transforms learning into an interactive experience. Earn credits by sharing your expertise and use them to learn new skills. With live sessions and collaborative projects, Swap Skills Pro empowers you to grow actively within a vibrant community.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* 6. CTA Section */}
+      <section className="py-16 bg-gradient-to-r from-[#1e3a8a] to-[#1a56db]">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-3xl sm:text-4xl font-bold text-white mb-6"
+          >
+            Ready to Transform Your Learning?
+          </motion.h2>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-xl text-blue-100 max-w-2xl mx-auto mb-8"
+          >
+            Join thousands of members who are already swapping skills and accelerating their growth
+          </motion.p>
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white text-blue-800 px-8 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-colors duration-300 shadow-lg focus:ring-2 focus:ring-white"
+            onClick={() => navigate("/register")}
+          >
+            Get Started Free
+          </motion.button>
         </div>
       </section>
     </main>
