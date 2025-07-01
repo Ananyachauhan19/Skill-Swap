@@ -8,18 +8,6 @@ const staticFaqs = [
   {
     question: 'How do I join a GD session?',
     answer: 'Browse the available sessions and click "Book Slot" to reserve your seat. You need enough credits to join.'
-  },
-  {
-    question: 'What are the rules for participating?',
-    answer: 'Be respectful, stay on topic, avoid personal attacks, and follow the expert’s instructions.'
-  },
-  {
-    question: 'Can I get a refund if I miss a session?',
-    answer: 'Refunds are not provided for missed sessions. Please ensure your availability before booking.'
-  },
-  {
-    question: 'How are experts selected for GDs?',
-    answer: 'Experts are verified by the SkillSwapHub team based on their credentials and experience.'
   }
 ];
 
