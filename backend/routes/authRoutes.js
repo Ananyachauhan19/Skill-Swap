@@ -63,4 +63,22 @@ router.get('/failure', (req, res) => {
   res.send('Google login failed.');
 });
 
+
+
+// LinkedIn OAuth
+router.get('/linkedin', passport.authenticate('linkedin'));
+
+router.get('/linkedin/callback', passport.authenticate('linkedin', {
+  failureRedirect: '/auth/failure'
+}), async (req, res) => {
+  try {
+    const user = req.user;
+    const token = generateToken(user);
+    res.redirect(`http://localhost:5173/home?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+  } catch (error) {
+    console.error(error);
+    res.redirect('/auth/failure');
+  }
+});
+
 module.exports = router;
