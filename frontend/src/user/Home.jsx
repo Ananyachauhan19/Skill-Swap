@@ -1,50 +1,40 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaExchangeAlt, FaChalkboardTeacher, FaUsers, FaComments, FaRocket } from "react-icons/fa";
+import { FaBriefcase, FaUserFriends, FaComments, FaChalkboardTeacher, FaUsers, FaRocket } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import LoginPage from "../auth/Login"; // Adjust path to your LoginPage.jsx
-import RegisterPage from "../auth/Register"; // Adjust path to your RegisterPage.jsx
+import Login from "../auth/Login"; // Correct import path for Login.jsx
+import Register from "../auth/Register"; // Correct import path for Register.jsx
 
-// Image imports
-const oneOnOneImg = "/assets/one-on-one.png";
-const groupChatImg = "/assets/group-chat.png";
-const interviewImg = "/assets/interview-icon.png";
-const user1Img = "/user1.png";
-const user2Img = "/user2.png";
-const user3Img = "/user3.png";
-
-const Home = () => {
+// HomeHero component for SkillSwap-Hub, a professional EdTech platform
+const HomeHero = () => {
   const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Listen for openLoginModal event
+  // Handle login modal event listener
   useEffect(() => {
     const handleOpenLoginModal = () => {
       setShowLoginModal(true);
-      setShowRegisterModal(false); // Close register modal if open
+      setShowRegisterModal(false);
     };
     window.addEventListener("openLoginModal", handleOpenLoginModal);
-    return () => {
-      window.removeEventListener("openLoginModal", handleOpenLoginModal);
-    };
+    return () => window.removeEventListener("openLoginModal", handleOpenLoginModal);
   }, []);
 
-  // Listen for openRegisterModal event
+  // Handle register modal event listener
   useEffect(() => {
     const handleOpenRegisterModal = () => {
       setShowRegisterModal(true);
-      setShowLoginModal(false); // Close login modal if open
+      setShowLoginModal(false);
     };
     window.addEventListener("openRegisterModal", handleOpenRegisterModal);
-    return () => {
-      window.removeEventListener("openRegisterModal", handleOpenRegisterModal);
-    };
+    return () => window.removeEventListener("openRegisterModal", handleOpenRegisterModal);
   }, []);
 
-  // Google/LinkedIn OAuth: Parse token/user from URL, store in localStorage, dispatch authChanged, clean URL
+  // Handle OAuth and user persistence
   useEffect(() => {
     const url = new URL(window.location.href);
     const token = url.searchParams.get("token");
@@ -57,14 +47,13 @@ const Home = () => {
         setUser(userObj);
         setIsLoggedIn(true);
       } catch (e) {
-        localStorage.setItem("user", user);
+        console.error("Error parsing user data:", e);
       }
       window.dispatchEvent(new Event("authChanged"));
       url.search = "";
       window.history.replaceState({}, document.title, url.pathname);
     }
 
-    // Check if user is already logged in
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -72,97 +61,108 @@ const Home = () => {
     }
   }, []);
 
-  // Stats state
-  const [stats] = useState([
-    {
-      icon: <FaChalkboardTeacher className="text-5xl text-blue-600" />,
-      value: 18200,
-      label: "Active Members",
-    },
-    {
-      icon: <FaUsers className="text-5xl text-blue-600" />,
-      value: 4500,
-      label: "Experts Available",
-    },
-    {
-      icon: <FaComments className="text-5xl text-blue-600" />,
-      value: 50,
-      label: "Session Types",
-    },
-  ]);
+  // Stats data for activity section
+  const stats = [
+    { icon: <FaChalkboardTeacher className="text-5xl text-blue-800" />, value: 18200, label: "Active Members" },
+    { icon: <FaUsers className="text-5xl text-blue-800" />, value: 4500, label: "Experts Available" },
+    { icon: <FaComments className="text-5xl text-blue-800" />, value: 50, label: "Session Types" },
+  ];
 
-  // Top performers state
-  const [performers] = useState([
+  // Top performers data
+  const performers = [
     {
-      img: user1Img,
+      img: "/user1.png",
       alt: "Most Active",
       title: "Most Active Learner",
       name: "Aditya Singh",
       stat: "15 sessions",
     },
     {
-      img: user2Img,
+      img: "/user2.png",
       alt: "Top Tutor",
       title: "Highest Rated Tutor",
       name: "Ananya S.",
       extra: <span className="text-yellow-400 text-2xl">★★★★★</span>,
     },
     {
-      img: user3Img,
+      img: "/user3.png",
       alt: "Top Earner",
       title: "Top Earner",
       name: "Rahul",
       stat: <span className="text-green-600 font-semibold">₹ 8,200 Earned</span>,
     },
-  ]);
+  ];
 
-  // Feature tabs data
+  // Feature tabs for quick access panel
   const featureTabs = [
-    {
-      title: "1 on 1 Session",
-      subtitle: "Personalized Mentorship",
-      img: oneOnOneImg,
-      bg: "bg-gradient-to-br from-blue-50 to-blue-200",
-      path: "/one-on-one",
-    },
     {
       title: "Job Interview",
       subtitle: "Real Practice. Real Growth.",
-      img: interviewImg,
-      bg: "bg-gradient-to-br from-indigo-50 to-indigo-200",
+      icon: <FaBriefcase className="text-3xl text-blue-800" />,
+      bg: "bg-blue-50",
       path: "/interview",
+    },
+    {
+      title: "1-on-1 Session",
+      subtitle: "Personalized Mentorship",
+      icon: <FaUserFriends className="text-3xl text-blue-800" />,
+      bg: "bg-blue-50",
+      path: "/one-on-one",
     },
     {
       title: "Group Discussion",
       subtitle: "Collaborative Growth",
-      img: groupChatImg,
-      bg: "bg-gradient-to-br from-purple-50 to-purple-200",
+      icon: <FaComments className="text-3xl text-blue-800" />,
+      bg: "bg-blue-50",
       path: "/discuss",
-    },
-    {
-      title: "Workshops",
-      subtitle: "Coming Soon!",
-      img: oneOnOneImg,
-      bg: "bg-gradient-to-br from-gray-100 to-gray-300",
-      path: "#",
-      disabled: true,
-    },
-    {
-      title: "Masterclasses",
-      subtitle: "Stay Tuned!",
-      img: oneOnOneImg,
-      bg: "bg-gradient-to-br from-gray-100 to-gray-300",
-      path: "#",
-      disabled: true,
     },
   ];
 
+  // Animation variants for text entrance
+  const textVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.6, ease: "easeOut", staggerChildren: 0.2 },
+    },
+  };
+
+  // Animation variants for buttons
+  const buttonVariants = {
+    hover: {
+      scale: 1.05,
+      boxShadow: "0 10px 20px rgba(0, 0, 0, 0.3)",
+      transition: { duration: 0.3 },
+    },
+    tap: { scale: 0.95 },
+  };
+
+  // Animation variants for tabs
+  const tabVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: "easeOut" },
+    },
+    hover: {
+      scale: 1.05,
+      boxShadow: "0 8px 16px rgba(0, 0, 0, 0.2)",
+      borderColor: "#1E3A8A",
+      zIndex: 10,
+    },
+    tap: { scale: 0.98 },
+  };
+
+  // Handle login success
   const handleLoginSuccess = (userData) => {
     setUser(userData);
     setIsLoggedIn(true);
     setShowLoginModal(false);
   };
 
+  // Handle register success
   const handleRegisterSuccess = (userData) => {
     setUser(userData);
     setIsLoggedIn(true);
@@ -170,8 +170,8 @@ const Home = () => {
   };
 
   return (
-    <main className="bg-gray-50 text-gray-800 min-h-screen font-[Poppins,Inter,sans-serif] overflow-auto relative pt-16">
-      {/* Modal Overlay for Login */}
+    <main className="bg-gradient-to-b from-blue-50 to-gray-100 text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] overflow-auto relative pt-16">
+      {/* Login Modal */}
       <AnimatePresence>
         {showLoginModal && (
           <>
@@ -179,18 +179,16 @@ const Home = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed inset-0 bg-black/40 z-50"
+              className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
               onClick={() => setShowLoginModal(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="fixed inset-0 flex items-center justify-center z-50 p-4"
             >
-              <LoginPage
+              <Login
                 onClose={() => setShowLoginModal(false)}
                 onLoginSuccess={handleLoginSuccess}
                 isModal={true}
@@ -200,7 +198,7 @@ const Home = () => {
         )}
       </AnimatePresence>
 
-      {/* Modal Overlay for Register */}
+      {/* Register Modal */}
       <AnimatePresence>
         {showRegisterModal && (
           <>
@@ -208,18 +206,16 @@ const Home = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="fixed inset-0 bg-black/40 z-50"
+              className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
               onClick={() => setShowRegisterModal(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.3 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="fixed inset-0 flex items-center justify-center z-50 p-4"
             >
-              <RegisterPage
+              <Register
                 onClose={() => setShowRegisterModal(false)}
                 onRegisterSuccess={handleRegisterSuccess}
                 isModal={true}
@@ -230,182 +226,269 @@ const Home = () => {
       </AnimatePresence>
 
       {/* Hero Section */}
-      <section className="py-16 sm:py-24 max-w-5xl mx-auto px-4 sm:px-8 relative">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Panel */}
-          <div className="lg:col-span-2 flex flex-col justify-center">
-            <h1 className="text-3xl sm:text-5xl font-extrabold leading-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-800 to-blue-500">
-              Swapping Skills <br /> Together
-            </h1>
-            <p className="text-base sm:text-lg text-gray-600 mt-6 max-w-xl leading-relaxed">
-              Empower your learning journey with live sessions, collaborative discussions, and real-world interview practice.
-            </p>
-            {isLoggedIn ? (
-              <div className="mt-8 flex items-center gap-4">
-                <img
-                  src={user?.avatar || "/assets/default-avatar.png"}
-                  alt="User Avatar"
-                  className="w-10 h-10 rounded-full border-2 border-blue-200"
-                />
-                <span className="text-base font-semibold text-blue-800">
-                  Welcome, {user?.name || "User"}!
-                </span>
-              </div>
-            ) : (
-              <button
+      <section className="relative z-10 py-20 sm:py-28 max-w-7xl mx-auto px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Text Content */}
+          <motion.div
+            className="flex flex-col justify-center space-y-8"
+            initial="hidden"
+            animate="visible"
+            variants={textVariants}
+          >
+            <motion.h1
+              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight text-blue-900"
+              variants={textVariants}
+            >
+              <span>
+                <span className="text-black">Teach</span> What You Know,
+              </span>
+              <br />
+              <span>
+                <span className="text-black">Learn</span> What You Don't-
+              </span>
+              <br />
+              <span>
+                And <span className="text-black">Earn</span> While You Do!
+              </span>
+            </motion.h1>
+            <motion.p
+              className="text-lg sm:text-xl text-gray-600 max-w-lg leading-relaxed"
+              variants={textVariants}
+            >
+              SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.
+            </motion.p>
+            <motion.div className="flex flex-wrap gap-4" variants={textVariants}>
+              <motion.button
+                onClick={() => setShowRegisterModal(true)}
+                className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                variants={buttonVariants}
+                whileHover="hover"
+                whileTap="tap"
+              >
+                Join Now
+              </motion.button>
+              <motion.button
                 onClick={() => navigate("/pro")}
-                className="mt-8 bg-gradient-to-r from-blue-700 to-blue-500 text-white px-6 py-2.5 rounded-full font-semibold flex items-center gap-2 w-fit hover:from-blue-800 hover:to-blue-600 hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg"
+                className="border-2 border-blue-900 text-blue-900 px-8 py-4 rounded-md font-semibold text-lg hover:bg-blue-900 hover:text-white transition-all duration-300"
+                variants={buttonVariants}
+                whileHover="hover"
+                whileTap="tap"
               >
-                <FaExchangeAlt className="w-4 h-4" />
-                <span className="text-base">Skill Swap Pro</span>
-              </button>
+                Discover Pro
+              </motion.button>
+            </motion.div>
+            {isLoggedIn && (
+              <motion.div
+                className="mt-6 p-4 bg-white rounded-md shadow-md border border-blue-100 max-w-md"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="flex items-center gap-4">
+                  <img
+                    src={user?.avatar || "/assets/default-avatar.png"}
+                    alt="User Avatar"
+                    className="w-12 h-12 rounded-full border-2 border-blue-100"
+                  />
+                  <div>
+                    <p className="text-lg font-semibold text-blue-900">
+                      Welcome, {user?.name || "Professional"}!
+                    </p>
+                    <p className="text-sm text-gray-600">Continue your learning journey</p>
+                  </div>
+                </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
 
-          {/* Right Panel - Feature Tabs */}
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 z-10">
+          {/* Image Section */}
+          <motion.div
+            className="relative"
+            initial={{ opacity: 0, scale: 0.95, x: 50 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+          >
+            <img
+              src="/assets/skillswap-hero.png"
+              alt="SkillSwap Hero Image"
+              className="w-full h-[400px] object-contain hover:scale-105 transition-transform duration-300"
+            />
+           
+          </motion.div>
+        </div>
+
+        {/* Quick Access Panel */}
+        <motion.div className="mt-16 max-w-5xl mx-auto" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <h3 className="text-xl font-semibold text-center text-blue-900 mb-8">
+            Explore Learning Opportunities
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {featureTabs.map((tab, idx) => (
-              <div
+              <motion.div
                 key={tab.title}
-                className={`${tab.bg} rounded-xl p-0 shadow-md border border-blue-100 hover:shadow-xl hover:scale-105 transition-all duration-300 ${
-                  tab.disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
-                } overflow-hidden`}
-                onClick={() => !tab.disabled && navigate(tab.path)}
+                className={`${tab.bg} rounded-md p-6 shadow-md border border-blue-100 cursor-pointer hover:shadow-xl transition-all duration-300`}
+                variants={tabVariants}
+                initial="hidden"
+                animate="visible"
+                whileHover="hover"
+                whileTap="tap"
+                onClick={() => navigate(tab.path)}
+                transition={{ delay: idx * 0.1 + 0.4 }}
               >
-                <img
-                  src={tab.img}
-                  alt={tab.title}
-                  className="w-full h-32 object-cover"
-                />
-              </div>
+                <div className="mb-4 p-3 bg-white rounded-full shadow-inner">{tab.icon}</div>
+                <h3 className="text-xl font-bold text-blue-900 mb-2">{tab.title}</h3>
+                <p className="text-sm text-gray-600 mb-4">{tab.subtitle}</p>
+                <button className="text-blue-900 font-medium text-sm hover:text-blue-800 transition-colors">
+                  Explore now →
+                </button>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* Activity Section (Stats) */}
       <section className="bg-blue-50 py-16 sm:py-20 px-4 sm:px-8">
         <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-center">
           {stats.map((stat, idx) => (
-            <div
+            <motion.div
               key={stat.label}
-              className="bg-white rounded-xl p-6 flex flex-col items-center gap-3 shadow-md border border-blue-100 hover:shadow-lg hover:scale-105 transition-all duration-300"
+              className="bg-white rounded-md p-6 flex flex-col items-center gap-3 shadow-md border border-blue-100 hover:shadow-xl transition-all duration-300"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.2, duration: 0.5 }}
             >
               {stat.icon}
               <div>
-                <p className="text-2xl font-bold text-blue-700">
+                <p className="text-2xl font-bold text-blue-900">
                   {stat.value.toLocaleString()}+
                 </p>
-                <p className="text-sm text-blue-600 mt-2">{stat.label}</p>
+                <p className="text-sm text-gray-600 mt-2">{stat.label}</p>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
       {/* Top Performers Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
-        <h2 className="text-2xl sm:text-4xl font-bold text-center text-blue-800 mb-10">
+      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gray-100">
+        <h2 className="text-2xl sm:text-4xl font-bold text-center text-blue-900 mb-10">
           Our Top Performers
         </h2>
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-center gap-6">
           {performers.map((p, idx) => (
-            <div
+            <motion.div
               key={p.title}
-              className="bg-white rounded-xl shadow-md p-5 w-full sm:w-72 text-center hover:shadow-xl hover:scale-105 transition-all duration-300 border border-blue-100"
+              className="bg-white rounded-md shadow-md p-5 w-full sm:w-72 text-center hover:shadow-xl transition-all duration-300 border border-blue-100"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.2, duration: 0.5 }}
             >
               <img
                 src={p.img}
                 alt={p.alt}
-                className="w-20 h-20 mx-auto rounded-full object-cover mb-3 border-3 border-blue-200"
+                className="w-20 h-20 mx-auto rounded-full object-cover mb-3 border-2 border-blue-100"
               />
-              <p className="font-semibold text-base text-blue-800">{p.title}</p>
+              <p className="font-semibold text-base text-blue-900">{p.title}</p>
               <p className="font-bold text-lg text-blue-900 mt-2">{p.name}</p>
-              {p.stat && <p className="text-sm text-blue-600 mt-2">{p.stat}</p>}
+              {p.stat && <p className="text-sm text-gray-600 mt-2">{p.stat}</p>}
               {p.extra}
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>
 
       {/* Who Are We Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8">
+      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
         <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-10">
           <div className="lg:w-3/5">
-            <h2 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-6">
+            <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-6">
               Who We Are
             </h2>
-            <p className="text-base text-gray-700 max-w-2xl leading-relaxed">
-              Swap Skills Pro is a community-driven platform where learning and teaching go hand in hand. We create a space where everyone is both a student and a mentor, fostering growth through skill exchange and collaboration.
+            <p className="text-base text-gray-600 max-w-2xl leading-relaxed">
+              SkillSwap-Hub is a leading platform for professional learning, connecting experts and learners to foster skill development and career advancement through peer-to-peer exchange.
             </p>
           </div>
-          <div className="lg:w-2/5 grid grid-cols-2 gap-3">
-            {[
-              { img: oneOnOneImg, alt: "Mentorship", bg: "bg-gradient-to-br from-blue-50 to-blue-200" },
-              { img: groupChatImg, alt: "Discussion", bg: "bg-gradient-to-br from-purple-50 to-purple-200" },
-              { img: interviewImg, alt: "Interview", bg: "bg-gradient-to-br from-indigo-50 to-indigo-200" },
-              { img: oneOnOneImg, alt: "Mentorship", bg: "bg-gradient-to-br from-blue-50 to-blue-200" },
-            ].map((tab, idx) => (
-              <div
-                key={tab.alt + idx}
-                className={`${tab.bg} rounded-xl p-5 shadow-md border border-blue-100 hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center`}
-              >
-                <img src={tab.img} alt={tab.alt} className="w-12 h-12 object-contain" />
-              </div>
-            ))}
+          <div className="lg:w-2/5">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { img: "/assets/one-on-one.png", alt: "Mentorship", bg: "bg-blue-50" },
+                { img: "/assets/group-chat.png", alt: "Discussion", bg: "bg-blue-50" },
+                { img: "/assets/interview-icon.png", alt: "Interview", bg: "bg-blue-50" },
+                { img: "/assets/one-on-one.png", alt: "Mentorship", bg: "bg-blue-50" },
+              ].map((tab, idx) => (
+                <motion.div
+                  key={tab.alt + idx}
+                  className={`${tab.bg} rounded-md p-5 shadow-md border border-blue-100 hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.2, duration: 0.5 }}
+                >
+                  <img src={tab.img} alt={tab.alt} className="w-12 h-12 object-contain" />
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Why Choose Swap Skills Pro Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
+      {/* Why Choose SkillSwap-Hub Section */}
+      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gray-100">
         <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-10">
-          <div className="lg:w-2/5 grid grid-cols-2 gap-3">
-            {[
-              { img: groupChatImg, alt: "Discussion", bg: "bg-gradient-to-br from-purple-50 to-purple-200" },
-              { img: interviewImg, alt: "Interview", bg: "bg-gradient-to-br from-indigo-50 to-indigo-200" },
-              { img: oneOnOneImg, alt: "Mentorship", bg: "bg-gradient-to-br from-blue-50 to-blue-200" },
-              { img: groupChatImg, alt: "Discussion", bg: "bg-gradient-to-br from-purple-50 to-purple-200" },
-            ].map((tab, idx) => (
-              <div
-                key={tab.alt + idx}
-                className={`${tab.bg} rounded-xl p-5 shadow-md border border-blue-100 hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center`}
-              >
-                <img src={tab.img} alt={tab.alt} className="w-12 h-12 object-contain" />
-              </div>
-            ))}
+          <div className="lg:w-2/5">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { img: "/assets/group-chat.png", alt: "Discussion", bg: "bg-blue-50" },
+                { img: "/assets/interview-icon.png", alt: "Interview", bg: "bg-blue-50" },
+                { img: "/assets/one-on-one.png", alt: "Mentorship", bg: "bg-blue-50" },
+                { img: "/assets/group-chat.png", alt: "Discussion", bg: "bg-blue-50" },
+              ].map((tab, idx) => (
+                <motion.div
+                  key={tab.alt + idx}
+                  className={`${tab.bg} rounded-md p-5 shadow-md border border-blue-100 hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.2, duration: 0.5 }}
+                >
+                  <img src={tab.img} alt={tab.alt} className="w-12 h-12 object-contain" />
+                </motion.div>
+              ))}
+            </div>
           </div>
           <div className="lg:w-3/5">
-            <h2 className="text-2xl sm:text-3xl font-bold text-blue-800 mb-6">
-              Why Choose Swap Skills Pro
+            <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-6">
+              Why Choose SkillSwap-Hub
             </h2>
-            <p className="text-base text-gray-700 max-w-2xl leading-relaxed">
-              Our platform transforms learning into an interactive experience. Earn credits by sharing your expertise and use them to learn new skills. With live sessions and collaborative projects, Swap Skills Pro empowers you to grow actively within a vibrant community.
+            <p className="text-base text-gray-600 max-w-2xl leading-relaxed">
+              SkillSwap-Hub provides a professional environment for skill development. Engage in live sessions, earn credits by teaching, and join a global community of learners and experts.
             </p>
           </div>
         </div>
       </section>
 
       {/* Let's Start Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-blue-100">
+      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
         <div className="max-w-5xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-4xl font-bold text-blue-800 mb-6">
-            Let's Start Your Learning Journey
+          <h2 className="text-2xl sm:text-4xl font-bold text-blue-900 mb-6">
+            Begin Your Learning Journey
           </h2>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed mb-8">
-            Join thousands of learners and mentors in a community where knowledge is shared, skills are swapped, and growth is limitless. Start today and unlock your potential!
+            Join a global community of professionals dedicated to lifelong learning and skill-sharing. Start today and elevate your career.
           </p>
-          <button
+          <motion.button
             onClick={() => setShowRegisterModal(true)}
-            className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-8 py-3 rounded-full font-semibold flex items-center gap-2 mx-auto hover:from-blue-800 hover:to-blue-600 hover:scale-110 transition-all duration-300 shadow-lg hover:shadow-xl"
+            className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold flex items-center gap-2 mx-auto hover:shadow-xl transition-all duration-300"
+            variants={buttonVariants}
+            whileHover="hover"
+            whileTap="tap"
           >
             <FaRocket className="w-5 h-5" />
-            <span className="text-base">Get Started Now</span>
-          </button>
+            <span className="text-base">Get Started</span>
+          </motion.button>
         </div>
       </section>
     </main>
   );
 };
 
-export default Home;
+export default HomeHero;
