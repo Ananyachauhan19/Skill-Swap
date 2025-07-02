@@ -146,7 +146,8 @@ const RegisterPage = () => {
       `${firstName}${lastName ? " " + lastName : ""}`
     );
     localStorage.setItem("registeredEmail", email);
-
+    localStorage.setItem('isRegistered', 'true');
+    window.dispatchEvent(new Event('authChanged'));
     // Redirect to home
     navigate("/home");
   } catch (err) {

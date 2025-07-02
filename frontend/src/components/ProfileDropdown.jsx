@@ -41,6 +41,10 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
         className="text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded"
         onClick={() => {
           localStorage.removeItem('isRegistered');
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.dispatchEvent(new Event('authChanged'));
           onClose();
           navigate('/home');
         }}

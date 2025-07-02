@@ -93,6 +93,8 @@ const LoginPage = () => {
       } else if (res.data.token && res.data.user) {
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
+        localStorage.setItem('isLoggedIn', 'true');
+        window.dispatchEvent(new Event('authChanged'));
         navigate('/home');
       } else {
         setError('Unexpected response from server.');
@@ -127,7 +129,8 @@ const LoginPage = () => {
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-
+      localStorage.setItem('isLoggedIn', 'true');
+      window.dispatchEvent(new Event('authChanged'));
       navigate('/home');
     } catch (err) {
       if (err.response?.data?.message) {

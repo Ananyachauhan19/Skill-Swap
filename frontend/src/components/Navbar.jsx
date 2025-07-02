@@ -1,29 +1,71 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import ProfileDropdown from './ProfileDropdown';
-import MobileMenu from './MobileMenu';
+import React, { useState, useRef, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import ProfileDropdown from "./ProfileDropdown";
+import MobileMenu from "./MobileMenu";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isLoggedIn = localStorage.getItem('isRegistered') === 'true' || localStorage.getItem('isLoggedIn') === 'true';
+  // Use state for isLoggedIn
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    localStorage.getItem("isRegistered") === "true" ||
+      localStorage.getItem("isLoggedIn") === "true"
+  );
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const menuRef = useRef();
 
   const isActive = (path) => location.pathname === path;
+
+  // Update isLoggedIn on route change
+  useEffect(() => {
+    setIsLoggedIn(
+      localStorage.getItem("isRegistered") === "true" ||
+        localStorage.getItem("isLoggedIn") === "true"
+    );
+  }, [location.pathname]);
+
+  // Listen for localStorage changes and custom authChanged event
+  useEffect(() => {
+    function handleAuthChange() {
+      setIsLoggedIn(
+        localStorage.getItem("isRegistered") === "true" ||
+          localStorage.getItem("isLoggedIn") === "true"
+      );
+    }
+    window.addEventListener("storage", handleAuthChange);
+    window.addEventListener("authChanged", handleAuthChange);
+    return () => {
+      window.removeEventListener("storage", handleAuthChange);
+      window.removeEventListener("authChanged", handleAuthChange);
+    };
+  }, []);
 
   // Close mobile menu on route change
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
 
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    if (!showProfileMenu) return;
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showProfileMenu]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery('');
+      setSearchQuery("");
     }
   };
 
@@ -33,31 +75,33 @@ const Navbar = () => {
         {/* Logo Section */}
         <div
           className="flex items-center gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
-          onClick={() => navigate('/')}
+          onClick={() => navigate("/")}
         >
           <img
             src="/assets/skillswap-logo.jpg"
             alt="SkillSwapHub Logo"
             className="h-8 w-8 object-contain rounded-full shadow-sm"
           />
-          <span className="text-xl font-bold text-blue-900 tracking-tight">SkillSwapHub</span>
+          <span className="text-xl font-bold text-blue-900 tracking-tight">
+            SkillSwapHub
+          </span>
         </div>
 
         {/* Right Side Nav Links (after logo) */}
         <div className="hidden sm:flex items-center gap-6">
           <div className="flex gap-6">
             {[
-              { path: '/home', label: 'Home' },
-              { path: '/one-on-one', label: '1-on-1' },
-              { path: '/discuss', label: 'Discuss' },
-              { path: '/interview', label: 'Interview' },
+              { path: "/home", label: "Home" },
+              { path: "/one-on-one", label: "1-on-1" },
+              { path: "/discuss", label: "Discuss" },
+              { path: "/interview", label: "Interview" },
             ].map(({ path, label }) => (
               <button
                 key={path}
                 className={`text-sm font-medium px-3 py-1 rounded-md transition-all duration-300 transform ${
                   isActive(path)
-                    ? 'bg-blue-100 text-blue-900 font-semibold border-b-2 border-blue-900 shadow-sm'
-                    : 'text-blue-900 hover:bg-blue-50 hover:text-blue-900 hover:border-b-2 hover:border-blue-900 hover:scale-105'
+                    ? "bg-blue-100 text-blue-900 font-semibold border-b-2 border-blue-900 shadow-sm"
+                    : "text-blue-900 hover:bg-blue-50 hover:text-blue-900 hover:border-b-2 hover:border-blue-900 hover:scale-105"
                 }`}
                 onClick={() => navigate(path)}
               >
@@ -104,8 +148,18 @@ const Navbar = () => {
           onClick={() => setMenuOpen((v) => !v)}
           aria-label="Toggle menu"
         >
-          <svg className="w-6 h-6 text-blue-600 hover:text-blue-700" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
+          <svg
+            className="w-6 h-6 text-blue-600 hover:text-blue-700"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+            />
           </svg>
         </button>
 
@@ -159,21 +213,23 @@ const Navbar = () => {
           {!isLoggedIn ? (
             <button
               className="bg-blue-700 text-white px-4 py-1 rounded-md font-medium tracking-wide transition-all duration-300 hover:bg-blue-800 hover:shadow-md hover:scale-105"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate("/login")}
             >
               Login
             </button>
           ) : (
             <div className="relative">
               <button
-                className="w
-
--10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:text-blue-700 hover:shadow-md hover:scale-110"
+                className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:text-blue-700 hover:shadow-md hover:scale-110"
                 onClick={() => setShowProfileMenu((v) => !v)}
                 title="Profile"
                 aria-label="Profile"
               >
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <svg
+                  className="w-6 h-6"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
                 </svg>
               </button>
