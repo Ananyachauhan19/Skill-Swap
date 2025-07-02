@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ProfileDropdown from "./ProfileDropdown";
 import MobileMenu from "./MobileMenu";
+import NotificationSection from "./NotificationSection";
+import RequestSentNotification from '../user/oneononeSection/RequestSentModal';
+import SessionRequestNotification from '../user/oneononeSection/SessionRequestModal';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -14,6 +17,7 @@ const Navbar = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [notifications, setNotifications] = useState([]);
   const menuRef = useRef();
 
   const isActive = (path) => location.pathname === path;
@@ -70,6 +74,62 @@ const Navbar = () => {
   const handleLoginClick = () => {
     window.dispatchEvent(new Event("openLoginModal"));
   };
+
+  // Listen for request sent (from OneOnOne)
+  React.useEffect(() => {
+    function handleRequestSent(e) {
+
+      setNotifications((prev) => [
+        {
+          type: 'request',
+          tutor: e.detail.tutor,
+          onCancel: e.detail.onCancel
+        },
+        ...prev
+      ]);
+    }
+    function handleAddSessionRequestNotification(e) {
+      setNotifications((prev) => [
+        {
+          type: 'session',
+          tutor: e.detail.tutor,
+          onAccept: e.detail.onAccept,
+          onReject: e.detail.onReject
+        },
+        ...prev
+      ]);
+    }
+    function handleSessionRequestResponse(e) {
+      setNotifications((prev) => [
+        {
+          type: 'text',
+          message: `Your request to ${e.detail.tutor.name} has been ${e.detail.status}.`,
+        },
+        ...prev.filter(n => !(n.type === 'request' && n.tutor && n.tutor.name === e.detail.tutor.name) && !(n.type === 'session' && n.tutor && n.tutor.name === e.detail.tutor.name))
+      ]);
+    }
+    window.addEventListener('requestSent', handleRequestSent);
+    window.addEventListener('addSessionRequestNotification', handleAddSessionRequestNotification);
+    window.addEventListener('sessionRequestResponse', handleSessionRequestResponse);
+    return () => {
+      window.removeEventListener('requestSent', handleRequestSent);
+      window.removeEventListener('addSessionRequestNotification', handleAddSessionRequestNotification);
+      window.removeEventListener('sessionRequestResponse', handleSessionRequestResponse);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showProfileMenu) return;
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showProfileMenu]);
 
   return (
     <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] text-blue-800 px-4 sm:px-8 py-3 shadow-md border-b border-blue-200 z-30 animate-fadeIn">
@@ -205,6 +265,25 @@ const Navbar = () => {
         )}
 
         <div className="hidden sm:flex items-center gap-4">
+          <NotificationSection
+            notifications={notifications.map((n, idx) =>
+              n.type === 'request' ?
+                <RequestSentNotification key={idx} tutor={n.tutor} onCancel={n.onCancel} /> :
+              n.type === 'session' ?
+                <SessionRequestNotification
+                  key={idx}
+                  tutor={n.tutor}
+                  fromUser={n.fromUser}
+                  onAccept={n.onAccept}
+                  onReject={n.onReject}
+                /> :
+              n.type === 'response' ?
+                n.content : // If you use a custom notification component for responses
+              n.message // fallback for plain text
+            )}
+            onClear={() => setNotifications([])}
+            onUpdate={setNotifications}
+          />
           {!isLoggedIn ? (
             <button
               className="bg-blue-700 text-white px-4 py-1 rounded-md font-medium tracking-wide transition-all duration-300 hover:bg-blue-800 hover:shadow-md hover:scale-105"
