@@ -56,10 +56,12 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   useEffect(() => {
     if (isModal) {
       document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "visible";
-      };
+      document.body.style.paddingRight = "";
     }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
+    };
   }, [isModal]);
 
   const handleChange = (e) => {

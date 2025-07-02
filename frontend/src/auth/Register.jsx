@@ -66,10 +66,12 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   useEffect(() => {
     if (isModal) {
       document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = "visible";
-      };
+      document.body.style.paddingRight = "";
     }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
+    };
   }, [isModal]);
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -126,8 +128,8 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         isModal ? "fixed inset-0 flex items-center justify-center bg-black/40 z-50" : "min-h-screen flex items-start justify-center pt-16 pb-10 px-4"
       }`}
     >
-      <div className="bg-white rounded-xl p-4 shadow-2xl">
-        <div className="flex flex-col md:flex-row w-[70vw] h-[75vh]">
+      <div className="bg-white rounded-xl p-4 shadow-2xl max-w-full w-[95vw] md:w-[700px] lg:w-[850px] xl:w-[900px] 2xl:w-[950px] h-auto max-h-[95vh] overflow-y-auto">
+        <div className="flex flex-col md:flex-row w-full h-full">
           {/* Left Panel */}
           <div
             ref={leftPanelRef}
@@ -335,8 +337,12 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                   <span className="text-gray-600">Already have an account? </span>
                   <button
                     onClick={() => {
-                      if (isModal && onClose) onClose();
-                      navigate("/login");
+                      if (isModal && onClose) {
+                        onClose();
+                        window.dispatchEvent(new Event("openLoginModal"));
+                      } else {
+                        navigate("/login");
+                      }
                     }}
                     className="font-medium text-[#154360] hover:underline"
                   >

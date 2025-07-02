@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaBriefcase, FaUserFriends, FaComments, FaChalkboardTeacher, FaUsers, FaRocket } from "react-icons/fa";
@@ -60,6 +59,38 @@ const HomeHero = () => {
       setIsLoggedIn(true);
     }
   }, []);
+
+  // Prevent background scroll and hide scrollbar when modal is open
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    let originalHtmlOverflow = html.style.overflow;
+    let originalBodyOverflow = body.style.overflow;
+    let originalHtmlPaddingRight = html.style.paddingRight;
+    let originalBodyPaddingRight = body.style.paddingRight;
+
+    if (showLoginModal || showRegisterModal) {
+      // Calculate scrollbar width
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      if (scrollbarWidth > 0) {
+        html.style.paddingRight = `${scrollbarWidth}px`;
+        body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      html.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+    } else {
+      html.style.overflow = originalHtmlOverflow;
+      body.style.overflow = originalBodyOverflow;
+      html.style.paddingRight = originalHtmlPaddingRight;
+      body.style.paddingRight = originalBodyPaddingRight;
+    }
+    return () => {
+      html.style.overflow = originalHtmlOverflow;
+      body.style.overflow = originalBodyOverflow;
+      html.style.paddingRight = originalHtmlPaddingRight;
+      body.style.paddingRight = originalBodyPaddingRight;
+    };
+  }, [showLoginModal, showRegisterModal]);
 
   // Stats data for activity section
   const stats = [
@@ -170,7 +201,7 @@ const HomeHero = () => {
   };
 
   return (
-    <main className="bg-gradient-to-b from-blue-50 to-gray-100 text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] overflow-auto relative pt-16">
+    <main className={`bg-gradient-to-b from-blue-50 to-gray-100 text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] ${showLoginModal || showRegisterModal ? 'overflow-hidden' : 'overflow-auto'} relative pt-16`}>
       {/* Login Modal */}
       <AnimatePresence>
         {showLoginModal && (
