@@ -40,14 +40,17 @@ const Profile = () => {
   // Fetch profile from backend on mount
   useEffect(() => {
     async function fetchProfile() {
-      // Replace with your backend API call
-      
+      // Try to get user from localStorage (for OAuth or normal login)
+      let user = null;
+      try {
+        user = JSON.parse(localStorage.getItem('user'));
+      } catch {}
       const regName = localStorage.getItem('registeredName');
       const regEmail = localStorage.getItem('registeredEmail');
       setProfile(prev => ({
         ...prev,
-        fullName: regName || prev.fullName,
-        email: regEmail || prev.email
+        fullName: (user && (user.fullName || user.name || user.firstName || user.email)) || regName || prev.fullName,
+        email: (user && user.email) || regEmail || prev.email
       }));
     }
     fetchProfile();

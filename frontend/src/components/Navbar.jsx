@@ -9,7 +9,8 @@ const Navbar = () => {
   // Use state for isLoggedIn
   const [isLoggedIn, setIsLoggedIn] = useState(
     localStorage.getItem("isRegistered") === "true" ||
-      localStorage.getItem("isLoggedIn") === "true"
+      localStorage.getItem("isLoggedIn") === "true" ||
+      (localStorage.getItem("token") && localStorage.getItem("user"))
   );
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -22,7 +23,8 @@ const Navbar = () => {
   useEffect(() => {
     setIsLoggedIn(
       localStorage.getItem("isRegistered") === "true" ||
-        localStorage.getItem("isLoggedIn") === "true"
+        localStorage.getItem("isLoggedIn") === "true" ||
+        (localStorage.getItem("token") && localStorage.getItem("user"))
     );
   }, [location.pathname]);
 
@@ -31,7 +33,8 @@ const Navbar = () => {
     function handleAuthChange() {
       setIsLoggedIn(
         localStorage.getItem("isRegistered") === "true" ||
-          localStorage.getItem("isLoggedIn") === "true"
+          localStorage.getItem("isLoggedIn") === "true" ||
+          (localStorage.getItem("token") && localStorage.getItem("user"))
       );
     }
     window.addEventListener("storage", handleAuthChange);

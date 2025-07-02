@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaExchangeAlt, FaChalkboardTeacher, FaUsers, FaComments, FaRocket } from "react-icons/fa";
 
@@ -12,6 +12,30 @@ const user3Img = "/user3.png";
 
 const Home = () => {
   const navigate = useNavigate();
+
+  // Google/LinkedIn OAuth: Parse token/user from URL, store in localStorage, dispatch authChanged, clean URL
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get("token");
+    const user = url.searchParams.get("user");
+    if (token && user) {
+      // Store in localStorage
+      localStorage.setItem("token", token);
+      try {
+        // user param is expected to be a JSON string or URI encoded JSON
+        const userObj = JSON.parse(decodeURIComponent(user));
+        localStorage.setItem("user", JSON.stringify(userObj));
+      } catch (e) {
+        // fallback: store as string
+        localStorage.setItem("user", user);
+      }
+      // Notify app of auth change
+      window.dispatchEvent(new Event("authChanged"));
+      // Clean up URL (remove query params)
+      url.search = "";
+      window.history.replaceState({}, document.title, url.pathname);
+    }
+  }, []);
 
   // Stats state
   const [stats] = useState([

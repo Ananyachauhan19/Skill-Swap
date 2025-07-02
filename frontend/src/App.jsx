@@ -12,14 +12,13 @@ import Interview from './user/Interview';
 import Profile from './user/Profile';
 
 function App() {
+  const isRegistered = localStorage.getItem('isRegistered') === 'true';
   const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-
-
+  const isLoginPage = location.pathname === '/login';
 
   return (
     <>
-      {!isAuthPage && <Navbar />}
+      {!isLoginPage && <Navbar />}
       <div className={location.pathname === '/home' ? '' : 'pt-8'}>
         <Routes>
           <Route path="/" element={<Navigate to="/home" replace />} />
@@ -29,10 +28,10 @@ function App() {
           <Route path="/one-on-one" element={<OneOnOne />} />
           <Route path="/discuss" element={<Discuss />} />
           <Route path="/interview" element={<Interview />} />
-          <Route path="/profile" element={<Profile />}/>
+          <Route path="/profile" element={<Profile/>} />
         </Routes>
       </div>
-      {!isAuthPage && <Footer />}
+      {!isLoginPage && <Footer />}
     </>
   );
 }
