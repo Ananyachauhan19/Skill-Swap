@@ -27,6 +27,12 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
       </button>
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
+        onClick={() => { onClose(); navigate('/createSession'); }}
+      >
+        Your Session
+      </button>
+      <button
+        className="text-left px-4 py-2 hover:bg-blue-50 rounded"
         onClick={() => { onClose(); navigate('/progress'); }}
       >
         Your Progress
@@ -37,6 +43,7 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
       >
         Help & Support
       </button>
+      
       <button
         className="text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded"
         onClick={() => {
