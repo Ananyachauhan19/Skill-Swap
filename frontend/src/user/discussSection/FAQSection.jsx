@@ -11,6 +11,7 @@ const staticFaqs = [
   }
 ];
 
+
 const FAQSection = () => {
   return (
     <section className="w-full bg-blue-50 border-t border-blue-200 py-8 px-2 mt-10">

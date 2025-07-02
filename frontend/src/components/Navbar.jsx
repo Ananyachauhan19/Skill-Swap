@@ -6,7 +6,6 @@ import MobileMenu from "./MobileMenu";
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  // Use state for isLoggedIn
   const [isLoggedIn, setIsLoggedIn] = useState(
     localStorage.getItem("isRegistered") === "true" ||
       localStorage.getItem("isLoggedIn") === "true" ||
@@ -19,7 +18,6 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  // Update isLoggedIn on route change
   useEffect(() => {
     setIsLoggedIn(
       localStorage.getItem("isRegistered") === "true" ||
@@ -28,7 +26,6 @@ const Navbar = () => {
     );
   }, [location.pathname]);
 
-  // Listen for localStorage changes and custom authChanged event
   useEffect(() => {
     function handleAuthChange() {
       setIsLoggedIn(
@@ -45,12 +42,10 @@ const Navbar = () => {
     };
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
 
-  // Close profile dropdown on outside click
   useEffect(() => {
     if (!showProfileMenu) return;
     function handleClickOutside(event) {
@@ -72,10 +67,13 @@ const Navbar = () => {
     }
   };
 
+  const handleLoginClick = () => {
+    window.dispatchEvent(new Event("openLoginModal"));
+  };
+
   return (
     <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] text-blue-800 px-4 sm:px-8 py-3 shadow-md border-b border-blue-200 z-30 animate-fadeIn">
       <div className="flex items-center justify-between max-w-6xl mx-auto">
-        {/* Logo Section */}
         <div
           className="flex items-center gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
           onClick={() => navigate("/")}
@@ -90,7 +88,6 @@ const Navbar = () => {
           </span>
         </div>
 
-        {/* Right Side Nav Links (after logo) */}
         <div className="hidden sm:flex items-center gap-6">
           <div className="flex gap-6">
             {[
@@ -113,7 +110,6 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* Search Bar */}
           <div className="relative">
             <form onSubmit={handleSearch}>
               <input
@@ -145,7 +141,6 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Hamburger for Mobile */}
         <button
           className="sm:hidden p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 transition-transform duration-300 hover:scale-110"
           onClick={() => setMenuOpen((v) => !v)}
@@ -166,7 +161,6 @@ const Navbar = () => {
           </svg>
         </button>
 
-        {/* Mobile Menu */}
         {menuOpen && (
           <div className="sm:hidden absolute top-full left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] shadow-xl border-t border-blue-200 p-4 mt-1 z-20">
             <MobileMenu
@@ -178,7 +172,6 @@ const Navbar = () => {
               setMenuOpen={setMenuOpen}
               ProfileDropdown={ProfileDropdown}
             />
-            {/* Mobile Search */}
             <form onSubmit={handleSearch} className="mt-4">
               <div className="relative">
                 <input
@@ -211,12 +204,11 @@ const Navbar = () => {
           </div>
         )}
 
-        {/* Desktop Login/Profile */}
         <div className="hidden sm:flex items-center gap-4">
           {!isLoggedIn ? (
             <button
               className="bg-blue-700 text-white px-4 py-1 rounded-md font-medium tracking-wide transition-all duration-300 hover:bg-blue-800 hover:shadow-md hover:scale-105"
-              onClick={() => navigate("/login")}
+              onClick={handleLoginClick}
             >
               Login
             </button>
