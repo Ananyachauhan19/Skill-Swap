@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import SearchBar from './oneononeSection/serachBar';
+import SearchBar from './oneononeSection/serachBar'; // Fixed import to match actual filename
 import TestimonialSection from './oneononeSection/TestimonialSection';
+import TutorCard from './oneononeSection/TutorCard';
 
 const AnimatedHeaderBG = () => (
   <svg
@@ -26,6 +27,84 @@ const AnimatedHeaderBG = () => (
 const OneOnOne = () => {
   const [course, setCourse] = useState('');
   const [unit, setUnit] = useState('');
+  const [showTutors, setShowTutors] = useState(false);
+  const [sessionRequestedTutor, setSessionRequestedTutor] = useState(null);
+  const [pendingSession, setPendingSession] = useState(null);
+  const [requestSentTutor, setRequestSentTutor] = useState(null);
+
+  // Demo static tutors (replace with backend fetch)
+  const tutors = [
+    {
+      name: 'Amit Sharma',
+      profilePic: '/amit-sharma.jpg', // Fixed path for Vite/React public folder
+      skills: ['Data Structures', 'Trees', 'Graphs'],
+      status: 'Online and Free',
+      rating: 4.8,
+      creditPerMin: 5,
+    },
+    {
+      name: 'Priya Verma',
+      profilePic: '/priya-verma.jpg',
+      skills: ['Algorithms', 'Sorting', 'DP'],
+      status: 'Busy',
+      rating: 4.6,
+      creditPerMin: 6,
+    },
+    {
+      name: 'Rahul Singh',
+      profilePic: '/rahul-singh.jpg',
+      skills: ['Web Development', 'React', 'CSS'],
+      status: 'Online and Free',
+      rating: 4.9,
+      creditPerMin: 7,
+    },
+  ];
+
+  // Use the Find Tutor button from SearchBar
+  const handleFindTutor = () => {
+    setShowTutors(true);
+    setCourse('');
+    setUnit('');
+  };
+
+  const handleRequestSession = (tutor) => {
+    setSessionRequestedTutor(tutor);
+    setPendingSession({ tutor });
+    setRequestSentTutor(tutor); // Show the RequestSentModal
+    // Fire a custom event to add a notification in Navbar
+    window.dispatchEvent(new CustomEvent('requestSent', {
+      detail: {
+        tutor,
+        onCancel: () => {
+          setSessionRequestedTutor(null);
+          setPendingSession(null);
+          setRequestSentTutor(null);
+          // Optionally: fire another event to remove notification in Navbar
+        }
+      }
+    }));
+    // Backend: trigger socket/notification event to tutor panel
+    // socket.emit('sessionRequest', { tutorId: tutor.id, course, unit });
+  };
+
+  const handleCloseRequestSent = () => {
+    setRequestSentTutor(null);
+  };
+
+  const handleAcceptSession = () => {
+    // Backend: Accept session logic here
+    alert(`Session with ${pendingSession.tutor.name} accepted! (Demo)`);
+    setPendingSession(null);
+    setSessionRequestedTutor(null);
+    setRequestSentTutor(null);
+  };
+
+  const handleRejectSession = () => {
+    setPendingSession(null);
+    setSessionRequestedTutor(null);
+    setRequestSentTutor(null);
+  };
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-blue-100 relative overflow-x-hidden flex flex-col">
       <header className="w-full max-w-7xl mx-auto text-center py-16 px-4 relative overflow-hidden">
@@ -56,7 +135,19 @@ const OneOnOne = () => {
           setCourseValue={setCourse}
           unitValue={unit}
           setUnitValue={setUnit}
+          onFindTutor={handleFindTutor}
         />
+        {showTutors && (
+          <div className="flex flex-col gap-6 mt-6">
+            {tutors.map((tutor, idx) => (
+              <TutorCard
+                key={idx}
+                tutor={tutor}
+                onRequestSession={() => handleRequestSession(tutor)}
+              />
+            ))}
+          </div>
+        )}
         <TestimonialSection />
       </main>
     </div>

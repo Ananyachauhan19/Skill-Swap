@@ -24,7 +24,7 @@ const STATIC_UNITS = {
   Statistics: ['Descriptive Statistics', 'Inferential Statistics', 'Probability Theory'],
 };
 
-const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue }) => {
+const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue, onFindTutor }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
   const [highlightedCourseIdx, setHighlightedCourseIdx] = useState(-1);
@@ -202,7 +202,8 @@ const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue }) => 
           <button
             type="button"
             className="ml-2 px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-lg shadow hover:bg-blue-700 transition-colors"
-            onClick={async () => {
+            onClick={() => {
+              if (onFindTutor) onFindTutor();
               // Backend-ready: send courseValue and unitValue to backend API
               /*
               try {
@@ -219,7 +220,7 @@ const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue }) => 
                 alert('Error searching for tutors: ' + err.message);
               }
               */
-              alert(`Searching for tutors in ${courseValue}${unitValue ? ' - ' + unitValue : ''}`);
+              // alert(`Searching for tutors in ${courseValue}${unitValue ? ' - ' + unitValue : ''}`);
             }}
             disabled={!courseValue}
           >
