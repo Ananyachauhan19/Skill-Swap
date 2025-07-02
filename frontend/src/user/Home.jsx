@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaBriefcase, FaUserFriends, FaComments, FaChalkboardTeacher, FaUsers, FaRocket } from "react-icons/fa";
@@ -76,8 +77,8 @@ const HomeHero = () => {
         html.style.paddingRight = `${scrollbarWidth}px`;
         body.style.paddingRight = `${scrollbarWidth}px`;
       }
-      html.style.overflow = 'hidden';
-      body.style.overflow = 'hidden';
+      html.style.overflow = "hidden";
+      body.style.overflow = "hidden";
     } else {
       html.style.overflow = originalHtmlOverflow;
       body.style.overflow = originalBodyOverflow;
@@ -143,7 +144,7 @@ const HomeHero = () => {
     {
       title: "Group Discussion",
       subtitle: "Collaborative Growth",
-      icon: <FaComments className="text-3xl text-blue-800" />,
+      icon: <FaComments className="text-3xl text-blue-800" />, 
       bg: "bg-blue-50",
       path: "/discuss",
     },
@@ -201,7 +202,11 @@ const HomeHero = () => {
   };
 
   return (
-    <main className={`bg-gradient-to-b from-blue-50 to-gray-100 text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] ${showLoginModal || showRegisterModal ? 'overflow-hidden' : 'overflow-auto'} relative pt-16`}>
+    <main
+      className={`bg-gradient-to-b from-blue-50 to-gray-100 text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] ${
+        showLoginModal || showRegisterModal ? "overflow-hidden" : "overflow-auto"
+      } relative pt-16`}
+    >
       {/* Login Modal */}
       <AnimatePresence>
         {showLoginModal && (
@@ -267,7 +272,7 @@ const HomeHero = () => {
             variants={textVariants}
           >
             <motion.h1
-              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-tight text-blue-900"
+              className="text-[38.92px] sm:text-[46.56px] lg:text-[54.2px] font-extrabold leading-tight text-blue-900"
               variants={textVariants}
             >
               <span>
@@ -289,15 +294,27 @@ const HomeHero = () => {
               SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.
             </motion.p>
             <motion.div className="flex flex-wrap gap-4" variants={textVariants}>
-              <motion.button
-                onClick={() => setShowRegisterModal(true)}
-                className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                variants={buttonVariants}
-                whileHover="hover"
-                whileTap="tap"
-              >
-                Join Now
-              </motion.button>
+              {isLoggedIn ? (
+                <motion.button
+                  onClick={() => navigate("/")}
+                  className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  variants={buttonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
+                >
+                  Continue Learning
+                </motion.button>
+              ) : (
+                <motion.button
+                  onClick={() => setShowRegisterModal(true)}
+                  className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                  variants={buttonVariants}
+                  whileHover="hover"
+                  whileTap="tap"
+                >
+                  Join Now
+                </motion.button>
+              )}
               <motion.button
                 onClick={() => navigate("/pro")}
                 className="border-2 border-blue-900 text-blue-900 px-8 py-4 rounded-md font-semibold text-lg hover:bg-blue-900 hover:text-white transition-all duration-300"
@@ -335,18 +352,19 @@ const HomeHero = () => {
           {/* Image Section */}
           <motion.div
             className="relative"
-            initial={{ opacity: 0, scale: 0.95, x: 50 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.95, x: 50  , y: -90 }}
+            animate={{ opacity: 1, scale: 1, x: 10 ,y:-150}}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            style={{ transform: "translateY(-10%)" }}
           >
             <img
               src="/assets/skillswap-hero.png"
               alt="SkillSwap Hero Image"
               className="w-full h-[400px] object-contain hover:scale-105 transition-transform duration-300"
             />
-           
           </motion.div>
         </div>
+
 
         {/* Quick Access Panel */}
         <motion.div className="mt-16 max-w-5xl mx-auto" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
