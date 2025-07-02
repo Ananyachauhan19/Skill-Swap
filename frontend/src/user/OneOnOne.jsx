@@ -45,7 +45,12 @@ const OneOnOne = () => {
         </div>
       </header>
       <main className="flex-1 w-full max-w-4xl mx-auto flex flex-col gap-12 px-4 pb-12">
-        <div className="pt-2" />
+        <button
+          className="self-center mb-6 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-blue-700 transition"
+          onClick={() => window.location.href = '/createSession'}
+        >
+          + Create Your Own Session
+        </button>
         <SearchBar
           courseValue={course}
           setCourseValue={setCourse}

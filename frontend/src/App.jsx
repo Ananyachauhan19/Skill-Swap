@@ -10,6 +10,7 @@ import OneOnOne from './user/OneOnOne';
 import Discuss from './user/Discuss';
 import Interview from './user/Interview';
 import Profile from './user/Profile';
+import CreateSession from './user/createSession';
 
 function App() {
   const isRegistered = localStorage.getItem('isRegistered') === 'true';
@@ -29,6 +30,7 @@ function App() {
           <Route path="/discuss" element={<Discuss />} />
           <Route path="/interview" element={<Interview />} />
           <Route path="/profile" element={<Profile/>} />
+          <Route path="/createSession" element={<CreateSession/>} />
         </Routes>
       </div>
       {!isLoginPage && <Footer />}
