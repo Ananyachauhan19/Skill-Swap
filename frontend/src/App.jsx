@@ -13,7 +13,6 @@ import Profile from './user/Profile';
 import CreateSession from './user/createSession';
 
 function App() {
-  const isRegistered = localStorage.getItem('isRegistered') === 'true';
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
