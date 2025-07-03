@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // Static data 
 const STATIC_COURSES = [
@@ -87,6 +87,7 @@ const STATIC_TOPICS = {
 };
 
 const CreateSession = () => {
+  const cardRef = useRef(null);
   const [form, setForm] = useState({
     subject: '',
     topic: '',
@@ -104,7 +105,6 @@ const CreateSession = () => {
   const [highlightedSubtopicIdx, setHighlightedSubtopicIdx] = useState(-1);
   const [scheduledSessions, setScheduledSessions] = useState([]);
   const [editId, setEditId] = useState(null);
-  const [editForm, setEditForm] = useState({ subject: '', topic: '', description: '', date: '', time: '' });
   
 
   // Filtered lists for cascading dropdowns
@@ -164,26 +164,38 @@ const handleSubmit = async e => {
   }
 
   try {
-    const token = localStorage.getItem('token'); 
-    const response = await fetch('http://localhost:5000/api/sessions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(form),
-    });
-
-
-
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.message || 'Failed to create session');
+    const token = localStorage.getItem('token');
+    if (editId) {
+      // Update existing session
+      const response = await fetch(`http://localhost:5000/api/sessions/${editId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to update session');
+      }
+      setEditId(null);
+    } else {
+      // Create new session
+      const response = await fetch('http://localhost:5000/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to create session');
+      }
+      setScheduled(true);
     }
-
-    const data = await response.json();
-console.log('Fetched sessions:', data);
-    setScheduled(true);
     setForm({
       subject: '',
       topic: '',
@@ -192,11 +204,9 @@ console.log('Fetched sessions:', data);
       date: '',
       time: '',
     });
-    
     fetchUserSessions();
-
   } catch (error) {
-    console.error('Error creating session:', error.message);
+    console.error('Error creating/updating session:', error.message);
     alert('Error: ' + error.message);
   }
 };
@@ -204,47 +214,18 @@ console.log('Fetched sessions:', data);
 
   const handleEdit = (session) => {
     setEditId(session._id);
-    setEditForm({
-      subject: session.subject,
-      topic: session.topic,
-      description: session.description,
-      date: session.date,
-      time: session.time,
+    setForm({
+      subject: session.subject || '',
+      topic: session.topic || '',
+      subtopic: session.subtopic || '',
+      description: session.description || '',
+      date: session.date || '',
+      time: session.time || '',
     });
+    if (cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
-
-  const handleEditChange = e => {
-    const { name, value } = e.target;
-    setEditForm(prev => ({ ...prev, [name]: value }));
-  };
-
-
-const handleEditSave = async (id) => {
-  try {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`http://localhost:5000/api/sessions/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(editForm),
-    });
-
-    if (!res.ok) throw new Error('Failed to update session');
-
-    // Get updated session from response or just update state
-    const updatedSession = await res.json();
-
-    setScheduledSessions(prev =>
-      prev.map(s => s._id === id ? updatedSession : s)
-    );
-
-    setEditId(null);
-  } catch (err) {
-    console.error('Error updating session:', err);
-  }
-};
 
 
   const handleDelete = async (id) => {
@@ -262,7 +243,7 @@ const handleEditSave = async (id) => {
       }
     });
     const data = await res.json();
-    setScheduledSessions(data); // update state to show in UI
+    setScheduledSessions(data); 
   } catch (err) {
     console.error('Error fetching sessions:', err);
   }
@@ -275,9 +256,10 @@ useEffect(() => {
 
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100">
-      <div className="bg-white/90 rounded-2xl shadow-xl p-10 border border-blue-100 w-full max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold text-blue-900 mb-8 text-center">Create Your Own 1-on-1 Session</h1>
+    <div className="min-h-screen flex flex-col lg:flex-row items-start justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 px-4 py-10 gap-10">
+      {/* Create Session Card*/}
+      <div ref={cardRef} className="bg-white/95 rounded-3xl shadow-2xl p-10 border border-blue-200 w-full max-w-lg min-w-[320px] mx-auto lg:mx-0 mb-10 lg:mb-0 relative">
+        <h1 className="text-2xl font-bold text-blue-900 mb-8 text-center tracking-tight">Create Your Own 1-on-1 Session</h1>
         {/* Schedule Session Section */}
         <section className="mb-10">
           <h2 className="text-lg font-semibold text-blue-800 mb-4 border-b border-blue-100 pb-2">Schedule Your Session</h2>
@@ -486,107 +468,59 @@ useEffect(() => {
                 type="submit"
                 className="mt-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
               >
-                Schedule Session
+                {editId ? 'Update Session' : 'Schedule Session'}
               </button>
+              {editId && (
+    <button
+      type="button"
+      className="mt-2 bg-gray-300 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:bg-gray-400 transition"
+      onClick={() => {
+        setEditId(null);
+        setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
+      }}
+    >
+      Cancel Edit
+    </button>
+  )}
             </form>
           )}
         </section>
-        {/* Scheduled Sessions Section */}
+      </div>
+      {/* Scheduled Sessions (Right) */}
+      <div className="flex-1 w-full">
         <section>
-          <h2 className="text-lg font-semibold text-blue-800 mb-4 border-b border-blue-100 pb-2">Scheduled Sessions</h2>
+          <h2 className="text-xl font-bold text-blue-800 mb-6 border-b-2 border-blue-200 pb-2 tracking-tight">Scheduled Sessions</h2>
           {scheduledSessions.length > 0 ? (
-            <ul className="space-y-4">
+            <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
               {scheduledSessions.map(session => (
-                <li key={session._id} className="border border-blue-100 rounded-lg p-4 bg-blue-50/60">
-                  {editId === session._id ? (
-                    <form className="flex flex-col gap-2" onSubmit={e => { e.preventDefault(); handleEditSave(session._id); }}>
-                      <input
-                        type="text"
-                        name="subject"
-                        value={editForm.subject}
-                        onChange={handleEditChange}
-                        className="border border-blue-200 rounded px-2 py-1 mb-1"
-                        required
-                      />
-                      <input
-                        type="text"
-                        name="topic"
-                        value={editForm.topic}
-                        onChange={handleEditChange}
-                        className="border border-blue-200 rounded px-2 py-1 mb-1"
-                        required
-                      />
-                      <input
-                        type="text"
-                        name="subtopic"
-                        value={editForm.subtopic}
-                        onChange={handleEditChange}
-                        className="border border-blue-200 rounded px-2 py-1 mb-1"
-                        required
-                      />
-                      <textarea
-                        name="description"
-                        value={editForm.description}
-                        onChange={handleEditChange}
-                        className="border border-blue-200 rounded px-2 py-1 mb-1"
-                        required
-                      />
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="date"
-                          name="date"
-                          value={editForm.date}
-                          onChange={handleEditChange}
-                          className="border border-blue-200 rounded px-2 py-1"
-                          required
-                        />
-                        <input
-                          type="time"
-                          name="time"
-                          value={editForm.time}
-                          onChange={handleEditChange}
-                          className="border border-blue-200 rounded px-2 py-1"
-                          required
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">Save</button>
-                        <button type="button" className="bg-gray-200 px-3 py-1 rounded" onClick={() => setEditId(null)}>Cancel</button>
-                      </div>
-                    </form>
-                  ) : (
-<>
-  <div className={`text-xs font-medium mb-1 ${session.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
-    {session.status.toUpperCase()}
-  </div>
-  <div className="font-medium text-blue-900 mb-1">
-    {[session.subject, session.topic, session.subtopic].filter(x => x && x.trim()).join(' - ')}
-  </div>
-  <div className="text-blue-700 text-sm mb-1">{session.description}</div>
-  <div className="text-gray-600 text-xs mb-2">{session.date} at {session.time}</div>
-  <div className="flex gap-2">
-    <button className="text-blue-600 hover:underline text-sm" onClick={() => handleEdit(session)}>Edit</button>
-    <button className="text-red-600 hover:underline text-sm" onClick={() => handleDelete(session._id)}>Delete</button>
-  </div>
-  {/* Start Session Button */}
-  <div className="mt-4 flex justify-end">
-    <button
-      className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition shadow"
-      title="Start Session"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-7.5A2.25 2.25 0 003.75 5.25v13.5A2.25 2.25 0 006 21h7.5a2.25 2.25 0 002.25-2.25V15m0-6l5.25-3.75v13.5L15.75 15" />
-      </svg>
-      Start Session
-    </button>
-  </div>
-</>
-                  )}
+                <li key={session._id} className="border border-blue-100 rounded-2xl p-6 bg-white/80 flex flex-col justify-between min-h-[200px] shadow hover:shadow-lg transition-all">
+                  <div className={`text-xs font-semibold mb-1 uppercase tracking-wider ${session.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>{session.status.toUpperCase()}</div>
+                  <div className="font-semibold text-blue-900 mb-1 text-lg truncate">
+                    {[session.subject, session.topic, session.subtopic].filter(x => x && x.trim()).join(' - ')}
+                  </div>
+                  <div className="text-blue-700 text-sm mb-2 line-clamp-3">{session.description}</div>
+                  <div className="text-gray-600 text-xs mb-4">{session.date} at {session.time}</div>
+                  <div className="flex gap-3 mt-auto">
+                    <button className="text-blue-600 hover:underline text-sm font-medium" onClick={() => handleEdit(session)}>Edit</button>
+                    <button className="text-red-600 hover:underline text-sm font-medium" onClick={() => handleDelete(session._id)}>Delete</button>
+                  </div>
+                  {/* Start Session Button */}
+                  <div className="mt-6 flex justify-end">
+                    <button
+                      className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-700 transition shadow"
+                      title="Start Session"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-7.5A2.25 2.25 0 003.75 5.25v13.5A2.25 2.25 0 006 21h7.5a2.25 2.25 0 002.25-2.25V15m0-6l5.25-3.75v13.5L15.75 15" />
+                      </svg>
+                      Start Session
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="text-gray-500 text-center">No sessions scheduled yet.</div>
+            <div className="text-gray-500 text-center text-lg mt-10">No sessions scheduled yet.</div>
           )}
         </section>
       </div>
