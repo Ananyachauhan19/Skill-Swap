@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaBriefcase, FaUserFriends, FaComments, FaChalkboardTeacher, FaUsers, FaRocket } from "react-icons/fa";
+import { FaBriefcase, FaUserFriends, FaComments, FaChalkboardTeacher, FaUsers, FaRocket, FaGlobe, FaLightbulb, FaHandshake } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import Login from "../auth/Login"; // Correct import path for Login.jsx
-import Register from "../auth/Register"; // Correct import path for Register.jsx
+import Login from "../auth/Login";
+import Register from "../auth/Register";
 
-// HomeHero component for SkillSwap-Hub, a professional EdTech platform
+// HomeHero component: Main landing page for SkillSwap-Hub
 const HomeHero = () => {
   const navigate = useNavigate();
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -14,7 +13,7 @@ const HomeHero = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Handle login modal event listener
+  // Effect: Handle login modal event listener
   useEffect(() => {
     const handleOpenLoginModal = () => {
       setShowLoginModal(true);
@@ -24,7 +23,7 @@ const HomeHero = () => {
     return () => window.removeEventListener("openLoginModal", handleOpenLoginModal);
   }, []);
 
-  // Handle register modal event listener
+  // Effect: Handle register modal event listener
   useEffect(() => {
     const handleOpenRegisterModal = () => {
       setShowRegisterModal(true);
@@ -34,7 +33,7 @@ const HomeHero = () => {
     return () => window.removeEventListener("openRegisterModal", handleOpenRegisterModal);
   }, []);
 
-  // Handle OAuth and user persistence
+  // Effect: Handle OAuth and user persistence
   useEffect(() => {
     const url = new URL(window.location.href);
     const token = url.searchParams.get("token");
@@ -61,7 +60,7 @@ const HomeHero = () => {
     }
   }, []);
 
-  // Prevent background scroll and hide scrollbar when modal is open
+  // Effect: Prevent background scroll when modals are open
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
@@ -71,7 +70,6 @@ const HomeHero = () => {
     let originalBodyPaddingRight = body.style.paddingRight;
 
     if (showLoginModal || showRegisterModal) {
-      // Calculate scrollbar width
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       if (scrollbarWidth > 0) {
         html.style.paddingRight = `${scrollbarWidth}px`;
@@ -93,31 +91,34 @@ const HomeHero = () => {
     };
   }, [showLoginModal, showRegisterModal]);
 
-  // Stats data for activity section
+  // Data: Stats for activity section
   const stats = [
     { icon: <FaChalkboardTeacher className="text-5xl text-blue-800" />, value: 18200, label: "Active Members" },
     { icon: <FaUsers className="text-5xl text-blue-800" />, value: 4500, label: "Experts Available" },
     { icon: <FaComments className="text-5xl text-blue-800" />, value: 50, label: "Session Types" },
   ];
 
-  // Top performers data
+  // Data: Top performers for showcase
   const performers = [
     {
-      img: "/user1.png",
+      img: "/user1.webp",
+      imgFallback: "/user1.png",
       alt: "Most Active",
       title: "Most Active Learner",
       name: "Aditya Singh",
       stat: "15 sessions",
     },
     {
-      img: "/user2.png",
+      img: "/user2.webp",
+      imgFallback: "/user2.png",
       alt: "Top Tutor",
       title: "Highest Rated Tutor",
       name: "Ananya S.",
       extra: <span className="text-yellow-400 text-2xl">★★★★★</span>,
     },
     {
-      img: "/user3.png",
+      img: "/user3.webp",
+      imgFallback: "/user3.png",
       alt: "Top Earner",
       title: "Top Earner",
       name: "Rahul",
@@ -125,7 +126,7 @@ const HomeHero = () => {
     },
   ];
 
-  // Feature tabs for quick access panel
+  // Data: Feature tabs for quick access panel
   const featureTabs = [
     {
       title: "Job Interview",
@@ -144,61 +145,262 @@ const HomeHero = () => {
     {
       title: "Group Discussion",
       subtitle: "Collaborative Growth",
-      icon: <FaComments className="text-3xl text-blue-800" />, 
+      icon: <FaComments className="text-3xl text-blue-800" />,
       bg: "bg-blue-50",
       path: "/discuss",
     },
   ];
 
-  // Animation variants for text entrance
+  // Animation: Enhanced variants for text entrance
   const textVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 50, rotateX: -10 },
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.6, ease: "easeOut", staggerChildren: 0.2 },
+      rotateX: 0,
+      transition: { duration: 0.8, ease: "easeOut", staggerChildren: 0.3 },
     },
   };
 
-  // Animation variants for buttons
+  // Animation: Enhanced variants for buttons
   const buttonVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.5 } },
     hover: {
-      scale: 1.05,
-      boxShadow: "0 10px 20px rgba(0, 0, 0, 0.3)",
-      transition: { duration: 0.3 },
+      scale: 1.1,
+      boxShadow: "0 12px 24px rgba(0, 0, 0, 0.2)",
+      transition: { duration: 0.3, ease: "easeInOut" },
+    },
+    tap: { scale: 0.9 },
+  };
+
+  // Animation: Enhanced variants for tabs
+  const tabVariants = {
+    hidden: { opacity: 0, y: 50, rotate: 5 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      rotate: 0,
+      transition: { duration: 0.6, ease: "easeOut" },
+    },
+    hover: {
+      scale: 1.08,
+      boxShadow: "0 10px 20px rgba(0, 0, 0, 0.15)",
+      borderColor: "#1E3A8A",
+      zIndex: 10,
+      transition: { duration: 0.3, ease: "easeInOut" },
     },
     tap: { scale: 0.95 },
   };
 
-  // Animation variants for tabs
-  const tabVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5, ease: "easeOut" },
-    },
-    hover: {
-      scale: 1.05,
-      boxShadow: "0 8px 16px rgba(0, 0, 0, 0.2)",
-      borderColor: "#1E3A8A",
-      zIndex: 10,
-    },
-    tap: { scale: 0.98 },
-  };
-
-  // Handle login success
+  // Handler: Login success callback
   const handleLoginSuccess = (userData) => {
     setUser(userData);
     setIsLoggedIn(true);
     setShowLoginModal(false);
   };
 
-  // Handle register success
+  // Handler: Register success callback
   const handleRegisterSuccess = (userData) => {
     setUser(userData);
     setIsLoggedIn(true);
     setShowRegisterModal(false);
+  };
+
+  // Component: Who Are We Section
+  const WhoAreWeSection = () => {
+    const textVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.6, ease: "easeOut" },
+      },
+    };
+
+    const imageVariants = {
+      hidden: { opacity: 0, scale: 0.95 },
+      visible: {
+        opacity: 1,
+        scale: 1,
+        transition: { duration: 0.8, ease: "easeOut", delay: 0.2 },
+      },
+    };
+
+    const buttonVariants = {
+      hover: {
+        scale: 1.05,
+        boxShadow: "0 10px 20px rgba(0, 0, 0, 0.3)",
+        transition: { duration: 0.3 },
+      },
+      tap: { scale: 0.95 },
+    };
+
+    return (
+      <section className="py-16 sm:py-24 px-4 sm:px-8 bg-blue-50">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 items-center">
+          <motion.div
+            className="lg:w-1/2 space-y-8"
+            initial="hidden"
+            animate="visible"
+            variants={textVariants}
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-900 leading-tight">
+              Who We Are
+            </h2>
+            <p className="text-lg text-gray-600 max-w-xl leading-relaxed">
+              SkillSwap-Hub is a transformative platform dedicated to empowering professionals through peer-to-peer learning and skill exchange. We connect a vibrant global community of experts, mentors, and learners, creating a dynamic ecosystem where knowledge flows freely, skills are honed collaboratively, and career growth is accelerated. Our mission is to democratize professional education by providing unparalleled access to real-world expertise, personalized mentorship, and interactive group discussions. Join us to share your expertise, learn from industry leaders, and build a network that propels your career forward.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {[
+                { icon: <FaGlobe className="text-4xl text-blue-800" />, label: "Global Community", desc: "Connect with professionals worldwide" },
+                { icon: <FaLightbulb className="text-4xl text-blue-800" />, label: "Innovative Learning", desc: "Access cutting-edge knowledge" },
+                { icon: <FaHandshake className="text-4xl text-blue-800" />, label: "Collaborative Growth", desc: "Grow through shared expertise" },
+              ].map((item, idx) => (
+                <motion.div
+                  key={item.label}
+                  className="flex flex-col items-center gap-3 bg-white p-6 rounded-lg shadow-lg border border-blue-100 hover:shadow-xl transition-all duration-300"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.2, duration: 0.5 }}
+                >
+                  {item.icon}
+                  <p className="text-base font-semibold text-blue-900">{item.label}</p>
+                  <p className="text-sm text-gray-600">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+            <motion.button
+              onClick={() => navigate("/explore")}
+              className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              variants={buttonVariants}
+              whileHover="hover"
+              whileTap="tap"
+            >
+              Explore Our Community
+            </motion.button>
+          </motion.div>
+          <motion.div
+            className="lg:w-1/2 relative"
+            initial="hidden"
+            animate="visible"
+            variants={imageVariants}
+          >
+            <div className="relative rounded-xl overflow-hidden shadow-2xl border-2 border-blue-200">
+              <picture>
+                <source srcSet="/assets/skillswap-community.webp" type="image/webp" />
+                <img
+                  src="/assets/skillswap-community.png"
+                  alt="SkillSwap Community"
+                  className="w-full h-[450px] object-cover transform hover:scale-105 transition-transform duration-500"
+                  loading="lazy"
+                />
+              </picture>
+              <div className="absolute bottom-6 left-6 text-white">
+                <p className="text-xl font-semibold">Empowering Professionals</p>
+                <p className="text-sm">Connect, Learn, Succeed</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+    );
+  };
+
+  // Component: Why Choose SkillSwap-Hub Section
+  const WhyChooseSection = () => {
+    const textVariants = {
+      hidden: { opacity: 0, y: 20 },
+      visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.6, ease: "easeOut" },
+      },
+    };
+
+    const imageVariants = {
+      hidden: { opacity: 0, scale: 0.95 },
+      visible: {
+        opacity: 1,
+        scale: 1,
+        transition: { duration: 0.8, ease: "easeOut", delay: 0.2 },
+      },
+    };
+
+    const buttonVariants = {
+      hover: {
+        scale: 1.05,
+        boxShadow: "0 10px 20px rgba(0, 0, 0, 0.3)",
+        transition: { duration: 0.3 },
+      },
+      tap: { scale: 0.95 },
+    };
+
+    return (
+      <section className="py-16 sm:py-24 px-4 sm:px-8 bg-blue-50">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 items-center">
+          <motion.div
+            className="lg:w-1/2 space-y-8"
+            initial="hidden"
+            animate="visible"
+            variants={textVariants}
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-900 leading-tight">
+              Why Choose SkillSwap-Hub
+            </h2>
+            <p className="text-lg text-gray-600 max-w-xl leading-relaxed">
+              SkillSwap-Hub provides a professional environment for skill development. Engage in live sessions, earn credits by teaching, and join a global community of learners and experts. Our platform empowers you to grow through hands-on practice, personalized mentorship, and collaborative learning, ensuring you stay ahead in your career with practical, real-world skills.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {[
+                { icon: <FaBriefcase className="text-4xl text-blue-800" />, label: "Real-World Practice", desc: "Hone skills through live sessions" },
+                { icon: <FaUserFriends className="text-4xl text-blue-800" />, label: "Personalized Mentorship", desc: "Learn from industry experts" },
+                { icon: <FaComments className="text-4xl text-blue-800" />, label: "Collaborative Learning", desc: "Engage in group discussions" },
+              ].map((item, idx) => (
+                <motion.div
+                  key={item.label}
+                  className="flex flex-col items-center gap-3 bg-white p-6 rounded-lg shadow-lg border border-blue-100 hover:shadow-xl transition-all duration-300"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.2, duration: 0.5 }}
+                >
+                  {item.icon}
+                  <p className="text-base font-semibold text-blue-900">{item.label}</p>
+                  <p className="text-sm text-gray-600">{item.desc}</p>
+                </motion.div>
+              ))}
+            </div>
+            {!isLoggedIn && (
+              <motion.button
+                onClick={() => setShowRegisterModal(true)}
+                className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                variants={buttonVariants}
+                whileHover="hover"
+                whileTap="tap"
+              >
+                Join Now
+              </motion.button>
+            )}
+          </motion.div>
+          <motion.div
+            className="lg:w-1/2 relative"
+            initial="hidden"
+            animate="visible"
+            variants={imageVariants}
+          >
+            <picture>
+              <source srcSet="/assets/skillchoose.webp" type="image/webp" />
+              <img
+                src="/assets/skillchoose.png"
+                alt="Why Choose SkillSwap"
+                className="w-full h-[450px] object-cover"
+                loading="lazy"
+              />
+            </picture>
+          </motion.div>
+        </div>
+      </section>
+    );
   };
 
   return (
@@ -207,7 +409,7 @@ const HomeHero = () => {
         showLoginModal || showRegisterModal ? "overflow-hidden" : "overflow-auto"
       } relative pt-16`}
     >
-      {/* Login Modal */}
+      {/* Section: Login Modal */}
       <AnimatePresence>
         {showLoginModal && (
           <>
@@ -234,7 +436,7 @@ const HomeHero = () => {
         )}
       </AnimatePresence>
 
-      {/* Register Modal */}
+      {/* Section: Register Modal */}
       <AnimatePresence>
         {showRegisterModal && (
           <>
@@ -261,10 +463,10 @@ const HomeHero = () => {
         )}
       </AnimatePresence>
 
-      {/* Hero Section */}
+      {/* Section: Hero Section */}
       <section className="relative z-10 py-20 sm:py-28 max-w-7xl mx-auto px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Text Content */}
+          {/* Hero Text Content */}
           <motion.div
             className="flex flex-col justify-center space-y-8"
             initial="hidden"
@@ -325,49 +527,57 @@ const HomeHero = () => {
                 Discover Pro
               </motion.button>
             </motion.div>
+          </motion.div>
+
+          {/* Hero Image Section */}
+          <motion.div
+            className="relative"
+            initial={{ opacity: 0, scale: 0.95, x: 50 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+          >
+            <picture>
+              <source srcSet="/assets/skillswap-hero.webp" type="image/webp" />
+              <img
+                src="/assets/skillswap-hero.png"
+                alt="SkillSwap Hero Image"
+                className="w-full h-[400px] object-contain hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+            </picture>
             {isLoggedIn && (
               <motion.div
-                className="mt-6 p-4 bg-white rounded-md shadow-md border border-blue-100 max-w-md"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
+                className="mt-6 p-4 bg-white rounded-md shadow-md border border-blue-100 max-w-md mx-auto"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
               >
                 <div className="flex items-center gap-4">
-                  <img
-                    src={user?.avatar || "/assets/default-avatar.png"}
-                    alt="User Avatar"
-                    className="w-12 h-12 rounded-full border-2 border-blue-100"
-                  />
+                  <picture>
+                    <source srcSet={user?.avatar || "/assets/default-avatar.webp"} type="image/webp" />
+                    <img
+                      src={user?.avatar || "/assets/default-avatar.png"}
+                      alt="User Avatar"
+                      className="w-12 h-12 rounded-full border-2 border-blue-100"
+                      loading="lazy"
+                    />
+                  </picture>
                   <div>
                     <p className="text-lg font-semibold text-blue-900">
-                      Welcome, {user?.name || "Professional"}!
+                      Welcome, {user?.name || "Professional"}! Let's continue with your profile
                     </p>
-                    <p className="text-sm text-gray-600">Continue your learning journey</p>
+                    <p className="text-sm text-gray-600">Explore your personalized learning journey</p>
                   </div>
                 </div>
               </motion.div>
             )}
           </motion.div>
-
-          {/* Image Section */}
-          <motion.div
-            className="relative"
-            initial={{ opacity: 0, scale: 0.95, x: 50  , y: -90 }}
-            animate={{ opacity: 1, scale: 1, x: 10 ,y:-150}}
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-            style={{ transform: "translateY(-10%)" }}
-          >
-            <img
-              src="/assets/skillswap-hero.png"
-              alt="SkillSwap Hero Image"
-              className="w-full h-[400px] object-contain hover:scale-105 transition-transform duration-300"
-            />
-          </motion.div>
         </div>
+      </section>
 
-
-        {/* Quick Access Panel */}
-        <motion.div className="mt-16 max-w-5xl mx-auto" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+      {/* Section: Explore Opportunities */}
+      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
+        <motion.div className="max-w-5xl mx-auto" initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
           <h3 className="text-xl font-semibold text-center text-blue-900 mb-8">
             Explore Learning Opportunities
           </h3>
@@ -396,15 +606,15 @@ const HomeHero = () => {
         </motion.div>
       </section>
 
-      {/* Activity Section (Stats) */}
-      <section className="bg-blue-50 py-16 sm:py-20 px-4 sm:px-8">
+      {/* Section: Activity Section (Stats) */}
+      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gray-100">
         <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-center">
           {stats.map((stat, idx) => (
             <motion.div
               key={stat.label}
               className="bg-white rounded-md p-6 flex flex-col items-center gap-3 shadow-md border border-blue-100 hover:shadow-xl transition-all duration-300"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ delay: idx * 0.2, duration: 0.5 }}
             >
               {stat.icon}
@@ -419,8 +629,8 @@ const HomeHero = () => {
         </div>
       </section>
 
-      {/* Top Performers Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gray-100">
+      {/* Section: Top Performers Section */}
+      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
         <h2 className="text-2xl sm:text-4xl font-bold text-center text-blue-900 mb-10">
           Our Top Performers
         </h2>
@@ -429,15 +639,19 @@ const HomeHero = () => {
             <motion.div
               key={p.title}
               className="bg-white rounded-md shadow-md p-5 w-full sm:w-72 text-center hover:shadow-xl transition-all duration-300 border border-blue-100"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, y: 20, rotate: 3 }}
+              animate={{ opacity: 1, y: 0, rotate: 0 }}
               transition={{ delay: idx * 0.2, duration: 0.5 }}
             >
-              <img
-                src={p.img}
-                alt={p.alt}
-                className="w-20 h-20 mx-auto rounded-full object-cover mb-3 border-2 border-blue-100"
-              />
+              <picture>
+                <source srcSet={p.img} type="image/webp" />
+                <img
+                  src={p.imgFallback}
+                  alt={p.alt}
+                  className="w-20 h-20 mx-auto rounded-full object-cover mb-3 border-2 border-blue-100"
+                  loading="lazy"
+                />
+              </picture>
               <p className="font-semibold text-base text-blue-900">{p.title}</p>
               <p className="font-bold text-lg text-blue-900 mt-2">{p.name}</p>
               {p.stat && <p className="text-sm text-gray-600 mt-2">{p.stat}</p>}
@@ -447,75 +661,13 @@ const HomeHero = () => {
         </div>
       </section>
 
-      {/* Who Are We Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
-        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-10">
-          <div className="lg:w-3/5">
-            <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-6">
-              Who We Are
-            </h2>
-            <p className="text-base text-gray-600 max-w-2xl leading-relaxed">
-              SkillSwap-Hub is a leading platform for professional learning, connecting experts and learners to foster skill development and career advancement through peer-to-peer exchange.
-            </p>
-          </div>
-          <div className="lg:w-2/5">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { img: "/assets/one-on-one.png", alt: "Mentorship", bg: "bg-blue-50" },
-                { img: "/assets/group-chat.png", alt: "Discussion", bg: "bg-blue-50" },
-                { img: "/assets/interview-icon.png", alt: "Interview", bg: "bg-blue-50" },
-                { img: "/assets/one-on-one.png", alt: "Mentorship", bg: "bg-blue-50" },
-              ].map((tab, idx) => (
-                <motion.div
-                  key={tab.alt + idx}
-                  className={`${tab.bg} rounded-md p-5 shadow-md border border-blue-100 hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center`}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.2, duration: 0.5 }}
-                >
-                  <img src={tab.img} alt={tab.alt} className="w-12 h-12 object-contain" />
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Section: Who Are We */}
+      <WhoAreWeSection />
 
-      {/* Why Choose SkillSwap-Hub Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gray-100">
-        <div className="max-w-5xl mx-auto flex flex-col lg:flex-row gap-10">
-          <div className="lg:w-2/5">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { img: "/assets/group-chat.png", alt: "Discussion", bg: "bg-blue-50" },
-                { img: "/assets/interview-icon.png", alt: "Interview", bg: "bg-blue-50" },
-                { img: "/assets/one-on-one.png", alt: "Mentorship", bg: "bg-blue-50" },
-                { img: "/assets/group-chat.png", alt: "Discussion", bg: "bg-blue-50" },
-              ].map((tab, idx) => (
-                <motion.div
-                  key={tab.alt + idx}
-                  className={`${tab.bg} rounded-md p-5 shadow-md border border-blue-100 hover:shadow-lg hover:scale-105 transition-all duration-300 flex items-center justify-center`}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.2, duration: 0.5 }}
-                >
-                  <img src={tab.img} alt={tab.alt} className="w-12 h-12 object-contain" />
-                </motion.div>
-              ))}
-            </div>
-          </div>
-          <div className="lg:w-3/5">
-            <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-6">
-              Why Choose SkillSwap-Hub
-            </h2>
-            <p className="text-base text-gray-600 max-w-2xl leading-relaxed">
-              SkillSwap-Hub provides a professional environment for skill development. Engage in live sessions, earn credits by teaching, and join a global community of learners and experts.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Section: Why Choose SkillSwap-Hub */}
+      <WhyChooseSection />
 
-      {/* Let's Start Section */}
+      {/* Section: Let's Start */}
       <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-2xl sm:text-4xl font-bold text-blue-900 mb-6">
