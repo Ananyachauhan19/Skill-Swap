@@ -4,34 +4,14 @@ import { FaBriefcase, FaUserFriends, FaComments, FaChalkboardTeacher, FaUsers, F
 import { motion, AnimatePresence } from "framer-motion";
 import Login from "../auth/Login";
 import Register from "../auth/Register";
+import { useModal } from "../context/ModalContext";
 
 // HomeHero component: Main landing page for SkillSwap-Hub
 const HomeHero = () => {
   const navigate = useNavigate();
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const { showLoginModal, showRegisterModal, openLogin, openRegister, closeModals } = useModal();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
-
-  // Effect: Handle login modal event listener
-  useEffect(() => {
-    const handleOpenLoginModal = () => {
-      setShowLoginModal(true);
-      setShowRegisterModal(false);
-    };
-    window.addEventListener("openLoginModal", handleOpenLoginModal);
-    return () => window.removeEventListener("openLoginModal", handleOpenLoginModal);
-  }, []);
-
-  // Effect: Handle register modal event listener
-  useEffect(() => {
-    const handleOpenRegisterModal = () => {
-      setShowRegisterModal(true);
-      setShowLoginModal(false);
-    };
-    window.addEventListener("openRegisterModal", handleOpenRegisterModal);
-    return () => window.removeEventListener("openRegisterModal", handleOpenRegisterModal);
-  }, []);
 
   // Effect: Handle OAuth and user persistence
   useEffect(() => {
@@ -59,37 +39,6 @@ const HomeHero = () => {
       setIsLoggedIn(true);
     }
   }, []);
-
-  // Effect: Prevent background scroll when modals are open
-  useEffect(() => {
-    const html = document.documentElement;
-    const body = document.body;
-    let originalHtmlOverflow = html.style.overflow;
-    let originalBodyOverflow = body.style.overflow;
-    let originalHtmlPaddingRight = html.style.paddingRight;
-    let originalBodyPaddingRight = body.style.paddingRight;
-
-    if (showLoginModal || showRegisterModal) {
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      if (scrollbarWidth > 0) {
-        html.style.paddingRight = `${scrollbarWidth}px`;
-        body.style.paddingRight = `${scrollbarWidth}px`;
-      }
-      html.style.overflow = "hidden";
-      body.style.overflow = "hidden";
-    } else {
-      html.style.overflow = originalHtmlOverflow;
-      body.style.overflow = originalBodyOverflow;
-      html.style.paddingRight = originalHtmlPaddingRight;
-      body.style.paddingRight = originalBodyPaddingRight;
-    }
-    return () => {
-      html.style.overflow = originalHtmlOverflow;
-      body.style.overflow = originalBodyOverflow;
-      html.style.paddingRight = originalHtmlPaddingRight;
-      body.style.paddingRight = originalBodyPaddingRight;
-    };
-  }, [showLoginModal, showRegisterModal]);
 
   // Data: Stats for activity section
   const stats = [
@@ -197,14 +146,14 @@ const HomeHero = () => {
   const handleLoginSuccess = (userData) => {
     setUser(userData);
     setIsLoggedIn(true);
-    setShowLoginModal(false);
+    closeModals();
   };
 
   // Handler: Register success callback
   const handleRegisterSuccess = (userData) => {
     setUser(userData);
     setIsLoggedIn(true);
-    setShowRegisterModal(false);
+    closeModals();
   };
 
   // Component: Who Are We Section
@@ -372,7 +321,7 @@ const HomeHero = () => {
             </div>
             {!isLoggedIn && (
               <motion.button
-                onClick={() => setShowRegisterModal(true)}
+                onClick={() => openRegister()}
                 className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
                 variants={buttonVariants}
                 whileHover="hover"
@@ -418,7 +367,7 @@ const HomeHero = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
-              onClick={() => setShowLoginModal(false)}
+              onClick={closeModals}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -427,7 +376,7 @@ const HomeHero = () => {
               className="fixed inset-0 flex items-center justify-center z-50 p-4"
             >
               <Login
-                onClose={() => setShowLoginModal(false)}
+                onClose={closeModals}
                 onLoginSuccess={handleLoginSuccess}
                 isModal={true}
               />
@@ -445,7 +394,7 @@ const HomeHero = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
-              onClick={() => setShowRegisterModal(false)}
+              onClick={closeModals}
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -454,7 +403,7 @@ const HomeHero = () => {
               className="fixed inset-0 flex items-center justify-center z-50 p-4"
             >
               <Register
-                onClose={() => setShowRegisterModal(false)}
+                onClose={closeModals}
                 onRegisterSuccess={handleRegisterSuccess}
                 isModal={true}
               />
@@ -508,7 +457,7 @@ const HomeHero = () => {
                 </motion.button>
               ) : (
                 <motion.button
-                  onClick={() => setShowRegisterModal(true)}
+                  onClick={() => openRegister()}
                   className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
                   variants={buttonVariants}
                   whileHover="hover"
@@ -677,7 +626,13 @@ const HomeHero = () => {
             Join a global community of professionals dedicated to lifelong learning and skill-sharing. Start today and elevate your career.
           </p>
           <motion.button
-            onClick={() => setShowRegisterModal(true)}
+            onClick={() => {
+              if (isLoggedIn) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                openRegister();
+              }
+            }}
             className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold flex items-center gap-2 mx-auto hover:shadow-xl transition-all duration-300"
             variants={buttonVariants}
             whileHover="hover"

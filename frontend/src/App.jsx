@@ -2,6 +2,9 @@ import React from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { ModalProvider } from './context/ModalContext';
+import GlobalModals from './GlobalModals';
+import ModalBodyScrollLock from './ModalBodyScrollLock';
 
 import Home from './user/Home';
 import Login from './auth/Login';
@@ -16,9 +19,10 @@ function App() {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 
-
   return (
-    <>
+    <ModalProvider>
+      <ModalBodyScrollLock />
+      <GlobalModals />
       {!isAuthPage && <Navbar />}
       <div className={location.pathname === '/home' ? '' : 'pt-8'}>
         <Routes>
@@ -34,7 +38,7 @@ function App() {
         </Routes>
       </div>
       {!isAuthPage && <Footer />}
-    </>
+    </ModalProvider>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useModal } from '../context/ModalContext';
 import ProfileDropdown from "./ProfileDropdown";
 import MobileMenu from "./MobileMenu";
 import NotificationSection from "./NotificationSection";
@@ -7,6 +8,7 @@ import RequestSentNotification from '../user/oneononeSection/RequestSentModal';
 import SessionRequestNotification from '../user/oneononeSection/SessionRequestModal';
 
 const Navbar = () => {
+  const { openLogin } = useModal();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(
@@ -72,7 +74,7 @@ const Navbar = () => {
   };
 
   const handleLoginClick = () => {
-    window.dispatchEvent(new Event("openLoginModal"));
+    openLogin();
   };
 
   // Listen for request sent (from OneOnOne)

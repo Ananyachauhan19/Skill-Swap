@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaExclamationCircle, FaTimes } from "react-icons/fa";
 import axios from "axios";
+import { useModal } from '../context/ModalContext';
 
 const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const navigate = useNavigate();
+  const { openRegister } = useModal();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -263,7 +265,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     <button
       onClick={() => {
         if (isModal && onClose) onClose();
-        window.dispatchEvent(new Event("openRegisterModal"));
+        openRegister();
       }}
       className="font-medium text-[#154360] hover:underline"
     >

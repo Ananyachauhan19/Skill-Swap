@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaExclamationCircle, FaMale, FaFemale, FaTimes } from "react-icons/fa";
 import { MdOutlineMoreHoriz } from "react-icons/md";
 import axios from "axios";
+import { useModal } from '../context/ModalContext';
 
 const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const navigate = useNavigate();
+  const { openLogin } = useModal();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -339,7 +341,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                     onClick={() => {
                       if (isModal && onClose) {
                         onClose();
-                        window.dispatchEvent(new Event("openLoginModal"));
+                        openLogin();
                       } else {
                         navigate("/login");
                       }
