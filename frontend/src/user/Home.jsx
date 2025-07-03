@@ -344,10 +344,10 @@ const HomeHero = () => {
             initial="hidden"
             animate="visible"
             variants={textVariants}
-          >
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-900 leading-tight">
-              Why Choose SkillSwap-Hub
-            </h2>
+          ><h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-900 leading-tight whitespace-nowrap">
+  Why Choose SkillSwap-Hub
+</h2>
+
             <p className="text-lg text-gray-600 max-w-xl leading-relaxed">
               SkillSwap-Hub provides a professional environment for skill development. Engage in live sessions, earn credits by teaching, and join a global community of learners and experts. Our platform empowers you to grow through hands-on practice, personalized mentorship, and collaborative learning, ensuring you stay ahead in your career with practical, real-world skills.
             </p>
