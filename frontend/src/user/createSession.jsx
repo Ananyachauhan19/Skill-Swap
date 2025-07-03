@@ -1,25 +1,4 @@
-import React, { useState } from 'react';
-
-// Backend-ready: fetch these from backend
-// const [courses, setCourses] = useState([]);
-// const [units, setUnits] = useState([]);
-// useEffect(() => {
-//   async function fetchCourses() {
-//     const res = await fetch('/api/courses');
-//     const data = await res.json();
-//     setCourses(data.courses);
-//   }
-//   fetchCourses();
-// }, []);
-// useEffect(() => {
-//   if (!form.subject) return setUnits([]);
-//   async function fetchUnits() {
-//     const res = await fetch(`/api/units?course=${encodeURIComponent(form.subject)}`);
-//     const data = await res.json();
-//     setUnits(data.units);
-//   }
-//   fetchUnits();
-// }, [form.subject]);
+import React, { useState,useEffect } from 'react';
 
 const CreateSession = () => {
   const [form, setForm] = useState({
@@ -37,6 +16,7 @@ const CreateSession = () => {
   const [scheduledSessions, setScheduledSessions] = useState([]);
   const [editId, setEditId] = useState(null);
   const [editForm, setEditForm] = useState({ subject: '', topic: '', description: '', date: '', time: '' });
+  
 
   // Backend-ready: replace with fetched data
   const courseSuggestions = [
@@ -80,9 +60,7 @@ const CreateSession = () => {
     "Clustering",
     "Neural Networks"
   ] : [];
-  // const courseSuggestions = courses;
-  // const unitList = units;
-
+  
   const filteredSuggestions = courseSuggestions.filter(
     (s) => s.toLowerCase().includes(form.subject.toLowerCase()) && form.subject.trim() !== ''
   );
@@ -92,34 +70,58 @@ const CreateSession = () => {
   );
   const unitDropdownList = form.topic.trim() === '' ? unitList : filteredUnitSuggestions;
 
+
+
+
+  
   const handleChange = e => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
     if (name === 'subject') setForm(prev => ({ ...prev, topic: '' }));
   };
+const handleSubmit = async e => {
+  e.preventDefault();
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-    setScheduled(true);
-    // Backend-ready: send form data to backend
-    // const res = await fetch('/api/schedule-session', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(form),
-    // });
-    // const data = await res.json();
-    // setScheduledSessions(prev => [...prev, data.session]);
-    setScheduledSessions(prev => [
-      ...prev,
-      {
-        ...form,
-        id: Date.now(),
+  try {
+    const token = localStorage.getItem('token'); 
+    const response = await fetch('http://localhost:5000/api/sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
       },
-    ]);
-  };
+      body: JSON.stringify(form),
+    });
+
+
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || 'Failed to create session');
+    }
+
+    const data = await response.json();
+console.log('Fetched sessions:', data);
+    setScheduled(true);
+    setForm({
+      subject: '',
+      topic: '',
+      description: '',
+      date: '',
+      time: '',
+    });
+    
+    fetchUserSessions();
+
+  } catch (error) {
+    console.error('Error creating session:', error.message);
+    alert('Error: ' + error.message);
+  }
+};
+
 
   const handleEdit = (session) => {
-    setEditId(session.id);
+    setEditId(session._id);
     setEditForm({
       subject: session.subject,
       topic: session.topic,
@@ -134,23 +136,62 @@ const CreateSession = () => {
     setEditForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleEditSave = async (id) => {
-    // Backend-ready: update session in backend
-    // await fetch(`/api/schedule-session/${id}`, {
-    //   method: 'PUT',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(editForm),
-    // });
-    setScheduledSessions(prev => prev.map(s => s.id === id ? { ...s, ...editForm } : s));
+
+const handleEditSave = async (id) => {
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`http://localhost:5000/api/sessions/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(editForm),
+    });
+
+    if (!res.ok) throw new Error('Failed to update session');
+
+    // Get updated session from response or just update state
+    const updatedSession = await res.json();
+
+    setScheduledSessions(prev =>
+      prev.map(s => s._id === id ? updatedSession : s)
+    );
+
     setEditId(null);
-  };
+  } catch (err) {
+    console.error('Error updating session:', err);
+  }
+};
+
 
   const handleDelete = async (id) => {
-    // Backend-ready: delete session in backend
-    // await fetch(`/api/schedule-session/${id}`, { method: 'DELETE' });
-    setScheduledSessions(prev => prev.filter(s => s.id !== id));
+
+    setScheduledSessions(prev => prev.filter(s => s._id !== id));
     if (editId === id) setEditId(null);
   };
+
+   const fetchUserSessions = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch('http://localhost:5000/api/sessions/mine', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    const data = await res.json();
+    setScheduledSessions(data); // update state to show in UI
+  } catch (err) {
+    console.error('Error fetching sessions:', err);
+  }
+};
+
+useEffect(() => {
+  fetchUserSessions();
+}, []);
+
+
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100">
@@ -322,9 +363,9 @@ const CreateSession = () => {
           {scheduledSessions.length > 0 ? (
             <ul className="space-y-4">
               {scheduledSessions.map(session => (
-                <li key={session.id} className="border border-blue-100 rounded-lg p-4 bg-blue-50/60">
-                  {editId === session.id ? (
-                    <form className="flex flex-col gap-2" onSubmit={e => { e.preventDefault(); handleEditSave(session.id); }}>
+                <li key={session._id} className="border border-blue-100 rounded-lg p-4 bg-blue-50/60">
+                  {editId === session._id ? (
+                    <form className="flex flex-col gap-2" onSubmit={e => { e.preventDefault(); handleEditSave(session._id); }}>
                       <input
                         type="text"
                         name="subject"
@@ -372,13 +413,16 @@ const CreateSession = () => {
                       </div>
                     </form>
                   ) : (
-                    <>
-                      <div className="font-medium text-blue-900 mb-1">{session.subject} - {session.topic}</div>
+<>
+  <div className={`text-xs font-medium mb-1 ${session.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
+    {session.status.toUpperCase()}
+  </div>
+  <div className="font-medium text-blue-900 mb-1">{session.subject} - {session.topic}</div>
                       <div className="text-blue-700 text-sm mb-1">{session.description}</div>
                       <div className="text-gray-600 text-xs mb-2">{session.date} at {session.time}</div>
                       <div className="flex gap-2">
                         <button className="text-blue-600 hover:underline text-sm" onClick={() => handleEdit(session)}>Edit</button>
-                        <button className="text-red-600 hover:underline text-sm" onClick={() => handleDelete(session.id)}>Delete</button>
+                        <button className="text-red-600 hover:underline text-sm" onClick={() => handleDelete(session._id)}>Delete</button>
                       </div>
                     </>
                   )}
