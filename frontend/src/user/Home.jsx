@@ -13,6 +13,9 @@ const HomeHero = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
+  // Ref for Explore Opportunities section
+  const exploreRef = React.useRef(null);
+
   // Effect: Handle OAuth and user persistence
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -447,7 +450,11 @@ const HomeHero = () => {
             <motion.div className="flex flex-wrap gap-4" variants={textVariants}>
               {isLoggedIn ? (
                 <motion.button
-                  onClick={() => navigate("/")}
+                  onClick={() => {
+                    if (exploreRef.current) {
+                      exploreRef.current.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
                   className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
                   variants={buttonVariants}
                   whileHover="hover"
@@ -525,7 +532,7 @@ const HomeHero = () => {
       </section>
 
       {/* Section: Explore Opportunities */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
+      <section ref={exploreRef} className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
         <motion.div className="max-w-5xl mx-auto" initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
           <h3 className="text-xl font-semibold text-center text-blue-900 mb-8">
             Explore Learning Opportunities
