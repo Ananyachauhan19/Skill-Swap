@@ -637,7 +637,7 @@ const HomeHero = () => {
               if (isLoggedIn) {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               } else {
-                openRegister();
+                openLogin();
               }
             }}
             className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold flex items-center gap-2 mx-auto hover:shadow-xl transition-all duration-300"
