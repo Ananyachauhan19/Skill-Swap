@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SearchBar from './oneononeSection/serachBar'; // Fixed import to match actual filename
+import SearchBar from './oneononeSection/serachBar'; 
 import TestimonialSection from './oneononeSection/TestimonialSection';
 import TutorCard from './oneononeSection/TutorCard';
 
@@ -27,6 +27,7 @@ const AnimatedHeaderBG = () => (
 const OneOnOne = () => {
   const [course, setCourse] = useState('');
   const [unit, setUnit] = useState('');
+  const [topic, setTopic] = useState('');
   const [showTutors, setShowTutors] = useState(false);
   const [sessionRequestedTutor, setSessionRequestedTutor] = useState(null);
   const [pendingSession, setPendingSession] = useState(null);
@@ -36,7 +37,7 @@ const OneOnOne = () => {
   const tutors = [
     {
       name: 'Amit Sharma',
-      profilePic: '/amit-sharma.jpg', // Fixed path for Vite/React public folder
+      profilePic: '/amit-sharma.jpg', 
       skills: ['Data Structures', 'Trees', 'Graphs'],
       status: 'Online and Free',
       rating: 4.8,
@@ -65,6 +66,7 @@ const OneOnOne = () => {
     setShowTutors(true);
     setCourse('');
     setUnit('');
+    setTopic(''); // Clear subtopic search bar as well
   };
 
   const handleRequestSession = (tutor) => {
@@ -135,6 +137,8 @@ const OneOnOne = () => {
           setCourseValue={setCourse}
           unitValue={unit}
           setUnitValue={setUnit}
+          topicValue={topic}
+          setTopicValue={setTopic}
           onFindTutor={handleFindTutor}
         />
         {showTutors && (
