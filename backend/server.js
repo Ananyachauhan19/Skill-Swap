@@ -9,6 +9,7 @@ dotenv.config();
 require('./config/passport');
 
 const authRoutes = require('./routes/authRoutes');
+const sessionRoutes = require('./routes/sessionRoutes');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/sessions', sessionRoutes); 
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
