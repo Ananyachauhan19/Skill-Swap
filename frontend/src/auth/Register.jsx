@@ -33,15 +33,18 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const leftPanelRef = useRef(null);
 
   const carouselImages = [
-    "/assets/carousel/live-session.png",
-    "/assets/carousel/group-discussion.png",
-    "/assets/carousel/job-interview.png",
-    "/assets/carousel/feature-four.png",
+    "/assets/interview-illustration.webp",
+    "/assets/expert-connect-illustration.webp",
+    "/assets/group-discussion-illustration.webp",
+    "/assets/skillchoose.webp",
   ];
+  const extendedImages = [...carouselImages, ...carouselImages];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
+      setCurrentImageIndex((prev) =>
+        prev >= carouselImages.length - 1 ? 0 : prev + 1
+      );
     }, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -52,7 +55,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     const handleMouseMove = () => {
       const now = Date.now();
       if (now - lastMoveTime > moveThreshold) {
-        setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
+        setCurrentImageIndex((prev) =>
+          prev >= carouselImages.length - 1 ? 0 : prev + 1
+        );
         lastMoveTime = now;
       }
     };
@@ -66,11 +71,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   useEffect(() => {
     if (isModal) {
       document.body.style.overflow = "hidden";
-      document.body.style.paddingRight = "";
     }
     return () => {
       document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
     };
   }, [isModal]);
 
@@ -108,7 +111,10 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
       const { token, user } = res.data;
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("registeredName", `${firstName}${lastName ? " " + lastName : ""}`);
+      localStorage.setItem(
+        "registeredName",
+        `${firstName}${lastName ? " " + lastName : ""}`
+      );
       localStorage.setItem("registeredEmail", email);
       localStorage.setItem("isRegistered", "true");
       window.dispatchEvent(new Event("authChanged"));
@@ -119,70 +125,75 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         navigate("/home");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Registration failed. Please try again.");
+      setError(
+        err.response?.data?.message || "Registration failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
   const isFormValid =
-    form.firstName && form.email && form.phone && form.gender && form.password && form.confirmPassword;
+    form.firstName &&
+    form.email &&
+    form.phone &&
+    form.gender &&
+    form.password &&
+    form.confirmPassword;
+
   const registerButtonColor = isFormValid
     ? "bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950"
     : "bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700";
 
- return (
- <div
-  className={`${
-    isModal
-      ? "fixed inset-0 flex items-center justify-center z-50 transition-opacity duration-300 ease-in-out"
-      : "min-h-screen flex items-start justify-center pt-16 pb-10 px-4"
-  }`}
-  style={{
-    backgroundColor: isModal ? "rgba(0,0,0,0.2)" : "transparent",
-    backdropFilter: "none",
-    WebkitBackdropFilter: "none",
-    filter: "none",
-  }}
->
-
-
-
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.3 }}
-      className="bg-white rounded-xl p-4 shadow-2xl max-w-full w-[95vw] md:w-[700px] lg:w-[850px] xl:w-[900px] 2xl:w-[950px] h-auto max-h-[95vh] overflow-y-auto"
+  return (
+    <div
+      className={`${
+        isModal
+          ? "fixed inset-0 z-50 flex items-center justify-center"
+          : "min-h-screen flex items-center justify-center pt-16 pb-10 px-4"
+      }`}
+      style={{
+        backgroundColor: isModal ? "rgba(0,0,0,0.2)" : "transparent",
+        backdropFilter: "none",
+        WebkitBackdropFilter: "none",
+      }}
     >
-
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white rounded-xl p-4 shadow-2xl w-[95vw] max-w-[1100px] h-[90vh] md:h-[650px] overflow-hidden flex flex-col"
+      >
         <div className="flex flex-col md:flex-row w-full h-full">
           {/* Left Panel */}
           <div
             ref={leftPanelRef}
-            className="w-full md:w-1/2 relative min-h-[300px] md:min-h-[50vh] overflow-hidden"
+            className="w-full md:w-1/2 relative"
             style={{
-              backgroundImage: "url('/assets/leftpanel-background.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundAttachment: "fixed",
+              backgroundColor: "#e6f2fb",
+              borderTopLeftRadius: "40px",
+              borderBottomRightRadius: "40px",
             }}
           >
             <div className="absolute top-4 left-4 z-30">
               <img
-                src="/assets/skillswap-logo.jpg"
+                src="/assets/skillswap-logo.webp"
                 alt="SkillSwap Logo"
                 className="h-8 w-auto"
               />
             </div>
+
             <div className="absolute inset-0 flex items-center justify-center z-20">
               <div className="relative w-[70%] h-[50%] overflow-hidden">
                 <div
-                  className="flex transition-transform ease-in-out duration-1000"
+                  className="flex transition-transform ease-in-out"
                   style={{
                     transform: `translateX(-${100 * currentImageIndex}%)`,
+                    transitionDuration:
+                      currentImageIndex >= carouselImages.length ? "0ms" : "1500ms",
                   }}
                 >
-                  {carouselImages.map((src, idx) => (
+                  {extendedImages.map((src, idx) => (
                     <div key={idx} className="min-w-full h-full">
                       <img
                         src={src}
@@ -194,7 +205,21 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 </div>
               </div>
             </div>
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 z-10" />
+
+            <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 z-30">
+              {carouselImages.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentImageIndex(idx)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    idx === currentImageIndex
+                      ? "bg-blue-600 scale-125"
+                      : "bg-blue-300"
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Right Panel */}
@@ -222,6 +247,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3 flex-1">
+                {/* Moonshot Note: Removed the extra div wrapping the form content to simplify the right panel structure */}
                 <div className="flex gap-2">
                   <div className="w-full">
                     <label className="block text-xs font-medium text-gray-700 mb-1">

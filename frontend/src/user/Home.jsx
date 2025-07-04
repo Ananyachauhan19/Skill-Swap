@@ -242,7 +242,7 @@ const HomeHero = () => {
               <picture>
                 <source srcSet="/assets/skillswap-community.webp" type="image/webp" />
                 <img
-                  src="/assets/skillswap-community.png"
+                  src="/assets/skillswap-community.webp"
                   alt="SkillSwap Community"
                   className="w-full h-[450px] object-cover transform hover:scale-105 transition-transform duration-500"
                   loading="lazy"
@@ -365,13 +365,7 @@ const HomeHero = () => {
       <AnimatePresence>
         {showLoginModal && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
-              onClick={closeModals}
-            />
+            className="fixed inset-0 bg-black/20 z-50"
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -392,13 +386,7 @@ const HomeHero = () => {
       <AnimatePresence>
         {showRegisterModal && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm"
-              onClick={closeModals}
-            />
+            className="fixed inset-0 bg-black/20 z-50"
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}

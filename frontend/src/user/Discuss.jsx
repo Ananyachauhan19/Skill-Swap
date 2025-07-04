@@ -67,7 +67,7 @@ const Discuss = () => (
           <picture>
             <source srcSet="/assets/group-discussion-illustration.webp" type="image/webp" />
             <img
-              src="/assets/group-discussion-illustration.png"
+              src="/assets/group-discussion-illustration.webp"
               alt="Group Discussion Illustration"
               className="w-full max-w-md mx-auto object-contain"
             />

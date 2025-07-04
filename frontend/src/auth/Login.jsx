@@ -15,9 +15,10 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const leftPanelRef = useRef(null);
 
   const carouselImages = [
-    "/assets/carousel/live-session.png",
-    "/assets/carousel/group-discussion.png",
-    "/assets/carousel/job-interview.png",
+  "/assets/interview-illustration.webp",
+   "/assets/expert-connect-illustration.webp",
+   "/assets/group-discussion-illustration.webp",
+   "/assets/skillchoose.webp",
   ];
   const extendedImages = [...carouselImages, ...carouselImages];
 
@@ -115,51 +116,65 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     >
       <div className="bg-white rounded-xl p-4 shadow-2xl">
         <div className="flex flex-col md:flex-row w-[70vw] h-[75vh]">
-          {/* Left Panel */}
-          <div
-            ref={leftPanelRef}
-            className="w-full md:w-1/2 relative min-h-[300px] md:min-h-[50vh] overflow-hidden"
-            style={{
-              backgroundImage: "url('/assets/leftpanel-background.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              backgroundAttachment: "fixed",
-            }}
-          >
-            <div className="absolute top-4 left-4 z-30">
-              <img src="/assets/skillswap-logo.jpg" alt="SkillSwap Logo" className="h-8 w-auto" />
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div className="relative w-[70%] h-[50%] overflow-hidden">
-                <div
-                  className="flex transition-transform ease-in-out"
-                  style={{
-                    transform: `translateX(-${100 * currentImageIndex}%)`,
-                    transitionDuration: currentImageIndex >= carouselImages.length ? "0ms" : "1500ms",
-                  }}
-                >
-                  {extendedImages.map((src, idx) => (
-                    <div key={idx} className="min-w-full h-full">
-                      <img src={src} alt={`Feature ${idx + 1}`} className="w-full h-full object-contain" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 z-30">
-              {carouselImages.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    idx === currentImageIndex ? "bg-white scale-125" : "bg-white/50"
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 z-10" />
+{/* Left Panel — fluid height/width inside LoginPage */}
+<div
+  ref={leftPanelRef}
+  className="w-full md:w-1/2 relative overflow-hidden"
+  style={{
+    backgroundColor: "#e6f2fb",
+    borderTopLeftRadius: "40px",
+    borderTopRightRadius: "0px",
+    borderBottomRightRadius: "40px",
+    borderBottomLeftRadius: "0px",
+  }}
+>
+  {/* Logo Top Left */}
+  <div className="absolute top-4 left-4 z-30">
+    <img src="/assets/skillswap-logo.webp" alt="SkillSwap Logo" className="h-8 w-auto" />
+  </div>
+
+  {/* Carousel (centered) */}
+  <div className="absolute inset-0 flex items-center justify-center z-20">
+    <div className="relative w-[70%] h-[50%] overflow-hidden">
+      <div
+        className="flex transition-transform ease-in-out"
+        style={{
+          transform: `translateX(-${100 * currentImageIndex}%)`,
+          transitionDuration:
+            currentImageIndex >= carouselImages.length ? "0ms" : "1500ms",
+        }}
+      >
+        {extendedImages.map((src, idx) => (
+          <div key={idx} className="min-w-full h-full">
+            <img
+              src={src}
+              alt={`Feature ${idx + 1}`}
+              className="w-full h-full object-contain"
+            />
           </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* Dot indicators */}
+  <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 z-30">
+    {carouselImages.map((_, idx) => (
+      <button
+        key={idx}
+        onClick={() => setCurrentImageIndex(idx)}
+        className={`w-2 h-2 rounded-full transition-all ${
+          idx === currentImageIndex ? "bg-blue-600 scale-125" : "bg-blue-300"
+        }`}
+        aria-label={`Go to slide ${idx + 1}`}
+      />
+    ))}
+  </div>
+
+  {/* Soft overlay */}
+  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 z-10" />
+</div>
+
 
      {/* Right Panel */}
 <div className="w-full md:w-1/2 p-6 md:p-8 bg-gray-50 relative">
