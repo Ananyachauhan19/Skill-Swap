@@ -128,7 +128,8 @@ const Navbar = () => {
             onClick={() => navigate("/")}
           >
             <img
-              src="/assets/skillswap-logo.jpg"
+              src="/assets/skillswap-logo.webp
+              "
               alt="SkillSwapHub Logo"
               className="h-12 w-12 object-contain rounded-full shadow-md"
             />

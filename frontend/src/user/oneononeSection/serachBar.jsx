@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Static data for demo
 const STATIC_COURSES = [
@@ -24,78 +25,63 @@ const STATIC_UNITS = {
   Statistics: ['Descriptive Statistics', 'Inferential Statistics', 'Probability Theory'],
 };
 const STATIC_TOPICS = {
-  // Mathematics
   Algebra: ['Linear Equations', 'Quadratic Equations', 'Polynomials'],
   Calculus: ['Limits', 'Derivatives', 'Integrals'],
   Geometry: ['Triangles', 'Circles', 'Polygons'],
   Trigonometry: ['Sine', 'Cosine', 'Tangent'],
   Probability: ['Permutations', 'Combinations', 'Probability Distributions'],
   Statistics: ['Mean', 'Median', 'Mode'],
-  // Physics
   Mechanics: ['Kinematics', 'Dynamics', 'Work & Energy'],
   Optics: ['Reflection', 'Refraction', 'Lenses'],
   Thermodynamics: ['Laws of Thermodynamics', 'Heat Transfer'],
   Electromagnetism: ['Electric Fields', 'Magnetism', 'Circuits'],
   'Modern Physics': ['Relativity', 'Quantum Mechanics'],
-  // Chemistry
   'Organic Chemistry': ['Hydrocarbons', 'Alcohols', 'Amines', 'Aldehydes', 'Ketones', 'Carboxylic Acids'],
   'Inorganic Chemistry': ['Periodic Table', 'Coordination Compounds', 'Metals', 'Non-metals', 'Acids & Bases'],
   'Physical Chemistry': ['Thermodynamics', 'Electrochemistry', 'Chemical Kinetics', 'Surface Chemistry'],
   'Analytical Chemistry': ['Spectroscopy', 'Chromatography', 'Titration'],
-  // Biology
   Botany: ['Plant Physiology', 'Plant Anatomy'],
   Zoology: ['Animal Physiology', 'Animal Classification'],
   Genetics: ['Mendelian Genetics', 'DNA Structure'],
   Ecology: ['Ecosystems', 'Biodiversity'],
   'Cell Biology': ['Cell Structure', 'Cell Division'],
-  // Computer Science
   'Data Structures': ['BST', 'Heap', 'Trie', 'Hash Table', 'Stack', 'Queue', 'Graph'],
   Algorithms: ['Dijkstra', 'Floyd Warshall', 'A* Search', 'Kruskal', 'Prim', 'Bellman-Ford', 'DFS', 'BFS'],
   'Operating Systems': ['Processes', 'Threads', 'Deadlock', 'Memory Management'],
   Databases: ['SQL', 'Normalization', 'Transactions', 'Indexing'],
   Networking: ['OSI Model', 'TCP/IP', 'Routing'],
-  // English
   Grammar: ['Tenses', 'Parts of Speech', 'Voice'],
   Literature: ['Poetry', 'Drama', 'Prose'],
   'Writing Skills': ['Essay', 'Letter', 'Report'],
   Comprehension: ['Passage Analysis', 'Summary'],
-  // Economics
   Microeconomics: ['Demand', 'Supply', 'Elasticity'],
   Macroeconomics: ['GDP', 'Inflation', 'Unemployment'],
   'International Economics': ['Trade', 'Exchange Rates'],
   Econometrics: ['Regression', 'Time Series'],
-  // History
   'Ancient History': ['Indus Valley', 'Egyptian Civilization'],
   'Medieval History': ['Delhi Sultanate', 'Mughal Empire'],
   'Modern History': ['World Wars', 'Indian Independence'],
   'World History': ['Renaissance', 'Industrial Revolution'],
-  // Geography
   'Physical Geography': ['Landforms', 'Climate'],
   'Human Geography': ['Population', 'Urbanization'],
   Cartography: ['Map Projections', 'GIS Basics'],
   GIS: ['Remote Sensing', 'Spatial Analysis'],
-  // Psychology
   'Cognitive Psychology': ['Memory', 'Perception'],
   'Developmental Psychology': ['Child Development', 'Adolescence'],
   'Clinical Psychology': ['Disorders', 'Therapies'],
-  // Business Studies
   'Business Environment': ['Business Types', 'Business Ethics'],
   Management: ['Leadership', 'Motivation'],
   Marketing: ['Market Research', 'Branding'],
   Finance: ['Accounting', 'Investment'],
-  // Political Science
   'Political Theory': ['Democracy', 'Justice'],
   'Comparative Politics': ['Political Systems', 'Constitutions'],
   'International Relations': ['UN', 'Globalization'],
-  // Sociology
   'Social Structure': ['Family', 'Caste'],
   'Social Change': ['Modernization', 'Social Movements'],
   'Research Methods': ['Surveys', 'Fieldwork'],
-  // Accountancy
   'Financial Accounting': ['Balance Sheet', 'Ledger'],
   'Cost Accounting': ['Cost Sheet', 'Budgeting'],
   Auditing: ['Internal Audit', 'External Audit'],
-  // Statistics
   'Descriptive Statistics': ['Mean', 'Variance'],
   'Inferential Statistics': ['Hypothesis Testing', 'Confidence Intervals'],
   'Probability Theory': ['Random Variables', 'Probability Distributions'],
@@ -150,6 +136,7 @@ const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue, topic
       }
     }
   };
+
   // Keyboard navigation for unit
   const handleUnitKeyDown = (e) => {
     if (!showUnitDropdown || unitDropdownList.length === 0) return;
@@ -169,6 +156,7 @@ const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue, topic
       }
     }
   };
+
   // Keyboard navigation for topic
   const handleTopicKeyDown = (e) => {
     if (!showTopicDropdown || topicDropdownList.length === 0) return;
@@ -187,144 +175,191 @@ const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue, topic
     }
   };
 
+  // Animation variants for dropdown
+  const dropdownVariants = {
+    hidden: { opacity: 0, y: -10, scale: 0.95 },
+    visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.3, ease: 'easeOut' } },
+    exit: { opacity: 0, y: -10, scale: 0.95, transition: { duration: 0.2 } },
+  };
+
   return (
-    <>
-      <div className="w-full flex justify-center pt-10 pb-6 bg-blue-50">
-        <div className="flex gap-4 w-full max-w-2xl items-center">
-          {/* Course Dropdown */}
-          <div className="relative flex-1">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-xl">🔍</span>
-            <input
-              ref={courseInputRef}
-              type="text"
-              value={courseValue}
-              onChange={e => {
-                setCourseValue(e.target.value);
-                setShowDropdown(true);
-                setUnitValue('');
-                setTopicValue('');
-                setHighlightedCourseIdx(-1);
-              }}
-              onFocus={() => setShowDropdown(true)}
-              onBlur={() => setTimeout(() => { setShowDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
-              onKeyDown={handleCourseKeyDown}
-              placeholder="Search Course/Subject..."
-              className="pl-10 pr-4 py-3 rounded-full border border-blue-200 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg bg-white w-full"
-              autoComplete="off"
-            />
-            {showDropdown && (
-              <ul className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-b-lg shadow max-h-48 overflow-y-auto mt-1">
-                {courseList.map((s, idx) => (
-                  <li
-                    key={idx}
-                    className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base ${highlightedCourseIdx === idx ? 'bg-blue-100' : ''}`}
-                    onMouseDown={() => {
-                      setCourseValue(s);
-                      setShowDropdown(false);
-                      setHighlightedCourseIdx(-1);
-                      setUnitValue('');
-                      setTopicValue('');
-                      setTimeout(() => unitInputRef.current && unitInputRef.current.focus(), 0);
-                    }}
-                  >
-                    {s}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          {/* Unit Dropdown */}
-          <div className="relative flex-1">
-            <input
-              ref={unitInputRef}
-              type="text"
-              value={unitValue}
-              onChange={e => {
-                setUnitValue(e.target.value);
-                setShowUnitDropdown(true);
-                setHighlightedUnitIdx(-1);
-                setTopicValue('');
-              }}
-              onFocus={() => setShowUnitDropdown(true)}
-              onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
-              onKeyDown={handleUnitKeyDown}
-              placeholder="Search Unit/Topic..."
-              className="px-5 py-3 rounded-full border border-blue-200 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg bg-white w-full"
-              autoComplete="off"
-              disabled={!courseValue || !unitList.length}
-            />
-            {showUnitDropdown && courseValue && unitList.length > 0 && (
-              <ul className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-b-lg shadow max-h-48 overflow-y-auto mt-1">
-                {unitDropdownList.map((u, idx) => (
-                  <li
-                    key={idx}
-                    className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base ${highlightedUnitIdx === idx ? 'bg-blue-100' : ''}`}
-                    onMouseDown={() => {
-                      setUnitValue(u);
-                      setShowUnitDropdown(false);
-                      setHighlightedUnitIdx(-1);
-                      setTopicValue('');
-                      setTimeout(() => topicInputRef.current && topicInputRef.current.focus(), 0);
-                    }}
-                  >
-                    {u}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          {/* Topic Dropdown */}
-          <div className="relative flex-1">
-            <input
-              ref={topicInputRef}
-              type="text"
-              value={topicValue}
-              onChange={e => {
-                setTopicValue(e.target.value);
-                setShowTopicDropdown(true);
-                setHighlightedTopicIdx(-1);
-              }}
-              onFocus={() => setShowTopicDropdown(true)}
-              onBlur={() => setTimeout(() => { setShowTopicDropdown(false); setHighlightedTopicIdx(-1); }, 150)}
-              onKeyDown={handleTopicKeyDown}
-              placeholder="Search Subtopic..."
-              className="px-5 py-3 rounded-full border border-blue-200 shadow focus:outline-none focus:ring-2 focus:ring-blue-400 text-lg bg-white w-full"
-              autoComplete="off"
-              disabled={!unitValue || !topicList.length}
-            />
-            {showTopicDropdown && unitValue && topicList.length > 0 && (
-              <ul className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-b-lg shadow max-h-48 overflow-y-auto mt-1">
-                {topicDropdownList.map((t, idx) => (
-                  <li
-                    key={idx}
-                    className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base ${highlightedTopicIdx === idx ? 'bg-blue-100' : ''}`}
-                    onMouseDown={e => {
-                      e.preventDefault();
-                      setTopicValue(t);
-                      setShowTopicDropdown(false);
-                      setHighlightedTopicIdx(-1);
-                    }}
-                  >
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <button
-            type="button"
-            className="ml-2 px-6 py-3 rounded-full bg-blue-600 text-white font-semibold text-lg shadow hover:bg-blue-700 transition-colors"
-            onClick={() => {
-              if (onFindTutor) onFindTutor();
-              // Backend-ready: send courseValue, unitValue, topicValue to backend API
-            }}
-            disabled={!courseValue || !unitValue || !topicValue}
-          >
-            Find Tutor
-          </button>
-        </div>
+    <div className="flex flex-col sm:flex-row gap-4 p-6 bg-blue-50 rounded-xl shadow-lg border border-blue-200/50 max-w-4xl mx-auto">
+      {/* Course Input */}
+      <div className="relative flex-1">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500">
+          <svg className="w-6 h-6 hover:scale-110 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1116.65 16.65z" />
+          </svg>
+        </span>
+        <input
+          ref={courseInputRef}
+          type="text"
+          value={courseValue}
+          onChange={e => {
+            setCourseValue(e.target.value);
+            setShowDropdown(true);
+            setUnitValue('');
+            setTopicValue('');
+            setHighlightedCourseIdx(-1);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          onBlur={() => setTimeout(() => { setShowDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
+          onKeyDown={handleCourseKeyDown}
+          placeholder="Search Course/Subject..."
+          className="pl-12 pr-4 py-3 rounded-xl bg-white/80 backdrop-blur-sm border border-blue-200/50 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-medium w-full transition-all duration-300 hover:shadow-md"
+          autoComplete="off"
+        />
+        <AnimatePresence>
+          {showDropdown && (
+            <motion.ul
+              variants={dropdownVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="absolute z-10 left-0 right-0 bg-white/95 backdrop-blur-md border border-blue-200/50 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2"
+            >
+              {courseList.map((s, idx) => (
+                <motion.li
+                  key={idx}
+                  className={`px-4 py-2.5 text-gray-600 hover:bg-blue-100/80 cursor-pointer text-base font-medium transition-all duration-300 hover:scale-102 ${highlightedCourseIdx === idx ? 'bg-blue-100/80' : ''}`}
+                  onMouseDown={() => {
+                    setCourseValue(s);
+                    setShowDropdown(false);
+                    setHighlightedCourseIdx(-1);
+                    setUnitValue('');
+                    setTopicValue('');
+                    setTimeout(() => unitInputRef.current && unitInputRef.current.focus(), 0);
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                >
+                  {s}
+                </motion.li>
+              ))}
+            </motion.ul>
+          )}
+        </AnimatePresence>
       </div>
-    </>
+      {/* Unit Input */}
+      <div className="relative flex-1">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500">
+          <svg className="w-6 h-6 hover:scale-110 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </span>
+        <input
+          ref={unitInputRef}
+          type="text"
+          value={unitValue}
+          onChange={e => {
+            setUnitValue(e.target.value);
+            setShowUnitDropdown(true);
+            setHighlightedUnitIdx(-1);
+            setTopicValue('');
+          }}
+          onFocus={() => setShowUnitDropdown(true)}
+          onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
+          onKeyDown={handleUnitKeyDown}
+          placeholder="Search Unit/Topic..."
+          className="pl-12 pr-4 py-3 rounded-xl bg-white/80 backdrop-blur-sm border border-blue-200/50 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-medium w-full transition-all duration-300 hover:shadow-md"
+          autoComplete="off"
+          disabled={!courseValue || !unitList.length}
+        />
+        <AnimatePresence>
+          {showUnitDropdown && courseValue && unitList.length > 0 && (
+            <motion.ul
+              variants={dropdownVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="absolute z-10 left-0 right-0 bg-white/95 backdrop-blur-md border border-blue-200/50 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2"
+            >
+              {unitDropdownList.map((u, idx) => (
+                <motion.li
+                  key={idx}
+                  className={`px-4 py-2.5 text-gray-600 hover:bg-blue-100/80 cursor-pointer text-base font-medium transition-all duration-300 hover:scale-102 ${highlightedUnitIdx === idx ? 'bg-blue-100/80' : ''}`}
+                  onMouseDown={() => {
+                    setUnitValue(u);
+                    setShowUnitDropdown(false);
+                    setHighlightedUnitIdx(-1);
+                    setTopicValue('');
+                    setTimeout(() => topicInputRef.current && topicInputRef.current.focus(), 0);
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                >
+                  {u}
+                </motion.li>
+              ))}
+            </motion.ul>
+          )}
+        </AnimatePresence>
+      </div>
+      {/* Topic Input */}
+      <div className="relative flex-1">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500">
+          <svg className="w-6 h-6 hover:scale-110 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+        </span>
+        <input
+          ref={topicInputRef}
+          type="text"
+          value={topicValue}
+          onChange={e => {
+            setTopicValue(e.target.value);
+            setShowTopicDropdown(true);
+            setHighlightedTopicIdx(-1);
+          }}
+          onFocus={() => setShowTopicDropdown(true)}
+          onBlur={() => setTimeout(() => { setShowTopicDropdown(false); setHighlightedTopicIdx(-1); }, 150)}
+          onKeyDown={handleTopicKeyDown}
+          placeholder="Search Subtopic..."
+          className="pl-12 pr-4 py-3 rounded-xl bg-white/80 backdrop-blur-sm border border-blue-200/50 text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-medium w-full transition-all duration-300 hover:shadow-md"
+          autoComplete="off"
+          disabled={!unitValue || !topicList.length}
+        />
+        <AnimatePresence>
+          {showTopicDropdown && unitValue && topicList.length > 0 && (
+            <motion.ul
+              variants={dropdownVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="absolute z-10 left-0 right-0 bg-white/95 backdrop-blur-md border border-blue-200/50 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2"
+            >
+              {topicDropdownList.map((t, idx) => (
+                <motion.li
+                  key={idx}
+                  className={`px-4 py-2.5 text-gray-600 hover:bg-blue-100/80 cursor-pointer text-base font-medium transition-all duration-300 hover:scale-102 ${highlightedTopicIdx === idx ? 'bg-blue-100/80' : ''}`}
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    setTopicValue(t);
+                    setShowTopicDropdown(false);
+                    setHighlightedTopicIdx(-1);
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                >
+                  {t}
+                </motion.li>
+              ))}
+            </motion.ul>
+          )}
+        </AnimatePresence>
+      </div>
+      {/* Find Tutor Button */}
+      <motion.button
+        type="button"
+        className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+        onClick={() => {
+          if (onFindTutor) onFindTutor();
+        }}
+        disabled={!courseValue || !unitValue || !topicValue}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        Find Tutor
+      </motion.button>
+    </div>
   );
 };
 

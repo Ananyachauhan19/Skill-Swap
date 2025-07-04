@@ -5,3 +5,11 @@
 body {
   font-family: 'Inter', sans-serif; /* Change 'Inter' to 'Lora' or 'Nunito' if preferred */
 }
+
+/* index.css */
+.no-blur-overlay {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+}

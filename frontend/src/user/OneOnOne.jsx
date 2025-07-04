@@ -3,25 +3,48 @@ import SearchBar from './oneononeSection/serachBar';
 import TestimonialSection from './oneononeSection/TestimonialSection';
 import TutorCard from './oneononeSection/TutorCard';
 
-const AnimatedHeaderBG = () => (
-  <svg
-    className="absolute inset-0 w-full h-full"
-    viewBox="0 0 1440 320"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ zIndex: 0 }}
-  >
-    <defs>
-      <linearGradient id="waveGradientOneOnOne" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#2563eb" stopOpacity="0.13" />
-        <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.07" />
-      </linearGradient>
-    </defs>
-    <path
-      fill="url(#waveGradientOneOnOne)"
-      d="M0,160L60,170.7C120,181,240,203,360,197.3C480,192,600,160,720,133.3C840,107,960,85,1080,101.3C1200,117,1320,171,1380,197.3L1440,224L1440,0L1380,0C1320,0,1200,0,1080,0C960,0,840,0,720,0C600,0,480,0,360,0C240,0,120,0,60,0L0,0Z"
-    />
-  </svg>
+
+const HowItWorks = () => (
+  <section className="relative bg-white rounded-2xl shadow-lg p-8 flex flex-col gap-8 border border-blue-200 mb-12">
+    <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 text-center flex items-center justify-center gap-3">
+      <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+      </svg>
+      How It Works
+    </h2>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="flex flex-col items-center text-center p-6 bg-blue-50 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <div className="bg-blue-100 text-blue-700 rounded-full p-4 mb-4">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <path strokeLinecap="round" d="M8 12l2 2 4-4" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-blue-900">Search for an Expert</h3>
+        <p className="text-sm text-gray-700 mt-2">Select your course, unit, or topic to find a subject expert.</p>
+      </div>
+      <div className="flex flex-col items-center text-center p-6 bg-blue-50 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <div className="bg-blue-100 text-blue-700 rounded-full p-4 mb-4">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <rect x="4" y="4" width="16" height="16" rx="8" />
+            <path strokeLinecap="round" d="M8 12h8" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-blue-900">Connect & Learn</h3>
+        <p className="text-sm text-gray-700 mt-2">Request a session and get real-time, personalized guidance.</p>
+      </div>
+      <div className="flex flex-col items-center text-center p-6 bg-blue-50 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105">
+        <div className="bg-blue-100 text-blue-700 rounded-full p-4 mb-4">
+          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" d="M12 6v6l4 2" />
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-blue-900">Grow & Succeed</h3>
+        <p className="text-sm text-gray-700 mt-2">Apply expert advice to master concepts and achieve your goals.</p>
+      </div>
+    </div>
+  </section>
 );
 
 const OneOnOne = () => {
@@ -33,11 +56,10 @@ const OneOnOne = () => {
   const [pendingSession, setPendingSession] = useState(null);
   const [requestSentTutor, setRequestSentTutor] = useState(null);
 
-  // Demo static tutors (replace with backend fetch)
   const tutors = [
     {
       name: 'Amit Sharma',
-      profilePic: '/amit-sharma.jpg', 
+      profilePic: '/amit-sharma.jpg',
       skills: ['Data Structures', 'Trees', 'Graphs'],
       status: 'Online and Free',
       rating: 4.8,
@@ -61,19 +83,17 @@ const OneOnOne = () => {
     },
   ];
 
-  // Use the Find Tutor button from SearchBar
   const handleFindTutor = () => {
     setShowTutors(true);
     setCourse('');
     setUnit('');
-    setTopic(''); // Clear subtopic search bar as well
+    setTopic('');
   };
 
   const handleRequestSession = (tutor) => {
     setSessionRequestedTutor(tutor);
     setPendingSession({ tutor });
-    setRequestSentTutor(tutor); // Show the RequestSentModal
-    // Fire a custom event to add a notification in Navbar
+    setRequestSentTutor(tutor);
     window.dispatchEvent(new CustomEvent('requestSent', {
       detail: {
         tutor,
@@ -81,12 +101,9 @@ const OneOnOne = () => {
           setSessionRequestedTutor(null);
           setPendingSession(null);
           setRequestSentTutor(null);
-          // Optionally: fire another event to remove notification in Navbar
         }
       }
     }));
-    // Backend: trigger socket/notification event to tutor panel
-    // socket.emit('sessionRequest', { tutorId: tutor.id, course, unit });
   };
 
   const handleCloseRequestSent = () => {
@@ -94,7 +111,6 @@ const OneOnOne = () => {
   };
 
   const handleAcceptSession = () => {
-    // Backend: Accept session logic here
     alert(`Session with ${pendingSession.tutor.name} accepted! (Demo)`);
     setPendingSession(null);
     setSessionRequestedTutor(null);
@@ -108,30 +124,45 @@ const OneOnOne = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-white to-blue-100 relative overflow-x-hidden flex flex-col">
-      <header className="w-full max-w-7xl mx-auto text-center py-16 px-4 relative overflow-hidden">
-        <AnimatedHeaderBG />
-        <div className="relative z-10">
-          <h2 className="text-3xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-900 to-blue-500 mb-4 drop-shadow-lg">
-            1-on-1 Expert Connect
-          </h2>
-          <p className="text-xl sm:text-2xl text-blue-700 font-medium max-w-2xl mx-auto mb-2">
-            Instantly connect with subject experts for personalized, real-time help. Get your doubts solved, learn new concepts, and accelerate your growth.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 mt-6">
-            <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold shadow-sm text-sm transition-transform hover:scale-105 hover:bg-blue-200">Instant Doubt Solving</span>
-            <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold shadow-sm text-sm transition-transform hover:scale-105 hover:bg-blue-200">Personalized Guidance</span>
-            <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold shadow-sm text-sm transition-transform hover:scale-105 hover:bg-blue-200">Flexible Scheduling</span>
+    <div className="min-h-screen w-full bg-blue-50">
+      <header className="w-full max-w-7xl mx-auto text-center py-16 sm:py-24 px-4 sm:px-6 relative">
+        <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex-1 text-left">
+            <h1 className="text-4xl sm:text-5xl font-bold text-blue-900 mb-4 leading-tight">
+              Connect with Experts for Personalized Learning
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-700 max-w-xl mb-6">
+              Instantly connect with subject experts, get your doubts solved, and accelerate your learning with tailored guidance.
+            </p>
+            <button
+              className="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105"
+              onClick={() => window.location.href = '/createSession'}
+            >
+              Create a Session
+            </button>
+          </div>
+          <div className="flex-1 hidden md:block">
+            <img
+              src="/assets/expert-connect-illustration.webp"
+              alt="Expert Connect Illustration"
+              className="w-full max-w-md mx-auto object-contain"
+            />
           </div>
         </div>
+        <div className="flex flex-wrap justify-center gap-4 mt-8">
+          <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
+            Instant Doubt Solving
+          </span>
+          <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
+            Personalized Guidance
+          </span>
+          <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
+            Flexible Scheduling
+          </span>
+        </div>
       </header>
-      <main className="flex-1 w-full max-w-4xl mx-auto flex flex-col gap-12 px-4 pb-12">
-        <button
-          className="self-center mb-6 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow hover:bg-blue-700 transition"
-          onClick={() => window.location.href = '/createSession'}
-        >
-          + Create Your Own Session
-        </button>
+      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-16 px-4 sm:px-6 pb-12">
+        <HowItWorks />
         <SearchBar
           courseValue={course}
           setCourseValue={setCourse}
@@ -142,7 +173,7 @@ const OneOnOne = () => {
           onFindTutor={handleFindTutor}
         />
         {showTutors && (
-          <div className="flex flex-col gap-6 mt-6">
+          <div className="flex flex-col gap-6">
             {tutors.map((tutor, idx) => (
               <TutorCard
                 key={idx}

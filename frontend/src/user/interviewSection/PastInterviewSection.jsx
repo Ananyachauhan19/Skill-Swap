@@ -34,54 +34,42 @@ const demoPastInterviews = [
   },
 ];
 
-// Backend-ready code (commented for now):
-// import React, { useState, useEffect } from 'react';
-// const [pastInterviews, setPastInterviews] = useState([]);
-// const [loading, setLoading] = useState(true);
-// const [error, setError] = useState('');
-// useEffect(() => {
-//   const fetchPastInterviews = async () => {
-//     setLoading(true);
-//     setError('');
-//     try {
-//       const res = await fetch('/api/past-interview-sessions');
-//       if (!res.ok) throw new Error('Failed to fetch past interviews');
-//       const data = await res.json();
-//       setPastInterviews(Array.isArray(data.sessions) ? data.sessions : []);
-//     } catch (err) {
-//       setError('Could not load past interviews.');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-//   fetchPastInterviews();
-// }, []);
-
 const PastInterviewSection = () => {
-  // Backend-ready state (commented for now):
-  // const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState('');
-  // const [pastInterviews, setPastInterviews] = useState([]);
-
   return (
-    <section className="w-full flex flex-col items-center py-8 bg-green-100 border-t border-green-200">
-      <h3 className="text-2xl font-bold text-green-800 mb-6">Past Mock Interview Sessions</h3>
-      <div className="flex flex-wrap gap-6 justify-center w-full">
+    <section className="w-full flex flex-col items-center py-12 bg-blue-50">
+      <h3 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-8 text-center">Past Mock Interview Sessions</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-center w-full max-w-7xl px-4">
         {demoPastInterviews.map(session => (
-          <div key={session.id} className="bg-white rounded-lg shadow p-5 flex flex-col w-full max-w-xs border border-green-100 relative">
-            <div className="flex items-center mb-2">
-              <img
-                src={session.expert.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(session.expert.name)}&background=BBF7D0&color=166534&bold=true`}
-                alt={session.expert.name}
-                className="w-12 h-12 rounded-full object-cover border border-green-200"
-              />
+          <div
+            key={session.id}
+            className="bg-white rounded-xl shadow-md p-6 flex flex-col w-full max-w-xs border border-blue-200 relative transition-all duration-300 hover:shadow-lg hover:scale-105"
+          >
+            <div className="flex items-center mb-3">
+              <picture>
+                <source srcSet={session.expert.profilePic ? `${session.expert.profilePic.replace('.jpg', '.webp')}` : ''} type="image/webp" />
+                <img
+                  src={session.expert.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(session.expert.name)}&background=DBEAFE&color=1E40AF&bold=true`}
+                  alt={session.expert.name}
+                  className="w-12 h-12 rounded-full object-cover border border-blue-200"
+                />
+              </picture>
               <div className="ml-3">
-                <div className="font-semibold text-green-800">{session.expert.name}</div>
-                <div className="text-xs text-gray-500">{new Date(session.date).toLocaleDateString()}</div>
+                <div className="font-semibold text-blue-900 text-base">{session.expert.name}</div>
+                <div className="text-sm text-gray-700">{new Date(session.date).toLocaleDateString()}</div>
               </div>
             </div>
-            <div className="text-gray-700 text-sm mb-1"><span role="img" aria-label="attendees">👥</span> {session.attendees} Attendee</div>
-            <div className="text-gray-700 text-sm mb-1"><span role="img" aria-label="experience">📝</span> {session.experience}</div>
+            <div className="text-gray-700 text-sm mb-2 flex items-center gap-2">
+              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              {session.attendees} Attendee
+            </div>
+            <div className="text-gray-700 text-sm">
+              <svg className="w-5 h-5 text-blue-600 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              {session.experience}
+            </div>
           </div>
         ))}
       </div>

@@ -16,7 +16,7 @@ const Footer = () => {
           onClick={() => navigate('/')}
         >
           <img
-            src="/assets/skillswap-logo.jpg"
+            src="/assets/skillswap-logo.webp"
             alt="SkillSwapHub Logo"
             className="h-12 w-12 object-contain rounded-full border-2 border-blue-300 shadow-sm"
           />

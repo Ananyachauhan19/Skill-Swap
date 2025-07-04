@@ -1,9 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaEye, FaEyeSlash, FaExclamationCircle, FaMale, FaFemale, FaTimes } from "react-icons/fa";
+import {
+  FaEye,
+  FaEyeSlash,
+  FaExclamationCircle,
+  FaMale,
+  FaFemale,
+  FaTimes,
+} from "react-icons/fa";
 import { MdOutlineMoreHoriz } from "react-icons/md";
 import axios from "axios";
-import { useModal } from '../context/ModalContext';
+import { useModal } from "../context/ModalContext";
+import { motion } from "framer-motion";
 
 const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const navigate = useNavigate();
@@ -28,25 +36,15 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     "/assets/carousel/live-session.png",
     "/assets/carousel/group-discussion.png",
     "/assets/carousel/job-interview.png",
+    "/assets/carousel/feature-four.png",
   ];
-  const extendedImages = [...carouselImages, ...carouselImages];
 
   useEffect(() => {
-    const totalSlides = carouselImages.length;
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev >= totalSlides - 1 ? 0 : prev + 1));
+      setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
     }, 5000);
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (currentImageIndex >= carouselImages.length) {
-      const timeout = setTimeout(() => {
-        setCurrentImageIndex(0);
-      }, 1500);
-      return () => clearTimeout(timeout);
-    }
-  }, [currentImageIndex]);
 
   useEffect(() => {
     let lastMoveTime = 0;
@@ -54,7 +52,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     const handleMouseMove = () => {
       const now = Date.now();
       if (now - lastMoveTime > moveThreshold) {
-        setCurrentImageIndex((prev) => (prev >= carouselImages.length - 1 ? 0 : prev + 1));
+        setCurrentImageIndex((prev) => (prev + 1) % carouselImages.length);
         lastMoveTime = now;
       }
     };
@@ -76,11 +74,20 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     };
   }, [isModal]);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { firstName, lastName, email, phone, gender, password, confirmPassword } = form;
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      gender,
+      password,
+      confirmPassword,
+    } = form;
     if (!firstName || !email || !phone || !gender || !password || !confirmPassword) {
       return setError("Please fill in all required fields.");
     }
@@ -124,13 +131,30 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     ? "bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950"
     : "bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700";
 
-  return (
-    <div
-      className={`${
-        isModal ? "fixed inset-0 flex items-center justify-center bg-black/40 z-50" : "min-h-screen flex items-start justify-center pt-16 pb-10 px-4"
-      }`}
+ return (
+ <div
+  className={`${
+    isModal
+      ? "fixed inset-0 flex items-center justify-center z-50 transition-opacity duration-300 ease-in-out"
+      : "min-h-screen flex items-start justify-center pt-16 pb-10 px-4"
+  }`}
+  style={{
+    backgroundColor: isModal ? "rgba(0,0,0,0.2)" : "transparent",
+    backdropFilter: "none",
+    WebkitBackdropFilter: "none",
+    filter: "none",
+  }}
+>
+
+
+
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      className="bg-white rounded-xl p-4 shadow-2xl max-w-full w-[95vw] md:w-[700px] lg:w-[850px] xl:w-[900px] 2xl:w-[950px] h-auto max-h-[95vh] overflow-y-auto"
     >
-      <div className="bg-white rounded-xl p-4 shadow-2xl max-w-full w-[95vw] md:w-[700px] lg:w-[850px] xl:w-[900px] 2xl:w-[950px] h-auto max-h-[95vh] overflow-y-auto">
+
         <div className="flex flex-col md:flex-row w-full h-full">
           {/* Left Panel */}
           <div
@@ -144,36 +168,31 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
             }}
           >
             <div className="absolute top-4 left-4 z-30">
-              <img src="/assets/skillswap-logo.jpg" alt="SkillSwap Logo" className="h-8 w-auto" />
+              <img
+                src="/assets/skillswap-logo.jpg"
+                alt="SkillSwap Logo"
+                className="h-8 w-auto"
+              />
             </div>
             <div className="absolute inset-0 flex items-center justify-center z-20">
               <div className="relative w-[70%] h-[50%] overflow-hidden">
                 <div
-                  className="flex transition-transform ease-in-out"
+                  className="flex transition-transform ease-in-out duration-1000"
                   style={{
                     transform: `translateX(-${100 * currentImageIndex}%)`,
-                    transitionDuration: currentImageIndex >= carouselImages.length ? "0ms" : "1500ms",
                   }}
                 >
-                  {extendedImages.map((src, idx) => (
+                  {carouselImages.map((src, idx) => (
                     <div key={idx} className="min-w-full h-full">
-                      <img src={src} alt={`Feature ${idx + 1}`} className="w-full h-full object-contain" />
+                      <img
+                        src={src}
+                        alt={`Feature ${idx + 1}`}
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
-            <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 z-30">
-              {carouselImages.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    idx === currentImageIndex ? "bg-white scale-125" : "bg-white/50"
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
             </div>
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 z-10" />
           </div>
@@ -191,7 +210,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 </button>
               )}
 
-              <h1 className="text-xl font-bold text-[#154360] mb-4 text-center">Create an Account</h1>
+              <h1 className="text-xl font-bold text-[#154360] mb-4 text-center">
+                Create an Account
+              </h1>
 
               {error && (
                 <div className="mb-3 p-1.5 bg-red-50 text-red-700 rounded-lg text-xs flex items-center">
@@ -203,7 +224,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
               <form onSubmit={handleSubmit} className="space-y-3 flex-1">
                 <div className="flex gap-2">
                   <div className="w-full">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">First Name*</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      First Name*
+                    </label>
                     <input
                       type="text"
                       name="firstName"
@@ -213,7 +236,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                     />
                   </div>
                   <div className="w-full">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Last Name
+                    </label>
                     <input
                       type="text"
                       name="lastName"
@@ -225,7 +250,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Email*</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Email*
+                  </label>
                   <input
                     type="email"
                     name="email"
@@ -237,7 +264,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Phone*</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Phone*
+                  </label>
                   <input
                     type="tel"
                     name="phone"
@@ -248,7 +277,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Gender*</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Gender*
+                  </label>
                   <div className="flex gap-2">
                     {["male", "female", "other"].map((g) => (
                       <button
@@ -256,10 +287,18 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                         type="button"
                         onClick={() => setForm({ ...form, gender: g })}
                         className={`border px-2 py-1 rounded-full flex items-center gap-1 text-xs ${
-                          form.gender === g ? "border-blue-600 bg-blue-50 text-blue-800" : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                          form.gender === g
+                            ? "border-blue-600 bg-blue-50 text-blue-800"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-100"
                         }`}
                       >
-                        {g === "male" ? <FaMale className="w-3 h-3" /> : g === "female" ? <FaFemale className="w-3 h-3" /> : <MdOutlineMoreHoriz className="w-3 h-3" />}
+                        {g === "male" ? (
+                          <FaMale className="w-3 h-3" />
+                        ) : g === "female" ? (
+                          <FaFemale className="w-3 h-3" />
+                        ) : (
+                          <MdOutlineMoreHoriz className="w-3 h-3" />
+                        )}
                         {g.charAt(0).toUpperCase() + g.slice(1)}
                       </button>
                     ))}
@@ -267,7 +306,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Password*</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Password*
+                  </label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -283,13 +324,19 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500"
                       onClick={() => setShowPassword(!showPassword)}
                     >
-                      {showPassword ? <FaEyeSlash className="w-3 h-3" /> : <FaEye className="w-3 h-3" />}
+                      {showPassword ? (
+                        <FaEyeSlash className="w-3 h-3" />
+                      ) : (
+                        <FaEye className="w-3 h-3" />
+                      )}
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Confirm Password*</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Confirm Password*
+                  </label>
                   <div className="relative">
                     <input
                       type={showConfirmPassword ? "text" : "password"}
@@ -305,7 +352,11 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                       className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
-                      {showConfirmPassword ? <FaEyeSlash className=" h-3" /> : <FaEye className="w-3 h-3" />}
+                      {showConfirmPassword ? (
+                        <FaEyeSlash className="w-3 h-3" />
+                      ) : (
+                        <FaEye className="w-3 h-3" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -313,8 +364,14 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 <div className="text-[10px] text-gray-600 flex items-start">
                   <input type="checkbox" required className="mt-0.5 mr-1.5 w-3 h-3" />
                   <span>
-                    I agree to the <a href="#" className="text-blue-600 underline">Privacy Policy</a> and{" "}
-                    <a href="#" className="text-blue-600 underline">Terms</a>
+                    I agree to the{" "}
+                    <a href="#" className="text-blue-600 underline">
+                      Privacy Policy
+                    </a>{" "}
+                    and{" "}
+                    <a href="#" className="text-blue-600 underline">
+                      Terms
+                    </a>
                   </span>
                 </div>
 
@@ -327,8 +384,19 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 >
                   {isLoading ? (
                     <svg className="animate-spin h-3 w-3 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
                     </svg>
                   ) : (
                     "Create Account"
@@ -355,7 +423,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
