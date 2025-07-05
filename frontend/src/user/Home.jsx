@@ -189,7 +189,7 @@ const HomeHero = () => {
     };
 
     return (
-      <section className="py-16 sm:py-24 px-4 sm:px-8 bg-blue-50">
+      <section className="py-12 sm:py-16 px-4 sm:px-8 bg-blue-50">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 items-center">
           <motion.div
             className="lg:w-1/2 space-y-8"
@@ -289,17 +289,17 @@ const HomeHero = () => {
     };
 
     return (
-      <section className="py-16 sm:py-24 px-4 sm:px-8 bg-blue-50">
+      <section className="py-12 sm:py-16 px-4 sm:px-8 bg-blue-50">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-12 items-center">
           <motion.div
             className="lg:w-1/2 space-y-8"
             initial="hidden"
             animate="visible"
             variants={textVariants}
-          ><h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-900 leading-tight whitespace-nowrap">
-  Why Choose SkillSwap-Hub
-</h2>
-
+          >
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-900 leading-tight whitespace-nowrap">
+              Why Choose SkillSwap-Hub
+            </h2>
             <p className="text-lg text-gray-600 max-w-xl leading-relaxed">
               SkillSwap-Hub provides a professional environment for skill development. Engage in live sessions, earn credits by teaching, and join a global community of learners and experts. Our platform empowers you to grow through hands-on practice, personalized mentorship, and collaborative learning, ensuring you stay ahead in your career with practical, real-world skills.
             </p>
@@ -343,7 +343,7 @@ const HomeHero = () => {
             <picture>
               <source srcSet="/assets/skillchoose.webp" type="image/webp" />
               <img
-                src="/assets/skillchoose.png"
+                src="/assets/skillchoose.webp"
                 alt="Why Choose SkillSwap"
                 className="w-full h-[450px] object-cover"
                 loading="lazy"
@@ -364,57 +364,51 @@ const HomeHero = () => {
       {/* Section: Login Modal */}
       <AnimatePresence>
         {showLoginModal && (
-          <>
-            className="fixed inset-0 bg-black/20 z-50"
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            >
-              <Login
-                onClose={closeModals}
-                onLoginSuccess={handleLoginSuccess}
-                isModal={true}
-              />
-            </motion.div>
-          </>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/20"
+          >
+            <Login
+              onClose={closeModals}
+              onLoginSuccess={handleLoginSuccess}
+              isModal={true}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Section: Register Modal */}
       <AnimatePresence>
         {showRegisterModal && (
-          <>
-            className="fixed inset-0 bg-black/20 z-50"
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-0 flex items-center justify-center z-50 p-4"
-            >
-              <Register
-                onClose={closeModals}
-                onRegisterSuccess={handleRegisterSuccess}
-                isModal={true}
-              />
-            </motion.div>
-          </>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/20"
+          >
+            <Register
+              onClose={closeModals}
+              onRegisterSuccess={handleRegisterSuccess}
+              isModal={true}
+            />
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Section: Hero Section */}
-      <section className="relative z-10 py-20 sm:py-28 max-w-7xl mx-auto px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="relative z-10 py-8 sm:py-12 max-w-7xl mx-auto px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           {/* Hero Text Content */}
           <motion.div
-            className="flex flex-col justify-center space-y-8"
+            className="flex flex-col justify-center space-y-4"
             initial="hidden"
             animate="visible"
             variants={textVariants}
           >
             <motion.h1
-              className="text-[38.92px] sm:text-[46.56px] lg:text-[54.2px] font-extrabold leading-tight text-blue-900"
+              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-snug text-blue-900"
               variants={textVariants}
             >
               <span>
@@ -430,7 +424,7 @@ const HomeHero = () => {
               </span>
             </motion.h1>
             <motion.p
-              className="text-lg sm:text-xl text-gray-600 max-w-lg leading-relaxed"
+              className="text-base sm:text-lg text-gray-600 max-w-md leading-relaxed"
               variants={textVariants}
             >
               SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.
@@ -485,13 +479,14 @@ const HomeHero = () => {
               <img
                 src="/assets/skillswap-hero.png"
                 alt="SkillSwap Hero Image"
-                className="w-full h-[400px] object-contain hover:scale-105 transition-transform duration-300"
+                className="w-full h-[450px] object-contain hover:scale-105 transition-transform duration-300"
                 loading="lazy"
               />
             </picture>
+
             {isLoggedIn && (
               <motion.div
-                className="mt-6 p-4 bg-white rounded-md shadow-md border border-blue-100 max-w-md mx-auto"
+                className="mt-6 p-4 bg-white rounded-md shadow-md border border-blue-100 max-w-lg mx-auto"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
@@ -502,7 +497,7 @@ const HomeHero = () => {
                     <img
                       src={user?.avatar || "/assets/default-avatar.png"}
                       alt="User Avatar"
-                      className="w-12 h-12 rounded-full border-2 border-blue-100"
+                      className="w-14 h-14 rounded-full border-2 border-blue-100"
                       loading="lazy"
                     />
                   </picture>
@@ -510,7 +505,7 @@ const HomeHero = () => {
                     <p className="text-lg font-semibold text-blue-900">
                       Welcome, {user?.name || "Professional"}! Let's continue with your profile
                     </p>
-                    <p className="text-sm text-gray-600">Explore your personalized learning journey</p>
+                    <p className="text-base text-gray-600">Explore your personalized learning journey</p>
                   </div>
                 </div>
               </motion.div>
@@ -520,7 +515,7 @@ const HomeHero = () => {
       </section>
 
       {/* Section: Explore Opportunities */}
-      <section ref={exploreRef} className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
+      <section ref={exploreRef} className="py-12 sm:py-16 px-4 sm:px-8 bg-blue-50">
         <motion.div className="max-w-5xl mx-auto" initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
           <h3 className="text-xl font-semibold text-center text-blue-900 mb-8">
             Explore Learning Opportunities
@@ -551,7 +546,7 @@ const HomeHero = () => {
       </section>
 
       {/* Section: Activity Section (Stats) */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gray-100">
+      <section className="py-12 sm:py-16 px-4 sm:px-8 bg-gray-100">
         <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-center">
           {stats.map((stat, idx) => (
             <motion.div
@@ -574,7 +569,7 @@ const HomeHero = () => {
       </section>
 
       {/* Section: Top Performers Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-blue-50">
+      <section className="py-12 sm:py-16 px-4 sm:px-8 bg-blue-50">
         <h2 className="text-2xl sm:text-4xl font-bold text-center text-blue-900 mb-10">
           Our Top Performers
         </h2>
@@ -612,7 +607,7 @@ const HomeHero = () => {
       <WhyChooseSection />
 
       {/* Section: Let's Start */}
-      <section className="py-16 sm:py-20 px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
+      <section className="py-12 sm:py-16 px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
         <div className="max-w-5xl mx-auto text-center">
           <h2 className="text-2xl sm:text-4xl font-bold text-blue-900 mb-6">
             Begin Your Learning Journey
