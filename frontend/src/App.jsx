@@ -14,6 +14,7 @@ import Discuss from './user/Discuss';
 import Interview from './user/Interview';
 import Profile from './user/Profile';
 import CreateSession from './user/createSession';
+import HistoryPage from './user/HistoryPage';
 
 function App() {
   const location = useLocation();
@@ -35,6 +36,7 @@ function App() {
           <Route path="/interview" element={<Interview />} />
           <Route path="/profile" element={<Profile/>} />
           <Route path="/createSession" element={<CreateSession/>} />
+          <Route path="/history" element={<HistoryPage/>} />
         </Routes>
       </div>
       {!isAuthPage && <Footer />}

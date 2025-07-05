@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 
 const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
-  // Close menu if clicked outside
   useEffect(() => {
     if (!show) return;
     function handleClickOutside(event) {
@@ -33,9 +32,9 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
       </button>
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
-        onClick={() => { onClose(); navigate('/progress'); }}
+        onClick={() => { onClose(); navigate('/history'); }}
       >
-        Your Progress
+        Your History
       </button>
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
