@@ -5,7 +5,7 @@ import { Toaster } from 'react-hot-toast';
 // --- Static mock data for user session history ---
 const STATIC_HISTORY = [
   {
-    date: "2025-07-05",
+    date: "2024-07-05",
     sessions: [
       {
         type: "one-on-one",
@@ -62,36 +62,39 @@ async function fetchUserHistory() {
 
 // --- Months from July 2025 to June 2026 ---
 const MONTHS = [
-  { name: 'Jul', year: 2025, days: 31 },
-  { name: 'Aug', year: 2025, days: 31 },
-  { name: 'Sep', year: 2025, days: 30 },
-  { name: 'Oct', year: 2025, days: 31 },
-  { name: 'Nov', year: 2025, days: 30 },
-  { name: 'Dec', year: 2025, days: 31 },
-  { name: 'Jan', year: 2026, days: 31 },
-  { name: 'Feb', year: 2026, days: 28 },
-  { name: 'Mar', year: 2026, days: 31 },
-  { name: 'Apr', year: 2026, days: 30 },
-  { name: 'May', year: 2026, days: 31 },
-  { name: 'Jun', year: 2026, days: 30 }
+  { name: 'Jul', year: 2024, days: 31 },
+  { name: 'Aug', year: 2024, days: 31 },
+  { name: 'Sep', year: 2024, days: 30 },
+  { name: 'Oct', year: 2024, days: 31 },
+  { name: 'Nov', year: 2024, days: 30 },
+  { name: 'Dec', year: 2024, days: 31 },
+  { name: 'Jan', year: 2025, days: 31 },
+  { name: 'Feb', year: 2025, days: 28 }, // Not a leap year
+  { name: 'Mar', year: 2025, days: 31 },
+  { name: 'Apr', year: 2025, days: 30 },
+  { name: 'May', year: 2025, days: 31 },
+  { name: 'Jun', year: 2025, days: 30 },
+  { name: 'Jul', year: 2025, days: 4 }   // ✅ Only 4 days of July 2025
 ];
 
-// --- Generate contribution data from history ---
+
 const generateContributionData = (startDate, history) => {
   const contributions = {};
   const today = new Date(startDate);
-  const nextYear = new Date(today);
-  nextYear.setFullYear(today.getFullYear() + 1);
 
-  // Initialize all days with 0 contributions (transparent grey)
+  // ✅ Set exact 365 days range
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + 365); // 4 July 2024 → 4 July 2025
+
+  // ✅ Initialize every day with 0
   let currentDate = new Date(today);
-  while (currentDate <= nextYear) {
+  while (currentDate <= endDate) {
     const dateStr = currentDate.toISOString().split('T')[0];
     contributions[dateStr] = 0;
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  // Increment contributions based on history
+  // ✅ Add session contributions
   history.forEach(entry => {
     const dateStr = entry.date;
     if (contributions[dateStr] !== undefined) {
@@ -101,6 +104,7 @@ const generateContributionData = (startDate, history) => {
 
   return contributions;
 };
+
 
 // Helper to get contribution color
 const getContributionColor = (count) => {
@@ -181,7 +185,7 @@ const renderContributionCalendar = () => {
           value="2025-2026"
           onChange={(e) => e.preventDefault()}
         >
-          <option>2025-2026</option>
+          <option>2024-2025</option>
         </select>
       </div>
 
