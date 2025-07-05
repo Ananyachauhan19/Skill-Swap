@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import UserInfoSection from "./sections/UserInfoSection";
+import ContributionCalendar from "./sections/ContributionCalendar";
 import SkillsTeachSection from "./sections/SkillsTeachSection";
 import SkillsLearnSection from "./sections/SkillsLearnSection";
 import BioSection from "./sections/BioSection";
@@ -124,7 +125,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto bg-gradient-to-br from-blue-50 via-white to-blue-100 rounded-3xl shadow-2xl p-0 md:p-10 mt-10 relative border border-blue-100 overflow-hidden">
+    <div className="max-w-10xl mx-auto bg-gradient-to-br from-blue-50 via-white to-blue-100 rounded-3xl shadow-2xl p-0 md:p-10 mt-10 relative border border-blue-100 overflow-hidden">
       <Toaster position="top-center" />
       {/* Decorative background shapes */}
       <div className="absolute -top-10 -left-10 w-48 h-48 bg-blue-200/30 rounded-full blur-2xl z-0 animate-pulse" />
@@ -245,6 +246,10 @@ const Profile = () => {
           </div>
         </div>
       </div>
+      {/* Contribution Calendar inside profile card with horizontal scroll */}
+          <div className="mt-10 w-full rounded-xl">
+            <ContributionCalendar />
+          </div>
     </div>
   );
 };
