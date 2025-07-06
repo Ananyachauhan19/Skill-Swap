@@ -6,6 +6,33 @@ const router = express.Router();
 // Middleware to check authentication (you can reuse your existing one)
 const requireAuth = require('../middleware/requireAuth');
 
+
+router.get('/search', async (req, res) => {
+  try {
+    const { subject, topic, subtopic } = req.query;
+
+    const filter = {
+      status: 'pending',
+    };
+
+    if (subject) filter.subject = subject;
+    if (topic) filter.topic = topic;
+    if (subtopic) filter.subtopic = subtopic;
+
+    const sessions = await Session.find(filter)
+    .populate('creator', 'firstName lastName') // This replaces the ObjectId with the user object { _id, name }
+  .exec();
+       
+
+    res.json(sessions);
+  } catch (err) {
+    console.error('Search error:', err);
+    res.status(500).json({ error: 'Failed to search sessions' });
+  }
+});
+
+
+
 router.use(requireAuth);
 // Create a session
 router.post('/', requireAuth, async (req, res) => {
@@ -33,49 +60,6 @@ router.get('/', async (req, res) => {
   const sessions = await Session.find(query).populate('creator', 'name email');
   res.json(sessions);
 });
-
-// Request to join a session
-router.post('/:id/request', requireAuth, async (req, res) => {
-  const session = await Session.findById(req.params.id);
-  if (!session) return res.status(404).json({ message: 'Session not found' });
-
-  const alreadyRequested = session.requests.some(r => r.user.toString() === req.user._id.toString());
-  if (alreadyRequested) return res.status(400).json({ message: 'Already requested' });
-
-  session.requests.push({ user: req.user._id });
-  await session.save();
-  res.json({ message: 'Request sent' });
-});
-
-
-
-// routes/sessionRoutes.js (continued)
-router.post('/:sessionId/request/:requestId/approve', requireAuth, async (req, res) => {
-  const session = await Session.findById(req.params.sessionId);
-  if (!session || session.creator.toString() !== req.user._id.toString())
-    return res.status(403).json({ message: 'Not allowed' });
-
-  const request = session.requests.id(req.params.requestId);
-  if (!request) return res.status(404).json({ message: 'Request not found' });
-
-  request.status = 'accepted';
-  await session.save();
-  res.json({ message: 'Request approved' });
-});
-
-router.post('/:sessionId/request/:requestId/reject', requireAuth, async (req, res) => {
-  const session = await Session.findById(req.params.sessionId);
-  if (!session || session.creator.toString() !== req.user._id.toString())
-    return res.status(403).json({ message: 'Not allowed' });
-
-  const request = session.requests.id(req.params.requestId);
-  if (!request) return res.status(404).json({ message: 'Request not found' });
-
-  request.status = 'rejected';
-  await session.save();
-  res.json({ message: 'Request rejected' });
-});
-
 
 // GET /sessions/mine – get sessions created by logged-in user
 // GET /api/sessions/mine
