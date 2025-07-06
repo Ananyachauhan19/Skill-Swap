@@ -15,6 +15,7 @@ import Interview from './user/Interview';
 import Profile from './user/Profile';
 import CreateSession from './user/createSession';
 import HistoryPage from './user/HistoryPage';
+import Edit_Profile from './user/sections/Edit_Profile';
 
 function App() {
   const location = useLocation();
@@ -35,6 +36,7 @@ function App() {
           <Route path="/discuss" element={<Discuss />} />
           <Route path="/interview" element={<Interview />} />
           <Route path="/profile" element={<Profile/>} />
+          <Route path="/edit-profile" element={<Edit_Profile/>} />
           <Route path="/createSession" element={<CreateSession/>} />
           <Route path="/history" element={<HistoryPage/>} />
         </Routes>

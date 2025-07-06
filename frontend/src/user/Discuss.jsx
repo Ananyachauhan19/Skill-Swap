@@ -44,56 +44,72 @@ const HowItWorks = () => (
   </section>
 );
 
-const Discuss = () => (
-  <div className="min-h-screen w-full bg-blue-50 relative overflow-x-hidden">
-    <header className="w-full max-w-7xl mx-auto text-center py-16 sm:py-24 px-4 sm:px-6 relative">
-      <div className="absolute inset-0 bg-blue-100 opacity-20" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%231e40af' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30v4h2v-4h4V2h-4V0h-2v2h-4v2h4zM6 34v4h4v-4h2v-4h-2v-4H6v4H2v2h4zm0-30v4h-4v2h4v4h2V6h4V4H6V0H4v4H0v2h4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        backgroundRepeat: 'repeat',
-      }} />
-      <div className="relative flex flex-col md:flex-row items-center justify-between gap-8 animate-fadeIn">
-        <div className="flex-1 text-left">
-          <h1 className="text-4xl sm:text-5xl font-bold text-blue-900 mb-4 leading-tight">
-            Engage in Dynamic Group Discussions
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-700 max-w-xl mb-6">
-            Collaborate with peers, debate trending topics, and gain confidence with expert-moderated sessions.
-          </p>
-          <button className="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105">
-            Join a Discussion
-          </button>
+const Discuss = () => {
+  // Ref for GDListSection
+  const gdListRef = React.useRef(null);
+
+  const handleJoinClick = () => {
+    if (gdListRef.current) {
+      gdListRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div className="min-h-screen w-full bg-blue-50 relative overflow-x-hidden">
+      <header className="w-full max-w-7xl mx-auto text-center py-16 sm:py-24 px-4 sm:px-6 relative">
+        <div className="absolute inset-0 bg-blue-100 opacity-20" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%231e40af' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30v4h2v-4h4V2h-4V0h-2v2h-4v2h4zM6 34v4h4v-4h2v-4h-2v-4H6v4H2v2h4zm0-30v4h-4v2h4v4h2V6h4V4H6V0H4v4H0v2h4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          backgroundRepeat: 'repeat',
+        }} />
+        <div className="relative flex flex-col md:flex-row items-center justify-between gap-8 animate-fadeIn">
+          <div className="flex-1 text-left">
+            <h1 className="text-4xl sm:text-5xl font-bold text-blue-900 mb-4 leading-tight">
+              Engage in Dynamic Group Discussions
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-700 max-w-xl mb-6">
+              Collaborate with peers, debate trending topics, and gain confidence with expert-moderated sessions.
+            </p>
+            <button
+              className="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105"
+              onClick={handleJoinClick}
+            >
+              Join a Discussion
+            </button>
+          </div>
+          <div className="flex-1 hidden md:block">
+            <picture>
+              <source srcSet="/assets/group-discussion-illustration.webp" type="image/webp" />
+              <img
+                src="/assets/group-discussion-illustration.webp"
+                alt="Group Discussion Illustration"
+                className="w-full max-w-md mx-auto object-contain"
+              />
+            </picture>
+          </div>
         </div>
-        <div className="flex-1 hidden md:block">
-          <picture>
-            <source srcSet="/assets/group-discussion-illustration.webp" type="image/webp" />
-            <img
-              src="/assets/group-discussion-illustration.webp"
-              alt="Group Discussion Illustration"
-              className="w-full max-w-md mx-auto object-contain"
-            />
-          </picture>
+        <div className="flex flex-wrap justify-center gap-4 mt-8">
+          <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
+            Live Expert Moderation
+          </span>
+          <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
+            Placement Focused
+          </span>
+          <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
+            Collaborative Growth
+          </span>
         </div>
-      </div>
-      <div className="flex flex-wrap justify-center gap-4 mt-8">
-        <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
-          Live Expert Moderation
-        </span>
-        <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
-          Placement Focused
-        </span>
-        <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
-          Collaborative Growth
-        </span>
-      </div>
-    </header>
-    <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-16 px-4 sm:px-6 pb-12">
-      <HowItWorks />
-      <GDListSection />
-      <PastGDSection />
-      <FAQSection />
-      <GDTestimonialSection />
-    </main>
-  </div>
-);
+      </header>
+      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-16 px-4 sm:px-6 pb-12">
+        <HowItWorks />
+        <div ref={gdListRef}>
+          <GDListSection />
+        </div>
+        <PastGDSection />
+        <FAQSection />
+        <GDTestimonialSection />
+      </main>
+    </div>
+  );
+};
 
 export default Discuss;

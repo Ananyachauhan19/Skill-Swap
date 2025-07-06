@@ -2,62 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, GraduationCap, Linkedin, Mail, Settings, LogOut } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
-// --- Static mock data for user session history ---
-const STATIC_HISTORY = [
-  {
-    date: "2024-07-05",
-    sessions: [
-      {
-        type: "one-on-one",
-        with: "Alice Smith",
-        when: "2025-07-05T10:00:00Z",
-        duration: 45,
-        credits: 10,
-        subject: "Mathematics",
-        topic: "Algebra",
-        subtopic: "Linear Equations",
-        rating: 5
-      },
-      {
-        type: "interview",
-        with: "Bob Lee",
-        when: "2025-07-05T14:00:00Z",
-        duration: 30,
-        credits: 15,
-        rating: 4
-      },
-      {
-        type: "gd",
-        with: ["Alice Smith", "Bob Lee", "Charlie Kim"],
-        when: "2025-07-05T16:00:00Z",
-        duration: 60,
-        credits: 5
-      }
-    ]
-  },
-  {
-    date: "2025-07-04",
-    sessions: [
-      {
-        type: "one-on-one",
-        with: "Charlie Kim",
-        when: "2025-07-04T09:00:00Z",
-        duration: 30,
-        credits: 8,
-        subject: "Physics",
-        topic: "Optics",
-        subtopic: "Lenses",
-        rating: 4
-      }
-    ]
-  }
-];
-
 // --- Function to fetch user history ---
 async function fetchUserHistory() {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(STATIC_HISTORY), 400);
-  });
+    const response = await fetch('/history');
+    if (!response.ok) throw new Error('Failed to fetch history');
+    const data = await response.json();
+    return data;
+  
 }
 
 // --- Months from July 2025 to June 2026 ---
@@ -69,12 +20,12 @@ const MONTHS = [
   { name: 'Nov', year: 2024, days: 30 },
   { name: 'Dec', year: 2024, days: 31 },
   { name: 'Jan', year: 2025, days: 31 },
-  { name: 'Feb', year: 2025, days: 28 }, // Not a leap year
+  { name: 'Feb', year: 2025, days: 28 }, 
   { name: 'Mar', year: 2025, days: 31 },
   { name: 'Apr', year: 2025, days: 30 },
   { name: 'May', year: 2025, days: 31 },
   { name: 'Jun', year: 2025, days: 30 },
-  { name: 'Jul', year: 2025, days: 4 }   // ✅ Only 4 days of July 2025
+  { name: 'Jul', year: 2025, days: 4 }   
 ];
 
 
@@ -82,11 +33,11 @@ const generateContributionData = (startDate, history) => {
   const contributions = {};
   const today = new Date(startDate);
 
-  // ✅ Set exact 365 days range
+  // Set exact 365 days range
   const endDate = new Date(today);
   endDate.setDate(endDate.getDate() + 365); // 4 July 2024 → 4 July 2025
 
-  // ✅ Initialize every day with 0
+  // Initialize every day with 0
   let currentDate = new Date(today);
   while (currentDate <= endDate) {
     const dateStr = currentDate.toISOString().split('T')[0];
@@ -94,7 +45,7 @@ const generateContributionData = (startDate, history) => {
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  // ✅ Add session contributions
+  // Add session contributions
   history.forEach(entry => {
     const dateStr = entry.date;
     if (contributions[dateStr] !== undefined) {
@@ -118,17 +69,65 @@ const getContributionColor = (count) => {
 const Profile = () => {
   // --- State Management ---
   const [profile, setProfile] = useState({
-    fullName: 'John Doe',
-    username: '@johndoe',
+    fullName: '',
+    username: '',
     profilePicPreview: null,
-    bio: 'Passionate developer and lifelong learner.',
-    country: 'United States',
-    university: 'Stanford University',
-    linkedin: 'johndoe',
+    bio: '',
+    country: '',
+    university: '',
+    linkedin: '',
     credits: 1200,
     rank: 'Bronze',
     badges: ['Starter', 'Helper'],
   });
+  // Fetch user profile from localStorage
+  useEffect(() => {
+    // Get full name and email from login/register
+    const regName = localStorage.getItem('registeredName');
+    const regEmail = localStorage.getItem('registeredEmail');
+    const user = JSON.parse(localStorage.getItem('user'));
+    setProfile(prev => ({
+      ...prev,
+      fullName: (user?.fullName && user.fullName.trim()) ? user.fullName : (regName || prev.fullName),
+      username: (user?.email && user.email.trim()) ? user.email : (regEmail || prev.username),
+      profilePicPreview: user?.profilePicPreview || prev.profilePicPreview,
+      bio: user?.bio || '',
+      country: user?.country || '',
+      university: user?.education?.university || '',
+      education: user?.education || { degree: '', university: '', year: '', specialization: '' },
+      teachSkills: user?.teachSkills || [],
+      learnSkills: user?.learnSkills || [],
+      experience: user?.experience || [],
+      certificates: user?.certificates || [],
+      credits: user?.credits || prev.credits,
+      badges: user?.badges || prev.badges,
+      rank: user?.rank || prev.rank
+    }));
+    
+    // Listen for real-time profile updates
+    const handleProfileUpdate = () => {
+      const updatedUser = JSON.parse(localStorage.getItem('user'));
+      setProfile(prev => ({
+        ...prev,
+        fullName: (updatedUser?.fullName && updatedUser.fullName.trim()) ? updatedUser.fullName : (regName || prev.fullName),
+        username: (updatedUser?.email && updatedUser.email.trim()) ? updatedUser.email : (regEmail || prev.username),
+        profilePicPreview: updatedUser?.profilePicPreview || prev.profilePicPreview,
+        bio: updatedUser?.bio || '',
+        country: updatedUser?.country || '',
+        university: updatedUser?.education?.university || '',
+        education: updatedUser?.education || { degree: '', university: '', year: '', specialization: '' },
+        teachSkills: updatedUser?.teachSkills || [],
+        learnSkills: updatedUser?.learnSkills || [],
+        experience: updatedUser?.experience || [],
+        certificates: updatedUser?.certificates || [],
+        credits: updatedUser?.credits || prev.credits,
+        badges: updatedUser?.badges || prev.badges,
+        rank: updatedUser?.rank || prev.rank
+      }));
+    };
+    window.addEventListener('profileUpdated', handleProfileUpdate);
+    return () => window.removeEventListener('profileUpdated', handleProfileUpdate);
+  }, []);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -155,19 +154,6 @@ const Profile = () => {
       reader.readAsDataURL(file);
     }
   };
-
-  // --- Helper Functions ---
-  function formatTime(iso) {
-    const d = new Date(iso);
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-
-  function sessionTypeLabel(type) {
-    if (type === 'one-on-one') return <span title="1-on-1" className="inline-block mr-2">👤</span>;
-    if (type === 'interview') return <span title="Interview" className="inline-block mr-2">🎤</span>;
-    if (type === 'gd') return <span title="Group Discussion" className="inline-block mr-2">👥</span>;
-    return null;
-  }
 
   // --- Render Contribution Calendar ---
 const renderContributionCalendar = () => {
@@ -214,7 +200,7 @@ const renderContributionCalendar = () => {
               grid[dayIndex][weekIndex] = day;
             }
 
-            const boxClass = "w-3 h-2 rounded-none"; // ✅ perfect square: 12x12px
+            const boxClass = "w-3 h-2 rounded-none"; 
 
             return (
               <div key={idx} className="min-w-[60px]">
@@ -222,6 +208,7 @@ const renderContributionCalendar = () => {
                   {name} {year}
                 </div>
                 <div className="flex flex-col gap-1">
+             
                   {grid.map((week, rowIndex) => (
                     <div key={rowIndex} className="flex gap-1">
                       {week.map((day, colIndex) => {
@@ -327,14 +314,21 @@ const renderContributionCalendar = () => {
               <Settings size={16} className="text-blue-900" />
               Account Settings
             </button>
-            <button className="flex items-center gap-3 text-sm text-gray-700 hover:bg-blue-100 p-3 rounded-md">
+            <button
+              className="flex items-center gap-3 text-sm text-gray-700 hover:bg-blue-100 p-3 rounded-md"
+              onClick={() => {
+                localStorage.clear();
+                window.location.href = '/login';
+              }}
+            >
               <LogOut size={16} className="text-blue-900" />
               Logout
             </button>
           </div>
         </div>
+        
         <div className="w-full md:w-3/4 flex flex-col gap-8">
-          <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-8 flex gap-8">
+        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-8 flex gap-8">
             <div className="flex-1 bg-blue-50 p-6 rounded-lg text-center">
               <div className="flex items-center justify-center gap-3">
                 <span className="text-2xl">🪙</span>
@@ -358,52 +352,78 @@ const renderContributionCalendar = () => {
               </div>
             </div>
           </div>
-          {renderContributionCalendar()}
-          <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-8">
-            <h3 className="text-xl font-semibold text-blue-900 mb-6">Your Daily History</h3>
-            {loading ? (
-              <div className="text-gray-700 text-sm">Loading...</div>
-            ) : error ? (
-              <div className="text-red-600 text-sm">{error}</div>
-            ) : history.length === 0 ? (
-              <div className="text-gray-700 text-sm">No history found.</div>
-            ) : (
-              <ul className="space-y-10">
-                {history.map((entry, idx) => (
-                  <li key={idx} className="bg-blue-50 rounded-lg p-6 shadow border border-blue-100">
-                    <div className="font-semibold text-blue-900 mb-3 text-lg">{entry.date}</div>
-                    <ul className="space-y-4">
-                      {entry.sessions.map((s, i) => (
-                        <li key={i} className="flex items-start gap-4">
-                          <div className="pt-1">{sessionTypeLabel(s.type)}</div>
-                          <div className="flex-1">
-                            <div className="font-medium text-blue-900 text-base">
-                              {s.type === 'gd' ? (
-                                <>Group Discussion with {Array.isArray(s.with) ? s.with.join(', ') : s.with}</>
-                              ) : (
-                                <>
-                                  {s.type === 'one-on-one' ? '1-on-1 with ' : 'Interview with '}
-                                  {s.with}
-                                </>
-                              )}
-                            </div>
-                            <div className="text-gray-700 text-sm mt-2">
-                              <span className="inline-block mr-5">🕒 {formatTime(s.when)} ({s.duration} min)</span>
-                              <span className="inline-block mr-5">💳 {s.credits} credits</span>
-                              {s.subject && <span className="inline-block mr-5">📚 {s.subject}</span>}
-                              {s.topic && <span className="inline-block mr-5">🔖 {s.topic}</span>}
-                              {s.subtopic && <span className="inline-block mr-5">📌 {s.subtopic}</span>}
-                              {typeof s.rating === 'number' && <span className="inline-block">⭐ {s.rating}</span>}
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            )}
+          {/* User Info Card */}
+          <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-8 flex flex-col md:flex-row gap-8 items-center mb-2">
+            <div className="flex-1 flex flex-col gap-2">
+              {/* Education Details */}
+              <div className="mt-2 text-sm text-gray-700">
+                <div className="font-semibold text-blue-900 mb-1">Education</div>
+                {profile.education ? (
+                  <>
+                    <div><span className="font-semibold">Degree:</span> {profile.education.degree}</div>
+                    <div><span className="font-semibold">Specialization:</span> {profile.education.specialization}</div>
+                    <div><span className="font-semibold">Year:</span> {profile.education.year}</div>
+                  </>
+                ) : (
+                  <div className="text-gray-400">Not added yet</div>
+                )}
+              </div>
+              {/* What they can teach */}
+              <div className="mt-2">
+                <div className="font-semibold text-blue-900 mb-1">Can Teach:</div>
+                {profile.teachSkills && profile.teachSkills.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {profile.teachSkills.map((s, i) => (
+                      <li key={i} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium border border-green-200">{s.skill}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-gray-400">Not added yet</div>
+                )}
+              </div>
+              {/* What they want to learn */}
+              <div className="mt-2">
+                <div className="font-semibold text-blue-900 mb-1">Wants to Learn:</div>
+                {profile.learnSkills && profile.learnSkills.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {profile.learnSkills.map((s, i) => (
+                      <li key={i} className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-medium border border-yellow-200">{s}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-gray-400">Not added yet</div>
+                )}
+              </div>
+              {/* Experience */}
+              <div className="mt-2">
+                <div className="font-semibold text-blue-900 mb-1">Experience:</div>
+                {profile.experience && profile.experience.length > 0 ? (
+                  <ul className="list-disc list-inside text-gray-700 text-sm">
+                    {profile.experience.map((exp, i) => (
+                      <li key={i}>{exp}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-gray-400">Not added yet</div>
+                )}
+              </div>
+              {/* Certificates */}
+              <div className="mt-2">
+                <div className="font-semibold text-blue-900 mb-1">Certificates:</div>
+                {profile.certificates && profile.certificates.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {profile.certificates.map((cert, i) => (
+                      <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">{cert}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-gray-400">Not added yet</div>
+                )}
+              </div>
+            </div>
           </div>
+          
+          {renderContributionCalendar()}
         </div>
       </div>
     </div>

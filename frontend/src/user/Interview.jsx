@@ -47,49 +47,65 @@ const HowItWorks = () => (
   </section>
 );
 
-const Interview = () => (
-  <div className="min-h-screen w-full bg-blue-50">
-    <header className="w-full max-w-7xl mx-auto text-center py-16 sm:py-24 px-4 sm:px-6 relative">
-      <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
-        <div className="flex-1 text-left">
-          <h1 className="text-4xl sm:text-5xl font-bold text-blue-900 mb-4 leading-tight">
-            Master Your Interviews with Expert Guidance
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-700 max-w-xl mb-6">
-            Practice with industry professionals, get personalized feedback, and build confidence to ace your next interview.
-          </p>
-          <button className="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105">
-            Book a Mock Interview
-          </button>
+const Interview = () => {
+  // Ref for InterviewListSection
+  const interviewListRef = React.useRef(null);
+
+  const handleBookClick = () => {
+    if (interviewListRef.current) {
+      interviewListRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div className="min-h-screen w-full bg-blue-50">
+      <header className="w-full max-w-7xl mx-auto text-center py-16 sm:py-24 px-4 sm:px-6 relative">
+        <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex-1 text-left">
+            <h1 className="text-4xl sm:text-5xl font-bold text-blue-900 mb-4 leading-tight">
+              Master Your Interviews with Expert Guidance
+            </h1>
+            <p className="text-lg sm:text-xl text-gray-700 max-w-xl mb-6">
+              Practice with industry professionals, get personalized feedback, and build confidence to ace your next interview.
+            </p>
+            <button
+              className="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105"
+              onClick={handleBookClick}
+            >
+              Book a Mock Interview
+            </button>
+          </div>
+          <div className="flex-1 hidden md:block">
+            <img
+              src="/assets/interview-illustration.webp"
+              alt="Mock Interview Illustration"
+              className="w-full max-w-md mx-auto object-contain"
+            />
+          </div>
         </div>
-        <div className="flex-1 hidden md:block">
-          <img
-            src="/assets/interview-illustration.webp"
-            alt="Mock Interview Illustration"
-            className="w-full max-w-md mx-auto object-contain"
-          />
+        <div className="flex flex-wrap justify-center gap-4 mt-8">
+          <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
+            Expert Interviewers
+          </span>
+          <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
+            Personalized Feedback
+          </span>
+          <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
+            Placement Ready
+          </span>
         </div>
-      </div>
-      <div className="flex flex-wrap justify-center gap-4 mt-8">
-        <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
-          Expert Interviewers
-        </span>
-        <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
-          Personalized Feedback
-        </span>
-        <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
-          Placement Ready
-        </span>
-      </div>
-    </header>
-    <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-16 px-4 sm:px-6 pb-12">
-      <HowItWorks />
-      <InterviewListSection />
-      <PastInterviewSection />
-      <FAQSection />
-      <InterviewTestimonialSection />
-    </main>
-  </div>
-);
+      </header>
+      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-16 px-4 sm:px-6 pb-12">
+        <HowItWorks />
+        <div ref={interviewListRef}>
+          <InterviewListSection />
+        </div>
+        <PastInterviewSection />
+        <FAQSection />
+        <InterviewTestimonialSection />
+      </main>
+    </div>
+  );
+};
 
 export default Interview;
