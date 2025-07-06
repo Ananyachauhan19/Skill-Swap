@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import SearchBar from './oneononeSection/serachBar'; 
 import TestimonialSection from './oneononeSection/TestimonialSection';
@@ -55,56 +56,71 @@ const OneOnOne = () => {
   const [sessionRequestedTutor, setSessionRequestedTutor] = useState(null);
   const [pendingSession, setPendingSession] = useState(null);
   const [requestSentTutor, setRequestSentTutor] = useState(null);
+  const [searchResults, setSearchResults] = useState([]);
+const [loading, setLoading] = useState(false);
 
-  const tutors = [
-    {
-      name: 'Amit Sharma',
-      profilePic: '/amit-sharma.jpg',
-      skills: ['Data Structures', 'Trees', 'Graphs'],
-      status: 'Online and Free',
-      rating: 4.8,
-      creditPerMin: 5,
-    },
-    {
-      name: 'Priya Verma',
-      profilePic: '/priya-verma.jpg',
-      skills: ['Algorithms', 'Sorting', 'DP'],
-      status: 'Busy',
-      rating: 4.6,
-      creditPerMin: 6,
-    },
-    {
-      name: 'Rahul Singh',
-      profilePic: '/rahul-singh.jpg',
-      skills: ['Web Development', 'React', 'CSS'],
-      status: 'Online and Free',
-      rating: 4.9,
-      creditPerMin: 7,
-    },
-  ];
 
-  const handleFindTutor = () => {
-    setShowTutors(true);
-    setCourse('');
-    setUnit('');
-    setTopic('');
-  };
+const handleFindTutor = async () => {
+  setLoading(true);
+  setShowTutors(true);
 
-  const handleRequestSession = (tutor) => {
-    setSessionRequestedTutor(tutor);
-    setPendingSession({ tutor });
-    setRequestSentTutor(tutor);
-    window.dispatchEvent(new CustomEvent('requestSent', {
-      detail: {
-        tutor,
-        onCancel: () => {
-          setSessionRequestedTutor(null);
-          setPendingSession(null);
-          setRequestSentTutor(null);
-        }
+  try {
+    const queryParams = new URLSearchParams();
+    if (course) queryParams.append('subject', course);
+    if (unit) queryParams.append('topic', unit);
+    if (topic) queryParams.append('subtopic', topic);
+
+    const token = localStorage.getItem('token');
+
+    const res = await fetch(`http://localhost:5000/api/sessions/search?${queryParams.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
       }
-    }));
-  };
+    });
+
+    if (!res.ok) throw new Error('Unauthorized or failed request');
+
+    const data = await res.json();
+    setSearchResults(data);
+  } catch (err) {
+    console.error('Search failed:', err);
+    setSearchResults([]); // prevent crash if error
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleRequestSession = async (creator) => {
+  console.log('Requesting session with:', creator);  // debug line
+
+  if (!creator.sessionId) {
+    alert('Error: Missing sessionId in tutor data.');
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`http://localhost:5000/api/sessions/request/${creator.sessionId}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!res.ok) throw new Error('Failed to send session request');
+
+    setSessionRequestedTutor(creator);
+    setPendingSession({ tutor: creator });
+    setRequestSentTutor(creator);
+
+    alert('Session request sent successfully!');
+  } catch (error) {
+    console.error('Session request error:', error);
+    alert('Failed to send session request.');
+  }
+};
+
 
   const handleCloseRequestSent = () => {
     setRequestSentTutor(null);
@@ -172,17 +188,41 @@ const OneOnOne = () => {
           setTopicValue={setTopic}
           onFindTutor={handleFindTutor}
         />
-        {showTutors && (
-          <div className="flex flex-col gap-6">
-            {tutors.map((tutor, idx) => (
-              <TutorCard
-                key={idx}
-                tutor={tutor}
-                onRequestSession={() => handleRequestSession(tutor)}
-              />
-            ))}
-          </div>
-        )}
+    {showTutors && (
+  <div className="flex flex-col gap-6">
+    {loading ? (
+      <p className="text-center text-blue-600">Searching...</p>
+    ) : Array.isArray(searchResults) && searchResults.length === 0 ? (
+      <p className="text-center text-gray-500">No pending sessions found.</p>
+    ) : Array.isArray(searchResults) ? (
+      searchResults.map((session, idx) => (
+  <TutorCard
+      key={idx}
+      
+    tutor={{
+     name: `${session.creator?.firstName ?? ''} ${session.creator?.lastName ?? ''}`.trim() || "Unknown",
+      profilePic: '/default-user.png',
+      date: session.date,
+      time: session.time,
+       skills: [session.subject, session.topic, session.subtopic],
+         status: `${session.status}` === 'pending'
+  ? '🟢 Available'
+  : `🔴 Busy (${session.status})`,
+      rating: 4.5,
+    }}
+    onRequestSession={() => handleRequestSession(session.creator)}
+    
+  />
+  
+))
+    ) : (
+      <p className="text-red-600">Unexpected response format.</p>
+    )}
+  </div>
+  
+)}
+
+
         <TestimonialSection />
       </main>
     </div>
