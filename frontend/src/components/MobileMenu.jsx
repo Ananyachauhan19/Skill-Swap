@@ -31,6 +31,7 @@ const MobileMenu = ({
     <div
       className="relative w-[85vw] max-w-sm h-full bg-gradient-to-b from-[#f0f4ff] to-[#e2eafc] shadow-xl rounded-l-3xl p-0 flex flex-col animate-slideIn border-l-2 border-blue-300 overflow-y-auto"
       onClick={(e) => e.stopPropagation()}
+      ref={menuRef}
     >
       {/* Header with Logo and Close Button */}
       <div className="flex items-center justify-between px-5 pt-6 pb-3 border-b border-blue-100">

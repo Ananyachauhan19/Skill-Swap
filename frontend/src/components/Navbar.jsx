@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useModal } from '../context/ModalContext';
 import ProfileDropdown from "./ProfileDropdown";
 import Notifications from "./Navbar/Notifications";
-import Credits from "./Navbar/Credits";
 import MobileMenu from "./MobileMenu";
 
 const Navbar = () => {
@@ -16,12 +15,14 @@ const Navbar = () => {
       (localStorage.getItem("token") && localStorage.getItem("user"))
   );
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showCoinsDropdown, setShowCoinsDropdown] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [notifications, setNotifications] = useState([]);
   const [goldenCoins, setGoldenCoins] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
   const menuRef = useRef();
+  const coinsRef = useRef();
 
   const isActive = (path) => location.pathname === path;
 
@@ -54,17 +55,21 @@ const Navbar = () => {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!showProfileMenu) return;
+    if (!showProfileMenu && !showCoinsDropdown) return;
     function handleClickOutside(event) {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+      if (
+        (menuRef.current && !menuRef.current.contains(event.target)) &&
+        (coinsRef.current && !coinsRef.current.contains(event.target))
+      ) {
         setShowProfileMenu(false);
+        setShowCoinsDropdown(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showProfileMenu]);
+  }, [showProfileMenu, showCoinsDropdown]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -78,8 +83,7 @@ const Navbar = () => {
     openLogin();
   };
 
-  // Listen for request sent (from OneOnOne)
-  React.useEffect(() => {
+  useEffect(() => {
     function handleRequestSent(e) {
       setNotifications((prev) => [
         {
@@ -120,7 +124,6 @@ const Navbar = () => {
     };
   }, []);
 
-  // Fetch coin balances from backend 
   useEffect(() => {
     if (!isLoggedIn) return;
     fetch('/api/user/coins', {
@@ -139,33 +142,31 @@ const Navbar = () => {
       });
   }, [isLoggedIn]);
 
-  // Handle mobile menu toggle
   const handleMobileMenu = () => setMenuOpen((open) => !open);
 
   return (
-    <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] text-blue-800 px-1 xs:px-2 sm:px-4 md:px-8 py-2 sm:py-3 md:py-4 shadow-lg border-b-2 border-blue-200 z-30 animate-fadeIn">
-      <div className="flex flex-col sm:flex-row items-center justify-between w-full max-w-full md:max-w-7xl mx-auto gap-1 xs:gap-2 sm:gap-4 md:gap-0">
+ <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] text-blue-800 px-2 xs:px-3 sm:px-6 md:px-10 py-[0.5%] sm:py-[1%] md:py-[1.5%] shadow-lg border-b-2 border-blue-200 z-30 animate-fadeIn">
+      <div className="flex flex-col sm:flex-row items-center justify-between w-full max-w-full md:max-w-7xl mx-auto gap-1.5 xs:gap-2 sm:gap-5 md:gap-7">
         {/* Left: Logo & Main Nav */}
         <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto">
           <div
-            className="flex items-center gap-1 xs:gap-2 sm:gap-3 cursor-pointer transition-transform duration-300 hover:scale-105 ml-0 sm:ml-[-10px] md:ml-[-24px] mr-1 xs:mr-2 sm:mr-4 md:mr-8"
+            className="flex items-center gap-2 xs:gap-2.5 sm:gap-3.5 cursor-pointer transition-transform duration-300 hover:scale-105 ml-0 sm:ml-[-12px] md:ml-[-28px] mr-2 xs:mr-2.5 sm:mr-5 md:mr-9"
             onClick={() => navigate("/")}
-            style={{ minWidth: 80 }}
+            style={{ minWidth: 85 }}
           >
             <img
               src="/assets/skillswap-logo.webp"
               alt="SkillSwapHub Logo"
-              className="h-8 w-8 xs:h-9 xs:w-9 sm:h-12 sm:w-12 object-contain rounded-full shadow-md"
+              className="h-7 xs:h-8 sm:h-11 sm:w-11 object-contain rounded-full shadow-md"
             />
-            <span className="text-base xs:text-lg sm:text-2xl font-bold text-blue-900 tracking-tight">
+            <span className="text-sm xs:text-base sm:text-xl font-bold text-blue-900 tracking-tight font-lora">
               SkillSwapHub
             </span>
           </div>
 
           {/* Desktop Nav */}
           <div className="hidden sm:flex items-center flex-1">
-            <div className="flex gap-0.5 xs:gap-1 sm:gap-2 md:gap-3 lg:gap-4">
-              {/* Main Nav Links */}
+            <div className="flex gap-1 xs:gap-1.5 sm:gap-2.5 md:gap-3.5">
               {[
                 { path: "/home", label: "Home" },
                 { path: "/one-on-one", label: "1-on-1" },
@@ -175,13 +176,13 @@ const Navbar = () => {
               ].map(({ path, label }) => (
                 <button
                   key={path}
-                  className={`text-xs xs:text-sm sm:text-base font-medium px-1.5 xs:px-2 sm:px-3 py-1 sm:py-2 mx-0.5 md:mx-1 rounded-md transition-all duration-300 transform ${
+                  className={`text-xs xs:text-sm sm:text-base font-medium px-1.5 xs:px-2.5 sm:px-3.5 py-1 xs:py-2 sm:py-2 mx-0.5 md:mx-1 rounded-md transition-all duration-300 transform ${
                     isActive(path)
                       ? "bg-blue-100 text-blue-900 font-semibold border-b-2 border-blue-900 shadow-md"
                       : "text-blue-900 hover:bg-blue-50 hover:text-blue-900 hover:border-b-2 hover:border-blue-900 hover:scale-105"
                   }`}
                   onClick={() => navigate(path)}
-                  style={{ minWidth: 48, minHeight: 32 }}
+                  style={{ minWidth: 55, minHeight: 32 }}
                 >
                   {label}
                 </button>
@@ -191,33 +192,33 @@ const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <button
-            className="sm:hidden ml-auto p-2 rounded-md text-blue-800 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="sm:hidden ml-auto p-1.5 rounded-md text-blue-800 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
             onClick={handleMobileMenu}
             aria-label="Open menu"
           >
-            <svg className="w-6 h-6 xs:w-7 xs:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 xs:w-6 sm:w-7 h-5 xs:h-6 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
         </div>
 
         {/* Center: Search Bar */}
-        <div className="flex-1 flex justify-center w-full sm:w-auto order-3 sm:order-none my-1 sm:my-0">
-          <form onSubmit={handleSearch} className="w-full max-w-[180px] xs:max-w-xs md:max-w-sm">
-            <div className="relative">
+        <div className="flex-1 flex justify-center w-full sm:w-auto order-3 sm:order-none my-1.5 sm:my-0">
+          <form onSubmit={handleSearch} className="w-full max-w-[190px] xs:max-w-[240px] md:max-w-[360px]">
+            <div className="relative flex items-center">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search skills..."
-                className="pl-8 pr-2 py-1.5 xs:pl-9 xs:pr-3 xs:py-2 text-xs xs:text-sm sm:text-base rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-blue-800 placeholder-blue-800 w-full opacity-80"
+                className="pl-8 xs:pl-9 sm:pl-11 pr-2 xs:pr-3 sm:pr-4 py-1.5 xs:py-2 sm:py-2.5 text-xs xs:text-sm sm:text-base rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-blue-800 placeholder-blue-800 w-full opacity-80 font-nunito"
               />
               <button
                 type="submit"
-                className="absolute left-2 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-700"
+                className="absolute left-1.5 xs:left-2 sm:left-2.5 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-700"
               >
                 <svg
-                  className="w-4 h-4 xs:w-5 xs:h-5"
+                  className="w-4 xs:w-5 sm:w-6 h-4 xs:h-5 sm:h-6"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -234,10 +235,69 @@ const Navbar = () => {
           </form>
         </div>
 
-        {/* Right: Coins, Notifications, Auth/Profile */}
-        <div className="flex items-center gap-1 xs:gap-2 sm:gap-4 md:gap-6 w-full sm:w-auto justify-end">
-          {/* Coins */}
-          <Credits goldenCoins={goldenCoins} silverCoins={silverCoins} isLoggedIn={isLoggedIn} />
+        {/* Right: SkillCoin, Notifications, Auth/Profile */}
+        <div className="flex items-center gap-1.5 xs:gap-2 sm:gap-5 md:gap-7 w-full sm:w-auto justify-end">
+          {/* SkillCoin */}
+          {isLoggedIn && (
+            <div className="relative">
+              <button
+                className="flex items-center gap-1.5 text-white bg-gradient-to-r from-blue-700 to-blue-900 font-nunito font-semibold px-3 xs:px-4 sm:px-5 py-1.5 xs:py-2 sm:py-2.5 rounded-lg border border-blue-300 shadow-md text-sm xs:text-base sm:text-lg transition-all duration-300 hover:from-blue-600 hover:to-blue-800 hover:shadow-lg hover:scale-110"
+                onClick={() => setShowCoinsDropdown((v) => !v)}
+                title="SkillCoin"
+                aria-label="SkillCoin"
+                ref={coinsRef}
+              >
+                <svg
+                  className="w-5 xs:w-6 sm:w-7 h-5 xs:h-6 sm:h-7"
+                  fill="url(#coin-gradient)"
+                  viewBox="0 0 24 24"
+                >
+                  <defs>
+                    <linearGradient id="coin-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style={{ stopColor: '#1e3a8a', stopOpacity: 1 }} />
+                      <stop offset="100%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
+                    </linearGradient>
+                  </defs>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v2h-2V7zm0 4h2v6h-2v-6z" />
+                  <circle cx="12" cy="12" r="8" fill="none" stroke="url(#coin-gradient)" strokeWidth="1" />
+                  <path d="M12 4.5c-4.14 0-7.5 3.36-7.5 7.5s3.36 7.5 7.5 7.5 7.5-3.36 7.5-7.5-3.36-7.5-7.5-7.5z" fill="none" stroke="#ffffff" strokeWidth="0.5" opacity="0.3" />
+                </svg>
+                SkillCoin
+              </button>
+              {showCoinsDropdown && (
+                <div className="absolute right-0 mt-2 w-52 bg-gradient-to-br from-blue-50 to-gray-50 border border-blue-200 rounded-xl shadow-lg z-40 animate-slide-up">
+                  <div className="p-3 space-y-2.5 font-nunito text-gray-600">
+                    <div className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-blue-100 hover:shadow-sm transition-all duration-200">
+                      <svg className="w-5 h-5" fill="url(#gold-gradient)" viewBox="0 0 24 24">
+                        <defs>
+                          <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: '#f59e0b', stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: '#d97706', stopOpacity: 1 }} />
+                          </linearGradient>
+                        </defs>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
+                        <circle cx="12" cy="12" r="8" fill="none" stroke="url(#gold-gradient)" strokeWidth="1" />
+                      </svg>
+                      <span className="text-xs xs:text-sm font-semibold text-gray-700">Golden Coins: {goldenCoins}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-blue-100 hover:shadow-sm transition-all duration-200">
+                      <svg className="w-5 h-5" fill="url(#silver-gradient)" viewBox="0 0 24 24">
+                        <defs>
+                          <linearGradient id="silver-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: '#d1d5db', stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: '#9ca3af', stopOpacity: 1 }} />
+                          </linearGradient>
+                        </defs>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
+                        <circle cx="12" cy="12" r="8" fill="none" stroke="url(#silver-gradient)" strokeWidth="1" />
+                      </svg>
+                      <span className="text-xs xs:text-sm font-semibold text-gray-700">Silver Coins: {silverCoins}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Notifications */}
           <Notifications notifications={notifications} setNotifications={setNotifications} />
@@ -245,7 +305,7 @@ const Navbar = () => {
           {/* Auth/Profile */}
           {!isLoggedIn ? (
             <button
-              className="bg-blue-700 text-white px-3 xs:px-4 sm:px-6 py-1.5 sm:py-2 rounded-md font-medium tracking-wide transition-all duration-300 hover:bg-blue-800 hover:shadow-md hover:scale-105 text-xs xs:text-sm sm:text-base"
+              className="bg-blue-700 text-white px-3 xs:px-4 sm:px-5 py-1.5 xs:py-2 sm:py-2.5 rounded-md font-medium tracking-wide transition-all duration-300 hover:bg-blue-800 hover:shadow-md hover:scale-105 text-xs xs:text-sm sm:text-base font-nunito"
               onClick={handleLoginClick}
             >
               Login
@@ -253,13 +313,14 @@ const Navbar = () => {
           ) : (
             <div className="relative">
               <button
-                className="w-8 xs:w-10 sm:w-12 h-8 xs:h-10 sm:h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:text-blue-700 hover:shadow-md hover:scale-110"
+                className="w-7 xs:w-9 sm:w-11 h-7 xs:h-9 sm:h-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:text-blue-700 hover:shadow-md hover:scale-110"
                 onClick={() => setShowProfileMenu((v) => !v)}
                 title="Profile"
                 aria-label="Profile"
+                ref={menuRef}
               >
                 <svg
-                  className="w-6 xs:w-7 sm:w-8 h-6 xs:h-7 sm:h-8"
+                  className="w-5 xs:w-6 sm:w-7 h-5 xs:h-6 sm:h-7"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -277,23 +338,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Drawer */}
-      {menuOpen && (
-        <MobileMenu
-          isLoggedIn={isLoggedIn}
-          navigate={navigate}
-          setShowProfileMenu={setShowProfileMenu}
-          showProfileMenu={showProfileMenu}
-          menuRef={menuRef}
-          setMenuOpen={setMenuOpen}
-          ProfileDropdown={ProfileDropdown}
-          goldenCoins={goldenCoins}
-          silverCoins={silverCoins}
-          notifications={notifications}
-          setNotifications={setNotifications}
-          handleLoginClick={handleLoginClick}
-        />
-      )}
+     
     </nav>
   );
 };

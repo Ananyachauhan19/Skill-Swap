@@ -105,29 +105,26 @@ const CreateSession = () => {
   const [highlightedSubtopicIdx, setHighlightedSubtopicIdx] = useState(-1);
   const [scheduledSessions, setScheduledSessions] = useState([]);
   const [editId, setEditId] = useState(null);
-  
+  const [loading, setLoading] = useState(true);
 
   // Filtered lists for cascading dropdowns
-const filteredCourseSuggestions = STATIC_COURSES.filter(
-  (s) => (form.subject || '').toLowerCase().includes((s || '').toLowerCase()) && (form.subject || '').trim() !== ''
-);
-const courseList = (form.subject || '').trim() === '' ? STATIC_COURSES : filteredCourseSuggestions;
+  const filteredCourseSuggestions = STATIC_COURSES.filter(
+    (s) => (form.subject || '').toLowerCase().includes((s || '').toLowerCase()) && (form.subject || '').trim() !== ''
+  );
+  const courseList = (form.subject || '').trim() === '' ? STATIC_COURSES : filteredCourseSuggestions;
 
-const unitList = form.subject ? (STATIC_UNITS[form.subject] || []) : [];
-const filteredUnitSuggestions = unitList.filter(
-  (u) => (form.topic || '').toLowerCase().includes((u || '').toLowerCase()) && (form.topic || '').trim() !== ''
-);
-const unitDropdownList = (form.topic || '').trim() === '' ? unitList : filteredUnitSuggestions;
+  const unitList = form.subject ? (STATIC_UNITS[form.subject] || []) : [];
+  const filteredUnitSuggestions = unitList.filter(
+    (u) => (form.topic || '').toLowerCase().includes((u || '').toLowerCase()) && (form.topic || '').trim() !== ''
+  );
+  const unitDropdownList = (form.topic || '').trim() === '' ? unitList : filteredUnitSuggestions;
 
-const topicList = form.topic ? (STATIC_TOPICS[form.topic] || []) : [];
-const filteredTopicSuggestions = topicList.filter(
-  (t) => (form.subtopic || '').toLowerCase().includes((t || '').toLowerCase()) && (form.subtopic || '').trim() !== ''
-);
-const topicDropdownList = (form.subtopic || '').trim() === '' ? topicList : filteredTopicSuggestions;
+  const topicList = form.topic ? (STATIC_TOPICS[form.topic] || []) : [];
+  const filteredTopicSuggestions = topicList.filter(
+    (t) => (form.subtopic || '').toLowerCase().includes((t || '').toLowerCase()) && (form.subtopic || '').trim() !== ''
+  );
+  const topicDropdownList = (form.subtopic || '').trim() === '' ? topicList : filteredTopicSuggestions;
 
-
-
-  
   const handleChange = e => {
     const { name, value } = e.target;
     setForm(prev => {
@@ -135,82 +132,81 @@ const topicDropdownList = (form.subtopic || '').trim() === '' ? topicList : filt
       if (name === 'topic') return { ...prev, topic: value, subtopic: '' };
       return { ...prev, [name]: value };
     });
-    if (name === 'subject') setForm(prev => ({ ...prev, topic: '' }));
   };
-const getTodayDate = () => {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-};
 
-const getCurrentTime = () => {
-  const now = new Date();
-  const hh = String(now.getHours()).padStart(2, '0');
-  const min = String(now.getMinutes()).padStart(2, '0');
-  return `${hh}:${min}`;
-};
+  const getTodayDate = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
-const handleSubmit = async e => {
-  e.preventDefault();
+  const getCurrentTime = () => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    return `${hh}:${min}`;
+  };
 
-  // Prevent scheduling in the past
-  const today = getTodayDate();
-  const now = getCurrentTime();
-  if (form.date < today || (form.date === today && form.time < now)) {
-    alert('Cannot schedule a session in the past. Please select a valid date and time.');
-    return;
-  }
+  const handleSubmit = async e => {
+    e.preventDefault();
 
-  try {
-    const token = localStorage.getItem('token');
-    if (editId) {
-      // Update existing session
-      const response = await fetch(`http://localhost:5000/api/sessions/${editId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Failed to update session');
-      }
-      setEditId(null);
-    } else {
-      // Create new session
-      const response = await fetch('http://localhost:5000/api/sessions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(form),
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Failed to create session');
-      }
-      setScheduled(true);
+    // Prevent scheduling in the past
+    const today = getTodayDate();
+    const now = getCurrentTime();
+    if (form.date < today || (form.date === today && form.time < now)) {
+      alert('Cannot schedule a session in the past. Please select a valid date and time.');
+      return;
     }
-    setForm({
-      subject: '',
-      topic: '',
-      subtopic: '',
-      description: '',
-      date: '',
-      time: '',
-    });
-    fetchUserSessions();
-  } catch (error) {
-    console.error('Error creating/updating session:', error.message);
-    alert('Error: ' + error.message);
-  }
-};
 
+    try {
+      const token = localStorage.getItem('token');
+      if (editId) {
+        // Update existing session
+        const response = await fetch(`http://localhost:5000/api/sessions/${editId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(form),
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || 'Failed to update session');
+        }
+        setEditId(null);
+      } else {
+        // Create new session
+        const response = await fetch('http://localhost:5000/api/sessions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(form),
+        });
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.message || 'Failed to create session');
+        }
+        setScheduled(true);
+      }
+      setForm({
+        subject: '',
+        topic: '',
+        subtopic: '',
+        description: '',
+        date: '',
+        time: '',
+      });
+      fetchUserSessions();
+    } catch (error) {
+      console.error('Error creating/updating session:', error.message);
+      alert('Error: ' + error.message);
+    }
+  };
 
   const handleEdit = (session) => {
     setEditId(session._id);
@@ -227,303 +223,350 @@ const handleSubmit = async e => {
     }
   };
 
-
   const handleDelete = async (id) => {
-
     setScheduledSessions(prev => prev.filter(s => s._id !== id));
     if (editId === id) setEditId(null);
   };
 
-   const fetchUserSessions = async () => {
-  try {
-    const token = localStorage.getItem('token');
-    const res = await fetch('http://localhost:5000/api/sessions/mine', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      }
-    });
-    const data = await res.json();
-    setScheduledSessions(data); 
-  } catch (err) {
-    console.error('Error fetching sessions:', err);
-  }
-};
+  const fetchUserSessions = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('http://localhost:5000/api/sessions/mine', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+      const data = await res.json();
+      setScheduledSessions(data); 
+    } catch (err) {
+      console.error('Error fetching sessions:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-useEffect(() => {
-  fetchUserSessions();
-}, []);
+  useEffect(() => {
+    fetchUserSessions();
+  }, []);
 
-
+  // Skeleton Loader for Scheduled Sessions
+  const SkeletonLoader = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+      {[...Array(3)].map((_, idx) => (
+        <div key={idx} className="bg-gray-100 rounded-2xl p-6 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer"></div>
+          <div className="h-4 w-24 bg-blue-100 rounded mb-2"></div>
+          <div className="h-5 w-48 bg-blue-100 rounded mb-2"></div>
+          <div className="h-16 w-full bg-blue-100 rounded mb-4"></div>
+          <div className="h-4 w-32 bg-blue-100 rounded mb-4"></div>
+          <div className="flex gap-3">
+            <div className="h-4 w-16 bg-blue-100 rounded"></div>
+            <div className="h-4 w-16 bg-blue-100 rounded"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row items-start justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100 px-4 py-10 gap-10">
-      {/* Create Session Card*/}
-      <div ref={cardRef} className="bg-white/95 rounded-3xl shadow-2xl p-10 border border-blue-200 w-full max-w-lg min-w-[320px] mx-auto lg:mx-0 mb-10 lg:mb-0 relative">
-        <h1 className="text-2xl font-bold text-blue-900 mb-8 text-center tracking-tight">Create Your Own 1-on-1 Session</h1>
-        {/* Schedule Session Section */}
-        <section className="mb-10">
-          <h2 className="text-lg font-semibold text-blue-800 mb-4 border-b border-blue-100 pb-2">Schedule Your Session</h2>
-          {scheduled ? (
-            <div className="text-center">
-              <p className="text-green-700 font-semibold mb-4">Session scheduled successfully!</p>
-              <button
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-                onClick={() => {
-                  setScheduled(false);
-                  setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
-                }}
-              >
-                Schedule Another
-              </button>
-            </div>
-          ) : (
-            <form className="flex flex-col gap-5" onSubmit={handleSubmit} autoComplete="off">
-              <div className="relative">
-                <label className="block text-blue-900 font-medium mb-1">Subject / Course</label>
-                <input
-                  type="text"
-                  name="subject"
-                  value={form.subject}
-                  onChange={e => { handleChange(e); setShowCourseDropdown(true); setHighlightedCourseIdx(-1); }}
-                  onFocus={() => setShowCourseDropdown(true)}
-                  onBlur={() => setTimeout(() => { setShowCourseDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
-                  onKeyDown={e => {
-                    if (!showCourseDropdown || courseList.length === 0) return;
-                    if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
-                      e.preventDefault();
-                      setHighlightedCourseIdx(idx => (idx + 1) % courseList.length);
-                    } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
-                      e.preventDefault();
-                      setHighlightedCourseIdx(idx => (idx - 1 + courseList.length) % courseList.length);
-                    } else if (e.key === 'Enter') {
-                      if (highlightedCourseIdx >= 0 && highlightedCourseIdx < courseList.length) {
-                        setForm(prev => ({ ...prev, subject: courseList[highlightedCourseIdx], topic: '', subtopic: '' }));
-                        setShowCourseDropdown(false);
-                        setHighlightedCourseIdx(-1);
-                      }
-                    }
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-gray-50 to-blue-100 pt-20 pb-8 px-4 sm:px-6 lg:px-8 font-inter">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-start justify-center gap-10">
+        {/* Create Session Card */}
+        <div ref={cardRef} className="bg-white/95 rounded-3xl shadow-xl border border-blue-200 p-10 w-full max-w-lg min-w-[320px] mx-auto lg:mx-0 mb-10 lg:mb-0 relative animate-slide-up">
+          <h1 className="text-3xl font-bold text-blue-900 mb-8 text-center font-lora tracking-tight relative group">
+            Create Your Own 1-on-1 Session
+            <span className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
+          </h1>
+          {/* Schedule Session Section */}
+          <section className="mb-10">
+            <h2 className="text-lg font-semibold text-blue-900 mb-4 border-b border-blue-100 pb-2 font-lora animate-fade-in">Schedule Your Session</h2>
+            {scheduled ? (
+              <div className="text-center animate-fade-in">
+                <p className="text-green-700 font-semibold mb-4 font-nunito">Session scheduled successfully!</p>
+                <button
+                  className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                  onClick={() => {
+                    setScheduled(false);
+                    setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
                   }}
-                  placeholder="e.g. Mathematics"
-                  className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  required
-                  autoComplete="off"
-                />
-                {showCourseDropdown && (
-                  <ul className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-b-lg shadow max-h-48 overflow-y-auto mt-1">
-                    {courseList.map((s, idx) => (
-                      <li
-                        key={idx}
-                        className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base ${highlightedCourseIdx === idx ? 'bg-blue-100' : ''}`}
-                        onMouseDown={() => {
-                          setForm(prev => ({ ...prev, subject: s, topic: '', subtopic: '' }));
+                >
+                  Schedule Another
+                </button>
+              </div>
+            ) : (
+              <form className="flex flex-col gap-5" onSubmit={handleSubmit} autoComplete="off">
+                <div className="relative">
+                  <label className="block text-blue-900 font-medium mb-1 font-lora">Subject / Course</label>
+                  <input
+                    type="text"
+                    name="subject"
+                    value={form.subject}
+                    onChange={e => { handleChange(e); setShowCourseDropdown(true); setHighlightedCourseIdx(-1); }}
+                    onFocus={() => setShowCourseDropdown(true)}
+                    onBlur={() => setTimeout(() => { setShowCourseDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
+                    onKeyDown={e => {
+                      if (!showCourseDropdown || courseList.length === 0) return;
+                      if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+                        e.preventDefault();
+                        setHighlightedCourseIdx(idx => (idx + 1) % courseList.length);
+                      } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+                        e.preventDefault();
+                        setHighlightedCourseIdx(idx => (idx - 1 + courseList.length) % courseList.length);
+                      } else if (e.key === 'Enter') {
+                        if (highlightedCourseIdx >= 0 && highlightedCourseIdx < courseList.length) {
+                          setForm(prev => ({ ...prev, subject: courseList[highlightedCourseIdx], topic: '', subtopic: '' }));
                           setShowCourseDropdown(false);
                           setHighlightedCourseIdx(-1);
-                        }}
-                      >
-                        {s}
-                      </li>
-                ))
-                }
-                  </ul>
-                )}
-              </div>
-              <div className="relative">
-                <label className="block text-blue-900 font-medium mb-1">Topic / Unit</label>
-                <input
-                  type="text"
-                  name="topic"
-                  value={form.topic}
-                  onChange={e => { handleChange(e); setShowUnitDropdown(true); setHighlightedUnitIdx(-1); }}
-                  onFocus={() => { if (form.subject && unitList.length) setShowUnitDropdown(true); }}
-                  onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
-                  onKeyDown={e => {
-                    if (!showUnitDropdown || unitDropdownList.length === 0) return;
-                    if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
-                      e.preventDefault();
-                      setHighlightedUnitIdx(idx => (idx + 1) % unitDropdownList.length);
-                    } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
-                      e.preventDefault();
-                      setHighlightedUnitIdx(idx => (idx - 1 + unitDropdownList.length) % unitDropdownList.length);
-                    } else if (e.key === 'Enter') {
-                      if (highlightedUnitIdx >= 0 && highlightedUnitIdx < unitDropdownList.length) {
-                        setForm(prev => ({ ...prev, topic: unitDropdownList[highlightedUnitIdx], subtopic: '' }));
-                        setShowUnitDropdown(false);
-                        setHighlightedUnitIdx(-1);
+                        }
                       }
-                    }
-                  }}
-                  placeholder="e.g. Algebra, Calculus"
-                  className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  required
-                  autoComplete="off"
-                  disabled={!form.subject || !unitList.length}
-                />
-                {showUnitDropdown && form.subject && unitList.length > 0 && (
-                  <ul className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-b-lg shadow max-h-48 overflow-y-auto mt-1">
-                    {unitDropdownList.map((u, idx) => (
-                      <li
-                        key={idx}
-                        className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base ${highlightedUnitIdx === idx ? 'bg-blue-100' : ''}`}
-                        onMouseDown={() => {
-                          setForm(prev => ({ ...prev, topic: u, subtopic: '' }));
+                    }}
+                    placeholder="e.g. Mathematics"
+                    className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
+                    required
+                    autoComplete="off"
+                  />
+                  {showCourseDropdown && (
+                    <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
+                      {courseList.map((s, idx) => (
+                        <li
+                          key={idx}
+                          className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedCourseIdx === idx ? 'bg-blue-200' : ''}`}
+                          onMouseDown={() => {
+                            setForm(prev => ({ ...prev, subject: s, topic: '', subtopic: '' }));
+                            setShowCourseDropdown(false);
+                            setHighlightedCourseIdx(-1);
+                          }}
+                        >
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="relative">
+                  <label className="block text-blue-900 font-medium mb-1 font-lora">Topic / Unit</label>
+                  <input
+                    type="text"
+                    name="topic"
+                    value={form.topic}
+                    onChange={e => { handleChange(e); setShowUnitDropdown(true); setHighlightedUnitIdx(-1); }}
+                    onFocus={() => { if (form.subject && unitList.length) setShowUnitDropdown(true); }}
+                    onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
+                    onKeyDown={e => {
+                      if (!showUnitDropdown || unitDropdownList.length === 0) return;
+                      if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+                        e.preventDefault();
+                        setHighlightedUnitIdx(idx => (idx + 1) % unitDropdownList.length);
+                      } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+                        e.preventDefault();
+                        setHighlightedUnitIdx(idx => (idx - 1 + unitDropdownList.length) % unitDropdownList.length);
+                      } else if (e.key === 'Enter') {
+                        if (highlightedUnitIdx >= 0 && highlightedUnitIdx < unitDropdownList.length) {
+                          setForm(prev => ({ ...prev, topic: unitDropdownList[highlightedUnitIdx], subtopic: '' }));
                           setShowUnitDropdown(false);
                           setHighlightedUnitIdx(-1);
-                        }}
-                      >
-                        {u}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              {/* Subtopic field */}
-              <div className="relative">
-                <label className="block text-blue-900 font-medium mb-1">Subtopic</label>
-                <input
-                  type="text"
-                  name="subtopic"
-                  value={form.subtopic}
-                  onChange={e => { handleChange(e); setShowSubtopicDropdown(true); setHighlightedSubtopicIdx(-1); }}
-                  onFocus={() => setShowSubtopicDropdown(true)}
-                  onBlur={() => setTimeout(() => { setShowSubtopicDropdown(false); setHighlightedSubtopicIdx(-1); }, 120)}
-                  onKeyDown={e => {
-                    if (!showSubtopicDropdown || topicDropdownList.length === 0) return;
-                    if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
-                      e.preventDefault();
-                      setHighlightedSubtopicIdx(idx => (idx + 1) % topicDropdownList.length);
-                    } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
-                      e.preventDefault();
-                      setHighlightedSubtopicIdx(idx => (idx - 1 + topicDropdownList.length) % topicDropdownList.length);
-                    } else if (e.key === 'Enter') {
-                      if (highlightedSubtopicIdx >= 0 && highlightedSubtopicIdx < topicDropdownList.length) {
-                        setForm(prev => ({ ...prev, subtopic: topicDropdownList[highlightedSubtopicIdx] }));
-                        setShowSubtopicDropdown(false);
-                        setHighlightedSubtopicIdx(-1);
+                        }
                       }
-                    }
-                  }}
-                  placeholder="e.g. Linear Equations, Trees, SQL"
-                  className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  required={!!form.topic}
-                  autoComplete="off"
-                  disabled={!form.topic}
-                />
-                {showSubtopicDropdown && topicList.length > 0 && (
-                  <ul className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-b-lg shadow max-h-48 overflow-y-auto mt-1">
-                    {topicDropdownList.map((t, idx) => (
-                      <li
-                        key={idx}
-                        className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base ${highlightedSubtopicIdx === idx ? 'bg-blue-100' : ''}`}
-                        onMouseDown={() => {
-                          setForm(prev => ({ ...prev, subtopic: t }));
+                    }}
+                    placeholder="e.g. Algebra, Calculus"
+                    className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
+                    required
+                    autoComplete="off"
+                    disabled={!form.subject || !unitList.length}
+                  />
+                  {showUnitDropdown && form.subject && unitList.length > 0 && (
+                    <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
+                      {unitDropdownList.map((u, idx) => (
+                        <li
+                          key={idx}
+                          className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedUnitIdx === idx ? 'bg-blue-200' : ''}`}
+                          onMouseDown={() => {
+                            setForm(prev => ({ ...prev, topic: u, subtopic: '' }));
+                            setShowUnitDropdown(false);
+                            setHighlightedUnitIdx(-1);
+                          }}
+                        >
+                          {u}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="relative">
+                  <label className="block text-blue-900 font-medium mb-1 font-lora">Subtopic</label>
+                  <input
+                    type="text"
+                    name="subtopic"
+                    value={form.subtopic}
+                    onChange={e => { handleChange(e); setShowSubtopicDropdown(true); setHighlightedSubtopicIdx(-1); }}
+                    onFocus={() => setShowSubtopicDropdown(true)}
+                    onBlur={() => setTimeout(() => { setShowSubtopicDropdown(false); setHighlightedSubtopicIdx(-1); }, 120)}
+                    onKeyDown={e => {
+                      if (!showSubtopicDropdown || topicDropdownList.length === 0) return;
+                      if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+                        e.preventDefault();
+                        setHighlightedSubtopicIdx(idx => (idx + 1) % topicDropdownList.length);
+                      } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+                        e.preventDefault();
+                        setHighlightedSubtopicIdx(idx => (idx - 1 + topicDropdownList.length) % topicDropdownList.length);
+                      } else if (e.key === 'Enter') {
+                        if (highlightedSubtopicIdx >= 0 && highlightedSubtopicIdx < topicDropdownList.length) {
+                          setForm(prev => ({ ...prev, subtopic: topicDropdownList[highlightedSubtopicIdx] }));
                           setShowSubtopicDropdown(false);
                           setHighlightedSubtopicIdx(-1);
-                        }}
-                      >
-                        {t}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              <div>
-                <label className="block text-blue-900 font-medium mb-1">Description</label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  className="w-full border border-blue-200 rounded-lg px-3 py-2 min-h-[60px] focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  placeholder="Describe your learning goals or questions..."
-                  maxLength={500}
-                  required
-                />
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-blue-900 font-medium mb-1">Date</label>
-                  <input
-                    type="date"
-                    name="date"
-                    value={form.date}
+                        }
+                      }
+                    }}
+                    placeholder="e.g. Linear Equations, Trees, SQL"
+                    className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
+                    required={!!form.topic}
+                    autoComplete="off"
+                    disabled={!form.topic}
+                  />
+                  {showSubtopicDropdown && topicList.length > 0 && (
+                    <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
+                      {topicDropdownList.map((t, idx) => (
+                        <li
+                          key={idx}
+                          className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedSubtopicIdx === idx ? 'bg-blue-200' : ''}`}
+                          onMouseDown={() => {
+                            setForm(prev => ({ ...prev, subtopic: t }));
+                            setShowSubtopicDropdown(false);
+                            setHighlightedSubtopicIdx(-1);
+                          }}
+                        >
+                          {t}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-blue-900 font-medium mb-1 font-lora">Description</label>
+                  <textarea
+                    name="description"
+                    value={form.description}
                     onChange={handleChange}
-                    className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    className="w-full border border-blue-200 rounded-lg px-3 py-2 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
+                    placeholder="Describe your learning goals or questions..."
+                    maxLength={500}
                     required
-                    min={getTodayDate()}
                   />
                 </div>
-                <div className="flex-1">
-                  <label className="block text-blue-900 font-medium mb-1">Time</label>
-                  <input
-                    type="time"
-                    name="time"
-                    value={form.time}
-                    onChange={handleChange}
-                    className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                    required
-                    min={form.date === getTodayDate() ? getCurrentTime() : undefined}
-                  />
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-blue-900 font-medium mb-1 font-lora">Date</label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={form.date}
+                      onChange={handleChange}
+                      className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
+                      required
+                      min={getTodayDate()}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-blue-900 font-medium mb-1 font-lora">Time</label>
+                    <input
+                      type="time"
+                      name="time"
+                      value={form.time}
+                      onChange={handleChange}
+                      className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
+                      required
+                      min={form.date === getTodayDate() ? getCurrentTime() : undefined}
+                    />
+                  </div>
                 </div>
-              </div>
-              <button
-                type="submit"
-                className="mt-2 bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-              >
-                {editId ? 'Update Session' : 'Schedule Session'}
-              </button>
-              {editId && (
-    <button
-      type="button"
-      className="mt-2 bg-gray-300 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:bg-gray-400 transition"
-      onClick={() => {
-        setEditId(null);
-        setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
-      }}
-    >
-      Cancel Edit
-    </button>
-  )}
-            </form>
-          )}
-        </section>
-      </div>
-      {/* Scheduled Sessions (Right) */}
-      <div className="flex-1 w-full">
-        <section>
-          <h2 className="text-xl font-bold text-blue-800 mb-6 border-b-2 border-blue-200 pb-2 tracking-tight">Scheduled Sessions</h2>
-          {scheduledSessions.length > 0 ? (
-            <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-              {scheduledSessions.map(session => (
-                <li key={session._id} className="border border-blue-100 rounded-2xl p-6 bg-white/80 flex flex-col justify-between min-h-[200px] shadow hover:shadow-lg transition-all">
-                  <div className={`text-xs font-semibold mb-1 uppercase tracking-wider ${session.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>{session.status.toUpperCase()}</div>
-                  <div className="font-semibold text-blue-900 mb-1 text-lg truncate">
-                    {[session.subject, session.topic, session.subtopic].filter(x => x && x.trim()).join(' - ')}
-                  </div>
-                  <div className="text-blue-700 text-sm mb-2 line-clamp-3">{session.description}</div>
-                  <div className="text-gray-600 text-xs mb-4">{session.date} at {session.time}</div>
-                  <div className="flex gap-3 mt-auto">
-                    <button className="text-blue-600 hover:underline text-sm font-medium" onClick={() => handleEdit(session)}>Edit</button>
-                    <button className="text-red-600 hover:underline text-sm font-medium" onClick={() => handleDelete(session._id)}>Delete</button>
-                  </div>
-                  {/* Start Session Button */}
-                  <div className="mt-6 flex justify-end">
+                <div className="flex gap-4">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                  >
+                    {editId ? 'Update Session' : 'Schedule Session'}
+                  </button>
+                  {editId && (
                     <button
-                      className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-green-700 transition shadow"
-                      title="Start Session"
+                      type="button"
+                      className="flex-1 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      onClick={() => {
+                        setEditId(null);
+                        setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
+                      }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-7.5A2.25 2.25 0 003.75 5.25v13.5A2.25 2.25 0 006 21h7.5a2.25 2.25 0 002.25-2.25V15m0-6l5.25-3.75v13.5L15.75 15" />
-                      </svg>
-                      Start Session
+                      Cancel Edit
                     </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="text-gray-500 text-center text-lg mt-10">No sessions scheduled yet.</div>
-          )}
-        </section>
+                  )}
+                </div>
+              </form>
+            )}
+          </section>
+        </div>
+        {/* Scheduled Sessions (Right) */}
+        <div className="flex-1 w-full">
+          <section>
+            <h2 className="text-xl font-bold text-blue-900 mb-6 border-b-2 border-blue-200 pb-2 font-lora tracking-tight relative group animate-fade-in">
+              Scheduled Sessions
+              <span className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
+            </h2>
+            {loading ? (
+              <SkeletonLoader />
+            ) : scheduledSessions.length > 0 ? (
+              <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+                {scheduledSessions.map(session => (
+                  <li
+                    key={session._id}
+                    className="border border-blue-200 rounded-2xl p-6 bg-white/80 flex flex-col justify-between min-h-[200px] shadow-sm hover:shadow-xl hover:scale-105 transition duration-300 transform animate-slide-up"
+                  >
+                    <div>
+                      <div className={`text-xs font-semibold mb-1 uppercase tracking-wider font-nunito ${session.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
+                        {session.status.toUpperCase()}
+                      </div>
+                      <div className="font-semibold text-blue-900 mb-1 text-lg truncate font-lora">
+                        {[session.subject, session.topic, session.subtopic].filter(x => x && x.trim()).join(' - ')}
+                      </div>
+                      <div className="text-gray-600 text-sm mb-2 line-clamp-3 font-nunito">{session.description}</div>
+                      <div className="text-gray-500 text-xs mb-4 font-nunito">{session.date} at {session.time}</div>
+                    </div>
+                    <div className="flex gap-3 mt-auto">
+                      <button
+                        className="text-blue-600 hover:underline text-sm font-medium font-nunito"
+                        onClick={() => handleEdit(session)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="text-red-600 hover:underline text-sm font-medium font-nunito"
+                        onClick={() => handleDelete(session._id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                    <div className="mt-6 flex justify-end">
+                      <button
+                        className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                        title="Start Session"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-7.5A2.25 2.25 0 003.75 5.25v13.5A2.25 2.25 0 006 21h7.5a2.25 2.25 0 002.25-2.25V15m0-6l5.25-3.75v13.5L15.75 15" />
+                        </svg>
+                        Start Session
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-gray-500 text-center text-lg mt-10 font-nunito animate-fade-in">No sessions scheduled yet.</div>
+            )}
+          </section>
+        </div>
       </div>
+
+     
+    
     </div>
   );
 };
