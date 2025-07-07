@@ -7,7 +7,7 @@ const navLinks = [
   { path: "/one-on-one", label: "1-on-1" },
   { path: "/session", label: "Session" },
   { path: "/discuss", label: "Discuss" },
-  { path: "/interview", label: "Interview" }
+  { path: "/interview", label: "Interview" },
 ];
 
 const MobileMenu = ({
@@ -25,33 +25,45 @@ const MobileMenu = ({
   handleLoginClick,
   searchQuery,
   setSearchQuery,
-  handleSearch
+  handleSearch,
+  isActive, // Use the isActive prop from Navbar
 }) => (
-  <div className="sm:hidden fixed inset-0 z-50 bg-black bg-opacity-40 flex justify-end">
+  <div
+    className={`sm:hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-end transition-opacity duration-300 ${
+      isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+    }`}
+    onClick={() => setMenuOpen(false)}
+  >
     <div
-      className="relative w-[85vw] max-w-sm h-full bg-gradient-to-b from-[#f0f4ff] to-[#e2eafc] shadow-xl rounded-l-3xl p-0 flex flex-col animate-slideIn border-l-2 border-blue-300 overflow-y-auto"
+      className="relative w-[80vw] max-w-[320px] h-full bg-gradient-to-b from-[#f0f4ff] to-[#e2eafc] shadow-xl rounded-l-2xl flex flex-col p-0 animate-slideIn border-l-2 border-blue-300 overflow-y-auto"
       onClick={(e) => e.stopPropagation()}
       ref={menuRef}
     >
       {/* Header with Logo and Close Button */}
-      <div className="flex items-center justify-between px-5 pt-6 pb-3 border-b border-blue-100">
-        <div className="flex items-center gap-3">
-          <img src="/assets/skillswap-logo.webp" alt="SkillSwapHub Logo" className="h-9 w-9 object-cover rounded-full shadow" />
-          <span className="text-xl font-bold text-blue-900 tracking-tight">SkillSwapHub</span>
+      <div className="flex items-center justify-between px-4 pt-5 pb-3 border-b border-blue-100">
+        <div className="flex items-center gap-2">
+          <img
+            src="/assets/skillswap-logo.webp"
+            alt="SkillSwapHub Logo"
+            className="h-8 w-8 object-cover rounded-full shadow"
+          />
+          <span className="text-lg font-bold text-blue-900 tracking-tight font-lora">
+            SkillSwapHub
+          </span>
         </div>
         <button
-          className="p-2 rounded-full text-blue-800 bg-white shadow hover:bg-blue-100 transition"
+          className="p-1.5 rounded-full text-blue-800 bg-white shadow hover:bg-blue-100 transition"
           onClick={() => setMenuOpen(false)}
           aria-label="Close menu"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
       {/* Search + Credits */}
-      <div className="flex items-center gap-2 px-5 py-3 border-b border-blue-100 bg-white">
+      <div className="flex flex-col gap-3 px-4 py-3 border-b border-blue-100 bg-white">
         <form onSubmit={handleSearch} className="flex-1">
           <div className="relative">
             <input
@@ -59,71 +71,92 @@ const MobileMenu = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search skills..."
-              className="pl-9 pr-3 py-2 text-sm rounded-full border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-blue-900 placeholder-blue-700 w-full"
+              className="pl-8 pr-3 py-1.5 text-sm rounded-full border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-blue-900 placeholder-blue-700 w-full font-nunito"
             />
             <button
               type="submit"
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600"
+              className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-700"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
               </svg>
             </button>
           </div>
         </form>
-        <Credits
-          goldenCoins={goldenCoins}
-          silverCoins={silverCoins}
-          isLoggedIn={isLoggedIn}
-        />
+        {isLoggedIn && (
+          <Credits
+            goldenCoins={goldenCoins}
+            silverCoins={silverCoins}
+            isLoggedIn={isLoggedIn}
+          />
+        )}
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex flex-col px-5 pt-4 space-y-2">
-        {navLinks.map(({ path, label }) => {
-          const isActive = window.location.pathname === path;
-          return (
-            <button
-              key={path}
-              className={`w-full text-left text-base font-medium px-4 py-2 rounded-lg transition duration-200 ${
-                isActive
-                  ? "bg-blue-100 text-blue-900 font-semibold border-l-4 border-blue-700 shadow"
-                  : "text-blue-900 hover:bg-blue-50 hover:border-l-4 hover:border-blue-700"
-              }`}
-              onClick={() => {
-                navigate(path);
-                setMenuOpen(false);
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
+      <nav className="flex flex-col px-4 pt-3 pb-4 space-y-1.5">
+        {navLinks.map(({ path, label }) => (
+          <button
+            key={path}
+            className={`w-full text-left text-sm font-medium px-3 py-2 rounded-lg transition duration-200 ${
+              isActive(path)
+                ? "bg-blue-100 text-blue-900 font-semibold border-l-4 border-blue-700 shadow-sm"
+                : "text-blue-900 hover:bg-blue-50 hover:border-l-4 hover:border-blue-700"
+            }`}
+            onClick={() => {
+              navigate(path);
+              setMenuOpen(false);
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </nav>
 
       {/* Notifications */}
-      <div className="px-5 py-4">
+      <div className="px-4 py-3 border-t border-blue-100 max-h-48 overflow-y-auto">
         <Notifications notifications={notifications} setNotifications={setNotifications} />
       </div>
 
-      {/* Login or Profile Button */}
-      <div className="px-5 py-6 mt-auto">
-        {!isLoggedIn ? (
-          <button
-            onClick={handleLoginClick}
-            className="w-full bg-blue-700 text-white px-6 py-2 rounded-full font-semibold shadow hover:bg-blue-800 transition hover:scale-[1.02]"
-          >
-            Login
-          </button>
+      {/* Profile Dropdown or Login Button */}
+      <div className="px-4 py-4 mt-auto">
+        {isLoggedIn ? (
+          <>
+            <button
+              onClick={() => {
+                setShowProfileMenu(!showProfileMenu);
+              }}
+              className="w-full bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full font-medium text-sm shadow-sm hover:bg-blue-200 hover:text-blue-800 transition hover:scale-[1.02]"
+            >
+              Profile
+            </button>
+            {showProfileMenu && (
+              <div className="mt-2">
+                <ProfileDropdown
+                  show={showProfileMenu}
+                  onClose={() => {
+                    setShowProfileMenu(false);
+                    setMenuOpen(false);
+                  }}
+                  navigate={navigate}
+                  menuRef={menuRef}
+                />
+              </div>
+            )}
+          </>
         ) : (
           <button
             onClick={() => {
-              setShowProfileMenu(true);
+              handleLoginClick();
               setMenuOpen(false);
             }}
-            className="w-full bg-blue-100 text-blue-700 px-6 py-2 rounded-full font-semibold shadow hover:bg-blue-200 hover:text-blue-800 transition hover:scale-[1.02]"
+            className="w-full bg-blue-700 text-white px-4 py-1.5 rounded-full font-medium text-sm shadow-sm hover:bg-blue-800 transition hover:scale-[1.02]"
           >
-            Profile
+            Login
           </button>
         )}
       </div>
