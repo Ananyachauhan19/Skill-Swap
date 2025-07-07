@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useModal } from '../context/ModalContext';
 import ProfileDropdown from "./ProfileDropdown";
 import Notifications from "./Navbar/Notifications";
+import Credits from "./Navbar/Credits";
 import MobileMenu from "./MobileMenu";
 
 const Navbar = () => {
