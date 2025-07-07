@@ -1,6 +1,6 @@
 // routes/sessionRoutes.js
 const express = require('express');
-const Session = require('../models/session');
+const Session = require('../models/Session');
 const router = express.Router();
 
 // Middleware to check authentication (you can reuse your existing one)
@@ -37,9 +37,9 @@ router.use(requireAuth);
 // Create a session
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { subject, topic, description, date, time } = req.body;
+    const { subject, topic,subtopic,description, date, time } = req.body;
     const session = await Session.create({
-      subject, topic, description, date, time,
+      subject, topic, subtopic,description, date, time,
       creator: req.user._id
     });
     res.status(201).json(session);
@@ -54,7 +54,8 @@ router.get('/', async (req, res) => {
   const query = search ? {
     $or: [
       { subject: { $regex: search, $options: 'i' } },
-      { topic: { $regex: search, $options: 'i' } }
+      { topic: { $regex: search, $options: 'i' } },
+       { subtopic: { $regex: search, $options: 'i' } }
     ]
   } : {};
   const sessions = await Session.find(query).populate('creator', 'name email');

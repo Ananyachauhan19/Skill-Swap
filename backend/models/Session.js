@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const sessionSchema = new mongoose.Schema({
   subject: String,
   topic: String,
+  subtopic:String,
   description: String,
   date: String,
   time: String,
