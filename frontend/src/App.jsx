@@ -16,6 +16,8 @@ import Profile from './user/Profile';
 import CreateSession from './user/createSession';
 import HistoryPage from './user/HistoryPage';
 import Edit_Profile from './user/sections/Edit_Profile';
+import HelpSupportPage from './user/HelpSupportPage';
+import GoPro from './user/HomeSection/GoPro';
 
 function App() {
   const location = useLocation();
@@ -39,6 +41,8 @@ function App() {
           <Route path="/edit-profile" element={<Edit_Profile/>} />
           <Route path="/createSession" element={<CreateSession/>} />
           <Route path="/history" element={<HistoryPage/>} />
+          <Route path="/help" element={<HelpSupportPage/>} />
+          <Route path="/pro" element={<GoPro/>} />
         </Routes>
       </div>
       {!isAuthPage && <Footer />}
