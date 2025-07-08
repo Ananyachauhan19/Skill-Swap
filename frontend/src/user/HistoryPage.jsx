@@ -59,10 +59,74 @@ const STATIC_HISTORY = [
   },
 ];
 
+// Import or define DEMO_SESSIONS from Sessions.jsx
+const DEMO_SESSIONS = [
+  {
+    id: 1,
+    title: 'Algebra 101',
+    tutor: 'John Doe',
+    course: 'Mathematics',
+    unit: 'Algebra',
+    topic: 'Introduction to Algebra',
+    date: '2025-07-10',
+    time: '10:00 AM',
+    status: 'Upcoming',
+  },
+  {
+    id: 2,
+    title: 'Calculus: The Basics',
+    tutor: 'Jane Smith',
+    course: 'Mathematics',
+    unit: 'Calculus',
+    topic: 'Limits and Continuity',
+    date: '2025-07-12',
+    time: '2:00 PM',
+    status: 'Upcoming',
+  },
+  {
+    id: 3,
+    title: 'Physics: Motion in One Dimension',
+    tutor: 'Albert Einstein',
+    course: 'Physics',
+    unit: 'Kinematics',
+    topic: 'Introduction to Motion',
+    date: '2025-07-15',
+    time: '1:00 PM',
+    status: 'Completed',
+  },
+];
+
+// Merge completed sessions into STATIC_HISTORY
+const completedSessions = DEMO_SESSIONS.filter(s => s.status === 'Completed').map(s => ({
+  id: s.id,
+  type: 'one-on-one',
+  with: s.tutor,
+  when: `${s.date}T${s.time.replace(/\s*AM|\s*PM/i, '')}:00Z`,
+  duration: 60, // Example duration
+  credits: 10, // Example credits
+  subject: s.course,
+  topic: s.unit,
+  subtopic: s.topic,
+  rating: 5, // Example rating
+  notes: s.title,
+}));
+
+const SESSIONS_HISTORY = [
+  ...STATIC_HISTORY,
+  ...(
+    completedSessions.length > 0
+      ? [{
+          date: completedSessions[0].when.split('T')[0],
+          sessions: completedSessions,
+        }]
+      : []
+  ),
+];
+
 // --- Fetch user history (using static data) ---
 export async function fetchUserHistory() {
   return new Promise((resolve) => {
-    setTimeout(() => resolve(STATIC_HISTORY), 400);
+    setTimeout(() => resolve(SESSIONS_HISTORY), 400);
   });
 }
 

@@ -1,15 +1,4 @@
-import React, { useState } from 'react';
-
-const staticFaqs = [
-  {
-    question: 'What is a Group Discussion (GD)?',
-    answer: 'A Group Discussion is a collaborative conversation among participants on a given topic, often moderated by an expert.'
-  },
-  {
-    question: 'How do I join a GD session?',
-    answer: 'Browse the available sessions and click "Book Slot" to reserve your seat. You need enough credits to join.'
-  }
-];
+import React, { useState, useEffect } from 'react';
 
 const FAQItem = ({ faq, index }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,13 +38,39 @@ const FAQItem = ({ faq, index }) => {
 };
 
 const FAQSection = () => {
+  const [faqs, setFaqs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch('http://localhost:5000/api/group-discussions/faqs')
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch');
+        return res.json();
+      })
+      .then(data => setFaqs(data))
+      .catch(err => setError('Could not load FAQs.'))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <section className="w-full bg-blue-50 py-12 px-4 sm:px-6">
       <h3 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-8 text-center">FAQs about Group Discussions</h3>
       <div className="max-w-3xl mx-auto space-y-4">
-        {staticFaqs.map((faq, idx) => (
-          <FAQItem key={idx} faq={faq} index={idx} />
-        ))}
+        {loading ? (
+          <div className="text-blue-700 text-lg font-semibold py-12">Loading...</div>
+        ) : error ? (
+          <div className="text-red-600 text-lg font-semibold py-12">{error}</div>
+        ) : (
+          faqs.length === 0 ? (
+            <div className="text-gray-500 text-center">No FAQs found.</div>
+          ) : (
+            faqs.map((faq, idx) => (
+              <FAQItem key={idx} faq={faq} index={idx} />
+            ))
+          )
+        )}
       </div>
     </section>
   );

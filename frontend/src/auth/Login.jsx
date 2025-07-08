@@ -83,10 +83,13 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       setError("");
 
       const res = await axios.post("http://localhost:5000/api/auth/login", { email, password });
-
-      if (res.data.otpSent) {
-        setEmailForOtp(email);
-        setShowOtp(true);
+      const { token, user } = res.data;
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      window.dispatchEvent(new Event("authChanged"));
+      if (onLoginSuccess) onLoginSuccess(user);
+      if (isModal && onClose) {
+        onClose();
       } else {
         setError("OTP not sent.");
       }

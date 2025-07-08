@@ -1,11 +1,20 @@
-
 import React from 'react';
+
+const getProfilePic = (profilePic, name) => {
+  if (profilePic) return profilePic;
+  const initials = name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=DBEAFE&color=1E40AF&bold=true`;
+};
 
 const TutorCard = ({ tutor, onRequestSession }) => {
   return (
     <div className="bg-white shadow-md rounded-xl p-6 border border-gray-200 flex flex-col sm:flex-row items-start gap-4">
       <img
-        src={tutor.profilePic}
+        src={getProfilePic(tutor.profilePic, tutor.name)}
         alt="Profile"
         className="w-16 h-16 rounded-full object-cover"
       />

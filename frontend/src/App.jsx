@@ -12,12 +12,18 @@ import Register from './auth/Register';
 import OneOnOne from './user/OneOnOne';
 import Discuss from './user/Discuss';
 import Interview from './user/Interview';
+import Sessions from './user/Sessions';
+import Testimonial from './user/Testimonial';
 import Profile from './user/Profile';
 import CreateSession from './user/createSession';
 import HistoryPage from './user/HistoryPage';
 import Edit_Profile from './user/sections/Edit_Profile';
 import HelpSupportPage from './user/HelpSupportPage';
 import GoPro from './user/HomeSection/GoPro';
+import AccountSettings from './user/AccountSettings';
+import AccountSettingsRoutes from './user/settings/AccountSettingsRoutes';
+import UploadRecordedSession from './user/SessionsFolder/UploadRecordedSession';
+import Package from './user/Package';
 
 function App() {
   const location = useLocation();
@@ -37,12 +43,18 @@ function App() {
           <Route path="/one-on-one" element={<OneOnOne />} />
           <Route path="/discuss" element={<Discuss />} />
           <Route path="/interview" element={<Interview />} />
+          <Route path="/session" element={<Sessions />} />
+          <Route path="/testimonials" element={<Testimonial showAll={true} />} />
           <Route path="/profile" element={<Profile/>} />
           <Route path="/edit-profile" element={<Edit_Profile/>} />
           <Route path="/createSession" element={<CreateSession/>} />
+          <Route path="/package" element={<Package/>} />
+          <Route path="/uploaded" element={<UploadRecordedSession/>} />
           <Route path="/history" element={<HistoryPage/>} />
           <Route path="/help" element={<HelpSupportPage/>} />
           <Route path="/pro" element={<GoPro/>} />
+          <Route path="/accountSettings" element={<AccountSettings/>} />
+          {AccountSettingsRoutes()}
         </Routes>
       </div>
       {!isAuthPage && <Footer />}

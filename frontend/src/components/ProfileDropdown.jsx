@@ -16,25 +16,43 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
   return (
     <div
       ref={menuRef}
-      className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg z-50 flex flex-col p-4"
+      className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg z-50 flex flex-col p-4"
     >
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
         onClick={() => { onClose(); navigate('/profile'); }}
       >
-        Your Profile
+        Profile
       </button>
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
         onClick={() => { onClose(); navigate('/createSession'); }}
       >
-        Your Session
+        Schedule Sessions
+      </button>
+      <button
+        className="text-left px-4 py-2 hover:bg-blue-50 rounded"
+        onClick={() => { onClose(); navigate('/uploaded'); }}
+      >
+        Recorded Sessions
       </button>
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
         onClick={() => { onClose(); navigate('/history'); }}
       >
-        Your History
+        Learning History
+      </button>
+      <button
+        className="text-left px-4 py-2 hover:bg-blue-50 rounded"
+        onClick={() => { onClose(); navigate('/teaching-history'); }}
+      >
+        Teaching History
+      </button>
+      <button
+        className="text-left px-4 py-2 hover:bg-blue-50 rounded"
+        onClick={() => { onClose(); navigate('/package'); }}
+      >
+        Package
       </button>
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"

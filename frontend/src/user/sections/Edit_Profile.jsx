@@ -39,6 +39,7 @@ const Edit_Profile = () => {
   const [editGithub, setEditGithub] = useState(false);
   const [editTwitter, setEditTwitter] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editingPic, setEditingPic] = useState(false);
 
   // Input states for adding new entries
   const [bioInput, setBioInput] = useState("");
@@ -51,21 +52,19 @@ const Edit_Profile = () => {
   const [websiteInput, setWebsiteInput] = useState("");
   const [githubInput, setGithubInput] = useState("");
   const [twitterInput, setTwitterInput] = useState("");
+  const [nameInput, setNameInput] = useState(profile.fullName);
 
   // Fetch profile from backend on mount
   useEffect(() => {
     async function fetchProfile() {
       setLoading(true);
-      const regName = localStorage.getItem('registeredName');
-      const regEmail = localStorage.getItem('registeredEmail');
       let user = null;
       try {
         user = JSON.parse(localStorage.getItem('user'));
       } catch {}
       setProfile(prev => ({
         ...prev,
-        fullName: (user && user.fullName) || regName || prev.fullName,
-        email: (user && user.email) || regEmail || prev.email,
+        email: (user && user.email) || prev.email,
         profilePicPreview: user?.profilePicPreview || prev.profilePicPreview,
         bio: user?.bio || prev.bio,
         country: user?.country || prev.country,
@@ -125,19 +124,45 @@ const Edit_Profile = () => {
 
   const handleAddEducation = () => {
     if (educationInput.degree && educationInput.university) {
-      setProfile(prev => ({ ...prev, education: [...prev.education, { ...educationInput }] }));
+      const updated = {
+        ...profile,
+        education: [...profile.education, { ...educationInput }]
+      };
+      setProfile(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+      window.dispatchEvent(new Event('profileUpdated'));
       setEducationInput({ degree: '', university: '', year: '', specialization: '' });
       setEditEducation(false);
-      saveProfile();
+      toast.success("Education added!", {
+        style: {
+          background: '#f0f9ff',
+          color: '#1e3a8a',
+          fontFamily: 'Nunito, sans-serif',
+          border: '1px solid #bfdbfe'
+        }
+      });
     }
   };
 
   const handleAddTeachSkill = () => {
     if (teachSkillInput.skill.trim() && !profile.teachSkills.some(s => s.skill === teachSkillInput.skill.trim())) {
-      setProfile(prev => ({ ...prev, teachSkills: [...prev.teachSkills, { ...teachSkillInput }] }));
+      const updated = {
+        ...profile,
+        teachSkills: [...profile.teachSkills, { ...teachSkillInput }]
+      };
+      setProfile(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+      window.dispatchEvent(new Event('profileUpdated'));
       setTeachSkillInput({ skill: '', proof: null, proofName: null });
       setEditTeach(false);
-      saveProfile();
+      toast.success("Teaching skill added!", {
+        style: {
+          background: '#f0f9ff',
+          color: '#1e3a8a',
+          fontFamily: 'Nunito, sans-serif',
+          border: '1px solid #bfdbfe'
+        }
+      });
     }
   };
 
@@ -152,19 +177,45 @@ const Edit_Profile = () => {
 
   const handleAddExperience = () => {
     if (experienceInput.title && experienceInput.company) {
-      setProfile(prev => ({ ...prev, experience: [...prev.experience, { ...experienceInput }] }));
+      const updated = {
+        ...profile,
+        experience: [...profile.experience, { ...experienceInput }]
+      };
+      setProfile(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+      window.dispatchEvent(new Event('profileUpdated'));
       setExperienceInput({ title: '', company: '', duration: '', description: '' });
       setEditExperience(false);
-      saveProfile();
+      toast.success("Experience added!", {
+        style: {
+          background: '#f0f9ff',
+          color: '#1e3a8a',
+          fontFamily: 'Nunito, sans-serif',
+          border: '1px solid #bfdbfe'
+        }
+      });
     }
   };
 
   const handleAddCertificate = () => {
     if (certificateInput.name && certificateInput.issuer) {
-      setProfile(prev => ({ ...prev, certificates: [...prev.certificates, { ...certificateInput }] }));
+      const updated = {
+        ...profile,
+        certificates: [...profile.certificates, { ...certificateInput }]
+      };
+      setProfile(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+      window.dispatchEvent(new Event('profileUpdated'));
       setCertificateInput({ name: '', issuer: '', year: '' });
       setEditCertificates(false);
-      saveProfile();
+      toast.success("Certificate added!", {
+        style: {
+          background: '#f0f9ff',
+          color: '#1e3a8a',
+          fontFamily: 'Nunito, sans-serif',
+          border: '1px solid #bfdbfe'
+        }
+      });
     }
   };
 
@@ -197,10 +248,20 @@ const Edit_Profile = () => {
 
   const handleAddTwitter = () => {
     if (twitterInput.trim()) {
-      setProfile(prev => ({ ...prev, twitter: twitterInput }));
+      const updated = { ...profile, twitter: twitterInput };
+      setProfile(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+      window.dispatchEvent(new Event('profileUpdated'));
       setTwitterInput("");
       setEditTwitter(false);
-      saveProfile();
+      toast.success("Twitter profile added!", {
+        style: {
+          background: '#f0f9ff',
+          color: '#1e3a8a',
+          fontFamily: 'Nunito, sans-serif',
+          border: '1px solid #bfdbfe'
+        }
+      });
     }
   };
 
@@ -228,6 +289,36 @@ const Edit_Profile = () => {
   const handleRemoveCertificate = (index) => {
     setProfile(prev => ({ ...prev, certificates: prev.certificates.filter((_, i) => i !== index) }));
     saveProfile();
+  };
+
+  // Remove handlers for social/profile links
+  const handleRemoveLinkedin = () => {
+    const updated = { ...profile, linkedin: "" };
+    setProfile(updated);
+    localStorage.setItem('user', JSON.stringify(updated));
+    window.dispatchEvent(new Event('profileUpdated'));
+    toast.success("LinkedIn removed!", { style: { background: '#f0f9ff', color: '#1e3a8a', fontFamily: 'Nunito, sans-serif', border: '1px solid #bfdbfe' } });
+  };
+  const handleRemoveTwitter = () => {
+    const updated = { ...profile, twitter: "" };
+    setProfile(updated);
+    localStorage.setItem('user', JSON.stringify(updated));
+    window.dispatchEvent(new Event('profileUpdated'));
+    toast.success("Twitter removed!", { style: { background: '#f0f9ff', color: '#1e3a8a', fontFamily: 'Nunito, sans-serif', border: '1px solid #bfdbfe' } });
+  };
+  const handleRemoveGithub = () => {
+    const updated = { ...profile, github: "" };
+    setProfile(updated);
+    localStorage.setItem('user', JSON.stringify(updated));
+    window.dispatchEvent(new Event('profileUpdated'));
+    toast.success("GitHub removed!", { style: { background: '#f0f9ff', color: '#1e3a8a', fontFamily: 'Nunito, sans-serif', border: '1px solid #bfdbfe' } });
+  };
+  const handleRemoveWebsite = () => {
+    const updated = { ...profile, website: "" };
+    setProfile(updated);
+    localStorage.setItem('user', JSON.stringify(updated));
+    window.dispatchEvent(new Event('profileUpdated'));
+    toast.success("Website removed!", { style: { background: '#f0f9ff', color: '#1e3a8a', fontFamily: 'Nunito, sans-serif', border: '1px solid #bfdbfe' } });
   };
 
   // Attach proof for teach skills
@@ -281,9 +372,91 @@ const Edit_Profile = () => {
     </div>
   );
 
+  // Helper to get best available name
+  const getDisplayName = () => {
+    if (profile.fullName && profile.fullName.trim() !== '') return profile.fullName;
+    let googleUser = null, linkedinUser = null, regName = '';
+    try { googleUser = JSON.parse(localStorage.getItem('googleUser')); } catch {}
+    try { linkedinUser = JSON.parse(localStorage.getItem('linkedinUser')); } catch {}
+    regName = localStorage.getItem('registeredName') || '';
+    if (googleUser && googleUser.name) return googleUser.name;
+    if (linkedinUser && linkedinUser.name) return linkedinUser.name;
+    if (regName) return regName;
+    return '';
+  };
+  // Helper to get best available email
+  const getDisplayEmail = () => {
+    if (profile.email && profile.email.trim() !== '') return profile.email;
+    let googleUser = null, linkedinUser = null, regEmail = '';
+    try { googleUser = JSON.parse(localStorage.getItem('googleUser')); } catch {}
+    try { linkedinUser = JSON.parse(localStorage.getItem('linkedinUser')); } catch {}
+    regEmail = localStorage.getItem('registeredEmail') || '';
+    if (googleUser && googleUser.email) return googleUser.email;
+    if (linkedinUser && linkedinUser.email) return linkedinUser.email;
+    if (regEmail) return regEmail;
+    return '';
+  };
+
+  // --- Full Name Edit State ---
+  const [editingName, setEditingName] = useState(false);
+  const handleEditName = () => {
+    setNameInput(profile.fullName);
+    setEditingName(true);
+  };
+  const handleSaveName = () => {
+    const updated = { ...profile, fullName: nameInput };
+    setProfile(updated);
+    localStorage.setItem('user', JSON.stringify(updated));
+    window.dispatchEvent(new Event('profileUpdated'));
+    setNameInput(nameInput); // Ensure input reflects the latest saved value
+    setEditingName(false);
+    toast.success("Name updated!", {
+      style: {
+        background: '#f0f9ff',
+        color: '#1e3a8a',
+        fontFamily: 'Nunito, sans-serif',
+        border: '1px solid #bfdbfe'
+      }
+    });
+  };
+  const handleCancelName = () => {
+    setEditingName(false);
+  };
+
+  // --- Profile Picture Edit State ---
+  const handleSavePic = () => {
+    setProfile(prev => {
+      const updated = { ...prev, profilePic: prev.profilePicPreview };
+      localStorage.setItem('user', JSON.stringify(updated));
+      window.dispatchEvent(new Event('profileUpdated'));
+      return { ...updated, profilePicPreview: null };
+    });
+    setEditingPic(false);
+    toast.success("Profile picture updated!", {
+      style: {
+        background: '#f0f9ff',
+        color: '#1e3a8a',
+        fontFamily: 'Nunito, sans-serif',
+        border: '1px solid #bfdbfe'
+      }
+    });
+  };
+  const handleCancelPic = () => {
+    setEditingPic(false);
+    setProfile(prev => ({ ...prev, profilePic: prev.profilePic, profilePicPreview: prev.profilePicPreview }));
+  };
+
+  useEffect(() => {
+    if (!editingName) {
+      setNameInput(profile.fullName || "");
+    }
+  }, [profile.fullName, editingName]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-gray-50 to-blue-100 pt-20 pb-8 px-4 sm:px-6 lg:px-8 font-inter">
       <Toaster position="top-center" />
+
+  
       {loading ? (
         <SkeletonLoader />
       ) : (
@@ -292,7 +465,21 @@ const Edit_Profile = () => {
           <div className="bg-gradient-to-r from-blue-900 via-blue-500 to-gray-700 h-[25vh] w-full relative flex items-center">
             <div className="absolute left-6 sm:left-10 top-6 flex items-center gap-4">
               <div className="relative group">
-                {profile.profilePicPreview ? (
+                {editingPic ? (
+                  <>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePicChange}
+                      className="w-14 h-14 sm:w-18 sm:h-18 rounded-lg border-2 border-blue-200 shadow-md bg-white text-blue-900 font-bold text-lg sm:text-xl font-lora p-2"
+                      style={{ background: '#f0f9ff' }}
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button onClick={handleSavePic} className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Save</button>
+                      <button onClick={handleCancelPic} className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs">Cancel</button>
+                    </div>
+                  </>
+                ) : profile.profilePicPreview ? (
                   <img
                     src={profile.profilePicPreview}
                     alt="Profile"
@@ -300,31 +487,53 @@ const Edit_Profile = () => {
                   />
                 ) : (
                   <div className="w-14 h-14 sm:w-18 sm:h-18 rounded-lg bg-blue-100 flex items-center justify-center text-blue-900 font-bold text-lg sm:text-xl font-lora border-2 border-blue-200 shadow-md transition duration-300 group-hover:scale-105">
-                    {profile.fullName ? profile.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
+                    {getDisplayName() ? getDisplayName().split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : 'U'}
                   </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleProfilePicChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  title="Change Profile Picture"
-                />
+                {!editingPic && (
+                  <button onClick={() => setEditingPic(true)} className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 text-xs shadow hover:bg-blue-700">Edit</button>
+                )}
               </div>
               <div className="space-y-1">
-                <h2 className="text-xl sm:text-2xl font-bold text-white font-lora">{profile.fullName || "Your Name"}</h2>
+                {editingName ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={nameInput}
+                      onChange={e => setNameInput(e.target.value)}
+                      className="text-xl sm:text-2xl font-bold text-blue-900 font-lora border border-blue-300 rounded px-2 py-1 text-center"
+                      style={{ minWidth: '120px' }}
+                      autoFocus
+                    />
+                    <button onClick={handleSaveName} className="bg-blue-600 text-white px-2 py-1 rounded text-xs">Save</button>
+                    <button onClick={handleCancelName} className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs">Cancel</button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-bold text-white font-lora">{getDisplayName() || "Your Name"}</h2>
+                    <button onClick={handleEditName} className="text-blue-100 hover:underline text-xs bg-blue-700 rounded px-2 py-1">Edit</button>
+                  </div>
+                )}
+                <p className="text-sm font-bold text-gray-200 font-nunito">{getDisplayEmail() || "Email not set"}</p>
                 <p className="text-sm font-bold text-gray-200 font-nunito">ID: {profile.userId}</p>
               </div>
             </div>
           </div>
           {/* Main Content */}
           <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 -mt-4">
-            {/* Profile Options (Left, No Div) */}
+            
             <div className="w-full lg:w-80 p-6 lg:sticky lg:top-24 overflow-y-auto max-h-[70vh] animate-slide-up">
               <h3 className="text-lg font-semibold text-blue-900 mb-6 font-lora relative group">
                 Profile Options
                 <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
               </h3>
+              <div className="w-full flex justify-end mb-6">
+                <a
+                  href="/profile"
+                  className="inline-block px-5 py-2 rounded-full bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition-all duration-200"
+                >
+                  Go to Profile
+                </a>
+              </div>
               <ul className="space-y-4">
                 <li>
                   <button className="flex items-center gap-2 text-blue-900 hover:text-blue-700 font-nunito font-medium transition duration-200 w-full text-left">
@@ -360,7 +569,6 @@ const Edit_Profile = () => {
                 </li>
               </ul>
             </div>
-            {/* Edit Details Div (Right) */}
             <div className="flex-1 bg-white/95 rounded-3xl shadow-xl border border-blue-200 p-6 sm:p-8 ml-4 sm:ml-8 z-10 animate-slide-up">
               {/* Tell Us About Yourself */}
               <div className="mb-8">
@@ -370,7 +578,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditBio(!editBio)}
+                    onClick={() => { setEditBio(!editBio); setBioInput(profile.bio || ''); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -385,12 +593,20 @@ const Edit_Profile = () => {
                       placeholder="Describe yourself..."
                       maxLength={500}
                     />
-                    <button
-                      onClick={handleAddBio}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add About
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddBio}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Add About
+                      </button>
+                      <button
+                        onClick={() => { setEditBio(false); setBioInput(profile.bio || ''); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-gray-600 font-nunito">{profile.bio || "No bio added yet."}</p>
@@ -405,7 +621,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditCountry(!editCountry)}
+                    onClick={() => { setEditCountry(!editCountry); setProfile(prev => ({ ...prev, country: prev.country })); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -423,12 +639,20 @@ const Edit_Profile = () => {
                         <option key={c.value} value={c.label}>{c.label}</option>
                       ))}
                     </select>
-                    <button
-                      onClick={() => { setEditCountry(false); saveProfile(); }}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Save Country
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setEditCountry(false); saveProfile(); }}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Save Country
+                      </button>
+                      <button
+                        onClick={() => { setEditCountry(false); setProfile(prev => ({ ...prev, country: prev.country })); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <p className="text-gray-600 font-nunito">{profile.country || "No country selected."}</p>
@@ -443,7 +667,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditEducation(!editEducation)}
+                    onClick={() => { setEditEducation(!editEducation); setEducationInput({ degree: '', university: '', year: '', specialization: '' }); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -479,12 +703,20 @@ const Edit_Profile = () => {
                       placeholder="Specialization"
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
-                    <button
-                      onClick={handleAddEducation}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add Education
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddEducation}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Add Education
+                      </button>
+                      <button
+                        onClick={() => { setEditEducation(false); setEducationInput({ degree: '', university: '', year: '', specialization: '' }); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -498,7 +730,7 @@ const Edit_Profile = () => {
                           </div>
                           <button
                             onClick={() => handleRemoveEducation(index)}
-                            className="text-red-600 hover:underline text-sm font-medium"
+                            className="btn btn-error btn-xs"
                           >
                             Remove
                           </button>
@@ -519,7 +751,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditTeach(!editTeach)}
+                    onClick={() => { setEditTeach(!editTeach); setTeachSkillInput({ skill: '', proof: null, proofName: null }); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -539,12 +771,20 @@ const Edit_Profile = () => {
                       onChange={(e) => setTeachSkillInput(prev => ({ ...prev, proof: e.target.files[0], proofName: e.target.files[0]?.name }))}
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
-                    <button
-                      onClick={handleAddTeachSkill}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add Teaching Skill
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddTeachSkill}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Add Teaching Skill
+                      </button>
+                      <button
+                        onClick={() => { setEditTeach(false); setTeachSkillInput({ skill: '', proof: null, proofName: null }); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -557,7 +797,7 @@ const Edit_Profile = () => {
                           </div>
                           <button
                             onClick={() => handleRemoveTeachSkill(index)}
-                            className="text-red-600 hover:underline text-sm font-medium"
+                            className="btn btn-error btn-xs"
                           >
                             Remove
                           </button>
@@ -578,7 +818,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditLearn(!editLearn)}
+                    onClick={() => { setEditLearn(!editLearn); setLearnSkillInput(""); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -593,12 +833,20 @@ const Edit_Profile = () => {
                       placeholder="Skill (e.g., Python)"
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
-                    <button
-                      onClick={handleAddLearnSkill}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add Learning Interest
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddLearnSkill}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Add Learning Interest
+                      </button>
+                      <button
+                        onClick={() => { setEditLearn(false); setLearnSkillInput(""); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -608,7 +856,7 @@ const Edit_Profile = () => {
                           <p>{skill}</p>
                           <button
                             onClick={() => handleRemoveLearnSkill(index)}
-                            className="text-red-600 hover:underline text-sm font-medium"
+                            className="btn btn-error btn-xs"
                           >
                             Remove
                           </button>
@@ -629,7 +877,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditExperience(!editExperience)}
+                    onClick={() => { setEditExperience(!editExperience); setExperienceInput({ title: '', company: '', duration: '', description: '' }); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -651,6 +899,7 @@ const Edit_Profile = () => {
                       placeholder="Company"
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
+       
                     <input
                       type="text"
                       value={experienceInput.duration}
@@ -664,12 +913,20 @@ const Edit_Profile = () => {
                       placeholder="Description"
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
-                    <button
-                      onClick={handleAddExperience}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add Experience
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddExperience}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Add Experience
+                      </button>
+                      <button
+                        onClick={() => { setEditExperience(false); setExperienceInput({ title: '', company: '', duration: '', description: '' }); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -683,7 +940,7 @@ const Edit_Profile = () => {
                           </div>
                           <button
                             onClick={() => handleRemoveExperience(index)}
-                            className="text-red-600 hover:underline text-sm font-medium"
+                            className="btn btn-error btn-xs"
                           >
                             Remove
                           </button>
@@ -704,7 +961,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditCertificates(!editCertificates)}
+                    onClick={() => { setEditCertificates(!editCertificates); setCertificateInput({ name: '', issuer: '', year: '' }); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -733,12 +990,29 @@ const Edit_Profile = () => {
                       placeholder="Year"
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
-                    <button
-                      onClick={handleAddCertificate}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add Certificate
-                    </button>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      onChange={(e) => setCertificateInput(prev => ({ ...prev, pdf: e.target.files[0], pdfName: e.target.files[0]?.name }))}
+                      className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
+                    />
+                    {certificateInput.pdfName && (
+                      <div className="text-xs text-blue-700">Selected PDF: {certificateInput.pdfName}</div>
+                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddCertificate}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Add Certificate
+                      </button>
+                      <button
+                        onClick={() => { setEditCertificates(false); setCertificateInput({ name: '', issuer: '', year: '' }); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -751,7 +1025,7 @@ const Edit_Profile = () => {
                           </div>
                           <button
                             onClick={() => handleRemoveCertificate(index)}
-                            className="text-red-600 hover:underline text-sm font-medium"
+                            className="btn btn-error btn-xs"
                           >
                             Remove
                           </button>
@@ -772,7 +1046,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditLinkedin(!editLinkedin)}
+                    onClick={() => { setEditLinkedin(!editLinkedin); setLinkedinInput(profile.linkedin || ''); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -787,23 +1061,36 @@ const Edit_Profile = () => {
                       placeholder="LinkedIn Profile URL"
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
-                    <button
-                      onClick={handleAddLinkedin}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add LinkedIn
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddLinkedin}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => { setEditLinkedin(false); setLinkedinInput(profile.linkedin || ''); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-gray-600 font-nunito">
-                    {profile.linkedin ? (
-                      <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {profile.linkedin}
-                      </a>
-                    ) : (
-                      "No LinkedIn profile added."
+                  <div className="bg-blue-50 rounded-lg p-3 flex justify-between items-center font-nunito text-gray-600">
+                    <span>
+                      {profile.linkedin ? (
+                        <a href={profile.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {profile.linkedin}
+                        </a>
+                      ) : (
+                        "No LinkedIn profile added."
+                      )}
+                    </span>
+                    {profile.linkedin && (
+                      <button onClick={handleRemoveLinkedin} className="btn btn-error btn-xs">Remove</button>
                     )}
-                  </p>
+                  </div>
                 )}
               </div>
               <hr className="my-8 border-blue-200 opacity-50" />
@@ -815,7 +1102,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditWebsite(!editWebsite)}
+                    onClick={() => { setEditWebsite(!editWebsite); setWebsiteInput(profile.website || ''); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -830,23 +1117,36 @@ const Edit_Profile = () => {
                       placeholder="Personal Website URL"
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
-                    <button
-                      onClick={handleAddWebsite}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add Website
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddWebsite}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => { setEditWebsite(false); setWebsiteInput(profile.website || ''); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-gray-600 font-nunito">
-                    {profile.website ? (
-                      <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {profile.website}
-                      </a>
-                    ) : (
-                      "No website added."
+                  <div className="bg-blue-50 rounded-lg p-3 flex justify-between items-center font-nunito text-gray-600">
+                    <span>
+                      {profile.website ? (
+                        <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {profile.website}
+                        </a>
+                      ) : (
+                        "No website added."
+                      )}
+                    </span>
+                    {profile.website && (
+                      <button onClick={handleRemoveWebsite} className="btn btn-error btn-xs">Remove</button>
                     )}
-                  </p>
+                  </div>
                 )}
               </div>
               <hr className="my-8 border-blue-200 opacity-50" />
@@ -858,7 +1158,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditGithub(!editGithub)}
+                    onClick={() => { setEditGithub(!editGithub); setGithubInput(profile.github || ''); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -873,23 +1173,36 @@ const Edit_Profile = () => {
                       placeholder="GitHub Profile URL"
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
-                    <button
-                      onClick={handleAddGithub}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add GitHub
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddGithub}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => { setEditGithub(false); setGithubInput(profile.github || ''); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-gray-600 font-nunito">
-                    {profile.github ? (
-                      <a href={profile.github} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {profile.github}
-                      </a>
-                    ) : (
-                      "No GitHub profile added."
+                  <div className="bg-blue-50 rounded-lg p-3 flex justify-between items-center font-nunito text-gray-600">
+                    <span>
+                      {profile.github ? (
+                        <a href={profile.github} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {profile.github}
+                        </a>
+                      ) : (
+                        "No GitHub profile added."
+                      )}
+                    </span>
+                    {profile.github && (
+                      <button onClick={handleRemoveGithub} className="btn btn-error btn-xs">Remove</button>
                     )}
-                  </p>
+                  </div>
                 )}
               </div>
               <hr className="my-8 border-blue-200 opacity-50" />
@@ -901,7 +1214,7 @@ const Edit_Profile = () => {
                     <span className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
                   </h3>
                   <button
-                    onClick={() => setEditTwitter(!editTwitter)}
+                    onClick={() => { setEditTwitter(!editTwitter); setTwitterInput(profile.twitter || ''); }}
                     className="text-blue-600 hover:underline text-sm font-medium font-nunito"
                   >
                     Edit
@@ -916,23 +1229,36 @@ const Edit_Profile = () => {
                       placeholder="X (Twitter) Profile URL"
                       className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     />
-                    <button
-                      onClick={handleAddTwitter}
-                      className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                    >
-                      Add X Profile
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddTwitter}
+                        className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => { setEditTwitter(false); setTwitterInput(profile.twitter || ''); }}
+                        className="bg-gray-200 text-blue-900 px-4 py-2 rounded-lg font-semibold hover:bg-gray-300 transition duration-200 font-nunito"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-gray-600 font-nunito">
-                    {profile.twitter ? (
-                      <a href={profile.twitter} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                        {profile.twitter}
-                      </a>
-                    ) : (
-                      "No X profile added."
+                  <div className="bg-blue-50 rounded-lg p-3 flex justify-between items-center font-nunito text-gray-600">
+                    <span>
+                      {profile.twitter ? (
+                        <a href={profile.twitter} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {profile.twitter}
+                        </a>
+                      ) : (
+                        "No X profile added."
+                      )}
+                    </span>
+                    {profile.twitter && (
+                      <button onClick={handleRemoveTwitter} className="btn btn-error btn-xs">Remove</button>
                     )}
-                  </p>
+                  </div>
                 )}
               </div>
             </div>

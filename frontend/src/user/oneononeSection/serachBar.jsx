@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Static data for demo
@@ -87,7 +87,7 @@ const STATIC_TOPICS = {
   'Probability Theory': ['Random Variables', 'Probability Distributions'],
 };
 
-const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue, topicValue, setTopicValue, onFindTutor }) => {
+const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitValue, topicValue, setTopicValue, onFindTutor }, ref) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
   const [showTopicDropdown, setShowTopicDropdown] = useState(false);
@@ -183,7 +183,7 @@ const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue, topic
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 p-6 bg-blue-50 rounded-xl shadow-lg border border-blue-200/50 max-w-4xl mx-auto">
+    <div ref={ref} className="flex flex-col sm:flex-row gap-4 p-6 bg-blue-50 rounded-xl shadow-lg border border-blue-200/50 max-w-4xl mx-auto">
       {/* Course Input */}
       <div className="relative flex-1">
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500">
@@ -361,6 +361,6 @@ const SearchBar = ({ courseValue, setCourseValue, unitValue, setUnitValue, topic
       </motion.button>
     </div>
   );
-};
+});
 
 export default SearchBar;
