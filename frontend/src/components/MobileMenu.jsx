@@ -1,5 +1,4 @@
 import React from 'react';
-import Credits from "./Navbar/Credits";
 import Notifications from "./Navbar/Notifications";
 
 const navLinks = [
@@ -11,6 +10,7 @@ const navLinks = [
 ];
 
 const MobileMenu = ({
+  isOpen,
   isLoggedIn,
   navigate,
   setShowProfileMenu,
@@ -18,24 +18,21 @@ const MobileMenu = ({
   menuRef,
   setMenuOpen,
   ProfileDropdown,
-  goldenCoins,
-  silverCoins,
   notifications,
   setNotifications,
   handleLoginClick,
   searchQuery,
   setSearchQuery,
   handleSearch,
-  isActive, // Use the isActive prop from Navbar
+  isActive,
 }) => (
   <div
-    className={`sm:hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-end transition-opacity duration-300 ${
-      isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+    className={`sm:hidden fixed top-0 right-0 z-50 transition-transform duration-300 ${
+      isOpen ? 'translate-x-0' : 'translate-x-full'
     }`}
-    onClick={() => setMenuOpen(false)}
   >
     <div
-      className="relative w-[80vw] max-w-[320px] h-full bg-gradient-to-b from-[#f0f4ff] to-[#e2eafc] shadow-xl rounded-l-2xl flex flex-col p-0 animate-slideIn border-l-2 border-blue-300 overflow-y-auto"
+      className="relative w-[80vw] max-w-[320px] h-screen bg-gradient-to-b from-[#f0f4ff] to-[#e2eafc] shadow-xl rounded-l-2xl flex flex-col p-0 border-l-2 border-blue-300 overflow-y-auto"
       onClick={(e) => e.stopPropagation()}
       ref={menuRef}
     >
@@ -62,7 +59,7 @@ const MobileMenu = ({
         </button>
       </div>
 
-      {/* Search + Credits */}
+      {/* Search */}
       <div className="flex flex-col gap-3 px-4 py-3 border-b border-blue-100 bg-white">
         <form onSubmit={handleSearch} className="flex-1">
           <div className="relative">
@@ -88,13 +85,6 @@ const MobileMenu = ({
             </button>
           </div>
         </form>
-        {isLoggedIn && (
-          <Credits
-            goldenCoins={goldenCoins}
-            silverCoins={silverCoins}
-            isLoggedIn={isLoggedIn}
-          />
-        )}
       </div>
 
       {/* Navigation Links */}
@@ -127,9 +117,7 @@ const MobileMenu = ({
         {isLoggedIn ? (
           <>
             <button
-              onClick={() => {
-                setShowProfileMenu(!showProfileMenu);
-              }}
+              onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="w-full bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full font-medium text-sm shadow-sm hover:bg-blue-200 hover:text-blue-800 transition hover:scale-[1.02]"
             >
               Profile

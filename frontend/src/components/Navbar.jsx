@@ -231,16 +231,16 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* SkillCoin */}
+          {/* SkillCoin - Visible on all screens when logged in */}
           {isLoggedIn && (
             <div className="relative">
               <button
-                className="flex items-center gap-1.5 text-white bg-gradient-to-r from-blue-700 to-blue-900 font-nunito font-semibold px-3 py-1.5 rounded-lg border border-blue-300 shadow-md text-sm transition-all duration-300 hover:from-blue-600 hover:to-blue-800 hover:shadow-lg hover:scale-105"
+                className="flex items-center gap-1.5 text-white bg-gradient-to-r from-blue-700 to-blue-900 font-nunito font-semibold px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm rounded-lg border border-blue-300 shadow-md transition-all duration-300 hover:from-blue-600 hover:to-blue-800 hover:shadow-lg hover:scale-105"
                 onClick={() => setShowCoinsDropdown((v) => !v)}
                 title="SkillCoin"
                 ref={coinsRef}
               >
-                <svg className="w-5 h-5" fill="url(#coin-gradient)" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="url(#coin-gradient)" viewBox="0 0 24 24">
                   <defs>
                     <linearGradient id="coin-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                       <stop offset="0%" style={{ stopColor: '#1e3a8a', stopOpacity: 1 }} />
@@ -250,82 +250,103 @@ const Navbar = () => {
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v2h-2V7zm0 4h2v6h-2v-6z" />
                   <circle cx="12" cy="12" r="8" fill="none" stroke="url(#coin-gradient)" strokeWidth="1" />
                 </svg>
-                SkillCoin
+                <span className="hidden xs:inline">SkillCoin</span>
               </button>
               {showCoinsDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-gradient-to-br from-blue-50 to-gray-50 border border-blue-200 rounded-xl shadow-lg z-40 animate-slide-up">
+                <div className="absolute right-0 mt-2 w-40 bg-gradient-to-br from-blue-50 to-gray-50 border border-blue-200 rounded-xl shadow-lg z-40 animate-slide-up">
                   <div className="p-3 space-y-2 font-nunito text-gray-600">
                     <div className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-blue-100">
                       <svg className="w-5 h-5" fill="url(#gold-gradient)" viewBox="0 0 24 24">
                         <defs>
                           <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" style={{ stopColor: '#f59e0b', stopOpacity: 1 }} />
-                          <stop offset="100%" style={{ stopColor: '#d97706', stopOpacity: 1 }} />
-                        </linearGradient>
-                      </defs>
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
-                      <circle cx="12" cy="12" r="8" fill="none" stroke="url(#gold-gradient)" strokeWidth="1" />
-                    </svg>
-                    <span className="text-sm font-semibold text-gray-700">Golden Coins: {goldenCoins}</span>
-                  </div>
-                  <div className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-blue-100">
-                    <svg className="w-5 h-5" fill="url(#silver-gradient)" viewBox="0 0 24 24">
-                      <defs>
-                        <linearGradient id="silver-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" style={{ stopColor: '#d1d5db', stopOpacity: 1 }} />
-                          <stop offset="100%" style={{ stopColor: '#9ca3af', stopOpacity: 1 }} />
-                        </linearGradient>
-                      </defs>
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
-                      <circle cx="12" cy="12" r="8" fill="none" stroke="url(#silver-gradient)" strokeWidth="1" />
-                    </svg>
-                    <span className="text-sm font-semibold text-gray-700">Silver Coins: {silverCoins}</span>
+                            <stop offset="0%" style={{ stopColor: '#f59e0b', stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: '#d97706', stopOpacity: 1 }} />
+                          </linearGradient>
+                        </defs>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
+                        <circle cx="12" cy="12" r="8" fill="none" stroke="url(#gold-gradient)" strokeWidth="1" />
+                      </svg>
+                      <span className="text-sm font-semibold text-gray-700">Golden Coins: {goldenCoins}</span>
+                    </div>
+                    <div className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-blue-100">
+                      <svg className="w-5 h-5" fill="url(#silver-gradient)" viewBox="0 0 24 24">
+                        <defs>
+                          <linearGradient id="silver-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style={{ stopColor: '#d1d5db', stopOpacity: 1 }} />
+                            <stop offset="100%" style={{ stopColor: '#9ca3af', stopOpacity: 1 }} />
+                          </linearGradient>
+                        </defs>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
+                        <circle cx="12" cy="12" r="8" fill="none" stroke="url(#silver-gradient)" strokeWidth="1" />
+                      </svg>
+                      <span className="text-sm font-semibold text-gray-700">Silver Coins: {silverCoins}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
 
-        {/* Notifications */}
-        <Notifications notifications={notifications} setNotifications={setNotifications} />
+          {/* Notifications */}
+          <Notifications notifications={notifications} setNotifications={setNotifications} />
 
-        {/* Auth/Profile */}
-        {!isLoggedIn ? (
-          <button
-            className="bg-blue-700 text-white px-3 py-1.5 rounded-md font-medium text-sm transition-all duration-300 hover:bg-blue-800 hover:scale-105 font-nunito"
-            onClick={handleLoginClick}
-          >
-            Login
-          </button>
-        ) : (
-          <div className="relative">
+          {/* Auth/Profile */}
+          {!isLoggedIn ? (
             <button
-              className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:scale-105"
-              onClick={() => setShowProfileMenu((v) => !v)}
-              title="Profile"
-              ref={menuRef}
+              className="bg-blue-700 text-white px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm rounded-md font-medium transition-all duration-300 hover:bg-blue-800 hover:scale-105 font-nunito"
+              onClick={handleLoginClick}
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-              </svg>
+              Login
             </button>
-            {showProfileMenu && (
-              <ProfileDropdown
-                show={showProfileMenu}
-                onClose={() => setShowProfileMenu(false)}
-                navigate={navigate}
-                menuRef={menuRef}
-              />
-            )}
-          </div>
-        )}
+          ) : (
+            <div className="relative">
+              <button
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                onClick={() => setShowProfileMenu((v) => !v)}
+                title="Profile"
+                ref={menuRef}
+              >
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                </svg>
+              </button>
+              {showProfileMenu && (
+                <ProfileDropdown
+                  show={showProfileMenu}
+                  onClose={() => setShowProfileMenu(false)}
+                  navigate={navigate}
+                  menuRef={menuRef}
+                />
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
 
-   
-  </nav>
-);
+      {/* Mobile Menu */}
+      {menuOpen && (
+        <MobileMenu
+          isOpen={menuOpen}
+          isLoggedIn={isLoggedIn}
+          navigate={navigate}
+          setShowProfileMenu={setShowProfileMenu}
+          showProfileMenu={showProfileMenu}
+          menuRef={menuRef}
+          setMenuOpen={setMenuOpen}
+          ProfileDropdown={ProfileDropdown}
+          goldenCoins={goldenCoins}
+          silverCoins={silverCoins}
+          notifications={notifications}
+          setNotifications={setNotifications}
+          handleLoginClick={handleLoginClick}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          handleSearch={handleSearch}
+          isActive={isActive}
+        />
+      )}
+    </nav>
+  );
 };
 
 export default Navbar;
