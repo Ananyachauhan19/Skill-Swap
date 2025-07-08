@@ -564,9 +564,6 @@ const CreateSession = () => {
           </section>
         </div>
       </div>
-
-     
-    
     </div>
   );
 };
