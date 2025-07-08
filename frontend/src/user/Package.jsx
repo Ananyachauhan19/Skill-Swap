@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import BuyRedeemCoins from './settings/BuyRedeemCoins';
+import ActiveSubscriptions from './settings/ActiveSubscriptions';
 
 const PackageHistory = () => {
   const [history, setHistory] = useState([]);
@@ -58,9 +59,10 @@ const PackageHistory = () => {
 
 const Package = () => (
   <div className="w-full min-h-screen bg-blue-50 pb-10">
-    {/* Section 1: Current package and redeem plan */}
+    <ActiveSubscriptions/>
+    {/*Redeem Plan */}
     <BuyRedeemCoins />
-    {/* Section 2: History of past packages */}
+    {/*History of past packages */}
     <PackageHistory />
   </div>
 );

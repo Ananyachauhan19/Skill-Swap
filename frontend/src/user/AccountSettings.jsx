@@ -47,8 +47,8 @@ const sections = [
 	{
 		title: "📚 Learning & Teaching Records",
 		items: [
-			"My Sessions (as Learner/Expert)",
-			"Past Bookings",
+			"My Sessions (as Learner)",
+			"My Sessions (as Teacher)",
 			"Skill Badges / Certifications Earned",
 		],
 	},
