@@ -107,6 +107,8 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       });
 
       const { token, user } = res.data;
+      console.log("VERIFY OTP RESPONSE:", res.data);
+
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
       window.dispatchEvent(new Event("authChanged"));
