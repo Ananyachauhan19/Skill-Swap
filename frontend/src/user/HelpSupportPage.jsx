@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import faqs from "./faqs";
 
 const HelpSupportPage = () => {
@@ -37,24 +37,41 @@ const HelpSupportPage = () => {
 			return;
 		}
 		setFormLoading(true);
-		// Simulate API call
-		setTimeout(() => {
-			setFormLoading(false);
+		try {
+			const res = await fetch("/api/support/contact", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(form),
+			});
+			if (!res.ok) throw new Error("Failed to submit request");
 			setFormStatus("Your request has been submitted! We'll get back to you soon.");
 			setForm({ name: "", email: "", message: "" });
-		}, 1200);
-		// To connect to backend, use fetch/axios here
-		// await fetch('/support', { method: 'POST', body: JSON.stringify(form), ... })
+		} catch (err) {
+			setFormStatus("Failed to submit your request. Please try again later.");
+		} finally {
+			setFormLoading(false);
+		}
 	}
 
+	useEffect(() => {
+		if (window.location.hash === "#contact-support") {
+			const el = document.getElementById("contact-support");
+			if (el) {
+				setTimeout(() => {
+					el.scrollIntoView({ behavior: "smooth", block: "start" });
+				}, 100);
+			}
+		}
+	}, []);
+
 	return (
-		<div className="max-w-7xl mx-auto px-2 xs:px-4 sm:px-6 md:px-12 py-4 sm:py-8 text-gray-800 w-full">
+		<div className="max-w-7xl mx-auto px-2 xs:px-4 sm:px-6 md:px-8 lg:px-12 py-4 sm:py-8 text-gray-800 w-full">
 			<h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center">Help & Support</h1>
 
             {/* Pro Features: Skill Coin Packages */}
 			<div className="mb-8 sm:mb-10">
 				<h2 className="text-xl sm:text-2xl font-semibold mb-4">Pro Feature: Skill Coin Packages</h2>
-				<div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 sm:p-5 rounded-lg mb-6 text-yellow-900 text-sm sm:text-base">
+				<div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 sm:p-5 rounded-lg mb-6 text-yellow-900 text-sm sm:text-base overflow-x-auto">
 					<p className="mb-2 font-semibold">Unlock more learning and teaching opportunities with Skill Coin Packages!</p>
 					<ul className="list-disc list-inside space-y-2">
 						<li><b>Silver Coin Packages:</b> <br/>
@@ -79,7 +96,7 @@ const HelpSupportPage = () => {
             {/* How SkillSwapHub Works Section */}
 			<div className="mb-8 sm:mb-10">
 				<h2 className="text-xl sm:text-2xl font-semibold mb-4">How SkillSwapHub Works</h2>
-				<div className="bg-blue-50 border-l-4 border-blue-400 p-4 sm:p-5 rounded-lg mb-6 text-blue-900 text-sm sm:text-base">
+				<div className="bg-blue-50 border-l-4 border-blue-400 p-4 sm:p-5 rounded-lg mb-6 text-blue-900 text-sm sm:text-base overflow-x-auto">
 					<p className="mb-2 font-semibold">Welcome to SkillSwapHub!</p>
 					<ul className="list-disc list-inside space-y-2">
 						<li><b>Profile:</b> Set up your profile with your skills, what you want to learn, and your experience. Edit your profile anytime from the Profile page.</li>
@@ -121,7 +138,7 @@ const HelpSupportPage = () => {
 					</ul>
 				</div>
 				<h2 className="text-lg sm:text-xl font-semibold mb-3">Common User Actions</h2>
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8 md:gap-10 mb-8">
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 md:gap-10 mb-8">
 					<div className="bg-white border border-blue-100 rounded-xl p-4 sm:p-6 md:p-8 shadow-sm md:shadow-lg mb-6 md:mb-0">
 						<h3 className="font-semibold mb-3">Edit Your Profile & Privacy</h3>
 						<ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
@@ -193,7 +210,7 @@ const HelpSupportPage = () => {
 			{/* FAQ Section */}
 			<div className="mb-8 sm:mb-10">
 				<h2 className="text-xl sm:text-2xl font-semibold mb-4">Frequently Asked Questions</h2>
-				<div className="space-y-3 sm:space-y-4">
+				<div className="space-y-3 sm:space-y-4 overflow-x-auto">
 					{visibleFaqs.length === 0 ? (
 						<div className="text-gray-500">No FAQs found for your search.</div>
 					) : (
@@ -225,53 +242,53 @@ const HelpSupportPage = () => {
 			
 
 			{/* Contact Support Form */}
-			<div className="mb-10 sm:mb-12">
-				<h2 className="text-xl sm:text-2xl font-semibold mb-4">Still need help? Contact Us</h2>
-				<form className="space-y-3 sm:space-y-4" onSubmit={handleFormSubmit}>
-					<input
-						type="text"
-						name="name"
-						placeholder="Your Name"
-						className="w-full p-2 sm:p-3 border rounded-lg text-sm sm:text-base"
-						value={form.name}
-						onChange={handleFormChange}
-						disabled={formLoading}
-					/>
-					<input
-						type="email"
-						name="email"
-						placeholder="Your Email"
-						className="w-full p-2 sm:p-3 border rounded-lg text-sm sm:text-base"
-						value={form.email}
-						onChange={handleFormChange}
-						disabled={formLoading}
-					/>
-					<textarea
-						name="message"
-						placeholder="Describe your issue..."
-						className="w-full p-2 sm:p-3 border rounded-lg h-24 sm:h-32 text-sm sm:text-base"
-						value={form.message}
-						onChange={handleFormChange}
-						disabled={formLoading}
-					></textarea>
-					<button
-						type="submit"
-						className="bg-blue-600 text-white px-4 sm:px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60 text-sm sm:text-base"
-						disabled={formLoading}
-					>
-						{formLoading ? "Submitting..." : "Submit Request"}
-					</button>
-					{formStatus && (
-						<div className={`mt-2 text-xs sm:text-sm ${formStatus.includes('submitted') ? 'text-green-600' : 'text-red-600'}`}>{formStatus}</div>
-					)}
-				</form>
-			</div>
+            <div className="mb-10 sm:mb-12 w-full max-w-lg mx-auto px-2 sm:px-4" >
+                <h2 id="contact-support" className="text-xl sm:text-2xl font-semibold mb-4">Still need help? Contact Us</h2>
+                <form className="space-y-3 sm:space-y-4" onSubmit={handleFormSubmit}>
+                    <input
+                        type="text"
+                        name="name"
+                        placeholder="Your Name"
+                        className="w-full p-2 sm:p-3 border rounded-lg text-sm sm:text-base"
+                        value={form.name}
+                        onChange={handleFormChange}
+                        disabled={formLoading}
+                    />
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="Your Email"
+                        className="w-full p-2 sm:p-3 border rounded-lg text-sm sm:text-base"
+                        value={form.email}
+                        onChange={handleFormChange}
+                        disabled={formLoading}
+                    />
+                    <textarea
+                        name="message"
+                        placeholder="Describe your issue..."
+                        className="w-full p-2 sm:p-3 border rounded-lg h-24 sm:h-32 text-sm sm:text-base"
+                        value={form.message}
+                        onChange={handleFormChange}
+                        disabled={formLoading}
+                    ></textarea>
+                    <button
+                        type="submit"
+                        className="bg-blue-600 text-white px-4 sm:px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60 text-sm sm:text-base w-full"
+                        disabled={formLoading}
+                    >
+                        {formLoading ? "Submitting..." : "Submit Request"}
+                    </button>
+                    {formStatus && (
+                        <div className={`mt-2 text-xs sm:text-sm ${formStatus.includes('submitted') ? 'text-green-600' : 'text-red-600'}`}>{formStatus}</div>
+                    )}
+                </form>
+            </div>
 
 			{/* Quick Links */}
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 text-center">
+			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 text-center mt-8">
 				<div>
 					<h3 className="font-semibold mb-1">Email Support</h3>
-					<a href="mailto:support@yourdomain.com" className="text-xs sm:text-sm text-blue-700 underline">support@yourdomain.com</a>
+					<a href="mailto:support@yourdomain.com" className="text-xs sm:text-sm text-blue-700 underline break-all">support@yourdomain.com</a>
 				</div>
 				<div>
 					<h3 className="font-semibold mb-1">Community Forum</h3>

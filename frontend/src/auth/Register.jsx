@@ -247,7 +247,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3 flex-1">
-                {/* Moonshot Note: Removed the extra div wrapping the form content to simplify the right panel structure */}
                 <div className="flex gap-2">
                   <div className="w-full">
                     <label className="block text-xs font-medium text-gray-700 mb-1">

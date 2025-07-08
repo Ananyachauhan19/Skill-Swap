@@ -12,6 +12,7 @@ import TopPerformersSection from "./HomeSection/TopPerformersSection";
 import WhoAreWeSection from "./HomeSection/WhoAreWeSection";
 import WhyChooseSection from "./HomeSection/WhyChooseSection";
 import LetsStartSection from "./HomeSection/LetsStartSection";
+import Testimonial from "./Testimonial";
 
 // HomeHero component: Main landing page for SkillSwap-Hub
 const HomeHero = () => {
@@ -170,7 +171,7 @@ const HomeHero = () => {
     <main
       className={`bg-gradient-to-b from-blue-50 to-gray-100 text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] ${
         showLoginModal || showRegisterModal ? "overflow-hidden" : "overflow-auto"
-      } relative pt-16`}
+      } relative pt-8`}
     >
       {/* Section: Login Modal */}
       <AnimatePresence>
@@ -244,6 +245,9 @@ const HomeHero = () => {
 
       {/* Section: Let's Start */}
       <LetsStartSection isLoggedIn={isLoggedIn} openLogin={openLogin} buttonVariants={buttonVariants} />
+
+      {/* Section: Testimonials */}
+      <Testimonial />
     </main>
   );
 };

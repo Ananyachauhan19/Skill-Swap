@@ -85,6 +85,10 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       const { token, user } = res.data;
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
+      // Store email for fallback
+      if (user && user.email) {
+        localStorage.setItem("registeredEmail", user.email);
+      }
       window.dispatchEvent(new Event("authChanged"));
       if (onLoginSuccess) onLoginSuccess(user);
       if (isModal && onClose) {
