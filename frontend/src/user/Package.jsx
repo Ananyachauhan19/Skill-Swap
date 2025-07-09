@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -317,6 +318,11 @@ const BuyRedeemCoins = () => {
     </section>
   );
 };
+=======
+import React, { useEffect, useState } from 'react';
+import BuyRedeemCoins from './settings/BuyRedeemCoins';
+import ActiveSubscriptions from './settings/ActiveSubscriptions';
+>>>>>>> 72534f60c383fe58c005219c841f83d3b27a1096
 
 const PackageHistory = () => {
   const [history, setHistory] = useState([]);
@@ -471,4 +477,18 @@ const PackageHistory = () => {
   );
 };
 
+<<<<<<< HEAD
 export default Package;
+=======
+const Package = () => (
+  <div className="w-full min-h-screen bg-blue-50 pb-10">
+    <ActiveSubscriptions/>
+    {/*Redeem Plan */}
+    <BuyRedeemCoins />
+    {/*History of past packages */}
+    <PackageHistory />
+  </div>
+);
+
+export default Package;
+>>>>>>> 72534f60c383fe58c005219c841f83d3b27a1096

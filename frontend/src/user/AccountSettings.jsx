@@ -12,6 +12,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 const sections = [
+
   {
     title: "Contact Information",
     icon: <Mail className="w-5 h-5 text-blue-900" />,
@@ -87,6 +88,75 @@ const sections = [
       "Time Zone Settings",
     ],
   },
+=======
+	{
+		title: "📩 Contact Information",
+		items: [
+			"New Email Address (with verification option)",
+			"New Phone Number (with OTP verification)",
+		],
+	},
+	{
+		title: "🔐 Security & Privacy",
+		items: [
+			"Change Password",
+			"Two-Factor Authentication (2FA)",
+			"Login Activity / Active Devices",
+			"Deactivate Account",
+		],
+	},
+	{
+		title: "💳 Payments & Subscriptions",
+		items: [
+			"Saved Payment Methods",
+			"Billing History",
+			"Invoices & Receipts",
+			"Active Subscriptions / Packages",
+			"Upgrade or Cancel Plan",
+		],
+	},
+	{
+		title: "🧭 Platform Preferences",
+		items: [
+			"Theme Mode (Light/Dark)",
+			"Notification Settings",
+			"Email notifications",
+		],
+	},
+	{
+		title: "🪙 Credits & Coins",
+		items: [
+			"Current Silver & Golden Coin Balance",
+			"Coin Earning History",
+			"Coin Spending / Usage History",
+			"Buy More Coins / Redeem Offers",
+		],
+	},
+	{
+		title: "📚 Learning & Teaching Records",
+		items: [
+			"My Sessions (as Learner)",
+			"My Sessions (as Teacher)",
+			"Skill Badges / Certifications Earned",
+		],
+	},
+	{
+		title: "📞 Support & Feedback",
+		items: [
+			"Help Center / Support Ticket",
+			"Submit Feedback",
+			"Report a Problem",
+			"View Support History",
+		],
+	},
+	{
+		title: "⚙️ Referral Feature and Time Zone Setting",
+		items: [
+			"Referral Program (invite & earn)",
+			"Time Zone Settings",
+		],
+	},
+>>>>>>> 72534f60c383fe58c005219c841f83d3b27a1096
 ];
 
 const themeOptions = [
