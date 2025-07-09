@@ -120,6 +120,20 @@ router.put('/:id', requireAuth, async (req, res) => {
   }
 });
 
+// Delete a session (only creator can delete)
+router.delete('/:id', requireAuth, async (req, res) => {
+  try {
+    const session = await Session.findById(req.params.id);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (session.creator.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Only the creator can delete this session' });
+    }
+    await session.deleteOne();
+    res.json({ message: 'Session deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 // Request session
 router.post('/request/:id', requireAuth, async (req, res) => {

@@ -243,11 +243,17 @@ const CreateSession = () => {
         });
         if (!response.ok) {
           const err = await response.json();
+          if (response.status === 404) {
+            alert('Session not found. It may have been deleted.');
+            fetchUserSessions();
+            return;
+          }
           throw new Error(err.message || 'Failed to update session');
         }
         setEditId(null);
       } else {
         // Create new session
+        console.log('Creating session with user:', currentUser);
         const response = await fetch(`${BACKEND_URL}/api/sessions`, {
           method: 'POST',
           headers: {
@@ -260,6 +266,8 @@ const CreateSession = () => {
           const err = await response.json();
           throw new Error(err.message || 'Failed to create session');
         }
+        const createdSession = await response.json();
+        console.log('Session created:', createdSession);
         setScheduled(true);
       }
       setForm({
@@ -293,8 +301,27 @@ const CreateSession = () => {
   };
 
   const handleDelete = async (id) => {
-    setScheduledSessions(prev => prev.filter(s => s._id !== id));
-    if (editId === id) setEditId(null);
+    if (!window.confirm("Are you sure you want to delete this session?")) return;
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        if (response.status === 404) {
+          alert('Session not found. It may have already been deleted.');
+          fetchUserSessions();
+          return;
+        }
+        throw new Error(err.message || 'Failed to delete session');
+      }
+      setScheduledSessions(prev => prev.filter(s => s._id !== id));
+      if (editId === id) setEditId(null);
+      alert('Session deleted!');
+    } catch (error) {
+      alert('Error deleting session: ' + error.message);
+    }
   };
 
   const handleApproveSession = async (id) => {
