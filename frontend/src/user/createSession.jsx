@@ -159,15 +159,11 @@ const CreateSession = () => {
 
     // Listen for session-started (for requesters)
     socket.on('session-started', (data) => {
-      console.log('Session started notification received:', data);
-      // Refresh sessions to show Join/Cancel buttons
       fetchUserSessions();
     });
 
     // Listen for session-cancelled (for creators)
     socket.on('session-cancelled', (data) => {
-      console.log('Session cancelled notification received:', data);
-      // Refresh sessions to update status
       fetchUserSessions();
     });
 
@@ -243,6 +239,11 @@ const CreateSession = () => {
         });
         if (!response.ok) {
           const err = await response.json();
+          if (response.status === 404) {
+            alert('Session not found. It may have been deleted.');
+            fetchUserSessions();
+            return;
+          }
           throw new Error(err.message || 'Failed to update session');
         }
         setEditId(null);
@@ -260,6 +261,7 @@ const CreateSession = () => {
           const err = await response.json();
           throw new Error(err.message || 'Failed to create session');
         }
+        const createdSession = await response.json();
         setScheduled(true);
       }
       setForm({
@@ -293,8 +295,27 @@ const CreateSession = () => {
   };
 
   const handleDelete = async (id) => {
-    setScheduledSessions(prev => prev.filter(s => s._id !== id));
-    if (editId === id) setEditId(null);
+    if (!window.confirm("Are you sure you want to delete this session?")) return;
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        if (response.status === 404) {
+          alert('Session not found. It may have already been deleted.');
+          fetchUserSessions();
+          return;
+        }
+        throw new Error(err.message || 'Failed to delete session');
+      }
+      setScheduledSessions(prev => prev.filter(s => s._id !== id));
+      if (editId === id) setEditId(null);
+      alert('Session deleted!');
+    } catch (error) {
+      alert('Error deleting session: ' + error.message);
+    }
   };
 
   const handleApproveSession = async (id) => {
@@ -348,7 +369,6 @@ const CreateSession = () => {
   const handleJoinSession = async (session) => {
     setActionLoading(prev => ({ ...prev, [`join-${session._id}`]: true }));
     try {
-      console.log('Joining session:', session._id);
       setVideoCall(session._id);
       // The video call will handle the connection
     } catch (error) {
@@ -450,23 +470,19 @@ const CreateSession = () => {
   useEffect(() => {
     // Socket listeners for real-time updates
     socket.on('session-approved', (data) => {
-      console.log('Session approved:', data);
       fetchUserSessions(); // Refresh sessions
     });
 
     socket.on('session-rejected', (data) => {
-      console.log('Session rejected:', data);
       fetchUserSessions(); // Refresh sessions
     });
 
     socket.on('session-started', (data) => {
-      console.log('Session started:', data);
       // Start video call
       setVideoCall(data.sessionId);
     });
 
     socket.on('session-cancelled', (data) => {
-      console.log('Session cancelled:', data);
       fetchUserSessions(); // Refresh sessions
       // End video call if active
       if (videoCall === data.sessionId) {
@@ -796,6 +812,7 @@ const CreateSession = () => {
                       )}
                     </div>
                     <div className="mt-6 flex justify-end">
+                      {/* Approve/Reject for creator when requested */}
                       {session.status === 'requested' && currentUser && isCurrentUserCreator(session) && (
                         <div className="flex gap-2 w-full">
                           <button
@@ -814,16 +831,18 @@ const CreateSession = () => {
                           </button>
                         </div>
                       )}
-                                                                    {session.status === 'approved' && currentUser && isCurrentUserCreator(session) && (
-                      <button
-                        className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      {/* Start Session for creator when approved */}
+                      {session.status === 'approved' && currentUser && isCurrentUserCreator(session) && (
+                        <button
+                          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
                           onClick={() => handleStartSession(session)}
                           disabled={startingSession === session._id}
                         >
                           {startingSession === session._id ? 'Starting...' : 'Start Session'}
                         </button>
                       )}
-                                                                    {session.status === 'approved' && currentUser && isCurrentUserRequester(session) && (
+                      {/* Join/Cancel for requester when active */}
+                      {session.status === 'active' && currentUser && isCurrentUserRequester(session) && (
                         <div className="flex gap-2 w-full">
                           <button
                             className="flex-1 bg-gradient-to-r from-green-600 to-green-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
@@ -838,7 +857,7 @@ const CreateSession = () => {
                             disabled={actionLoading[`cancel-${session._id}`]}
                           >
                             {actionLoading[`cancel-${session._id}`] ? 'Cancelling...' : 'Cancel Session'}
-                      </button>
+                          </button>
                         </div>
                       )}
                     </div>
