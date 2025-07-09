@@ -97,7 +97,7 @@ const Sessions = () => {
           </div>
           {/* Right: Image */}
           <img
-            src="/path/to/your/image.jpg" // Replace with your image source
+            src="/assets/session.webp" // Replace with your image source
             alt="Learning Illustration"
             className="w-full h-64 md:h-96 object-cover rounded-2xl animate-fade-in-right"
           />
