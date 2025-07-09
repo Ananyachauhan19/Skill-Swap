@@ -4,8 +4,6 @@ import React, { useState, useEffect } from "react";
 // async function fetchCoinSpendingHistory() {
 //   return fetch('/api/coins/spending-history').then(res => res.json());
 // }
-<<<<<<< HEAD
-=======
 const FILTERS = ["Daily", "Weekly", "Monthly"];
 
 function groupHistory(history, filter) {
@@ -38,7 +36,6 @@ function getWeekNumber(d) {
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
 }
->>>>>>> 72534f60c383fe58c005219c841f83d3b27a1096
 
 const CoinSpendingHistory = () => {
   const [history, setHistory] = useState([]);
