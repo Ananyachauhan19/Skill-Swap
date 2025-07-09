@@ -285,7 +285,9 @@ const Navbar = () => {
 
   useEffect(() => {
     if (!isLoggedIn) return;
-    fetch(`${BACKEND_URL}/api/user/coins`)
+    fetch(`${BACKEND_URL}/api/auth/coins`, {
+      credentials: 'include'
+    })
       .then((res) => res.json())
       .then((data) => {
         setGoldenCoins(data.golden || 0);

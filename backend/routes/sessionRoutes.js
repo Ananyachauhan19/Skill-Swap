@@ -2,15 +2,8 @@
 const express = require('express');
 const Session = require('../models/Session');
 const router = express.Router();
-const User = require('../models/User'); // Added for test-socket endpoint
-
-// Middleware to check authentication (you can reuse your existing one)
-const requireAuth = (req, res, next) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ error: 'Authentication required' });
-};
+const User = require('../models/User');
+const requireAuth = require('../middleware/requireAuth');
 
 
 router.get('/search', async (req, res) => {
@@ -37,9 +30,6 @@ router.get('/search', async (req, res) => {
   }
 });
 
-
-
-router.use(requireAuth);
 // Create a session
 router.post('/', requireAuth, async (req, res) => {
   try {
@@ -142,17 +132,17 @@ router.post('/request/:id', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
     
-    session.status = 'requested';
+  session.status = 'requested';
     session.requester = req.user ? req.user._id : req.body.userId;
-    await session.save();
+  await session.save();
 
-    const io = req.app.get('io');
+  const io = req.app.get('io');
     
     if (session.creator?.socketId) {
-      io.to(session.creator.socketId).emit('session-requested', session);
+  io.to(session.creator.socketId).emit('session-requested', session);
     }
     
-    res.json({ message: 'Request sent', session });
+  res.json({ message: 'Request sent', session });
   } catch (error) {
     console.error('Session request error:', error);
     res.status(500).json({ error: 'Failed to send request' });
@@ -162,7 +152,7 @@ router.post('/request/:id', requireAuth, async (req, res) => {
 // Approve
 router.post('/:id/approve', requireAuth, async (req, res) => {
   try {
-    const session = await Session.findById(req.params.id).populate('requester');
+  const session = await Session.findById(req.params.id).populate('requester');
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
@@ -172,14 +162,14 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Only the session creator can approve sessions' });
     }
     
-    session.status = 'approved';
-    await session.save();
+  session.status = 'approved';
+  await session.save();
 
-    const io = req.app.get('io');
+  const io = req.app.get('io');
     if (session.requester && session.requester.socketId) {
-      io.to(session.requester.socketId).emit('session-approved', session);
+  io.to(session.requester.socketId).emit('session-approved', session);
     }
-    res.json(session);
+  res.json(session);
   } catch (error) {
     console.error('Approve error:', error);
     res.status(500).json({ error: 'Failed to approve session' });
@@ -189,7 +179,7 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
 // Reject
 router.post('/:id/reject', requireAuth, async (req, res) => {
   try {
-    const session = await Session.findById(req.params.id).populate('requester');
+  const session = await Session.findById(req.params.id).populate('requester');
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
@@ -199,14 +189,14 @@ router.post('/:id/reject', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Only the session creator can reject sessions' });
     }
     
-    session.status = 'rejected';
-    await session.save();
+  session.status = 'rejected';
+  await session.save();
 
-    const io = req.app.get('io');
+  const io = req.app.get('io');
     if (session.requester && session.requester.socketId) {
-      io.to(session.requester.socketId).emit('session-rejected', session);
+  io.to(session.requester.socketId).emit('session-rejected', session);
     }
-    res.json(session);
+  res.json(session);
   } catch (error) {
     console.error('Reject error:', error);
     res.status(500).json({ error: 'Failed to reject session' });

@@ -115,6 +115,28 @@ const CreateSession = () => {
   const [videoCall, setVideoCall] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Helper function to normalize user IDs for comparison
+  const normalizeUserId = (userId) => {
+    if (!userId) return null;
+    return userId.toString();
+  };
+
+  // Helper function to check if current user is creator
+  const isCurrentUserCreator = (session) => {
+    if (!currentUser || !session) return false;
+    const currentUserId = normalizeUserId(currentUser._id);
+    const creatorId = normalizeUserId(session.creator?._id || session.creator);
+    return currentUserId === creatorId;
+  };
+
+  // Helper function to check if current user is requester
+  const isCurrentUserRequester = (session) => {
+    if (!currentUser || !session) return false;
+    const currentUserId = normalizeUserId(currentUser._id);
+    const requesterId = normalizeUserId(session.requester?._id || session.requester);
+    return currentUserId === requesterId;
+  };
+
   // Get current user from cookies
   useEffect(() => {
     const userCookie = Cookies.get('user');
@@ -412,6 +434,7 @@ const CreateSession = () => {
         throw new Error('Failed to fetch sessions');
       }
       const sessions = await response.json();
+      
       setScheduledSessions(sessions);
     } catch (error) {
       console.error('Error fetching sessions:', error);
@@ -737,21 +760,16 @@ const CreateSession = () => {
                           session.status === 'rejected' ? 'text-red-600' : 
                           'text-yellow-600'
                         }`}>
-                          {session.status.toUpperCase()}
+                        {session.status.toUpperCase()}
                         </div>
-                        {currentUser && (
-                          <div className={`text-xs px-2 py-1 rounded-full font-nunito ${
-                            (session.creator === currentUser._id || 
-                             session.creator?._id === currentUser._id || 
-                             session.creator?.toString() === currentUser._id?.toString()) 
-                              ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                          }`}>
-                            {(session.creator === currentUser._id || 
-                              session.creator?._id === currentUser._id || 
-                              session.creator?.toString() === currentUser._id?.toString()) 
-                                ? 'Creator' : 'Requester'}
-                          </div>
-                        )}
+                                                  {currentUser && (
+                            <div className={`text-xs px-2 py-1 rounded-full font-nunito ${
+                              isCurrentUserCreator(session) 
+                                ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                            }`}>
+                              {isCurrentUserCreator(session) ? 'Creator' : 'Requester'}
+                            </div>
+                          )}
                       </div>
                       <div className="font-semibold text-blue-900 mb-1 text-lg truncate font-lora">
                         {[session.subject, session.topic, session.subtopic].filter(x => x && x.trim()).join(' - ')}
@@ -760,33 +778,25 @@ const CreateSession = () => {
                       <div className="text-gray-500 text-xs mb-4 font-nunito">{session.date} at {session.time}</div>
                     </div>
                     <div className="flex gap-3 mt-auto">
-                      {currentUser && (
-                        (session.creator === currentUser._id || 
-                         session.creator?._id === currentUser._id || 
-                         session.creator?.toString() === currentUser._id?.toString())
-                      ) && (
+                                                                    {currentUser && isCurrentUserCreator(session) && (
                         <>
-                          <button
-                            className="text-blue-600 hover:underline text-sm font-medium font-nunito"
-                            onClick={() => handleEdit(session)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="text-red-600 hover:underline text-sm font-medium font-nunito"
-                            onClick={() => handleDelete(session._id)}
-                          >
-                            Delete
-                          </button>
+                      <button
+                        className="text-blue-600 hover:underline text-sm font-medium font-nunito"
+                        onClick={() => handleEdit(session)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="text-red-600 hover:underline text-sm font-medium font-nunito"
+                        onClick={() => handleDelete(session._id)}
+                      >
+                        Delete
+                      </button>
                         </>
                       )}
                     </div>
                     <div className="mt-6 flex justify-end">
-                      {session.status === 'requested' && currentUser && (
-                        (session.creator === currentUser._id || 
-                         session.creator?._id === currentUser._id || 
-                         session.creator?.toString() === currentUser._id?.toString())
-                      ) && (
+                      {session.status === 'requested' && currentUser && isCurrentUserCreator(session) && (
                         <div className="flex gap-2 w-full">
                           <button
                             className="flex-1 bg-gradient-to-r from-green-600 to-green-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
@@ -804,24 +814,16 @@ const CreateSession = () => {
                           </button>
                         </div>
                       )}
-                      {session.status === 'approved' && currentUser && (
-                        (session.creator === currentUser._id || 
-                         session.creator?._id === currentUser._id || 
-                         session.creator?.toString() === currentUser._id?.toString())
-                      ) && (
-                        <button
-                          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                                                                    {session.status === 'approved' && currentUser && isCurrentUserCreator(session) && (
+                      <button
+                        className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
                           onClick={() => handleStartSession(session)}
                           disabled={startingSession === session._id}
                         >
                           {startingSession === session._id ? 'Starting...' : 'Start Session'}
                         </button>
                       )}
-                      {session.status === 'approved' && currentUser && (
-                        (session.requester === currentUser._id || 
-                         session.requester?._id === currentUser._id || 
-                         session.requester?.toString() === currentUser._id?.toString())
-                      ) && (
+                                                                    {session.status === 'approved' && currentUser && isCurrentUserRequester(session) && (
                         <div className="flex gap-2 w-full">
                           <button
                             className="flex-1 bg-gradient-to-r from-green-600 to-green-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
@@ -836,7 +838,7 @@ const CreateSession = () => {
                             disabled={actionLoading[`cancel-${session._id}`]}
                           >
                             {actionLoading[`cancel-${session._id}`] ? 'Cancelling...' : 'Cancel Session'}
-                          </button>
+                      </button>
                         </div>
                       )}
                     </div>
@@ -853,11 +855,8 @@ const CreateSession = () => {
         <VideoCall
           sessionId={videoCall}
           onEndCall={() => setVideoCall(null)}
-          userRole={currentUser && scheduledSessions.find(s => s._id === videoCall) && (
-            (scheduledSessions.find(s => s._id === videoCall).creator === currentUser._id || 
-             scheduledSessions.find(s => s._id === videoCall).creator?._id === currentUser._id || 
-             scheduledSessions.find(s => s._id === videoCall).creator?.toString() === currentUser._id?.toString())
-          ) ? 'Creator' : 'Requester'}
+          userRole={currentUser && scheduledSessions.find(s => s._id === videoCall) && 
+            isCurrentUserCreator(scheduledSessions.find(s => s._id === videoCall)) ? 'Creator' : 'Requester'}
         />
       )}
     </div>
