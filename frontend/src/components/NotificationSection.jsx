@@ -184,10 +184,10 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
               notifications.map((n, idx) => {
                 console.log('Rendering notification:', n, 'at index:', idx);
                 return (
-                  <li
-                    key={idx}
-                    className="px-4 py-3 text-blue-800 text-sm hover:bg-blue-50 cursor-pointer"
-                  >
+                <li
+                  key={idx}
+                  className="px-4 py-3 text-blue-800 text-sm hover:bg-blue-50 cursor-pointer"
+                >
                     {n.type === 'session-started' ? (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
@@ -310,7 +310,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
                     ) : (
                       <div>{n.content ? n.content : n}</div>
                     )}
-                  </li>
+                </li>
                 );
               })
             )}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BACKEND_URL } from '../config.js';
 import SearchBar from './oneononeSection/serachBar'; 
 import TutorCard from './oneononeSection/TutorCard';
@@ -93,7 +93,7 @@ const OneOnOne = () => {
 
       if (!res.ok) throw new Error('Unauthorized or failed request');
 
-      const data = await res.json();
+    const data = await res.json();
       setSearchResults(data);
     } catch (err) {
       console.error('Search failed:', err);
@@ -200,7 +200,7 @@ const OneOnOne = () => {
           <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
             Flexible Scheduling
           </span>
-        </div>
+      </div>
       </header>
       <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-16 px-4 sm:px-6 pb-12">
         <HowItWorks />
