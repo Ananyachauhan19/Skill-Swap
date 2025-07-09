@@ -6,7 +6,6 @@ import { StartLiveStreamButton, UploadSessionButton } from './SessionsFolder/But
 import Testimonial from "./Testimonial";
 
 // TODO: Replace with backend API calls
-// Example: fetch('/api/sessions').then(...)
 const DEMO_SESSIONS = [
   {
     id: 1,
@@ -70,129 +69,182 @@ const DEMO_UPLOADED_VIDEOS = [
 
 const Sessions = () => {
   const [sessions, setSessions] = useState([]);
-  // State for search bar
   const [courseValue, setCourseValue] = useState('');
   const [unitValue, setUnitValue] = useState('');
   const [topicValue, setTopicValue] = useState('');
 
   useEffect(() => {
-    // TODO: Replace with API call in production
-    // fetch('/api/sessions').then(res => res.json()).then(setSessions);
     setSessions(DEMO_SESSIONS);
   }, []);
 
   return (
-    <div className="max-w-6xl w-full mx-auto p-4 sm:p-8">
-      {/* Heading and intro */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl sm:text-5xl font-bold text-blue-900 mb-2">Your 1-on-1 Sessions</h1>
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-4">
-          <StartLiveStreamButton />
-          <UploadSessionButton />
-        </div>
-        <p className="text-lg text-blue-700 max-w-2xl mx-auto">
-          Book, track, and review your personalized learning sessions with top tutors. Manage your upcoming and past sessions all in one place.
-        </p>
-      </div>
-      {/* How it works*/}
-      <section className="relative bg-white rounded-xl shadow p-4 flex flex-col gap-4 border border-blue-200 mb-8">
-        <h2 className="text-lg sm:text-xl font-bold text-blue-900 text-center flex items-center justify-center gap-2">
-          <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          How It Works
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="flex flex-col items-center text-center p-3 bg-blue-50 rounded-lg shadow hover:shadow-md transition-all duration-200 hover:scale-105">
-            <div className="bg-blue-100 text-blue-700 rounded-full p-2 mb-2">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <path strokeLinecap="round" d="M8 12l2 2 4-4" />
-              </svg>
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-purple-50">
+      {/* Hero Section */}
+      <section className="max-w-7xl mx-auto px-6 py-12 md:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* Left: Text Content */}
+          <div className="animate-fade-in-left space-y-6">
+            <h1 className="text-4xl md:text-6xl font-extrabold text-blue-900 leading-tight tracking-tight">
+              Learn Smarter with SkillSwap Hub
+            </h1>
+            <p className="text-lg text-gray-600 leading-relaxed max-w-md">
+              Unlock personalized 1-on-1 sessions, live streams, and recorded videos with top tutors to master your subjects effortlessly.
+            </p>
+            <div className="flex gap-4">
+              <StartLiveStreamButton className="px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" />
+              <UploadSessionButton className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105" />
             </div>
-            <h3 className="text-base font-semibold text-blue-900">Search for Content</h3>
-            <p className="text-xs text-gray-700 mt-1">Find live sessions or recorded videos by course, subject, or topic.</p>
           </div>
-          <div className="flex flex-col items-center text-center p-3 bg-blue-50 rounded-lg shadow hover:shadow-md transition-all duration-200 hover:scale-105">
-            <div className="bg-blue-100 text-yellow-700 rounded-full p-2 mb-2">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <text x="12" y="16" textAnchor="middle" fontSize="10" fill="gold">G</text>
-              </svg>
-            </div>
-            <h3 className="text-base font-semibold text-yellow-700">Unlock with Golden Coins</h3>
-            <p className="text-xs text-yellow-700 mt-1">Each live or recorded session can be unlocked for <span className="font-bold">2 Golden Coins</span> (₹4).</p>
-          </div>
-          <div className="flex flex-col items-center text-center p-3 bg-blue-50 rounded-lg shadow hover:shadow-md transition-all duration-200 hover:scale-105">
-            <div className="bg-blue-100 text-yellow-700 rounded-full p-2 mb-2">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <text x="12" y="16" textAnchor="middle" fontSize="10" fill="gold">₹2</text>
-              </svg>
-            </div>
-            <h3 className="text-base font-semibold text-yellow-700">Golden Coin Value</h3>
-            <p className="text-xs text-yellow-700 mt-1">1 Golden Coin = ₹2. Unlocking a session costs ₹4.</p>
-          </div>
-          <div className="flex flex-col items-center text-center p-3 bg-blue-50 rounded-lg shadow hover:shadow-md transition-all duration-200 hover:scale-105">
-            <div className="bg-blue-100 text-blue-700 rounded-full p-2 mb-2">
-              <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <rect x="4" y="4" width="16" height="16" rx="8" />
-                <path strokeLinecap="round" d="M8 12h8" />
-              </svg>
-            </div>
-            <h3 className="text-base font-semibold text-blue-900">Access Instantly</h3>
-            <p className="text-xs text-gray-700 mt-1">Once unlocked, join the live session or watch the video anytime.</p>
-          </div>
+          {/* Right: Image */}
+          <img
+            src="/assets/session.webp" // Replace with your image source
+            alt="Learning Illustration"
+        className="w-full h-64 md:h-96 object-cover rounded-2xl animate-fade-in-right"
+          />
         </div>
       </section>
-      {/* Search Bar */}
-      <h2 className="text-xl sm:text-2xl font-bold text-blue-900 mb-4 text-center">Find a Session</h2>
-      <div className="mb-10">
-        <SearchBar
-          courseValue={courseValue}
-          setCourseValue={setCourseValue}
-          unitValue={unitValue}
-          setUnitValue={setUnitValue}
-          topicValue={topicValue}
-          setTopicValue={setTopicValue}
-        />
-      </div>
-      {/* Live Streams Section */}
-      <LiveStream liveStreams={DEMO_LIVE_STREAMS} />
-      {/* Uploaded Videos Section */}
-      <UploadedVideos videos={DEMO_UPLOADED_VIDEOS} />
-      {/* Testimonial Section */}
-      <Testimonial />
-      {/* Your Sessions list */}
-      <h2 className="text-2xl font-bold text-blue-900 mb-6">Your Sessions</h2>
-      {sessions.length === 0 ? (
-        <div className="text-gray-500">No sessions found.</div>
-      ) : (
-        <div className="space-y-6">
-          {sessions.map(session => (
-            <div key={session.id} className="bg-white rounded-xl shadow p-6 flex flex-col md:flex-row md:items-center md:justify-between border border-blue-100 w-full">
-              <div>
-                <div className="text-lg font-semibold text-blue-800">{session.title}</div>
-                <div className="text-sm text-gray-600 mt-1">
-                  <span className="font-medium">Course:</span> {session.course} &nbsp;|
-                  <span className="font-medium ml-2">Unit:</span> {session.unit} &nbsp;|
-                  <span className="font-medium ml-2">Topic:</span> {session.topic}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  <span className="font-medium">Tutor:</span> {session.tutor}
-                </div>
-                <div className="text-sm text-gray-500 mt-1">
-                  <span className="font-medium">Date:</span> {session.date} &nbsp;|
-                  <span className="font-medium ml-2">Time:</span> {session.time}
-                </div>
-              </div>
-              <div className="mt-4 md:mt-0 md:text-right">
-                <span className={`inline-block px-4 py-1 rounded-full text-xs font-semibold ${session.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{session.status}</span>
+
+      {/* How It Works Section */}
+      <section className="max-w-7xl mx-auto px-6 py-12">
+        <h2 className="text-3xl md:text-4xl font-bold text-blue-900 text-center mb-10 animate-fade-in">How It Works</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            {
+              title: 'Discover Sessions',
+              description: 'Explore live or recorded sessions by course, unit, or topic with our intuitive search.',
+              icon: (
+                <svg className="w-10 h-10 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              ),
+            },
+            {
+              title: 'Unlock with Coins',
+              description: 'Access any session for just <span class="font-bold">2 Golden Coins</span> (₹4).',
+              icon: (
+                <svg className="w-10 h-10 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <text x="12" y="16" textAnchor="middle" fontSize="12" fill="currentColor">G</text>
+                </svg>
+              ),
+            },
+            {
+              title: 'Coin Value',
+              description: 'Each Golden Coin equals ₹2, making learning affordable and accessible.',
+              icon: (
+                <svg className="w-10 h-10 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <text x="12" y="16" textAnchor="middle" fontSize="12" fill="currentColor">₹2</text>
+                </svg>
+              ),
+            },
+            {
+              title: 'Instant Learning',
+              description: 'Join live sessions or watch videos instantly after unlocking.',
+              icon: (
+                <svg className="w-10 h-10 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              ),
+            },
+          ].map((item, index) => (
+            <div
+              key={index}
+              className="relative p-6 bg-white bg-opacity-30 backdrop-blur-lg rounded-xl shadow-lg border border-white border-opacity-20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 hover:scale-105"
+              style={{ animationDelay: `${index * 150}ms` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-teal-100 to-purple-100 opacity-20 rounded-xl"></div>
+              <div className="relative flex flex-col items-center text-center">
+                <div className="p-3 bg-white bg-opacity-50 rounded-full mb-4 shadow-inner">{item.icon}</div>
+                <h3 className="text-lg font-semibold text-blue-900">{item.title}</h3>
+                <p className="text-sm text-gray-600 mt-2" dangerouslySetInnerHTML={{ __html: item.description }} />
               </div>
             </div>
           ))}
         </div>
-      )}
+      </section>
+
+      {/* Search Bar Section */}
+      <section className="max-w-7xl mx-auto px-6 py-12 animate-fade-in">
+        <h2 className="text-3xl md:text-4xl font-bold text-blue-900 text-center mb-8">Find Your Perfect Session</h2>
+        <div className="max-w-3xl mx-auto bg-white bg-opacity-20 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-white border-opacity-20">
+          <SearchBar
+            courseValue={courseValue}
+            setCourseValue={setCourseValue}
+            unitValue={unitValue}
+            setUnitValue={setUnitValue}
+            topicValue={topicValue}
+            setTopicValue={setTopicValue}
+            className="w-full"
+          />
+        </div>
+      </section>
+
+      {/* Tabbed Content Section */}
+      <section className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex justify-center gap-4 mb-10 flex-wrap">
+          {['Live Streams', 'Uploaded Videos', 'Testimonials'].map((tab, index) => (
+            <button
+              key={index}
+              className="px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-600 text-white font-semibold rounded-full shadow-lg hover:from-teal-600 hover:to-blue-700 transition-all duration-300 transform hover:scale-105"
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+        <div className="space-y-12">
+          <LiveStream liveStreams={DEMO_LIVE_STREAMS} className="animate-slide-up" />
+          <UploadedVideos videos={DEMO_UPLOADED_VIDEOS} className="animate-slide-up" />
+          <Testimonial className="animate-slide-up" />
+        </div>
+      </section>
+
+      {/* Your Sessions Section */}
+      <section className="max-w-7xl mx-auto px-6 py-12 animate-fade-in">
+        <h2 className="text-3xl md:text-4xl font-bold text-blue-900 mb-8">Your Sessions</h2>
+        {sessions.length === 0 ? (
+          <div className="text-gray-600 text-center py-12 bg-white bg-opacity-20 backdrop-blur-lg rounded-2xl shadow-xl border border-white border-opacity-20">
+            No sessions found. Search and book a session to get started!
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sessions.map((session, index) => (
+              <div
+                key={session.id}
+                className="bg-white bg-opacity-30 backdrop-blur-lg rounded-2xl shadow-lg p-6 border border-white border-opacity-20 hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <h3 className="text-lg font-semibold text-blue-900 mb-3">{session.title}</h3>
+                <div className="text-sm text-gray-600 space-y-2">
+                  <p>
+                    <span className="font-medium">Course:</span> {session.course} |{' '}
+                    <span className="font-medium">Unit:</span> {session.unit} |{' '}
+                    <span className="font-medium">Topic:</span> {session.topic}
+                  </p>
+                  <p>
+                    <span className="font-medium">Tutor:</span> {session.tutor}
+                  </p>
+                  <p>
+                    <span className="font-medium">Date:</span> {session.date} |{' '}
+                    <span className="font-medium">Time:</span> {session.time}
+                  </p>
+                </div>
+                <div className="mt-4">
+                  <span
+                    className={`px-4 py-2 rounded-full text-sm font-semibold ${
+                      session.status === 'Completed'
+                        ? 'bg-teal-100 text-teal-700'
+                        : 'bg-purple-100 text-purple-700'
+                    }`}
+                  >
+                    {session.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };
