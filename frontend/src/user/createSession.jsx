@@ -159,15 +159,11 @@ const CreateSession = () => {
 
     // Listen for session-started (for requesters)
     socket.on('session-started', (data) => {
-      console.log('Session started notification received:', data);
-      // Refresh sessions to show Join/Cancel buttons
       fetchUserSessions();
     });
 
     // Listen for session-cancelled (for creators)
     socket.on('session-cancelled', (data) => {
-      console.log('Session cancelled notification received:', data);
-      // Refresh sessions to update status
       fetchUserSessions();
     });
 
@@ -253,7 +249,6 @@ const CreateSession = () => {
         setEditId(null);
       } else {
         // Create new session
-        console.log('Creating session with user:', currentUser);
         const response = await fetch(`${BACKEND_URL}/api/sessions`, {
           method: 'POST',
           headers: {
@@ -267,7 +262,6 @@ const CreateSession = () => {
           throw new Error(err.message || 'Failed to create session');
         }
         const createdSession = await response.json();
-        console.log('Session created:', createdSession);
         setScheduled(true);
       }
       setForm({
@@ -375,7 +369,6 @@ const CreateSession = () => {
   const handleJoinSession = async (session) => {
     setActionLoading(prev => ({ ...prev, [`join-${session._id}`]: true }));
     try {
-      console.log('Joining session:', session._id);
       setVideoCall(session._id);
       // The video call will handle the connection
     } catch (error) {
@@ -477,23 +470,19 @@ const CreateSession = () => {
   useEffect(() => {
     // Socket listeners for real-time updates
     socket.on('session-approved', (data) => {
-      console.log('Session approved:', data);
       fetchUserSessions(); // Refresh sessions
     });
 
     socket.on('session-rejected', (data) => {
-      console.log('Session rejected:', data);
       fetchUserSessions(); // Refresh sessions
     });
 
     socket.on('session-started', (data) => {
-      console.log('Session started:', data);
       // Start video call
       setVideoCall(data.sessionId);
     });
 
     socket.on('session-cancelled', (data) => {
-      console.log('Session cancelled:', data);
       fetchUserSessions(); // Refresh sessions
       // End video call if active
       if (videoCall === data.sessionId) {

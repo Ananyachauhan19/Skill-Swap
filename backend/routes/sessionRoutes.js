@@ -276,14 +276,6 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    console.log('Cancel session debug:', {
-      sessionId: req.params.id,
-      sessionStatus: session.status,
-      sessionRequesterId: session.requester?._id?.toString(),
-      currentUserId: req.user._id.toString(),
-      isRequester: session.requester?._id?.toString() === req.user._id.toString()
-    });
-
     // Check if user is the requester
     if (!session.requester || session.requester._id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Only the session requester can cancel the session' });
