@@ -1,11 +1,9 @@
-<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import {  AnimatePresence } from 'framer-motion';
 
 const Package = () => {
   return (
-   <div className="min-h-screen bg-[#e6f0ff] pb-10">
-
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-100 pb-10">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-blue-700 to-indigo-900 text-white py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -15,7 +13,7 @@ const Package = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            SkillCoins Packages
+            Premium Coin Packages
           </motion.h1>
           <motion.p 
             className="text-lg md:text-xl text-blue-100 max-w-2xl mx-auto"
@@ -23,7 +21,7 @@ const Package = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
           >
-            Unlock exclusive benefits with our Gold and Silver Skillcoins. 
+            Unlock exclusive benefits with our Gold and Silver coins. 
             Choose the perfect package to enhance your experience and maximize your rewards.
           </motion.p>
         </div>
@@ -44,7 +42,7 @@ const BuyRedeemCoins = () => {
   const offers = [
     {
       id: 1,
-      name: 'Golden Pro ',
+      name: 'Golden Pro (1 Month)',
       coins: '50 Golden Coins',
       value: '₹100',
       type: 'gold',
@@ -53,7 +51,7 @@ const BuyRedeemCoins = () => {
     },
     {
       id: 2,
-      name: 'Silver Starter ',
+      name: 'Silver Starter (6 Months)',
       coins: '1200 Silver Coins',
       value: '₹270',
       type: 'silver',
@@ -61,7 +59,7 @@ const BuyRedeemCoins = () => {
     },
     {
       id: 3,
-      name: 'Combo Pack ',
+      name: 'Combo Pack (1 Month)',
       coins: '100 Silver + 20 Golden',
       value: '₹60',
       type: 'combo',
@@ -69,7 +67,7 @@ const BuyRedeemCoins = () => {
     },
     {
       id: 4,
-      name: 'Combo Pack',
+      name: 'Combo Pack (1 Year)',
       coins: '1200 Silver + 240 Golden',
       value: '₹720',
       type: 'combo',
@@ -78,7 +76,7 @@ const BuyRedeemCoins = () => {
     },
     {
       id: 5,
-      name: 'Gold Elite',
+      name: 'Gold Elite (3 Months)',
       coins: '180 Golden Coins',
       value: '₹280',
       type: 'gold',
@@ -86,7 +84,7 @@ const BuyRedeemCoins = () => {
     },
     {
       id: 6,
-      name: 'Silver Plus ',
+      name: 'Silver Plus (1 Year)',
       coins: '2400 Silver Coins',
       value: '₹480',
       type: 'silver',
@@ -125,9 +123,9 @@ const BuyRedeemCoins = () => {
         transition={{ duration: 0.5 }}
         className="text-center mb-12"
       >
-        <h2 className="text-3xl font-bold text-blue-900 mb-4">Choose Your skillCoins Package</h2>
+        <h2 className="text-3xl font-bold text-blue-900 mb-4">Choose Your Coin Package</h2>
         <p className="text-gray-600 max-w-2xl mx-auto">
-          Select a package that suits your needs and unlock exclusive benefits with your Skillcoins purchase.
+          Select a package that suits your needs and unlock exclusive benefits with your coin purchase.
         </p>
       </motion.div>
 
@@ -280,19 +278,20 @@ const BuyRedeemCoins = () => {
           <div className="flex flex-col md:flex-row items-center">
             <div className="mb-6 md:mb-0 md:mr-8">
               <div className="bg-white p-4 rounded-full shadow-lg">
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-    <path fillRule="evenodd" d="M6 4a1 1 0 011-1h6a1 1 0 100-2H7a1 1 0 100 2h1.26c1.188 0 2.132.734 2.59 1.75H6a1 1 0 000 2h5.22c-.4.873-1.29 1.5-2.32 1.5H6a1 1 0 000 2h3v2H8a1 1 0 100 2h2a1 1 0 001-1v-2.1c1.715-.415 3-2 3-3.9 0-2.21-1.79-4-4-4H6z" clipRule="evenodd" />
-  </svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                </svg>
               </div>
             </div>
             
             <div className="text-center md:text-left">
-              <h3 className="text-2xl font-bold text-blue-900 mb-2">Golden Pro</h3>
+              <h3 className="text-2xl font-bold text-blue-900 mb-2">Golden Pro (1 Month)</h3>
               <p className="text-xl font-semibold text-yellow-600 mb-4">50 Golden Coins</p>
               
               <div className="mb-6">
                 <p className="text-gray-700 mb-2">Active until: <span className="font-semibold">October 15, 2023</span></p>
-                <p className="text-gray-700">Renewal: <span className="font-semibold">₹100/</span></p>
+                <p className="text-gray-700">Renewal: <span className="font-semibold">₹100/month</span></p>
               </div>
               
               <div className="flex flex-wrap justify-center gap-4">
@@ -318,11 +317,6 @@ const BuyRedeemCoins = () => {
     </section>
   );
 };
-=======
-import React, { useEffect, useState } from 'react';
-import BuyRedeemCoins from './settings/BuyRedeemCoins';
-import ActiveSubscriptions from './settings/ActiveSubscriptions';
->>>>>>> 72534f60c383fe58c005219c841f83d3b27a1096
 
 const PackageHistory = () => {
   const [history, setHistory] = useState([]);
@@ -336,11 +330,11 @@ const PackageHistory = () => {
     // Simulate API call with mock data
     setTimeout(() => {
       const mockData = [
-        { id: 1, name: "Golden Pro ", coins: "50 Golden Coins", value: "₹100", date: "2023-08-15", status: "completed" },
-        { id: 2, name: "Silver Starter ", coins: "1200 Silver Coins", value: "₹270", date: "2023-07-10", status: "completed" },
-        { id: 3, name: "Combo Pack", coins: "100 Silver + 20 Golden", value: "₹60", date: "2023-06-05", status: "completed" },
-        { id: 4, name: "Gold Elite", coins: "180 Golden Coins", value: "₹280", date: "2023-05-20", status: "completed" },
-        { id: 5, name: "Combo Pack", coins: "1200 Silver + 240 Golden", value: "₹720", date: "2023-04-12", status: "cancelled" },
+        { id: 1, name: "Golden Pro (1 Month)", coins: "50 Golden Coins", value: "₹100", date: "2023-08-15", status: "completed" },
+        { id: 2, name: "Silver Starter (6 Months)", coins: "1200 Silver Coins", value: "₹270", date: "2023-07-10", status: "completed" },
+        { id: 3, name: "Combo Pack (1 Month)", coins: "100 Silver + 20 Golden", value: "₹60", date: "2023-06-05", status: "completed" },
+        { id: 4, name: "Gold Elite (3 Months)", coins: "180 Golden Coins", value: "₹280", date: "2023-05-20", status: "completed" },
+        { id: 5, name: "Combo Pack (1 Year)", coins: "1200 Silver + 240 Golden", value: "₹720", date: "2023-04-12", status: "cancelled" },
       ];
       
       setHistory(mockData);
@@ -477,18 +471,4 @@ const PackageHistory = () => {
   );
 };
 
-<<<<<<< HEAD
 export default Package;
-=======
-const Package = () => (
-  <div className="w-full min-h-screen bg-blue-50 pb-10">
-    <ActiveSubscriptions/>
-    {/*Redeem Plan */}
-    <BuyRedeemCoins />
-    {/*History of past packages */}
-    <PackageHistory />
-  </div>
-);
-
-export default Package;
->>>>>>> 72534f60c383fe58c005219c841f83d3b27a1096

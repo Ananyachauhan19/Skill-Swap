@@ -89,46 +89,46 @@ const DeactivateAccount = () => {
 
   if (status === 'deactivated') {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 border border-blue-100 text-center">
-          <h2 className="text-2xl font-semibold text-yellow-600 mb-6">Account Deactivated</h2>
-          <p className="text-blue-900">Your account is temporarily deactivated. You can reactivate it by logging in again.</p>
+      <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center justify-center">
+        <div className="max-w-lg w-full p-6 bg-white rounded-xl shadow border border-blue-100 mt-8 mx-auto text-center">
+          <h2 className="text-xl font-bold mb-4 text-yellow-600">Account Deactivated</h2>
+          <p className="mb-4 text-gray-700">Your account is temporarily deactivated. You can reactivate it by logging in again.</p>
         </div>
       </div>
     );
   }
   if (status === 'deleted') {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 border border-blue-100 text-center">
-          <h2 className="text-2xl font-semibold text-red-600 mb-6">Account Deleted</h2>
-          <p className="text-blue-900">Your account has been permanently deleted. We're sorry to see you go!</p>
+      <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center justify-center">
+        <div className="max-w-lg w-full p-6 bg-white rounded-xl shadow border border-blue-100 mt-8 mx-auto text-center">
+          <h2 className="text-xl font-bold mb-4 text-red-600">Account Deleted</h2>
+          <p className="mb-4 text-gray-700">Your account has been permanently deleted. We're sorry to see you go!</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 border border-blue-100">
-        <h2 className="text-2xl font-semibold text-blue-900 text-center mb-6">Deactivate or Delete Account</h2>
-        <p className="text-blue-900 text-center mb-6">You can choose to temporarily deactivate your account or permanently delete it. Deactivation will hide your profile and data until you log in again. Deletion is irreversible.</p>
+    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center justify-center">
+      <div className="max-w-lg w-full p-6 bg-white rounded-xl shadow border border-blue-100 mt-8 mx-auto">
+        <h2 className="text-xl font-bold mb-4 text-center">Deactivate or Delete Account</h2>
+        <p className="mb-6 text-gray-700 text-center">You can choose to temporarily deactivate your account or permanently delete it. Deactivation will hide your profile and data until you log in again. Deletion is irreversible.</p>
         <div className="mb-6">
-          <h3 className="text-sm font-medium text-blue-800 mb-2">Why are you leaving?</h3>
-          <form className="flex flex-col gap-3" onSubmit={e => e.preventDefault()}>
+          <h3 className="font-semibold mb-2">Why are you leaving?</h3>
+          <form className="flex flex-col gap-2" onSubmit={e => e.preventDefault()}>
             {REASONS.map((reason, idx) => (
-              <label key={reason} className="flex items-center gap-2 text-blue-900">
+              <label key={reason} className="flex items-center gap-2 text-gray-700">
                 <input
                   type="checkbox"
                   checked={selectedReasons.includes(reason)}
                   onChange={() => handleReasonChange(reason)}
-                  className="accent-blue-600 h-4 w-4"
+                  className="accent-blue-600"
                 />
-                <span className="text-sm">{reason}</span>
+                {reason}
                 {reason === REASONS[REASONS.length - 1] && selectedReasons.includes(reason) && (
                   <input
                     type="text"
-                    className="ml-2 border border-blue-200 rounded-lg px-3 py-1.5 text-sm text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300 transition flex-1"
+                    className="ml-2 border rounded px-2 py-1 text-sm flex-1"
                     placeholder="Please specify your reason"
                     value={otherReason}
                     onChange={handleOtherReasonChange}
@@ -137,43 +137,15 @@ const DeactivateAccount = () => {
                 )}
               </label>
             ))}
-            {error && <div className="text-red-600 text-sm mt-3">{error}</div>}
+            {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
           </form>
         </div>
-        <div className="flex flex-col gap-3">
-          <button
-            className="w-full bg-yellow-500 text-white py-2.5 rounded-lg font-semibold shadow hover:bg-yellow-600 transition duration-200 disabled:bg-yellow-400"
-            onClick={handleDeactivate}
-            disabled={loading}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Deactivating...
-              </div>
-            ) : (
-              'Deactivate Account Temporarily'
-            )}
+        <div className="flex flex-col gap-4">
+          <button className="bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600 transition w-full font-semibold" onClick={handleDeactivate} disabled={loading}>
+            {loading ? 'Deactivating...' : 'Deactivate Account Temporarily'}
           </button>
-          <button
-            className="w-full bg-red-600 text-white py-2.5 rounded-lg font-semibold shadow hover:bg-red-700 positioning duration-200 disabled:bg-red-400"
-            onClick={handleDelete}
-            disabled={loading}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Deleting...
-              </div>
-            ) : (
-              'Delete Account Permanently'
-            )}
+          <button className="bg-red-600 text-white py-2 rounded hover:bg-red-700 transition w-full font-semibold" onClick={handleDelete} disabled={loading}>
+            {loading ? 'Deleting...' : 'Delete Account Permanently'}
           </button>
         </div>
       </div>

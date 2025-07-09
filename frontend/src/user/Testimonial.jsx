@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
-const StarRating = ({ rating, size = 'text-blue-300 text-base' }) => (
-  <span className={`${size} transition-colors duration-300`}>
+const StarRating = ({ rating, size = 'text-yellow-400 text-base' }) => (
+  <span className={size}>
     {'★'.repeat(rating)}{'☆'.repeat(5 - rating)}
   </span>
 );
@@ -14,7 +13,7 @@ const getProfilePic = (t) => {
     .map((n) => n[0])
     .join('')
     .toUpperCase();
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=CBD5E1&color=1E3A8A&bold=true`;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=E0E7FF&color=1E40AF&bold=true`;
 };
 
 const DEMO_TESTIMONIALS = [
@@ -59,27 +58,42 @@ const Testimonial = ({ showAll = false }) => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    // Commented out backend fetch for now to use static data
+    // const fetchTestimonials = async () => {
+    //   setLoading(true);
+    //   setError(null);
+    //   try {
+    //     const res = await fetch('/api/testimonials');
+    //     if (!res.ok) throw new Error('Failed to fetch testimonials');
+    //     const data = await res.json();
+    //     setTestimonials(data);
+    //   } catch (err) {
+    //     setError('Could not load testimonials.');
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // };
+    // fetchTestimonials();
     setLoading(false);
   }, []);
 
   // Calculate overall rating and breakdown
-  const ratingCounts = [5, 4, 3, 2, 1].map((star) => testimonials.filter((t) => Number(t.rating) === star).length);
+  const ratingCounts = [5, 4, 3, 2, 1].map(star => testimonials.filter(t => Number(t.rating) === star).length);
   const totalRatings = ratingCounts.reduce((a, b) => a + b, 0);
-  const averageRating = totalRatings
-    ? (testimonials.reduce((sum, t) => sum + Number(t.rating), 0) / totalRatings).toFixed(1)
-    : '0.0';
+  const averageRating = totalRatings ? (testimonials.reduce((sum, t) => sum + Number(t.rating), 0) / totalRatings).toFixed(1) : '0.0';
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
+    setForm(f => ({ ...f, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     if (!form.username || !form.description) return;
     setSubmitting(true);
     setError(null);
     try {
+      // Replace with your backend API endpoint
       const res = await fetch('/api/testimonials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,207 +111,116 @@ const Testimonial = ({ showAll = false }) => {
     }
   };
 
+  // Only show first 3 testimonials unless showAll is true
   const visibleTestimonials = showAll ? testimonials : testimonials.slice(0, 3);
 
   return (
-    <div className="w-full bg-gradient-to-b from-blue-100 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
-      <motion.h2
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-3xl font-extrabold text-center text-blue-900 mb-8"
-      >
-        What Our Users Say
-      </motion.h2>
-
+    <div className="w-full bg-blue-50 py-10 px-2 mt-10 border-t border-blue-200">
+      <h2 className="text-2xl font-bold text-center mb-6 text-blue-800">Testimonials</h2>
       {/* Overall Review Section */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-8 mb-10 flex flex-col md:flex-row items-center gap-8"
-      >
+      <div className="max-w-2xl mx-auto bg-white rounded-xl shadow p-6 mb-8 flex flex-col md:flex-row items-center gap-6">
         <div className="flex flex-col items-center md:items-start md:w-1/3">
-          <div className="text-5xl font-bold text-blue-900">{averageRating}</div>
-          <StarRating rating={Math.round(Number(averageRating))} size="text-blue-300 text-2xl" />
-          <div className="text-blue-600 text-sm mt-2">{totalRatings} reviews</div>
+          <div className="text-4xl font-bold text-blue-800">{averageRating}</div>
+          <StarRating rating={Math.round(Number(averageRating))} size="text-yellow-400 text-2xl" />
+          <div className="text-gray-500 text-sm mt-1">{totalRatings} reviews</div>
         </div>
         <div className="flex-1 w-full">
-          {[5, 4, 3, 2, 1].map((star, idx) => (
-            <div key={star} className="flex items-center gap-3 mb-2">
-              <span className="w-10 text-sm text-blue-900 font-medium">{star} star</span>
-              <div className="flex-1 bg-blue-100 rounded-full h-4 overflow-hidden">
-                <motion.div
-                  className="bg-blue-600 h-4 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: totalRatings ? `${(ratingCounts[idx] / totalRatings) * 100}%` : '0%' }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
+          {[5,4,3,2,1].map((star, idx) => (
+            <div key={star} className="flex items-center gap-2 mb-1">
+              <span className="w-8 text-sm text-blue-900 font-semibold">{star} star</span>
+              <div className="flex-1 bg-blue-100 rounded h-3 overflow-hidden">
+                <div
+                  className="bg-blue-500 h-3 rounded"
+                  style={{ width: totalRatings ? `${(ratingCounts[idx] / totalRatings) * 100}%` : '0%' }}
                 />
               </div>
-              <span className="w-8 text-xs text-blue-700 text-right">{ratingCounts[idx]}</span>
+              <span className="w-8 text-xs text-gray-600 text-right">{ratingCounts[idx]}</span>
             </div>
           ))}
         </div>
-      </motion.div>
-
-      {/* Add Testimonial Button */}
-      <div className="flex flex-col items-center mb-10">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="px-8 py-3 bg-blue-700 text-white rounded-full font-semibold text-lg hover:bg-blue-800 transition-colors duration-300"
-          onClick={() => setShowForm((f) => !f)}
-        >
-          + Share Your Feedback
-        </motion.button>
-        <AnimatePresence>
-          {showForm && (
-            <motion.form
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg flex flex-col gap-4 mt-6"
-              onSubmit={handleSubmit}
-            >
-              <input
-                type="text"
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-                placeholder="Your Name"
-                className="border border-blue-200 rounded-lg px-4 py-3 text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200"
-                required
-              />
-              <div className="flex items-center gap-3">
-                <label className="font-medium text-blue-900">Rating:</label>
-                <select
-                  name="rating"
-                  value={form.rating}
-                  onChange={handleChange}
-                  className="border border-blue-200 rounded-lg px-3 py-2 text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200"
-                >
-                  {[5, 4, 3, 2, 1].map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-                <StarRating rating={form.rating} />
-              </div>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                placeholder="Write your testimonial..."
-                className="border border-blue-200 rounded-lg px-4 py-3 text-blue-900 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200"
-                required
-              />
-              <div className="flex gap-3 justify-end">
-                <motion.button
-                  type="button"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-6 py-2 rounded-lg bg-blue-200 text-blue-900 font-semibold hover:bg-blue-300 transition-colors duration-200"
-                  onClick={() => setShowForm(false)}
-                  disabled={submitting}
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  type="submit"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-6 py-2 rounded-lg bg-blue-700 text-white font-semibold hover:bg-blue-800 transition-colors duration-200"
-                  disabled={submitting}
-                >
-                  {submitting ? 'Submitting...' : 'Submit'}
-                </motion.button>
-              </div>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-red-500 text-sm mt-2"
-                >
-                  {error}
-                </motion.div>
-              )}
-            </motion.form>
-          )}
-        </AnimatePresence>
       </div>
-
+      {/* Add Testimonial Button */}
+      <div className="flex flex-col items-center mb-6">
+        <button
+          className="mb-4 px-6 py-2 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition-colors"
+          onClick={() => setShowForm(f => !f)}
+        >
+          + Add your testimonial
+        </button>
+        {showForm && (
+          <form className="bg-white rounded-lg shadow p-6 w-full max-w-md flex flex-col gap-3" onSubmit={handleSubmit}>
+            <input
+              type="text"
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              placeholder="Your Name"
+              className="border border-blue-200 rounded px-3 py-2"
+              required
+            />
+            <div className="flex items-center gap-2">
+              <label className="font-medium">Rating:</label>
+              <select
+                name="rating"
+                value={form.rating}
+                onChange={handleChange}
+                className="border border-blue-200 rounded px-2 py-1"
+              >
+                {[5,4,3,2,1].map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <StarRating rating={form.rating} />
+            </div>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Write your testimonial..."
+              className="border border-blue-200 rounded px-3 py-2 min-h-[60px]"
+              required
+            />
+            <div className="flex gap-2 justify-end">
+              <button type="button" className="px-4 py-1 rounded bg-gray-200" onClick={() => setShowForm(false)} disabled={submitting}>Cancel</button>
+              <button type="submit" className="px-4 py-1 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700" disabled={submitting}>{submitting ? 'Submitting...' : 'Submit'}</button>
+            </div>
+            {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
+          </form>
+        )}
+      </div>
       {/* Testimonials List */}
       {loading ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-blue-900 text-lg font-semibold py-12 text-center"
-        >
-          Loading...
-        </motion.div>
+        <div className="text-blue-700 text-lg font-semibold py-12">Loading...</div>
       ) : error ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-red-500 text-lg font-semibold py-12 text-center"
-        >
-          {error}
-        </motion.div>
+        <div className="text-red-600 text-lg font-semibold py-12">{error}</div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-          <AnimatePresence>
-            {visibleTestimonials.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="col-span-full text-blue-600 text-center"
-              >
-                No testimonials found.
-              </motion.div>
-            ) : (
-              visibleTestimonials.map((t, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ duration: 0.5, delay: idx * 0.1 }}
-                  className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center hover:shadow-xl transition-shadow duration-300"
-                >
-                  <img
-                    src={getProfilePic(t)}
-                    alt={t.username}
-                    className="w-20 h-20 rounded-full object-cover mb-4 border-2 border-blue-200"
-                  />
-                  <div className="font-semibold text-blue-900 text-lg">{t.username}</div>
-                  <StarRating rating={Number(t.rating)} size="text-blue-300 text-lg" />
-                  <div className="text-blue-700 mt-3 text-center text-sm leading-relaxed">
-                    {t.description}
-                  </div>
-                </motion.div>
-              ))
-            )}
-          </AnimatePresence>
+        <div className="flex flex-wrap gap-6 justify-center">
+          {visibleTestimonials.length === 0 ? (
+            <div className="col-span-full text-gray-500 text-center">No testimonials found.</div>
+          ) : (
+            visibleTestimonials.map((t, idx) => (
+              <div key={idx} className="bg-white rounded-lg shadow p-5 w-full max-w-xs flex flex-col items-center">
+                <img
+                  src={getProfilePic(t)}
+                  alt={t.username}
+                  className="w-16 h-16 rounded-full object-cover mb-2 border border-blue-200"
+                />
+                <div className="font-semibold text-blue-800">{t.username}</div>
+                <StarRating rating={Number(t.rating)} />
+                <div className="text-gray-700 mt-2 text-center whitespace-pre-line">{t.description}</div>
+              </div>
+            ))
+          )}
         </div>
       )}
-
       {/* Show More Button */}
       {!showAll && !loading && !error && testimonials.length > 3 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="flex justify-center mt-8"
-        >
+        <div className="flex justify-center mt-6">
           <a
-            className="text-blue-700 font-semibold text-lg hover:text-blue-900 transition-colors duration-200"
+            className="text-blue-700 font-semibold underline text-base hover:text-blue-900 transition cursor-pointer"
             href="/testimonials"
           >
             Show More
           </a>
-        </motion.div>
+        </div>
       )}
     </div>
   );

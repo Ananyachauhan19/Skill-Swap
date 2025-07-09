@@ -1,33 +1,28 @@
-
 import React, { useState, useEffect } from "react";
 
-// Backend function: Fetch coin spending history
-// async function fetchCoinSpendingHistory() {
-//   return fetch('/api/coins/spending-history').then(res => res.json());
+// Backend function: Fetch coin earning history
+// async function fetchCoinEarningHistory() {
+//   return fetch('/api/coins/earning-history').then(res => res.json());
 // }
 
-const FILTERS = ["Daily", "Weekly", "Monthly"];
-
-const CoinSpendingHistory = () => {
+const CoinEarningHistory = () => {
   const [history, setHistory] = useState([]);
-  const [filteredHistory, setFilteredHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState("Daily");
 
   useEffect(() => {
     async function loadHistory() {
       setLoading(true);
       setError("");
       try {
-        // const data = await fetchCoinSpendingHistory();
+        // const data = await fetchCoinEarningHistory();
         // setHistory(data);
         setHistory([
-          { date: '2025-07-01', amount: 8, type: 'Session Booked' },
-          { date: '2025-06-29', amount: 3, type: 'Premium Feature' },
+          { date: '2025-07-01', amount: 10, type: 'Session Completed' },
+          { date: '2025-06-28', amount: 5, type: 'Referral Bonus' },
         ]); // Remove when backend is ready
-      } catch {
-        setError("Failed to load spending history.");
+      } catch (err) {
+        setError("Failed to load earning history.");
       } finally {
         setLoading(false);
       }
@@ -35,46 +30,10 @@ const CoinSpendingHistory = () => {
     loadHistory();
   }, []);
 
-  useEffect(() => {
-    // Filter history based on selected filter
-    const now = new Date();
-    const filtered = history.filter((item) => {
-      const itemDate = new Date(item.date);
-      if (selectedFilter === "Daily") {
-        return itemDate.toDateString() === now.toDateString();
-      } else if (selectedFilter === "Weekly") {
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - now.getDay());
-        return itemDate >= weekStart && itemDate <= now;
-      } else if (selectedFilter === "Monthly") {
-        return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear();
-      }
-      return true;
-    });
-    setFilteredHistory(filtered);
-  }, [history, selectedFilter]);
-
-  const handleFilterChange = (e) => {
-    setSelectedFilter(e.target.value);
-  };
-
   return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-2xl shadow-lg p-6 border border-blue-100">
-        <h2 className="text-2xl font-semibold text-blue-900 text-center mb-6">Coin Spending History</h2>
-        <div className="flex justify-end mb-4">
-          <select
-            className="border border-blue-200 rounded-lg px-3 py-1.5 text-sm text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300 transition"
-            value={selectedFilter}
-            onChange={handleFilterChange}
-          >
-            {FILTERS.map((filter) => (
-              <option key={filter} value={filter}>
-                {filter}
-              </option>
-            ))}
-          </select>
-        </div>
+        <h2 className="text-2xl font-semibold text-blue-900 text-center mb-6">Coin Earning History</h2>
         {error && <div className="text-red-600 text-sm mb-4 text-center">{error}</div>}
         {loading ? (
           <div className="text-center text-blue-600 flex items-center justify-center">
@@ -84,8 +43,8 @@ const CoinSpendingHistory = () => {
             </svg>
             Loading...
           </div>
-        ) : filteredHistory.length === 0 ? (
-          <div className="text-center text-blue-600">No spending history found for {selectedFilter.toLowerCase()} filter.</div>
+        ) : history.length === 0 ? (
+          <div className="text-center text-blue-600">No earning history found.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -97,7 +56,7 @@ const CoinSpendingHistory = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredHistory.map((item, i) => (
+                {history.map((item, i) => (
                   <tr key={i} className="border-t border-blue-100">
                     <td className="py-3 px-4 text-blue-900">{item.date}</td>
                     <td className="py-3 px-4 text-blue-900">{item.amount}</td>
@@ -113,4 +72,4 @@ const CoinSpendingHistory = () => {
   );
 };
 
-export default CoinSpendingHistory;
+export default CoinEarningHistory;
