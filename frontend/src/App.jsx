@@ -5,7 +5,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ModalProvider } from './context/ModalContext';
 import GlobalModals from './GlobalModals';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
-import ConnectionTest from './components/ConnectionTest';
 
 import Home from './user/Home';
 import Login from './auth/Login';
@@ -52,7 +51,6 @@ function App() {
       <ModalBodyScrollLock />
       <GlobalModals />
       {!isAuthPage && <Navbar />}
-      <ConnectionTest />
       <div className={location.pathname === '/home' ? '' : 'pt-8'}>
         <Routes>
           <Route path="/" element={<Navigate to="/home" replace />} />

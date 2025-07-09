@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BACKEND_URL } from '../../config.js';
 
 const getProfilePic = (profilePic, name) => {
   if (profilePic) return profilePic;
@@ -17,7 +18,7 @@ const PastGDExpertSection = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch('http://localhost:5000/api/group-discussions/past-experts')
+    fetch(`${BACKEND_URL}/api/group-discussions/past-experts`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch');
         return res.json();

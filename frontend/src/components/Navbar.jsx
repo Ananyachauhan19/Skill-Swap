@@ -14,22 +14,12 @@ function useSessionSocketNotifications(setNotifications) {
     const userCookie = Cookies.get('user');
     const user = userCookie ? JSON.parse(userCookie) : null;
     
-    console.log('=== SOCKET NOTIFICATION DEBUG ===');
-    console.log('User from cookie:', user);
-    
     if (user && user._id) {
-      console.log('Registering socket for user:', user._id);
       socket.emit('register', user._id);
-    } else {
-      console.log('No user found in cookie');
     }
 
     // Listen for session-requested (for creators)
     socket.on('session-requested', (session) => {
-      console.log('=== RECEIVED SESSION REQUEST ===');
-      console.log('Session data:', session);
-      console.log('Current user:', user);
-      
       setNotifications((prev) => [
         {
           type: 'session-requested',
@@ -118,13 +108,6 @@ function useSessionSocketNotifications(setNotifications) {
       });
     });
 
-    // Listen for test notifications
-    socket.on('test-notification', (data) => {
-      console.log('=== RECEIVED TEST NOTIFICATION ===');
-      console.log('Test notification data:', data);
-      alert('Test notification received! Check console for details.');
-    });
-
     // Listen for session-cancelled (for creators)
     socket.on('session-cancelled', (data) => {
       console.log('Received session-cancelled notification:', data);
@@ -147,7 +130,6 @@ function useSessionSocketNotifications(setNotifications) {
       socket.off('session-rejected');
       socket.off('session-started');
       socket.off('session-cancelled');
-      socket.off('test-notification');
     };
   }, [setNotifications]);
 }

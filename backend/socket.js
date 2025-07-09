@@ -5,14 +5,8 @@ module.exports = (io) => {
   const sessionRooms = new Map();
 
   io.on('connection', (socket) => {
-    console.log('Socket connected:', socket.id);
-
     // Register user with their socket ID
     socket.on('register', async (userId) => {
-      console.log('=== SOCKET REGISTRATION DEBUG ===');
-      console.log('Socket connected:', socket.id);
-      console.log('Registering userId:', userId);
-      
       if (userId) {
         const user = await User.findByIdAndUpdate(userId, { socketId: socket.id }, { new: true });
         if (user) {
@@ -24,15 +18,11 @@ module.exports = (io) => {
         } else {
           console.log(`[Socket Register] No user found for userId: ${userId}`);
         }
-      } else {
-        console.log('No userId provided for socket registration');
       }
     });
 
     // Join session room for video calling
     socket.on('join-session', ({ sessionId, userRole }) => {
-      console.log(`[Join Session] Socket ${socket.id} joining session ${sessionId} as ${userRole}`);
-      
       // Join the session room
       socket.join(sessionId);
       
@@ -45,12 +35,10 @@ module.exports = (io) => {
       // Notify other users in the session that someone joined
       socket.to(sessionId).emit('user-joined', { sessionId, userRole });
       
-      console.log(`[Join Session] Users in session ${sessionId}:`, sessionRooms.get(sessionId).size);
     });
 
     // Leave session room
     socket.on('leave-session', ({ sessionId }) => {
-      console.log(`[Leave Session] Socket ${socket.id} leaving session ${sessionId}`);
       
       socket.leave(sessionId);
       
@@ -67,22 +55,18 @@ module.exports = (io) => {
 
     // WebRTC Signaling for session-based calls
     socket.on('offer', ({ sessionId, offer }) => {
-      console.log(`[Offer] Forwarding offer in session ${sessionId}`);
       socket.to(sessionId).emit('offer', { sessionId, offer });
     });
 
     socket.on('answer', ({ sessionId, answer }) => {
-      console.log(`[Answer] Forwarding answer in session ${sessionId}`);
       socket.to(sessionId).emit('answer', { sessionId, answer });
     });
 
     socket.on('ice-candidate', ({ sessionId, candidate }) => {
-      console.log(`[ICE Candidate] Forwarding ICE candidate in session ${sessionId}`);
       socket.to(sessionId).emit('ice-candidate', { sessionId, candidate });
     });
 
     socket.on('disconnect', () => {
-      console.log('Socket disconnected:', socket.id);
       
       // Remove socket from all session rooms
       for (const [sessionId, sockets] of sessionRooms.entries()) {

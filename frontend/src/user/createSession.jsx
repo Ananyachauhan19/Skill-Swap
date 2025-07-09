@@ -412,22 +412,6 @@ const CreateSession = () => {
         throw new Error('Failed to fetch sessions');
       }
       const sessions = await response.json();
-      console.log('Fetched sessions:', sessions);
-      console.log('Current user:', currentUser);
-      
-      // Debug each session
-      sessions.forEach(session => {
-        console.log(`Session ${session._id}:`, {
-          status: session.status,
-          creator: session.creator,
-          requester: session.requester,
-          currentUser: currentUser?._id,
-          isCreator: session.creator === currentUser?._id,
-          isRequester: session.requester === currentUser?._id,
-          shouldShowJoinCancel: session.status === 'approved' && session.requester === currentUser?._id
-        });
-      });
-      
       setScheduledSessions(sessions);
     } catch (error) {
       console.error('Error fetching sessions:', error);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BACKEND_URL } from '../../config.js';
 
 const getProfilePic = (profilePic, name, bg = 'DBEAFE', color = '1E40AF') => {
   if (profilePic) return profilePic;
@@ -69,7 +70,7 @@ const GDListSection = () => {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch('http://localhost:5000/api/group-discussions/upcoming')
+    fetch(`${BACKEND_URL}/api/group-discussions/upcoming`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch');
         return res.json();
