@@ -1,3 +1,9 @@
 import { io } from 'socket.io-client';
-const socket = io('http://localhost:5000'); // Update to backend URL if deployed
+import { BACKEND_URL } from './config.js';
+
+const socket = io(BACKEND_URL, {
+  withCredentials: true,
+  transports: ['websocket', 'polling']
+});
+
 export default socket;

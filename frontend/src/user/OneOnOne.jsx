@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { BACKEND_URL } from '../config.js';
 import SearchBar from './oneononeSection/serachBar'; 
 import TutorCard from './oneononeSection/TutorCard';
 import Testimonial from "./Testimonial";
@@ -84,7 +85,7 @@ const OneOnOne = () => {
 
       const token = localStorage.getItem('token');
 
-      const res = await fetch(`http://localhost:5000/api/sessions/search?${queryParams.toString()}`, {
+      const res = await fetch(`${BACKEND_URL}/api/sessions/search?${queryParams.toString()}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         }
@@ -111,7 +112,7 @@ const OneOnOne = () => {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/sessions/request/${session._id}`, {
+      const res = await fetch(`${BACKEND_URL}/api/sessions/request/${session._id}`, {
         method: 'POST',
         credentials: 'include', // Send cookies for authentication
         headers: {

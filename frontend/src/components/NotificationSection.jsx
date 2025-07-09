@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { BACKEND_URL } from '../config.js';
 
 // Helper: Remove notifications older than 12 hours or completed
 function filterNotifications(notifications) {
@@ -72,7 +73,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
   const handleApproveSession = async (sessionId, index) => {
     setLoading(prev => ({ ...prev, [`approve-${index}`]: true }));
     try {
-      const response = await fetch(`http://localhost:5000/api/sessions/approve/${sessionId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/approve/${sessionId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -104,7 +105,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
   const handleRejectSession = async (sessionId, index) => {
     setLoading(prev => ({ ...prev, [`reject-${index}`]: true }));
     try {
-      const response = await fetch(`http://localhost:5000/api/sessions/reject/${sessionId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/reject/${sessionId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

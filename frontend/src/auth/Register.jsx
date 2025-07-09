@@ -13,6 +13,7 @@ import axios from "axios";
 import { useModal } from "../context/ModalContext";
 import { motion } from "framer-motion";
 import Cookies from 'js-cookie';
+import { BACKEND_URL } from '../config.js';
 
 const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const navigate = useNavigate();
@@ -101,7 +102,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     try {
       setIsLoading(true);
       setError("");
-      const res = await axios.post("http://localhost:5000/api/auth/register", {
+      const res = await axios.post(`${BACKEND_URL}/api/auth/register`, {
         firstName,
         lastName,
         email,

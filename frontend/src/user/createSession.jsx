@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Cookies from 'js-cookie';
 import VideoCall from '../components/VideoCall';
-import socket from '../socket';
+import { BACKEND_URL } from '../config.js';
+import socket from '../socket.js';
 
 // Static data 
 const STATIC_COURSES = [
@@ -210,7 +211,7 @@ const CreateSession = () => {
     try {
       if (editId) {
         // Update existing session
-        const response = await fetch(`http://localhost:5000/api/sessions/${editId}`, {
+        const response = await fetch(`${BACKEND_URL}/api/sessions/${editId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -225,7 +226,7 @@ const CreateSession = () => {
         setEditId(null);
       } else {
         // Create new session
-        const response = await fetch('http://localhost:5000/api/sessions', {
+        const response = await fetch(`${BACKEND_URL}/api/sessions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -277,7 +278,7 @@ const CreateSession = () => {
   const handleApproveSession = async (id) => {
     setActionLoading(prev => ({ ...prev, [`approve-${id}`]: true }));
     try {
-      const response = await fetch(`http://localhost:5000/api/sessions/${id}/approve`, {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/${id}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -301,7 +302,7 @@ const CreateSession = () => {
   const handleRejectSession = async (id) => {
     setActionLoading(prev => ({ ...prev, [`reject-${id}`]: true }));
     try {
-      const response = await fetch(`http://localhost:5000/api/sessions/${id}/reject`, {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/${id}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -339,7 +340,7 @@ const CreateSession = () => {
   const handleCancelSession = async (session) => {
     setActionLoading(prev => ({ ...prev, [`cancel-${session._id}`]: true }));
     try {
-      const response = await fetch(`http://localhost:5000/api/sessions/${session._id}/cancel`, {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/${session._id}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -369,7 +370,7 @@ const CreateSession = () => {
     setStartingSession(session._id);
     
     try {
-      const response = await fetch(`http://localhost:5000/api/sessions/${session._id}/start`, {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/${session._id}/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -404,7 +405,7 @@ const CreateSession = () => {
   const fetchUserSessions = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/sessions/mine', {
+      const response = await fetch(`${BACKEND_URL}/api/sessions/mine`, {
         credentials: 'include',
       });
       if (!response.ok) {

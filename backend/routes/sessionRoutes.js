@@ -2,6 +2,7 @@
 const express = require('express');
 const Session = require('../models/Session');
 const router = express.Router();
+const User = require('../models/User'); // Added for test-socket endpoint
 
 // Middleware to check authentication (you can reuse your existing one)
 const requireAuth = require('../middleware/requireAuth');
@@ -127,17 +128,58 @@ router.put('/:id', requireAuth, async (req, res) => {
 
 // Request session
 router.post('/request/:id', requireAuth, async (req, res) => {
-  const session = await Session.findById(req.params.id)
-    .populate('creator', 'firstName lastName socketId')
-    .populate('requester', 'firstName lastName');
-  session.status = 'requested';
-  session.requester = req.user ? req.user._id : req.body.userId;
-  await session.save();
+  try {
+    console.log('=== SESSION REQUEST DEBUG ===');
+    console.log('Request from user:', req.user._id);
+    console.log('Session ID:', req.params.id);
+    
+    const session = await Session.findById(req.params.id)
+      .populate('creator', 'firstName lastName socketId')
+      .populate('requester', 'firstName lastName');
+    
+    console.log('Found session:', {
+      id: session._id,
+      creator: session.creator,
+      creatorSocketId: session.creator?.socketId,
+      status: session.status
+    });
+    
+    if (!session) {
+      console.log('Session not found');
+      return res.status(404).json({ error: 'Session not found' });
+    }
+    
+    session.status = 'requested';
+    session.requester = req.user ? req.user._id : req.body.userId;
+    await session.save();
+    
+    console.log('Updated session with requester:', session.requester);
+    console.log('Creator socketId:', session.creator?.socketId);
 
-  const io = req.app.get('io');
-  console.log('Emitting session-requested to', session.creator.socketId, session.creator._id);
-  io.to(session.creator.socketId).emit('session-requested', session);
-  res.json({ message: 'Request sent', session });
+    const io = req.app.get('io');
+    
+    if (session.creator?.socketId) {
+      console.log('Emitting session-requested to socketId:', session.creator.socketId);
+      console.log('Session data being sent:', {
+        _id: session._id,
+        subject: session.subject,
+        topic: session.topic,
+        requester: session.requester,
+        status: session.status
+      });
+      
+      io.to(session.creator.socketId).emit('session-requested', session);
+      console.log('Notification sent successfully');
+    } else {
+      console.log('ERROR: No socketId found for creator');
+      console.log('Creator data:', session.creator);
+    }
+    
+    res.json({ message: 'Request sent', session });
+  } catch (error) {
+    console.error('Session request error:', error);
+    res.status(500).json({ error: 'Failed to send request' });
+  }
 });
 
 // Approve
@@ -300,6 +342,56 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Cancel session error:', error);
     res.status(500).json({ error: 'Failed to cancel session' });
+  }
+});
+
+// Test endpoint to check socket connection
+router.get('/test-socket/:userId', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (user) {
+      res.json({
+        userId: user._id,
+        socketId: user.socketId,
+        firstName: user.firstName,
+        hasSocketId: !!user.socketId
+      });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Test notification endpoint
+router.post('/test-notification/:userId', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    if (!user.socketId) {
+      return res.status(400).json({ error: 'User has no socketId registered' });
+    }
+    
+    const io = req.app.get('io');
+    console.log('Sending test notification to socketId:', user.socketId);
+    
+    io.to(user.socketId).emit('test-notification', {
+      message: 'This is a test notification',
+      timestamp: Date.now()
+    });
+    
+    res.json({ 
+      message: 'Test notification sent',
+      socketId: user.socketId,
+      userId: user._id
+    });
+  } catch (error) {
+    console.error('Test notification error:', error);
+    res.status(500).json({ error: 'Failed to send test notification' });
   }
 });
 

@@ -1,23 +1,35 @@
-import React, { useState, useRef, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useModal } from '../context/ModalContext';
-import ProfileDropdown from "./ProfileDropdown";
-import Notifications from "./Navbar/Notifications";
-import MobileMenu from "./MobileMenu";
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Cookies from 'js-cookie';
-import socket from '../socket';
+import { useModal } from '../context/ModalContext';
+import MobileMenu from './MobileMenu';
+import ProfileDropdown from './ProfileDropdown';
+import Notifications from './Navbar/Notifications';
 import VideoCall from "./VideoCall";
+import { BACKEND_URL } from '../config.js';
+import socket from '../socket.js';
 
 function useSessionSocketNotifications(setNotifications) {
   useEffect(() => {
     const userCookie = Cookies.get('user');
     const user = userCookie ? JSON.parse(userCookie) : null;
+    
+    console.log('=== SOCKET NOTIFICATION DEBUG ===');
+    console.log('User from cookie:', user);
+    
     if (user && user._id) {
+      console.log('Registering socket for user:', user._id);
       socket.emit('register', user._id);
+    } else {
+      console.log('No user found in cookie');
     }
 
     // Listen for session-requested (for creators)
     socket.on('session-requested', (session) => {
+      console.log('=== RECEIVED SESSION REQUEST ===');
+      console.log('Session data:', session);
+      console.log('Current user:', user);
+      
       setNotifications((prev) => [
         {
           type: 'session-requested',
@@ -78,7 +90,7 @@ function useSessionSocketNotifications(setNotifications) {
           // Handle canceling the session
           console.log('User cancelled session');
           // Call the cancel API
-          fetch(`http://localhost:5000/api/sessions/${data.sessionId}/cancel`, {
+          fetch(`${BACKEND_URL}/api/sessions/${data.sessionId}/cancel`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -106,6 +118,13 @@ function useSessionSocketNotifications(setNotifications) {
       });
     });
 
+    // Listen for test notifications
+    socket.on('test-notification', (data) => {
+      console.log('=== RECEIVED TEST NOTIFICATION ===');
+      console.log('Test notification data:', data);
+      alert('Test notification received! Check console for details.');
+    });
+
     // Listen for session-cancelled (for creators)
     socket.on('session-cancelled', (data) => {
       console.log('Received session-cancelled notification:', data);
@@ -128,6 +147,7 @@ function useSessionSocketNotifications(setNotifications) {
       socket.off('session-rejected');
       socket.off('session-started');
       socket.off('session-cancelled');
+      socket.off('test-notification');
     };
   }, [setNotifications]);
 }
@@ -283,7 +303,7 @@ const Navbar = () => {
 
   useEffect(() => {
     if (!isLoggedIn) return;
-    fetch('/api/user/coins')
+    fetch(`${BACKEND_URL}/api/user/coins`)
       .then((res) => res.json())
       .then((data) => {
         setGoldenCoins(data.golden || 0);

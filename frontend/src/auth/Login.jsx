@@ -4,6 +4,7 @@ import { FaEye, FaEyeSlash, FaExclamationCircle, FaTimes } from "react-icons/fa"
 import axios from "axios";
 import { useModal } from '../context/ModalContext';
 import Cookies from 'js-cookie';
+import { BACKEND_URL } from '../config.js';
 
 const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const navigate = useNavigate();
@@ -83,7 +84,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       setIsLoading(true);
       setError("");
 
-      const res = await axios.post("http://localhost:5000/api/auth/login", { email, password }, { withCredentials: true });
+      const res = await axios.post(`${BACKEND_URL}/api/auth/login`, { email, password }, { withCredentials: true });
       // No token in response, OTP sent
       setEmailForOtp(email);
       setShowOtp(true);
@@ -99,7 +100,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     if (!otp) return setError("Enter the OTP sent to your email.");
 
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/verify-otp", {
+      const res = await axios.post(`${BACKEND_URL}/api/auth/verify-otp`, {
         email: emailForOtp,
         otp,
       }, { withCredentials: true });
@@ -116,7 +117,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   };
 
   const handleOAuth = (provider) => {
-    window.location.href = `http://localhost:5000/api/auth/${provider}`;
+    window.location.href = `${BACKEND_URL}/api/auth/${provider}`;
   };
 
   const isFormValid = form.email && form.password;

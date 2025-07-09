@@ -9,14 +9,23 @@ module.exports = (io) => {
 
     // Register user with their socket ID
     socket.on('register', async (userId) => {
-      console.log('[Socket Register] Received register for userId:', userId);
+      console.log('=== SOCKET REGISTRATION DEBUG ===');
+      console.log('Socket connected:', socket.id);
+      console.log('Registering userId:', userId);
+      
       if (userId) {
         const user = await User.findByIdAndUpdate(userId, { socketId: socket.id }, { new: true });
         if (user) {
-          console.log(`[Socket Register] Registered socket ${socket.id} for user ${userId}`, user);
+          console.log(`[Socket Register] Registered socket ${socket.id} for user ${userId}`, {
+            userId: user._id,
+            socketId: user.socketId,
+            firstName: user.firstName
+          });
         } else {
           console.log(`[Socket Register] No user found for userId: ${userId}`);
         }
+      } else {
+        console.log('No userId provided for socket registration');
       }
     });
 

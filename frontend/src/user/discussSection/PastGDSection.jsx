@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BACKEND_URL } from '../../../config.js';
 
 const PastGDSection = () => {
   const [sessions, setSessions] = useState([]);
@@ -11,7 +12,7 @@ const PastGDSection = () => {
       setError(null);
       try {
         // Replace with your backend API endpoint
-        const res = await fetch('http://localhost:5000/api/group-discussions/past');
+        const res = await fetch(`${BACKEND_URL}/api/group-discussions/past`);
         if (!res.ok) throw new Error('Failed to fetch past group discussions');
         const data = await res.json();
         setSessions(data);
