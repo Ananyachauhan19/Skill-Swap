@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import toast, { Toaster } from 'react-hot-toast';
 import countryList from 'react-select-country-list';
+import Cookies from 'js-cookie';
 
 const Edit_Profile = () => {
   // Unified profile state
@@ -60,7 +61,7 @@ const Edit_Profile = () => {
       setLoading(true);
       let user = null;
       try {
-        user = JSON.parse(localStorage.getItem('user'));
+        user = JSON.parse(Cookies.get('user'));
       } catch {}
       setProfile(prev => ({
         ...prev,
@@ -88,7 +89,7 @@ const Edit_Profile = () => {
 
   // Save profile to backend
   const saveProfile = async () => {
-    localStorage.setItem('user', JSON.stringify(profile));
+    Cookies.set('user', JSON.stringify(profile), { expires: 1 });
     window.dispatchEvent(new Event('profileUpdated'));
     toast.success("Profile saved!", {
       style: {
@@ -129,7 +130,7 @@ const Edit_Profile = () => {
         education: [...profile.education, { ...educationInput }]
       };
       setProfile(updated);
-      localStorage.setItem('user', JSON.stringify(updated));
+      Cookies.set('user', JSON.stringify(updated), { expires: 1 });
       window.dispatchEvent(new Event('profileUpdated'));
       setEducationInput({ degree: '', university: '', year: '', specialization: '' });
       setEditEducation(false);
@@ -151,7 +152,7 @@ const Edit_Profile = () => {
         teachSkills: [...profile.teachSkills, { ...teachSkillInput }]
       };
       setProfile(updated);
-      localStorage.setItem('user', JSON.stringify(updated));
+      Cookies.set('user', JSON.stringify(updated), { expires: 1 });
       window.dispatchEvent(new Event('profileUpdated'));
       setTeachSkillInput({ skill: '', proof: null, proofName: null });
       setEditTeach(false);
@@ -182,7 +183,7 @@ const Edit_Profile = () => {
         experience: [...profile.experience, { ...experienceInput }]
       };
       setProfile(updated);
-      localStorage.setItem('user', JSON.stringify(updated));
+      Cookies.set('user', JSON.stringify(updated), { expires: 1 });
       window.dispatchEvent(new Event('profileUpdated'));
       setExperienceInput({ title: '', company: '', duration: '', description: '' });
       setEditExperience(false);
@@ -204,7 +205,7 @@ const Edit_Profile = () => {
         certificates: [...profile.certificates, { ...certificateInput }]
       };
       setProfile(updated);
-      localStorage.setItem('user', JSON.stringify(updated));
+      Cookies.set('user', JSON.stringify(updated), { expires: 1 });
       window.dispatchEvent(new Event('profileUpdated'));
       setCertificateInput({ name: '', issuer: '', year: '' });
       setEditCertificates(false);
@@ -250,7 +251,7 @@ const Edit_Profile = () => {
     if (twitterInput.trim()) {
       const updated = { ...profile, twitter: twitterInput };
       setProfile(updated);
-      localStorage.setItem('user', JSON.stringify(updated));
+      Cookies.set('user', JSON.stringify(updated), { expires: 1 });
       window.dispatchEvent(new Event('profileUpdated'));
       setTwitterInput("");
       setEditTwitter(false);
@@ -295,28 +296,28 @@ const Edit_Profile = () => {
   const handleRemoveLinkedin = () => {
     const updated = { ...profile, linkedin: "" };
     setProfile(updated);
-    localStorage.setItem('user', JSON.stringify(updated));
+    Cookies.set('user', JSON.stringify(updated), { expires: 1 });
     window.dispatchEvent(new Event('profileUpdated'));
     toast.success("LinkedIn removed!", { style: { background: '#f0f9ff', color: '#1e3a8a', fontFamily: 'Nunito, sans-serif', border: '1px solid #bfdbfe' } });
   };
   const handleRemoveTwitter = () => {
     const updated = { ...profile, twitter: "" };
     setProfile(updated);
-    localStorage.setItem('user', JSON.stringify(updated));
+    Cookies.set('user', JSON.stringify(updated), { expires: 1 });
     window.dispatchEvent(new Event('profileUpdated'));
     toast.success("Twitter removed!", { style: { background: '#f0f9ff', color: '#1e3a8a', fontFamily: 'Nunito, sans-serif', border: '1px solid #bfdbfe' } });
   };
   const handleRemoveGithub = () => {
     const updated = { ...profile, github: "" };
     setProfile(updated);
-    localStorage.setItem('user', JSON.stringify(updated));
+    Cookies.set('user', JSON.stringify(updated), { expires: 1 });
     window.dispatchEvent(new Event('profileUpdated'));
     toast.success("GitHub removed!", { style: { background: '#f0f9ff', color: '#1e3a8a', fontFamily: 'Nunito, sans-serif', border: '1px solid #bfdbfe' } });
   };
   const handleRemoveWebsite = () => {
     const updated = { ...profile, website: "" };
     setProfile(updated);
-    localStorage.setItem('user', JSON.stringify(updated));
+    Cookies.set('user', JSON.stringify(updated), { expires: 1 });
     window.dispatchEvent(new Event('profileUpdated'));
     toast.success("Website removed!", { style: { background: '#f0f9ff', color: '#1e3a8a', fontFamily: 'Nunito, sans-serif', border: '1px solid #bfdbfe' } });
   };
@@ -376,9 +377,9 @@ const Edit_Profile = () => {
   const getDisplayName = () => {
     if (profile.fullName && profile.fullName.trim() !== '') return profile.fullName;
     let googleUser = null, linkedinUser = null, regName = '';
-    try { googleUser = JSON.parse(localStorage.getItem('googleUser')); } catch {}
-    try { linkedinUser = JSON.parse(localStorage.getItem('linkedinUser')); } catch {}
-    regName = localStorage.getItem('registeredName') || '';
+    try { googleUser = JSON.parse(Cookies.get('googleUser')); } catch {}
+    try { linkedinUser = JSON.parse(Cookies.get('linkedinUser')); } catch {}
+    regName = Cookies.get('registeredName') || '';
     if (googleUser && googleUser.name) return googleUser.name;
     if (linkedinUser && linkedinUser.name) return linkedinUser.name;
     if (regName) return regName;
@@ -388,9 +389,9 @@ const Edit_Profile = () => {
   const getDisplayEmail = () => {
     if (profile.email && profile.email.trim() !== '') return profile.email;
     let googleUser = null, linkedinUser = null, regEmail = '';
-    try { googleUser = JSON.parse(localStorage.getItem('googleUser')); } catch {}
-    try { linkedinUser = JSON.parse(localStorage.getItem('linkedinUser')); } catch {}
-    regEmail = localStorage.getItem('registeredEmail') || '';
+    try { googleUser = JSON.parse(Cookies.get('googleUser')); } catch {}
+    try { linkedinUser = JSON.parse(Cookies.get('linkedinUser')); } catch {}
+    regEmail = Cookies.get('registeredEmail') || '';
     if (googleUser && googleUser.email) return googleUser.email;
     if (linkedinUser && linkedinUser.email) return linkedinUser.email;
     if (regEmail) return regEmail;
@@ -406,7 +407,7 @@ const Edit_Profile = () => {
   const handleSaveName = () => {
     const updated = { ...profile, fullName: nameInput };
     setProfile(updated);
-    localStorage.setItem('user', JSON.stringify(updated));
+    Cookies.set('user', JSON.stringify(updated), { expires: 1 });
     window.dispatchEvent(new Event('profileUpdated'));
     setNameInput(nameInput); // Ensure input reflects the latest saved value
     setEditingName(false);
@@ -427,7 +428,7 @@ const Edit_Profile = () => {
   const handleSavePic = () => {
     setProfile(prev => {
       const updated = { ...prev, profilePic: prev.profilePicPreview };
-      localStorage.setItem('user', JSON.stringify(updated));
+      Cookies.set('user', JSON.stringify(updated), { expires: 1 });
       window.dispatchEvent(new Event('profileUpdated'));
       return { ...updated, profilePicPreview: null };
     });

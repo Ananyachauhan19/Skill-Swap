@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   gender: String,
   password: String, // optional if Google user
   googleId: String,
+  socketId: String, // Add this field for real-time notifications
 
   // 🔽 Add these two fields
   otp: String,

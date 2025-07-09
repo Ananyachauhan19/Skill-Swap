@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaExclamationCircle, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import { useModal } from '../context/ModalContext';
+import Cookies from 'js-cookie';
 
 const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const navigate = useNavigate();
@@ -82,17 +83,11 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       setIsLoading(true);
       setError("");
 
-      const res = await axios.post("http://localhost:5000/api/auth/login", { email, password });
-      const { token, user } = res.data;
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      window.dispatchEvent(new Event("authChanged"));
-      if (onLoginSuccess) onLoginSuccess(user);
-      if (isModal && onClose) {
-        onClose();
-      } else {
-        setError("OTP not sent.");
-      }
+      const res = await axios.post("http://localhost:5000/api/auth/login", { email, password }, { withCredentials: true });
+      // No token in response, OTP sent
+      setEmailForOtp(email);
+      setShowOtp(true);
+      setError("");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again.");
     } finally {
@@ -107,15 +102,11 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       const res = await axios.post("http://localhost:5000/api/auth/verify-otp", {
         email: emailForOtp,
         otp,
-      });
+      }, { withCredentials: true });
 
-      const { token, user } = res.data;
-      console.log("VERIFY OTP RESPONSE:", res.data);
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      const { user } = res.data;
+      Cookies.set('user', JSON.stringify(user), { expires: 1 });
       window.dispatchEvent(new Event("authChanged"));
-
       if (onLoginSuccess) onLoginSuccess(user);
       if (isModal && onClose) onClose();
       else navigate("/home");

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import Cookies from 'js-cookie';
 
 const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
   useEffect(() => {
@@ -63,11 +64,9 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
       
       <button
         className="text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded"
-        onClick={() => {
-          localStorage.removeItem('isRegistered');
-          localStorage.removeItem('isLoggedIn');
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+        onClick={async () => {
+          Cookies.remove('user');
+          await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
           window.dispatchEvent(new Event('authChanged'));
           onClose();
           navigate('/home');

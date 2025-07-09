@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Cookies from 'js-cookie';
+import VideoCall from '../components/VideoCall';
+import socket from '../socket';
 
 // Static data 
 const STATIC_COURSES = [
@@ -106,6 +109,50 @@ const CreateSession = () => {
   const [scheduledSessions, setScheduledSessions] = useState([]);
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState({});
+  const [startingSession, setStartingSession] = useState(null);
+  const [videoCall, setVideoCall] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Get current user from cookies
+  useEffect(() => {
+    const userCookie = Cookies.get('user');
+    if (userCookie) {
+      try {
+        const user = JSON.parse(userCookie);
+        setCurrentUser(user);
+      } catch (error) {
+        console.error('Error parsing user cookie:', error);
+      }
+    }
+  }, []);
+
+  // Socket listeners for real-time updates
+  useEffect(() => {
+    if (!currentUser) return;
+
+    // Register socket
+    socket.emit('register', currentUser._id);
+
+    // Listen for session-started (for requesters)
+    socket.on('session-started', (data) => {
+      console.log('Session started notification received:', data);
+      // Refresh sessions to show Join/Cancel buttons
+      fetchUserSessions();
+    });
+
+    // Listen for session-cancelled (for creators)
+    socket.on('session-cancelled', (data) => {
+      console.log('Session cancelled notification received:', data);
+      // Refresh sessions to update status
+      fetchUserSessions();
+    });
+
+    return () => {
+      socket.off('session-started');
+      socket.off('session-cancelled');
+    };
+  }, [currentUser]);
 
   // Filtered lists for cascading dropdowns
   const filteredCourseSuggestions = STATIC_COURSES.filter(
@@ -161,15 +208,14 @@ const CreateSession = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
       if (editId) {
         // Update existing session
         const response = await fetch(`http://localhost:5000/api/sessions/${editId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include',
           body: JSON.stringify(form),
         });
         if (!response.ok) {
@@ -183,8 +229,8 @@ const CreateSession = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
+          credentials: 'include',
           body: JSON.stringify(form),
         });
         if (!response.ok) {
@@ -228,19 +274,162 @@ const CreateSession = () => {
     if (editId === id) setEditId(null);
   };
 
-  const fetchUserSessions = async () => {
-    setLoading(true);
+  const handleApproveSession = async (id) => {
+    setActionLoading(prev => ({ ...prev, [`approve-${id}`]: true }));
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/sessions/mine', {
+      const response = await fetch(`http://localhost:5000/api/sessions/${id}/approve`, {
+        method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
-        }
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
       });
-      const data = await res.json();
-      setScheduledSessions(data); 
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to approve session');
+      }
+      alert('Session approved!');
+      fetchUserSessions();
+    } catch (error) {
+      console.error('Error approving session:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`approve-${id}`]: false }));
+    }
+  };
+
+  const handleRejectSession = async (id) => {
+    setActionLoading(prev => ({ ...prev, [`reject-${id}`]: true }));
+    try {
+      const response = await fetch(`http://localhost:5000/api/sessions/${id}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to reject session');
+      }
+      alert('Session rejected!');
+      fetchUserSessions();
+    } catch (error) {
+      console.error('Error rejecting session:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`reject-${id}`]: false }));
+    }
+  };
+
+  const handleJoinSession = async (session) => {
+    setActionLoading(prev => ({ ...prev, [`join-${session._id}`]: true }));
+    try {
+      console.log('Joining session:', session._id);
+      setVideoCall(session._id);
+      // The video call will handle the connection
+    } catch (error) {
+      console.error('Error joining session:', error);
+      alert('Error joining session: ' + error.message);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`join-${session._id}`]: false }));
+    }
+  };
+
+  const handleCancelSession = async (session) => {
+    setActionLoading(prev => ({ ...prev, [`cancel-${session._id}`]: true }));
+    try {
+      const response = await fetch(`http://localhost:5000/api/sessions/${session._id}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to cancel session');
+      }
+      alert('Session cancelled!');
+      fetchUserSessions();
+    } catch (error) {
+      console.error('Error cancelling session:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setActionLoading(prev => ({ ...prev, [`cancel-${session._id}`]: false }));
+    }
+  };
+
+  const handleStartSession = async (session) => {
+    if (session.status !== 'approved') {
+      alert('Only approved sessions can be started.');
+      return;
+    }
+
+    setStartingSession(session._id);
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/sessions/${session._id}/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to start session');
+      }
+
+      const result = await response.json();
+      
+      // Show success message
+      alert('Session started! The approved user has been notified.');
+      
+      // Start video call for creator
+      setVideoCall(session._id);
+      
+      // Refresh sessions list
+      fetchUserSessions();
+      
+    } catch (error) {
+      console.error('Error starting session:', error);
+      alert(error.message || 'Failed to start session');
+    } finally {
+      setStartingSession(null);
+    }
+  };
+
+  const fetchUserSessions = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/sessions/mine', {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions');
+      }
+      const sessions = await response.json();
+      console.log('Fetched sessions:', sessions);
+      console.log('Current user:', currentUser);
+      
+      // Debug each session
+      sessions.forEach(session => {
+        console.log(`Session ${session._id}:`, {
+          status: session.status,
+          creator: session.creator,
+          requester: session.requester,
+          currentUser: currentUser?._id,
+          isCreator: session.creator === currentUser?._id,
+          isRequester: session.requester === currentUser?._id,
+          shouldShowJoinCancel: session.status === 'approved' && session.requester === currentUser?._id
+        });
+      });
+      
+      setScheduledSessions(sessions);
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
     } finally {
       setLoading(false);
     }
@@ -249,6 +438,41 @@ const CreateSession = () => {
   useEffect(() => {
     fetchUserSessions();
   }, []);
+
+  useEffect(() => {
+    // Socket listeners for real-time updates
+    socket.on('session-approved', (data) => {
+      console.log('Session approved:', data);
+      fetchUserSessions(); // Refresh sessions
+    });
+
+    socket.on('session-rejected', (data) => {
+      console.log('Session rejected:', data);
+      fetchUserSessions(); // Refresh sessions
+    });
+
+    socket.on('session-started', (data) => {
+      console.log('Session started:', data);
+      // Start video call
+      setVideoCall(data.sessionId);
+    });
+
+    socket.on('session-cancelled', (data) => {
+      console.log('Session cancelled:', data);
+      fetchUserSessions(); // Refresh sessions
+      // End video call if active
+      if (videoCall === data.sessionId) {
+        setVideoCall(null);
+      }
+    });
+
+    return () => {
+      socket.off('session-approved');
+      socket.off('session-rejected');
+      socket.off('session-started');
+      socket.off('session-cancelled');
+    };
+  }, [videoCall]);
 
   // Skeleton Loader for Scheduled Sessions
   const SkeletonLoader = () => (
@@ -521,8 +745,28 @@ const CreateSession = () => {
                     className="border border-blue-200 rounded-2xl p-6 bg-white/80 flex flex-col justify-between min-h-[200px] shadow-sm hover:shadow-xl hover:scale-105 transition duration-300 transform animate-slide-up"
                   >
                     <div>
-                      <div className={`text-xs font-semibold mb-1 uppercase tracking-wider font-nunito ${session.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>
-                        {session.status.toUpperCase()}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className={`text-xs font-semibold uppercase tracking-wider font-nunito ${
+                          session.status === 'completed' ? 'text-green-600' : 
+                          session.status === 'approved' ? 'text-blue-600' : 
+                          session.status === 'rejected' ? 'text-red-600' : 
+                          'text-yellow-600'
+                        }`}>
+                          {session.status.toUpperCase()}
+                        </div>
+                        {currentUser && (
+                          <div className={`text-xs px-2 py-1 rounded-full font-nunito ${
+                            (session.creator === currentUser._id || 
+                             session.creator?._id === currentUser._id || 
+                             session.creator?.toString() === currentUser._id?.toString()) 
+                              ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                          }`}>
+                            {(session.creator === currentUser._id || 
+                              session.creator?._id === currentUser._id || 
+                              session.creator?.toString() === currentUser._id?.toString()) 
+                                ? 'Creator' : 'Requester'}
+                          </div>
+                        )}
                       </div>
                       <div className="font-semibold text-blue-900 mb-1 text-lg truncate font-lora">
                         {[session.subject, session.topic, session.subtopic].filter(x => x && x.trim()).join(' - ')}
@@ -531,29 +775,85 @@ const CreateSession = () => {
                       <div className="text-gray-500 text-xs mb-4 font-nunito">{session.date} at {session.time}</div>
                     </div>
                     <div className="flex gap-3 mt-auto">
-                      <button
-                        className="text-blue-600 hover:underline text-sm font-medium font-nunito"
-                        onClick={() => handleEdit(session)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="text-red-600 hover:underline text-sm font-medium font-nunito"
-                        onClick={() => handleDelete(session._id)}
-                      >
-                        Delete
-                      </button>
+                      {currentUser && (
+                        (session.creator === currentUser._id || 
+                         session.creator?._id === currentUser._id || 
+                         session.creator?.toString() === currentUser._id?.toString())
+                      ) && (
+                        <>
+                          <button
+                            className="text-blue-600 hover:underline text-sm font-medium font-nunito"
+                            onClick={() => handleEdit(session)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="text-red-600 hover:underline text-sm font-medium font-nunito"
+                            onClick={() => handleDelete(session._id)}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </div>
                     <div className="mt-6 flex justify-end">
-                      <button
-                        className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                        title="Start Session"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-7.5A2.25 2.25 0 003.75 5.25v13.5A2.25 2.25 0 006 21h7.5a2.25 2.25 0 002.25-2.25V15m0-6l5.25-3.75v13.5L15.75 15" />
-                        </svg>
-                        Start Session
-                      </button>
+                      {session.status === 'requested' && currentUser && (
+                        (session.creator === currentUser._id || 
+                         session.creator?._id === currentUser._id || 
+                         session.creator?.toString() === currentUser._id?.toString())
+                      ) && (
+                        <div className="flex gap-2 w-full">
+                          <button
+                            className="flex-1 bg-gradient-to-r from-green-600 to-green-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                            onClick={() => handleApproveSession(session._id)}
+                            disabled={actionLoading[`approve-${session._id}`]}
+                          >
+                            {actionLoading[`approve-${session._id}`] ? 'Approving...' : 'Approve'}
+                          </button>
+                          <button
+                            className="flex-1 bg-gradient-to-r from-red-600 to-red-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                            onClick={() => handleRejectSession(session._id)}
+                            disabled={actionLoading[`reject-${session._id}`]}
+                          >
+                            {actionLoading[`reject-${session._id}`] ? 'Rejecting...' : 'Reject'}
+                          </button>
+                        </div>
+                      )}
+                      {session.status === 'approved' && currentUser && (
+                        (session.creator === currentUser._id || 
+                         session.creator?._id === currentUser._id || 
+                         session.creator?.toString() === currentUser._id?.toString())
+                      ) && (
+                        <button
+                          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                          onClick={() => handleStartSession(session)}
+                          disabled={startingSession === session._id}
+                        >
+                          {startingSession === session._id ? 'Starting...' : 'Start Session'}
+                        </button>
+                      )}
+                      {session.status === 'approved' && currentUser && (
+                        (session.requester === currentUser._id || 
+                         session.requester?._id === currentUser._id || 
+                         session.requester?.toString() === currentUser._id?.toString())
+                      ) && (
+                        <div className="flex gap-2 w-full">
+                          <button
+                            className="flex-1 bg-gradient-to-r from-green-600 to-green-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                            onClick={() => handleJoinSession(session)}
+                            disabled={actionLoading[`join-${session._id}`]}
+                          >
+                            {actionLoading[`join-${session._id}`] ? 'Joining...' : 'Join Session'}
+                          </button>
+                          <button
+                            className="flex-1 bg-gradient-to-r from-red-600 to-red-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                            onClick={() => handleCancelSession(session)}
+                            disabled={actionLoading[`cancel-${session._id}`]}
+                          >
+                            {actionLoading[`cancel-${session._id}`] ? 'Cancelling...' : 'Cancel Session'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </li>
                 ))}
@@ -564,6 +864,17 @@ const CreateSession = () => {
           </section>
         </div>
       </div>
+      {videoCall && (
+        <VideoCall
+          sessionId={videoCall}
+          onEndCall={() => setVideoCall(null)}
+          userRole={currentUser && scheduledSessions.find(s => s._id === videoCall) && (
+            (scheduledSessions.find(s => s._id === videoCall).creator === currentUser._id || 
+             scheduledSessions.find(s => s._id === videoCall).creator?._id === currentUser._id || 
+             scheduledSessions.find(s => s._id === videoCall).creator?.toString() === currentUser._id?.toString())
+          ) ? 'Creator' : 'Requester'}
+        />
+      )}
     </div>
   );
 };

@@ -24,8 +24,25 @@ import AccountSettings from './user/AccountSettings';
 import AccountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import UploadRecordedSession from './user/SessionsFolder/UploadRecordedSession';
 import Package from './user/Package';
+import socket from './socket';
+import Cookies from 'js-cookie';
+import { useEffect } from 'react';
+
+function useRegisterSocket() {
+  useEffect(() => {
+    const userCookie = Cookies.get('user');
+    const user = userCookie ? JSON.parse(userCookie) : null;
+    if (user && user._id) {
+      console.log('[Socket Register] Emitting register for user', user._id, user);
+      socket.emit('register', user._id);
+    } else {
+      console.log('[Socket Register] No user found in cookie');
+    }
+  }, []);
+}
 
 function App() {
+  useRegisterSocket();
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
 

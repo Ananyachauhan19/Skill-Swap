@@ -13,6 +13,7 @@ import WhoAreWeSection from "./HomeSection/WhoAreWeSection";
 import WhyChooseSection from "./HomeSection/WhyChooseSection";
 import LetsStartSection from "./HomeSection/LetsStartSection";
 import Testimonial from "./Testimonial";
+import Cookies from 'js-cookie';
 
 // HomeHero component: Main landing page for SkillSwap-Hub
 const HomeHero = () => {
@@ -30,10 +31,9 @@ const HomeHero = () => {
     const token = url.searchParams.get("token");
     const user = url.searchParams.get("user");
     if (token && user) {
-      localStorage.setItem("token", token);
       try {
         const userObj = JSON.parse(decodeURIComponent(user));
-        localStorage.setItem("user", JSON.stringify(userObj));
+        Cookies.set('user', JSON.stringify(userObj), { expires: 1 });
         setUser(userObj);
         setIsLoggedIn(true);
       } catch (e) {
@@ -44,7 +44,7 @@ const HomeHero = () => {
       window.history.replaceState({}, document.title, url.pathname);
     }
 
-    const storedUser = localStorage.getItem("user");
+    const storedUser = Cookies.get('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
       setIsLoggedIn(true);

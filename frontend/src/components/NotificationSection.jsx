@@ -16,6 +16,7 @@ function filterNotifications(notifications) {
 const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
   const [show, setShow] = useState(false);
   const dropdownRef = useRef();
+  const [loading, setLoading] = useState({});
 
   useEffect(() => {
     if (!show) return;
@@ -45,7 +46,90 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
 
   // Clear all notifications (manual clear)
   const handleClear = () => {
-    if (onClear) onClear();
+    if (onClear) {
+      onClear();
+      // Also clear localStorage
+      localStorage.removeItem('notifications');
+    }
+  };
+
+  // Mark notification as read
+  const handleNotificationRead = (index) => {
+    const updatedNotifications = notifications.map((notification, i) => {
+      if (i === index) {
+        return { ...notification, read: true };
+      }
+      return notification;
+    });
+    if (onUpdate) {
+      onUpdate(updatedNotifications);
+      // Also update localStorage
+      localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+    }
+  };
+
+  // Handle approve session request
+  const handleApproveSession = async (sessionId, index) => {
+    setLoading(prev => ({ ...prev, [`approve-${index}`]: true }));
+    try {
+      const response = await fetch(`http://localhost:5000/api/sessions/approve/${sessionId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to approve session');
+      }
+
+      console.log('Session approved successfully');
+      
+      // Remove the notification
+      const updatedNotifications = notifications.filter((_, i) => i !== index);
+      if (onUpdate) {
+        onUpdate(updatedNotifications);
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      }
+    } catch (error) {
+      console.error('Error approving session:', error);
+      alert('Failed to approve session. Please try again.');
+    } finally {
+      setLoading(prev => ({ ...prev, [`approve-${index}`]: false }));
+    }
+  };
+
+  // Handle reject session request
+  const handleRejectSession = async (sessionId, index) => {
+    setLoading(prev => ({ ...prev, [`reject-${index}`]: true }));
+    try {
+      const response = await fetch(`http://localhost:5000/api/sessions/reject/${sessionId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reject session');
+      }
+
+      console.log('Session rejected successfully');
+      
+      // Remove the notification
+      const updatedNotifications = notifications.filter((_, i) => i !== index);
+      if (onUpdate) {
+        onUpdate(updatedNotifications);
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      }
+    } catch (error) {
+      console.error('Error rejecting session:', error);
+      alert('Failed to reject session. Please try again.');
+    } finally {
+      setLoading(prev => ({ ...prev, [`reject-${index}`]: false }));
+    }
   };
 
   return (
@@ -69,9 +153,9 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
           />
         </svg>
-        {notifications.length > 0 && (
+        {notifications.filter(n => !n.read).length > 0 && (
           <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold animate-pulse">
-            {notifications.length}
+            {notifications.filter(n => !n.read).length}
           </span>
         )}
       </button>
@@ -96,14 +180,138 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
                 No notifications
               </li>
             ) : (
-              notifications.map((n, idx) => (
-                <li
-                  key={idx}
-                  className="px-4 py-3 text-blue-800 text-sm hover:bg-blue-50 cursor-pointer"
-                >
-                  {n.content ? n.content : n}
-                </li>
-              ))
+              notifications.map((n, idx) => {
+                console.log('Rendering notification:', n, 'at index:', idx);
+                return (
+                  <li
+                    key={idx}
+                    className="px-4 py-3 text-blue-800 text-sm hover:bg-blue-50 cursor-pointer"
+                  >
+                    {n.type === 'session-started' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="font-semibold text-green-700">Session Started</span>
+                          {!n.read && (
+                            <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+                          )}
+                        </div>
+                        <p className="text-gray-700">{n.message}</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => {
+                              console.log('Join button clicked for session-started notification');
+                              if (n.onJoin) {
+                                console.log('Calling onJoin function');
+                                n.onJoin();
+                              }
+                              // Remove this notification
+                              handleNotificationRead(idx);
+                            }}
+                            className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                          >
+                            Join
+                          </button>
+                          <button
+                            onClick={() => {
+                              console.log('Cancel button clicked for session-started notification');
+                              if (n.onCancel) {
+                                console.log('Calling onCancel function');
+                                n.onCancel();
+                              }
+                              // Remove this notification
+                              handleNotificationRead(idx);
+                            }}
+                            className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : n.type === 'session-approved' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="font-semibold text-blue-700">Session Approved</span>
+                        </div>
+                        <p className="text-gray-700">{n.message}</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleNotificationRead(idx)}
+                            className="px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
+                          >
+                            Mark as Read
+                          </button>
+                        </div>
+                      </div>
+                    ) : n.type === 'session-rejected' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          <span className="font-semibold text-red-700">Session Rejected</span>
+                        </div>
+                        <p className="text-gray-700">{n.message}</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleNotificationRead(idx)}
+                            className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
+                          >
+                            Mark as Read
+                          </button>
+                        </div>
+                      </div>
+                    ) : n.type === 'session-cancelled' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                          <span className="font-semibold text-orange-700">Session Cancelled</span>
+                          {!n.read && (
+                            <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+                          )}
+                        </div>
+                        <p className="text-gray-700">{n.message}</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleNotificationRead(idx)}
+                            className="px-3 py-1 bg-orange-600 text-white text-xs rounded-md hover:bg-orange-700 transition-colors"
+                          >
+                            Mark as Read
+                          </button>
+                        </div>
+                      </div>
+                    ) : n.type === 'session-requested' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                          <span className="font-semibold text-yellow-700">Session Request</span>
+                          {!n.read && (
+                            <span className="bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+                          )}
+                        </div>
+                        <p className="text-gray-700">{n.message}</p>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => handleApproveSession(n.sessionId, idx)}
+                            className="px-3 py-1 bg-green-600 text-white text-xs rounded-md hover:bg-green-700 transition-colors"
+                            disabled={loading[`approve-${idx}`]}
+                          >
+                            {loading[`approve-${idx}`] ? 'Approving...' : 'Accept'}
+                          </button>
+                          <button
+                            onClick={() => handleRejectSession(n.sessionId, idx)}
+                            className="px-3 py-1 bg-red-600 text-white text-xs rounded-md hover:bg-red-700 transition-colors"
+                            disabled={loading[`reject-${idx}`]}
+                          >
+                            {loading[`reject-${idx}`] ? 'Rejecting...' : 'Reject'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>{n.content ? n.content : n}</div>
+                    )}
+                  </li>
+                );
+              })
             )}
           </ul>
         </div>

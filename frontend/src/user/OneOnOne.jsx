@@ -102,29 +102,28 @@ const OneOnOne = () => {
     }
   };
 
-  const handleRequestSession = async (creator) => {
-    console.log('Requesting session with:', creator);  // debug line
+  const handleRequestSession = async (session) => {
+    console.log('Requesting session with:', session);  // debug line
 
-    if (!creator.sessionId) {
-      alert('Error: Missing sessionId in tutor data.');
+    if (!session._id) {
+      alert('Error: Missing sessionId in session data.');
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:5000/api/sessions/request/${creator.sessionId}`, {
+      const res = await fetch(`http://localhost:5000/api/sessions/request/${session._id}`, {
         method: 'POST',
+        credentials: 'include', // Send cookies for authentication
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
       if (!res.ok) throw new Error('Failed to send session request');
 
-      setSessionRequestedTutor(creator);
-      setPendingSession({ tutor: creator });
-      setRequestSentTutor(creator);
+      setSessionRequestedTutor(session.creator);
+      setPendingSession({ tutor: session.creator });
+      setRequestSentTutor(session.creator);
 
       alert('Session request sent successfully!');
     } catch (error) {
@@ -224,30 +223,24 @@ const OneOnOne = () => {
       <p className="text-center text-gray-500">No pending sessions found.</p>
     ) : Array.isArray(searchResults) ? (
       searchResults.map((session, idx) => (
-  <TutorCard
-      key={idx}
-      
-    tutor={{
-     name: `${session.creator?.firstName ?? ''} ${session.creator?.lastName ?? ''}`.trim() || "Unknown",
-      profilePic: '/default-user.png',
-      date: session.date,
-      time: session.time,
-       skills: [session.subject, session.topic, session.subtopic],
-         status: `${session.status}` === 'pending'
-  ? '🟢 Available'
-  : `🔴 Busy (${session.status})`,
-      rating: 4.5,
-    }}
-    onRequestSession={() => handleRequestSession(session.creator)}
-    
-  />
-  
-))
+        <TutorCard
+          key={idx}
+          tutor={{
+            name: `${session.creator?.firstName ?? ''} ${session.creator?.lastName ?? ''}`.trim() || "Unknown",
+            profilePic: '/default-user.png',
+            date: session.date,
+            time: session.time,
+            skills: [session.subject, session.topic, session.subtopic],
+            status: `${session.status}` === 'pending' ? '🟢 Available' : `🔴 Busy (${session.status})`,
+            rating: 4.5,
+          }}
+          onRequestSession={() => handleRequestSession(session)}
+        />
+      ))
     ) : (
       <p className="text-red-600">Unexpected response format.</p>
     )}
   </div>
-  
 )}
 
 

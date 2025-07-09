@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, GraduationCap, Linkedin, Mail, Settings, LogOut, Menu, X } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import { fetchSilverCoinBalance, fetchGoldenCoinBalance } from './settings/CoinBalance.jsx';
+import Cookies from 'js-cookie';
 
 // --- Function to fetch user history ---
 async function fetchUserHistory() {
@@ -108,12 +109,12 @@ const Profile = () => {
   const [silver, setSilver] = useState(0);
   const [gold, setGold] = useState(0);
 
-  // --- Fetch user profile from backend/localStorage ---
+  // --- Fetch user profile from backend/cookie ---
   useEffect(() => {
     async function fetchProfile() {
       // Replace this with a real API call when backend is ready
       let user = null;
-      try { user = JSON.parse(localStorage.getItem('user')); } catch {}
+      try { user = JSON.parse(Cookies.get('user')); } catch {}
       setProfile(prev => ({
         ...prev,
         email: user?.email || prev.email,
@@ -205,17 +206,17 @@ const Profile = () => {
   const getDisplayName = () => {
     // 1. State value (from user object)
     if (profile.fullName && profile.fullName.trim() !== '') return profile.fullName;
-    // 2. Latest user object in localStorage
+    // 2. Latest user object in cookie
     let user = null;
-    try { user = JSON.parse(localStorage.getItem('user')); } catch {}
+    try { user = JSON.parse(Cookies.get('user')); } catch {}
     if (user && user.fullName && user.fullName.trim() !== '') return user.fullName;
     // 3. Registered name from login/register
-    const regName = localStorage.getItem('registeredName') || '';
+    const regName = Cookies.get('registeredName') || '';
     if (regName && regName.trim() !== '') return regName;
     // 4. Google/LinkedIn social auth
     let googleUser = null, linkedinUser = null;
-    try { googleUser = JSON.parse(localStorage.getItem('googleUser')); } catch {}
-    try { linkedinUser = JSON.parse(localStorage.getItem('linkedinUser')); } catch {}
+    try { googleUser = JSON.parse(Cookies.get('googleUser')); } catch {}
+    try { linkedinUser = JSON.parse(Cookies.get('linkedinUser')); } catch {}
     if (googleUser && googleUser.name && googleUser.name.trim() !== '') return googleUser.name;
     if (linkedinUser && linkedinUser.name && linkedinUser.name.trim() !== '') return linkedinUser.name;
     // 5. Fallback
@@ -225,9 +226,9 @@ const Profile = () => {
   const getDisplayEmail = () => {
     if (profile.email && profile.email.trim() !== '') return profile.email;
     let googleUser = null, linkedinUser = null, regEmail = '';
-    try { googleUser = JSON.parse(localStorage.getItem('googleUser')); } catch {}
-    try { linkedinUser = JSON.parse(localStorage.getItem('linkedinUser')); } catch {}
-    regEmail = localStorage.getItem('registeredEmail') || '';
+    try { googleUser = JSON.parse(Cookies.get('googleUser')); } catch {}
+    try { linkedinUser = JSON.parse(Cookies.get('linkedinUser')); } catch {}
+    regEmail = Cookies.get('registeredEmail') || '';
     if (googleUser && googleUser.email) return googleUser.email;
     if (linkedinUser && linkedinUser.email) return linkedinUser.email;
     if (regEmail) return regEmail;
@@ -235,11 +236,9 @@ const Profile = () => {
   };
   // Helper to get best available userId
   const getDisplayUserId = () => {
-    if (profile.userId && profile.userId.trim() !== '') return profile.userId;
     let user = null;
-    try { user = JSON.parse(localStorage.getItem('user')); } catch {}
-    if (user && user.userId) return user.userId;
-    return '';
+    try { user = JSON.parse(Cookies.get('user')); } catch {}
+    return user?.userId || '';
   };
 
   // --- Full Name Edit State ---
@@ -457,7 +456,11 @@ const Profile = () => {
             <button
               className="flex items-center gap-3 text-sm text-gray-700 hover:bg-blue-100 p-3 rounded-md"
               onClick={() => {
-                localStorage.clear();
+                Cookies.remove('user');
+                Cookies.remove('registeredName');
+                Cookies.remove('registeredEmail');
+                Cookies.remove('googleUser');
+                Cookies.remove('linkedinUser');
                 window.location.href = '/'; 
               }}
             >

@@ -41,9 +41,9 @@ exports.verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
 
   const user = await User.findOne({ email });
- if (!user || String(user.otp) !== String(otp) || Date.now() > user.otpExpires) {
-  return res.status(400).json({ message: 'Invalid or expired OTP' });
-}
+  if (!user || String(user.otp) !== String(otp) || Date.now() > user.otpExpires) {
+    return res.status(400).json({ message: 'Invalid or expired OTP' });
+  }
 
   // Clear OTP
   user.otp = undefined;
@@ -53,5 +53,19 @@ exports.verifyOtp = async (req, res) => {
   // Generate JWT token after successful OTP verification
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-  return res.status(200).json({ message: 'Login successful', token });
+  // Set token as httpOnly cookie
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+  });
+
+  return res.status(200).json({ message: 'Login successful', user });
+};
+
+// Add logout controller
+exports.logout = (req, res) => {
+  res.clearCookie('token');
+  res.status(200).json({ message: 'Logged out' });
 };

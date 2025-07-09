@@ -12,6 +12,7 @@ import { MdOutlineMoreHoriz } from "react-icons/md";
 import axios from "axios";
 import { useModal } from "../context/ModalContext";
 import { motion } from "framer-motion";
+import Cookies from 'js-cookie';
 
 const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const navigate = useNavigate();
@@ -109,14 +110,10 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         password,
       });
       const { token, user } = res.data;
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem(
-        "registeredName",
-        `${firstName}${lastName ? " " + lastName : ""}`
-      );
-      localStorage.setItem("registeredEmail", email);
-      localStorage.setItem("isRegistered", "true");
+      Cookies.set('user', JSON.stringify(user), { expires: 1 });
+      Cookies.set('registeredName', `${firstName}${lastName ? " " + lastName : ""}`, { expires: 1 });
+      Cookies.set('registeredEmail', email, { expires: 1 });
+      Cookies.set('isRegistered', 'true', { expires: 1 });
       window.dispatchEvent(new Event("authChanged"));
       if (onRegisterSuccess) onRegisterSuccess(user);
       if (isModal && onClose) {
