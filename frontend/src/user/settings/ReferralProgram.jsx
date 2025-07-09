@@ -27,6 +27,7 @@ const ReferralProgram = () => {
       // await sendReferralInvite(inviteEmail);
       setMessage("Referral invite sent!");
       setInviteEmail("");
+    // eslint-disable-next-line no-unused-vars
     } catch (err) {
       setError("Failed to send invite.");
     } finally {
@@ -35,27 +36,36 @@ const ReferralProgram = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-4 sm:p-8 bg-white rounded-xl shadow border border-blue-100 mt-8">
-      <h1 className="text-2xl font-bold mb-6 text-blue-900 text-center">Referral Program</h1>
-      <div className="mb-4">
-        <div className="font-semibold text-blue-800 mb-1">Your Referral Link:</div>
-        <div className="bg-blue-50 rounded p-2 text-blue-900 text-sm break-all select-all">{referralLink}</div>
+    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 border border-blue-100">
+        <h1 className="text-2xl font-semibold text-blue-900 text-center mb-6">Referral Program</h1>
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-blue-800 mb-1">Your Referral Link</label>
+          <div className="bg-blue-50 rounded-lg p-3 text-blue-900 text-sm break-all select-all border border-blue-200">{referralLink}</div>
+        </div>
+        <form onSubmit={handleInvite} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-blue-800 mb-1">Friend's Email</label>
+            <input
+              type="email"
+              value={inviteEmail}
+              onChange={e => setInviteEmail(e.target.value)}
+              placeholder="Enter friend's email"
+              className="w-full border border-blue-200 rounded-lg px-4 py-2.5 text-sm text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-300 transition"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold shadow hover:bg-blue-700 transition duration-200 disabled:bg-blue-400"
+            disabled={loading}
+          >
+            {loading ? 'Sending...' : 'Send Invite'}
+          </button>
+        </form>
+        {message && <p className="text-green-600 text-sm mt-4 text-center">{message}</p>}
+        {error && <p className="text-red-600 text-sm mt-4 text-center">{error}</p>}
       </div>
-      <form onSubmit={handleInvite} className="space-y-4 mb-4">
-        <input
-          type="email"
-          value={inviteEmail}
-          onChange={e => setInviteEmail(e.target.value)}
-          placeholder="Friend's email address"
-          className="w-full border border-blue-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-          required
-        />
-        <button type="submit" className="bg-blue-700 text-white px-6 py-2 rounded font-semibold shadow hover:bg-blue-800 transition-all duration-200" disabled={loading}>
-          {loading ? 'Sending...' : 'Send Invite'}
-        </button>
-      </form>
-      {message && <p className="text-green-600 text-sm mb-2 text-center">{message}</p>}
-      {error && <p className="text-red-600 text-sm mb-2 text-center">{error}</p>}
     </div>
   );
 };
