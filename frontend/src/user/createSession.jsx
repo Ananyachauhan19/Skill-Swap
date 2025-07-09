@@ -796,6 +796,7 @@ const CreateSession = () => {
                       )}
                     </div>
                     <div className="mt-6 flex justify-end">
+                      {/* Approve/Reject for creator when requested */}
                       {session.status === 'requested' && currentUser && isCurrentUserCreator(session) && (
                         <div className="flex gap-2 w-full">
                           <button
@@ -814,16 +815,18 @@ const CreateSession = () => {
                           </button>
                         </div>
                       )}
-                                                                    {session.status === 'approved' && currentUser && isCurrentUserCreator(session) && (
-                      <button
-                        className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      {/* Start Session for creator when approved */}
+                      {session.status === 'approved' && currentUser && isCurrentUserCreator(session) && (
+                        <button
+                          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
                           onClick={() => handleStartSession(session)}
                           disabled={startingSession === session._id}
                         >
                           {startingSession === session._id ? 'Starting...' : 'Start Session'}
                         </button>
                       )}
-                                                                    {session.status === 'approved' && currentUser && isCurrentUserRequester(session) && (
+                      {/* Join/Cancel for requester when active */}
+                      {session.status === 'active' && currentUser && isCurrentUserRequester(session) && (
                         <div className="flex gap-2 w-full">
                           <button
                             className="flex-1 bg-gradient-to-r from-green-600 to-green-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
@@ -838,7 +841,7 @@ const CreateSession = () => {
                             disabled={actionLoading[`cancel-${session._id}`]}
                           >
                             {actionLoading[`cancel-${session._id}`] ? 'Cancelling...' : 'Cancel Session'}
-                      </button>
+                          </button>
                         </div>
                       )}
                     </div>
