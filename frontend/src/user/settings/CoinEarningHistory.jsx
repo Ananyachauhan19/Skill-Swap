@@ -21,6 +21,7 @@ const CoinEarningHistory = () => {
           { date: '2025-07-01', amount: 10, type: 'Session Completed' },
           { date: '2025-06-28', amount: 5, type: 'Referral Bonus' },
         ]); // Remove when backend is ready
+      // eslint-disable-next-line no-unused-vars
       } catch (err) {
         setError("Failed to load earning history.");
       } finally {

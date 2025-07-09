@@ -21,6 +21,7 @@ const CoinSpendingHistory = () => {
           { date: '2025-07-02', amount: -8, type: 'Session Booking' },
           { date: '2025-06-29', amount: -3, type: 'Resource Purchase' },
         ]); // Remove when backend is ready
+      // eslint-disable-next-line no-unused-vars
       } catch (err) {
         setError("Failed to load spending history.");
       } finally {

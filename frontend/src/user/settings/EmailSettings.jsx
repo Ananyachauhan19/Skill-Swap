@@ -18,6 +18,7 @@ const EmailSettings = () => {
     try {
       // await updateEmail(email);
       setMessage("A verification link has been sent to your new email address.");
+    // eslint-disable-next-line no-unused-vars
     } catch (err) {
       setError("Failed to update email. Please try again.");
     } finally {
