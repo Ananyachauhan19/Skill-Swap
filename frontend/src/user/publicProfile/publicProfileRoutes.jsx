@@ -3,7 +3,6 @@ import { Navigate } from 'react-router-dom';
 import PublicHome from './PublicHome';
 import PublicLive from './PublicLive';
 import PublicVideos from './PublicVideos';
-import PublicPlaylist from './PublicPlaylist';
 
 
 const publicProfileChildren = [
@@ -11,7 +10,6 @@ const publicProfileChildren = [
   { path: 'Home', element: <PublicHome /> },
   { path: 'live', element: <PublicLive /> },
   { path: 'videos', element: <PublicVideos /> },
-  { path: 'playlist', element: <PublicPlaylist /> },
 ];
 
 export default publicProfileChildren;

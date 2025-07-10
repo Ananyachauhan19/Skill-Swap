@@ -30,6 +30,7 @@ import PrivateProfile from './user/PrivateProfile';
 import PublicProfile from './user/PublicProfile';
 import publicProfileRoutes from './user/publicProfile/publicProfileRoutes';
 import StartSkillSwap from './user/StartSkillSwap';
+import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 
 function useRegisterSocket() {
   useEffect(() => {
@@ -65,6 +66,8 @@ const appRoutes = [
   { path: '/pro', element: <GoPro /> },
   { path: '/accountSettings', element: <AccountSettings /> },
   { path: '/StartSkillSwap', element: <StartSkillSwap /> },
+
+   ...accountSettingsRoutes,
   
   // Private profile routes (nested under /profile)
   {

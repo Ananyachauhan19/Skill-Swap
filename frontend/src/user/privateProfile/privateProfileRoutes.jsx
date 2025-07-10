@@ -7,7 +7,6 @@ import Draft from './Draft';
 import Archive from './Archive';
 import Saved from './Saved';
 import Analytics from './Analytics';
-import Playlist from './Playlist';
 import SkillMate from './SkillMate';
 
 const privateProfileChildren = [
@@ -16,10 +15,9 @@ const privateProfileChildren = [
     path: 'panel',
     element: <Panel />,
     children: [
-      { index: true, element: null }, // Shows welcome message in Panel.jsx
+      { index: true, element: null },
       { path: 'live', element: <Live /> },
       { path: 'videos', element: <Videos /> },
-      { path: 'playlist', element: <Playlist /> },
     ],
   },
   { path: 'drafts', element: <Draft /> },
