@@ -61,14 +61,6 @@ const Panel = () => {
     >
       Videos
     </NavLink>
-    <NavLink
-      to="playlist"
-      className={({ isActive }) =>
-        `pb-2 px-2 text-sm font-medium ${isActive ? activeTab : normalTab}`
-      }
-    >
-      Playlist
-    </NavLink>
   </div>
 
   {/* Tab content always below navigation */}

@@ -255,14 +255,6 @@ const SideBarPublic = () => {
               >
                 Videos
               </NavLink>
-              <NavLink
-                to="/public-profile/playlist"
-                className={({ isActive }) =>
-                  `pb-2 px-2 text-sm font-medium ${isActive ? activeTab : normalTab}`
-                }
-              >
-                Playlist
-              </NavLink>
             </div>
           </div>
           {/* Tab Content Outlet */}
