@@ -1,10 +1,13 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useLocation, useRoutes, Navigate } from 'react-router-dom';
 import { ModalProvider } from './context/ModalContext';
 import GlobalModals from './GlobalModals';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
+
+import socket from './socket';
+import Cookies from 'js-cookie';
 
 import Home from './user/Home';
 import Login from './auth/Login';
@@ -17,17 +20,16 @@ import Testimonial from './user/Testimonial';
 import Profile from './user/Profile';
 import CreateSession from './user/createSession';
 import HistoryPage from './user/HistoryPage';
-import Edit_Profile from './user/sections/Edit_Profile';
 import HelpSupportPage from './user/HelpSupportPage';
 import GoPro from './user/HomeSection/GoPro';
 import AccountSettings from './user/AccountSettings';
-import AccountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import UploadRecordedSession from './user/SessionsFolder/UploadRecordedSession';
 import Package from './user/Package';
+import privateProfileRoutes from './user/privateProfile/privateProfileRoutes';
+import PrivateProfile from './user/PrivateProfile';
+import PublicProfile from './user/PublicProfile';
+import publicProfileRoutes from './user/publicProfile/publicProfileRoutes';
 import StartSkillSwap from './user/StartSkillSwap';
-import socket from './socket';
-import Cookies from 'js-cookie';
-import { useEffect } from 'react';
 
 function useRegisterSocket() {
   useEffect(() => {
@@ -42,10 +44,46 @@ function useRegisterSocket() {
   }, []);
 }
 
+
+// Define all routes in a single array for useRoutes
+const appRoutes = [
+  { path: '/', element: <Navigate to="/home" replace /> },
+  { path: '/home', element: <Home /> },
+  { path: '/login', element: <Login /> },
+  { path: '/register', element: <Register /> },
+  { path: '/one-on-one', element: <OneOnOne /> },
+  { path: '/discuss', element: <Discuss /> },
+  { path: '/interview', element: <Interview /> },
+  { path: '/session', element: <Sessions /> },
+  { path: '/testimonials', element: <Testimonial showAll={true} /> },
+  { path: '/your-profile', element: <Profile /> },
+  { path: '/createSession', element: <CreateSession /> },
+  { path: '/package', element: <Package /> },
+  { path: '/uploaded', element: <UploadRecordedSession /> },
+  { path: '/history', element: <HistoryPage /> },
+  { path: '/help', element: <HelpSupportPage /> },
+  { path: '/pro', element: <GoPro /> },
+  { path: '/accountSettings', element: <AccountSettings /> },
+  { path: '/StartSkillSwap', element: <StartSkillSwap /> },
+  
+  // Private profile routes (nested under /profile)
+  {
+    path: '/profile',
+    element: <PrivateProfile />,
+    children: privateProfileRoutes,
+  },
+  {
+    path: '/public-profile',
+    element: <PublicProfile />,
+    children: publicProfileRoutes,
+  },
+];
+
 function App() {
   useRegisterSocket();
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const element = useRoutes(appRoutes);
 
   return (
     <ModalProvider>
@@ -53,28 +91,7 @@ function App() {
       <GlobalModals />
       {!isAuthPage && <Navbar />}
       <div className={location.pathname === '/home' ? '' : 'pt-8'}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/one-on-one" element={<OneOnOne />} />
-          <Route path="/startskillswap" element={<StartSkillSwap />} />
-          <Route path="/discuss" element={<Discuss />} />
-          <Route path="/interview" element={<Interview />} />
-          <Route path="/session" element={<Sessions />} />
-          <Route path="/testimonials" element={<Testimonial showAll={true} />} />
-          <Route path="/profile" element={<Profile/>} />
-          <Route path="/edit-profile" element={<Edit_Profile/>} />
-          <Route path="/createSession" element={<CreateSession/>} />
-          <Route path="/package" element={<Package/>} />
-          <Route path="/uploaded" element={<UploadRecordedSession/>} />
-          <Route path="/history" element={<HistoryPage/>} />
-          <Route path="/help" element={<HelpSupportPage/>} />
-          <Route path="/pro" element={<GoPro/>} />
-          <Route path="/accountSettings" element={<AccountSettings/>} />
-          {AccountSettingsRoutes()}
-        </Routes>
+        {element}
       </div>
       {!isAuthPage && <Footer />}
     </ModalProvider>
