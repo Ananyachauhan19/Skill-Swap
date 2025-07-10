@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
+import Cookies from 'js-cookie';
 import { fetchSilverCoinBalance, fetchGoldenCoinBalance } from './settings/CoinBalance.jsx';
 import SidebarCard from './myprofile/SidebarCard';
 import CoinsBadges from './myprofile/CoinsBadges';
@@ -10,12 +11,20 @@ import ContributionCalendar from './myprofile/ContributionCalendar';
 
 // --- Backend API to fetch user profile ---
 const fetchUserProfile = async () => {
-  // Simulate backend response with static data for now
+  // Simulate backend response with static data for non-email fields
   try {
-    // Static user profile data
+    // Fetch email from logged-in user (via cookies)
+    let email = Cookies.get('registeredEmail') || '';
+    if (!email) {
+      let googleUser = null, linkedinUser = null;
+      try { googleUser = JSON.parse(Cookies.get('googleUser')); } catch {}
+      try { linkedinUser = JSON.parse(Cookies.get('linkedinUser')); } catch {}
+      email = (googleUser?.email || linkedinUser?.email || '');
+    }
+
+    // Static profile data (excluding email)
     const staticProfile = {
       fullName: 'John Doe',
-      email: localStorage.getItem('registeredEmail') || 'john.doe@example.com',
       userId: 'john_doe123',
       profilePic: 'https://placehold.co/100x100?text=JD',
       profilePicPreview: 'https://placehold.co/100x100?text=JD',
@@ -34,6 +43,7 @@ const fetchUserProfile = async () => {
       goldCoins: 0,
       badges: ['Starter', 'Helper'],
       rank: 'Bronze',
+      email, // Use fetched email
     };
     return staticProfile;
   } catch {
@@ -41,9 +51,12 @@ const fetchUserProfile = async () => {
   }
   // Uncomment for actual backend integration
   /*
-  const res = await fetch('/api/user/profile');
+  const res = await fetch('/api/user/profile', {
+    headers: { 'Authorization': `Bearer ${Cookies.get('token')}` }
+  });
   if (!res.ok) throw new Error('Failed to fetch user profile');
-  return res.json();
+  const data = await res.json();
+  return { ...data, email: data.email || Cookies.get('registeredEmail') || '' };
   */
 };
 
@@ -51,7 +64,6 @@ const fetchUserProfile = async () => {
 const updateUserProfile = async (profile) => {
   // Simulate backend update with static response for now
   try {
-    // Return updated profile as-is
     return profile;
   } catch {
     throw new Error('Failed to update user profile');
@@ -67,13 +79,12 @@ const updateUserProfile = async (profile) => {
   return res.json();
   */
 };
-
 // --- Backend API to upload profile picture ---
 const uploadProfilePic = async (file) => {
   // Simulate backend upload with static URL for now
   try {
-    // Mock URL for uploaded image
     const mockUrl = 'https://placehold.co/100x100?text=NewPic';
+    console.log('uploadProfilePic: Returning mock URL:', mockUrl);
     return { url: mockUrl };
   } catch {
     throw new Error('Failed to upload profile picture');
@@ -93,9 +104,8 @@ const uploadProfilePic = async (file) => {
 
 // --- Function to fetch user history ---
 async function fetchUserHistory() {
-  // Simulate backend response with static history data for now
+  // Simulate backend response with static history data
   try {
-    // Static history data
     const staticHistory = [
       { date: '2025-07-09', sessions: ['React Workshop', 'Node.js Q&A'] },
       { date: '2025-07-08', sessions: ['JavaScript Basics'] },
@@ -111,7 +121,7 @@ async function fetchUserHistory() {
   const data = await response.json();
   return data;
   */
-}
+};
 
 // --- Helper to generate dynamic months for the past 365 days ---
 const generateMonths = (currentDate) => {
@@ -200,7 +210,7 @@ const Profile = () => {
     badges: ['Starter', 'Helper'],
     rank: 'Bronze',
   });
-  const [originalProfile, setOriginalProfile] = useState(null); // for cancel
+  const [originalProfile, setOriginalProfile] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -212,24 +222,29 @@ const Profile = () => {
   const [silver, setSilver] = useState(0);
   const [gold, setGold] = useState(0);
   const [editingField, setEditingField] = useState(null);
-  const [fieldDraft, setFieldDraft] = useState({}); // holds temporary edits for each field
+  const [fieldDraft, setFieldDraft] = useState({});
 
-  // --- Add new state for file uploads (proofs, certificates) ---
-  const [teachProofs, setTeachProofs] = useState([]); // [{file, url}]
-  const [certFiles, setCertFiles] = useState([]); // [{file, url}]
+  // --- Add new state for file uploads ---
+  const [teachProofs, setTeachProofs] = useState([]);
+  const [certFiles, setCertFiles] = useState([]);
 
   // --- Fetch user profile from backend ---
   useEffect(() => {
     setLoading(true);
     fetchUserProfile()
       .then((user) => {
-        // Ensure email is set from register/login info
-        let email = user.email;
-        if (!email) {
-          email = localStorage.getItem('registeredEmail') || '';
-        }
-        setProfile({ ...user, email });
-        setOriginalProfile(user ? { ...user, email } : null);
+        setProfile((prev) => ({
+          ...user,
+          profilePic: prev.profilePic || user.profilePic,
+          profilePicPreview: prev.profilePicPreview || user.profilePicPreview,
+          email: user.email || Cookies.get('registeredEmail') || '',
+        }));
+        setOriginalProfile((prev) => ({
+          ...user,
+          profilePic: prev?.profilePic || user.profilePic,
+          profilePicPreview: prev?.profilePicPreview || user.profilePicPreview,
+          email: user.email || Cookies.get('registeredEmail') || '',
+        }));
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -274,40 +289,62 @@ const Profile = () => {
   }, []);
 
   // --- Profile Picture Change ---
-  const handleProfilePicChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file (e.g., JPG, PNG).');
-      return;
+const handleProfilePicChange = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) {
+    console.log('No file selected');
+    toast.error('No file selected.');
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    console.log('Invalid file type:', file.type);
+    toast.error('Please select an image file (e.g., JPG, PNG).');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    console.log('File too large:', file.size);
+    toast.error('Image size must be less than 5MB.');
+    return;
+  }
+  try {
+    setLoading(true);
+    const previewUrl = URL.createObjectURL(file);
+    console.log('Preview URL created:', previewUrl);
+    setProfile((prev) => ({ ...prev, profilePicPreview: previewUrl }));
+    const result = await uploadProfilePic(file);
+    console.log('Upload result:', result.url);
+    if (!result.url || typeof result.url !== 'string' || result.url === 'New Profile') {
+      throw new Error('Invalid profile picture URL');
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB.');
-      return;
-    }
-    try {
-      setLoading(true);
-      const previewUrl = URL.createObjectURL(file); // Immediate preview
-      setProfile((prev) => ({ ...prev, profilePicPreview: previewUrl }));
-      const result = await uploadProfilePic(file);
-      setProfile((prev) => ({
+    setProfile((prev) => {
+      if (prev.profilePicPreview && prev.profilePicPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(prev.profilePicPreview);
+      }
+      return {
         ...prev,
         profilePic: result.url,
         profilePicPreview: result.url,
-      }));
-      setOriginalProfile((prev) => ({
-        ...prev,
-        profilePic: result.url,
-        profilePicPreview: result.url,
-      }));
-      toast.success('Profile picture updated successfully!');
-    } catch (err) {
-      toast.error(err.message || 'Failed to upload profile picture.');
-      setProfile((prev) => ({ ...prev, profilePicPreview: prev.profilePic })); // Revert preview
-    } finally {
-      setLoading(false);
-    }
-  };
+      };
+    });
+    setOriginalProfile((prev) => ({
+      ...prev,
+      profilePic: result.url,
+      profilePicPreview: result.url,
+    }));
+    toast.success('Profile picture updated successfully!');
+  } catch (err) {
+    console.error('Upload error:', err);
+    toast.error(err.message || 'Failed to upload profile picture.');
+    setProfile((prev) => {
+      if (prev.profilePicPreview && prev.profilePicPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(prev.profilePicPreview);
+      }
+      return { ...prev, profilePicPreview: prev.profilePic };
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   // --- Edit Mode Controls ---
   const handleEditProfile = () => {
@@ -336,9 +373,19 @@ const Profile = () => {
 
   // --- Per-field Edit Handlers ---
   const startEdit = (field) => {
-    setEditingField(field);
+  if (field === 'education') {
+    setFieldDraft({
+      course: profile.education[0]?.course || '',
+      branch: profile.education[0]?.branch || '',
+      college: profile.education[0]?.college || '',
+      city: profile.education[0]?.city || '',
+      passingYear: profile.education[0]?.passingYear || '',
+    });
+  } else {
     setFieldDraft({ ...profile });
-  };
+  }
+  setEditingField(field);
+};
   const cancelEdit = () => {
     setEditingField(null);
     setFieldDraft({});
@@ -375,7 +422,7 @@ const Profile = () => {
             city: fieldDraft.city || '',
             passingYear: fieldDraft.passingYear || '',
           },
-          ...prev.education.filter((_, i) => i !== 0), // Preserve other entries
+          ...prev.education.filter((_, i) => i !== 0),
         ],
       }));
       setEditingField(null);
@@ -453,13 +500,13 @@ const Profile = () => {
   const getDisplayName = () => {
     if (profile.fullName && profile.fullName.trim() !== '') return profile.fullName;
     let user = null;
-    try { user = JSON.parse(localStorage.getItem('user')); } catch {}
+    try { user = JSON.parse(Cookies.get('user')); } catch {}
     if (user && user.fullName && user.fullName.trim() !== '') return user.fullName;
-    const regName = localStorage.getItem('registeredName') || '';
+    const regName = Cookies.get('registeredName') || '';
     if (regName && regName.trim() !== '') return regName;
     let googleUser = null, linkedinUser = null;
-    try { googleUser = JSON.parse(localStorage.getItem('googleUser')); } catch {}
-    try { linkedinUser = JSON.parse(localStorage.getItem('linkedinUser')); } catch {}
+    try { googleUser = JSON.parse(Cookies.get('googleUser')); } catch {}
+    try { linkedinUser = JSON.parse(Cookies.get('linkedinUser')); } catch {}
     if (googleUser && googleUser.name && googleUser.name.trim() !== '') return googleUser.name;
     if (linkedinUser && linkedinUser.name && linkedinUser.name.trim() !== '') return linkedinUser.name;
     return '';
@@ -469,7 +516,7 @@ const Profile = () => {
   const getDisplayUserId = () => {
     if (profile.userId && profile.userId.trim() !== '') return profile.userId;
     let user = null;
-    try { user = JSON.parse(localStorage.getItem('user')); } catch {}
+    try { user = JSON.parse(Cookies.get('user')); } catch {}
     if (user && user.userId) return user.userId;
     return '';
   };
@@ -595,7 +642,6 @@ const Profile = () => {
     <div className={`min-h-screen bg-blue-50 pt-24 px-2 sm:px-4 md:px-8 lg:px-12 py-8 ${editMode ? 'edit-mode-bg' : ''}`}>
       <Toaster position="top-center" />
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8">
-        {/* Sidebar/Profile Card */}
         <SidebarCard
           profile={profile}
           editingField={editingField}
@@ -614,7 +660,6 @@ const Profile = () => {
           handleArrayRemove={handleArrayRemove}
           onSaveEdit={handleSectionSave}
         />
-        {/* Main Content */}
         <div className="w-full md:w-3/4 flex flex-col gap-8">
           <CoinsBadges silver={silver} gold={gold} profile={profile} />
           <AboutSection

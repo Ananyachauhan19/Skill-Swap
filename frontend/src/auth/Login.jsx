@@ -97,24 +97,26 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp) return setError("Enter the OTP sent to your email.");
+  if (!otp) return setError("Enter the OTP sent to your email.");
 
-    try {
-      const res = await axios.post(`${BACKEND_URL}/api/auth/verify-otp`, {
-        email: emailForOtp,
-        otp,
-      }, { withCredentials: true });
+  try {
+    const res = await axios.post(`${BACKEND_URL}/api/auth/verify-otp`, {
+      email: emailForOtp,
+      otp,
+    }, { withCredentials: true });
 
-      const { user } = res.data;
-      Cookies.set('user', JSON.stringify(user), { expires: 1 });
-      window.dispatchEvent(new Event("authChanged"));
-      if (onLoginSuccess) onLoginSuccess(user);
-      if (isModal && onClose) onClose();
-      else navigate("/home");
-    } catch (err) {
-      setError(err.response?.data?.message || "OTP verification failed.");
-    }
-  };
+    const { user } = res.data;
+    Cookies.set('user', JSON.stringify(user), { expires: 1 });
+    Cookies.set('registeredEmail', emailForOtp, { expires: 1 }); 
+    Cookies.set('isRegistered', 'true', { expires: 1 }); 
+    window.dispatchEvent(new Event("authChanged"));
+    if (onLoginSuccess) onLoginSuccess(user);
+    if (isModal && onClose) onClose();
+    else navigate("/home");
+  } catch (err) {
+    setError(err.response?.data?.message || "OTP verification failed.");
+  }
+};
 
   const handleOAuth = (provider) => {
     window.location.href = `${BACKEND_URL}/api/auth/${provider}`;

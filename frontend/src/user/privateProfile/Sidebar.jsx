@@ -20,13 +20,50 @@ const Sidebar = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch user
+  // Fetch static user data (same as Profile.jsx)
+  const fetchUser = async () => {
+    try {
+      // Static user data matching Profile.jsx
+      const userData = {
+        fullName: 'John Doe',
+        userId: 'john_doe123',
+        profilePic: 'https://placehold.co/100x100?text=JD',
+        profilePicPreview: 'https://placehold.co/100x100?text=JD',
+        silver: 1200, 
+        gold: 0,   
+        badges: ['Starter', 'Helper'],
+        rank: 'Bronze',
+      };
+      return userData;
+    } catch {
+      throw new Error('Failed to fetch user profile');
+    }
+    // Uncomment for backend integration
+    /*
+    const res = await fetch('/api/user/profile', {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}' }
+    });
+    if (!res.ok) throw new Error('Failed to fetch user profile');
+    const data = await res.json();
+    return {
+      fullName: data.fullName || 'Your Name',
+      userId: data.userId || 'Your userID',
+      profilePic: data.profilePic || 'https://placehold.co/100x100?text=U',
+      profilePicPreview: data.profilePicPreview || 'https://placehold.co/100x100?text=U',
+      silver: data.silver || 0,
+      gold: data.gold || 0,
+      badges: data.badges || [''],
+      rank: data.rank || '',
+    };
+    */
+  };
+
+  // Load user data and handle profile updates
   useEffect(() => {
-    async function fetchUser() {
+    async function loadUser() {
+      setLoading(true);
       try {
-        const res = await fetch("/api/user/profile");
-        if (!res.ok) throw new Error("Failed to fetch");
-        const data = await res.json();
+        const data = await fetchUser();
         setUser(data);
       } catch (err) {
         setError(err.message);
@@ -34,12 +71,12 @@ const Sidebar = () => {
         setLoading(false);
       }
     }
-    fetchUser();
-    window.addEventListener("profileUpdated", fetchUser);
-    return () => window.removeEventListener("profileUpdated", fetchUser);
+    loadUser();
+    window.addEventListener('profileUpdated', loadUser);
+    return () => window.removeEventListener('profileUpdated', loadUser);
   }, []);
 
-  // Close coins on outside click
+  // Close coins dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -65,7 +102,7 @@ const Sidebar = () => {
             <span>Loading...</span>
           ) : error ? (
             <span className="text-red-500">{error}</span>
-          ) : user?.profilePic ? (
+          ) : user?.profilePic || user?.profilePicPreview ? (
             <img
               src={user.profilePicPreview || user.profilePic}
               alt="Profile"
@@ -125,7 +162,7 @@ const Sidebar = () => {
             </button>
             {showCoins && user && (
               <div className="absolute top-8 right-0 z-50 bg-white border shadow-md p-3 rounded-xl w-56">
-                <CoinsBadges silver={user.silver} gold={user.gold} profile={user} />
+                <CoinsBadges silver={user.silver || 1200} gold={user.gold || 0} profile={user} />
               </div>
             )}
           </div>

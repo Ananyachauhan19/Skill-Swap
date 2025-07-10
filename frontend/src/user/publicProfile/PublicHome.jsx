@@ -1,7 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useContext } from 'react';
 import VideoCard from '../privateProfile/VideoCard';
+import { ProfileContext } from './SideBarPublic';
 
 const PublicHome = () => {
+  const { searchQuery } = useContext(ProfileContext);
   const [content, setContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,9 +95,10 @@ const PublicHome = () => {
                 date: new Date().toISOString(),
               },
             ];
-        // Filter and sort by date descending
+        // Filter by searchQuery and exclude drafts/archived, then sort by date
         const filteredContent = initialContent
-          .filter(item => !item.isDraft && !item.isArchived) // Exclude drafts and archived
+          .filter(item => !item.isDraft && !item.isArchived && 
+            item.title.toLowerCase().includes(searchQuery.toLowerCase()))
           .sort((a, b) => new Date(b.date) - new Date(a.date));
         setContent(filteredContent);
         setLoading(false);
@@ -121,7 +124,8 @@ const PublicHome = () => {
         const allContent = [
           ...liveData.map(video => ({ ...video, type: 'live', date: video.scheduledTime || video.uploadDate })),
           ...videoData.map(video => ({ ...video, type: 'video', date: video.uploadDate })),
-        ].filter(item => !item.isDraft && !item.isArchived)
+        ].filter(item => !item.isDraft && !item.isArchived && 
+          item.title.toLowerCase().includes(searchQuery.toLowerCase()))
          .sort((a, b) => new Date(b.date) - new Date(a.date));
         setContent(allContent);
         setLoading(false);
@@ -132,7 +136,7 @@ const PublicHome = () => {
     };
     fetchPublicContent();
     */
-  }, []);
+  }, [searchQuery]);
 
   // Close menu on outside click
   useEffect(() => {
