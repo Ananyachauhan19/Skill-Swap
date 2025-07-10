@@ -1,302 +1,367 @@
 import React, { useState, useEffect } from "react";
+import { FiSearch, FiMail, FiMessageSquare, FiChevronDown, FiChevronUp, FiExternalLink } from "react-icons/fi";
+import { FaCoins, FaUserGraduate, FaChalkboardTeacher, FaHistory, FaLock } from "react-icons/fa";
 import faqs from "./faqs";
 
 const HelpSupportPage = () => {
-	// FAQ search state
-	const [faqSearch, setFaqSearch] = useState("");
-	const [showAllFaqs, setShowAllFaqs] = useState(false);
-	// Contact form state
-	const [form, setForm] = useState({ name: "", email: "", message: "" });
-	const [formStatus, setFormStatus] = useState("");
-	const [formLoading, setFormLoading] = useState(false);
+  // FAQ search state
+  const [faqSearch, setFaqSearch] = useState("");
+  const [showAllFaqs, setShowAllFaqs] = useState(false);
+  // Contact form state
+  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [formStatus, setFormStatus] = useState("");
+  const [formLoading, setFormLoading] = useState(false);
 
-	// Filtered FAQs
-	const filteredFaqs = faqs.filter((faq) =>
-		faq.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
-		faq.answer.toLowerCase().includes(faqSearch.toLowerCase())
-	);
+  // Filtered FAQs
+  const filteredFaqs = faqs.filter((faq) =>
+    faq.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
+    faq.answer.toLowerCase().includes(faqSearch.toLowerCase())
+  );
 
-	const visibleFaqs = showAllFaqs || faqSearch ? filteredFaqs : filteredFaqs.slice(0, 3);
+  const visibleFaqs = showAllFaqs || faqSearch ? filteredFaqs : filteredFaqs.slice(0, 3);
 
-	// Handle form input
-	function handleFormChange(e) {
-		setForm({ ...form, [e.target.name]: e.target.value });
-	}
+  // Handle form input
+  function handleFormChange(e) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
 
-	// Handle form submit
-	async function handleFormSubmit(e) {
-		e.preventDefault();
-		setFormStatus("");
-		if (!form.name || !form.email || !form.message) {
-			setFormStatus("Please fill in all fields.");
-			return;
-		}
-		// Simple email validation
-		if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) {
-			setFormStatus("Please enter a valid email address.");
-			return;
-		}
-		setFormLoading(true);
-		try {
-			const res = await fetch("/api/support/contact", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(form),
-			});
-			if (!res.ok) throw new Error("Failed to submit request");
-			setFormStatus("Your request has been submitted! We'll get back to you soon.");
-			setForm({ name: "", email: "", message: "" });
-		} catch (err) {
-			setFormStatus("Failed to submit your request. Please try again later.");
-		} finally {
-			setFormLoading(false);
-		}
-	}
+  // Handle form submit
+  async function handleFormSubmit(e) {
+    e.preventDefault();
+    setFormStatus("");
+    if (!form.name || !form.email || !form.message) {
+      setFormStatus("Please fill in all fields.");
+      return;
+    }
+    // Simple email validation
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) {
+      setFormStatus("Please enter a valid email address.");
+      return;
+    }
+    setFormLoading(true);
+    try {
+      const res = await fetch("/api/support/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) throw new Error("Failed to submit request");
+      setFormStatus("Your request has been submitted! We'll get back to you soon.");
+      setForm({ name: "", email: "", message: "" });
+    } catch (err) {
+      setFormStatus("Failed to submit your request. Please try again later.");
+    } finally {
+      setFormLoading(false);
+    }
+  }
 
-	useEffect(() => {
-		if (window.location.hash === "#contact-support") {
-			const el = document.getElementById("contact-support");
-			if (el) {
-				setTimeout(() => {
-					el.scrollIntoView({ behavior: "smooth", block: "start" });
-				}, 100);
-			}
-		}
-	}, []);
+  useEffect(() => {
+    if (window.location.hash === "#contact-support") {
+      const el = document.getElementById("contact-support");
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    }
+  }, []);
 
-	return (
-		<div className="max-w-7xl mx-auto px-2 xs:px-4 sm:px-6 md:px-8 lg:px-12 py-4 sm:py-8 text-gray-800 w-full">
-			<h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center">Help & Support</h1>
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 text-gray-800 bg-gray-50 min-h-screen">
+      {/* Hero Section */}
+      <div className="text-center mb-12 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-8 text-white">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-4">Help & Support</h1>
+        <p className="text-lg sm:text-xl opacity-90 max-w-3xl mx-auto">
+          Find answers, get help, or contact our support team
+        </p>
+      </div>
 
-            {/* Pro Features: Skill Coin Packages */}
-			<div className="mb-8 sm:mb-10">
-				<h2 className="text-xl sm:text-2xl font-semibold mb-4">Pro Feature: Skill Coin Packages</h2>
-				<div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 sm:p-5 rounded-lg mb-6 text-yellow-900 text-sm sm:text-base overflow-x-auto">
-					<p className="mb-2 font-semibold">Unlock more learning and teaching opportunities with Skill Coin Packages!</p>
-					<ul className="list-disc list-inside space-y-2">
-						<li><b>Silver Coin Packages:</b> <br/>
-							- Buy Silver Skill Coins for live 1-on-1 sessions.<br/>
-							- <b>Worth:</b> ₹0.25 per Silver Skill Coin.<br/>
-							- (Package sizes and bonus coins coming soon!)
-						</li>
-						<li><b>Golden Coin Packages:</b> <br/>
-							- Buy Golden Skill Coins for unlocking premium content and live/recorded sessions.<br/>
-							- <b>Worth:</b> ₹2 per Golden Skill Coin.<br/>
-							- (Package sizes and bonus coins coming soon!)
-						</li>
-						<li><b>Combo Packages:</b> <br/>
-							- Get a mix of Golden and Silver Skill Coins at a special price.<br/>
-							- (Details about combo offers will be available soon!)
-						</li>
-					</ul>
-					<p className="mt-3 text-xs sm:text-sm text-yellow-800">Stay tuned for more details and the ability to purchase packages directly from your dashboard!</p>
-				</div>
-			</div>
-
-            {/* How SkillSwapHub Works Section */}
-			<div className="mb-8 sm:mb-10">
-				<h2 className="text-xl sm:text-2xl font-semibold mb-4">How SkillSwapHub Works</h2>
-				<div className="bg-blue-50 border-l-4 border-blue-400 p-4 sm:p-5 rounded-lg mb-6 text-blue-900 text-sm sm:text-base overflow-x-auto">
-					<p className="mb-2 font-semibold">Welcome to SkillSwapHub!</p>
-					<ul className="list-disc list-inside space-y-2">
-						<li><b>Profile:</b> Set up your profile with your skills, what you want to learn, and your experience. Edit your profile anytime from the Profile page.</li>
-						<li><b>Contribution Calendar:</b> Track your learning and teaching activity over the year, just like GitHub's contribution graph.</li>
-						<li><b>Skill Coins & Credit System:</b> <br/>
-							<ul className="list-disc ml-6 mt-2 space-y-1">
-								<li><b>Two types of Skill Coins:</b> <br/>
-									- <b>Golden Skill Coin</b>: Worth ₹2 per coin.<br/>
-									- <b>Silver Skill Coin</b>: Worth ₹0.25 per coin.
-								</li>
-								<li><b>1-on-1 Live Sessions:</b> <br/>
-									- Book using Silver Skill Coins. <br/>
-									- 1 Silver Skill Coin per minute. <br/>
-									- At session end, total coins (duration in minutes) are transferred from learner to tutor.
-								</li>
-								<li><b>Group Discussions (GD):</b> <br/>
-									- GDs are job-based. <br/>
-									- Search for your job and book a GD.<br/>
-									- Price: ₹1500 per head for each GD.
-								</li>
-								<li><b>Interview Rounds:</b> <br/>
-									- Book by job type with an expert.<br/>
-									- Price: ₹500 per head per interview session.
-								</li>
-								<li><b>Go Live or Upload Recorded Sessions:</b> <br/>
-									- Unlock a recorded session: 2 Golden Skill Coins.<br/>
-									- Watch a full live session: 2 Golden Skill Coins.
-								</li>
-								<li><b>Referral Rewards:</b> <br/>
-									- Bring your friends and earn Skill Coins for each successful referral!
-								</li>
-							</ul>
-						</li>
-						<li><b>Badges & Rank:</b> Earn badges and increase your rank by being active and helping others.</li>
-						<li><b>Session Types:</b> Book or host <b>1-on-1</b> sessions, <b>Mock Interviews</b>, or <b>Group Discussions</b> on various topics.</li>
-						<li><b>History:</b> View all your past sessions in the History page, filter by date, tutor, subject, or topic.</li>
-						<li><b>Logout:</b> Use the logout button on your profile to securely end your session.</li>
-						<li><b>Real-time Updates:</b> Profile and calendar update instantly when you make changes.</li>
-					</ul>
-				</div>
-				<h2 className="text-lg sm:text-xl font-semibold mb-3">Common User Actions</h2>
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 md:gap-10 mb-8">
-					<div className="bg-white border border-blue-100 rounded-xl p-4 sm:p-6 md:p-8 shadow-sm md:shadow-lg mb-6 md:mb-0">
-						<h3 className="font-semibold mb-3">Edit Your Profile & Privacy</h3>
-						<ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
-							<li>Go to your Profile page and click <b>Edit Profile</b>.</li>
-							<li>Update your name, bio, contact info, country, university, education, skills, experience, and certificates.</li>
-							<li>Adjust your privacy and notification settings in the Privacy section.</li>
-							<li>Save changes to see them instantly reflected on your profile.</li>
-						</ul>
-					</div>
-					<div className="bg-white border border-blue-100 rounded-xl p-4 sm:p-6 md:p-8 shadow-sm md:shadow-lg mb-6 md:mb-0">
-						<h3 className="font-semibold mb-3">Book, Edit, or Cancel a Session</h3>
-						<ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
-							<li>Go to the <b>Book a Mock Interview</b>, <b>Join a Discussion</b>, or <b>Book 1-on-1 Session</b> section.</li>
-							<li>Choose a topic, date, and time, then confirm your booking.</li>
-							<li>Edit or cancel bookings from your <b>History</b> or <b>Bookings</b> page (subject to cancellation policy).</li>
-							<li>Credits will be deducted automatically.</li>
-						</ul>
-					</div>
-					<div className="bg-white border border-blue-100 rounded-xl p-4 sm:p-6 md:p-8 shadow-sm md:shadow-lg mb-6 md:mb-0">
-						<h3 className="font-semibold mb-3">View Your History & Payments</h3>
-						<ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
-							<li>Open the <b>History</b> page from the menu to see all your past sessions.</li>
-							<li>Filter by date, tutor, subject, or topic.</li>
-							<li>Go to <b>Billing</b> or <b>Payment History</b> to view payments and download invoices.</li>
-						</ul>
-					</div>
-					<div className="bg-white border border-blue-100 rounded-xl p-4 sm:p-6 md:p-8 shadow-sm md:shadow-lg mb-6 md:mb-0">
-						<h3 className="font-semibold mb-3">Reset Password & Account Security</h3>
-						<ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
-							<li>Go to Profile &gt; Settings &gt; Security.</li>
-							<li>Click <b>Reset Password</b> and follow the instructions sent to your email.</li>
-							<li>If you suspect your account is compromised, reset your password and contact support immediately.</li>
-						</ul>
-					</div>
-					<div className="bg-white border border-blue-100 rounded-xl p-4 sm:p-6 md:p-8 shadow-sm md:shadow-lg md:col-span-2 mb-6 md:mb-0">
-						<h3 className="font-semibold mb-3">Report Issues, Bugs, or Suspicious Profiles</h3>
-						<ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
-							<li>Use the contact form below to report bugs, suspicious/fake profiles, or inappropriate behavior.</li>
-							<li>Include as much detail as possible for faster resolution.</li>
-						</ul>
-					</div>
-					<div className="bg-white border border-blue-100 rounded-xl p-4 sm:p-6 md:p-8 shadow-sm md:shadow-lg md:col-span-2">
-						<h3 className="font-semibold mb-3">Mobile & App Actions</h3>
-						<ul className="list-disc list-inside text-sm text-gray-700 space-y-2">
-							<li>Access SkillSwapHub on your mobile browser. A dedicated app is coming soon!</li>
-							<li>To update or reinstall the app, visit the App Store or Google Play Store.</li>
-							<li>If the app crashes, try restarting or reinstalling. Contact support if issues persist.</li>
-							<li>You can use your account on multiple devices.</li>
-						</ul>
-					</div>
-				</div>
-			</div>
-
-
-			{/* Search Bar */}
-			<div className="mb-6 sm:mb-8">
-				<input
-					type="text"
-					placeholder="Search for help..."
-					className="w-full p-2 sm:p-3 border rounded-lg shadow-sm text-sm sm:text-base"
-					value={faqSearch}
-					onChange={(e) => {
-						setFaqSearch(e.target.value);
-						setShowAllFaqs(false);
-					}}
-				/>
-			</div>
-
-			{/* FAQ Section */}
-			<div className="mb-8 sm:mb-10">
-				<h2 className="text-xl sm:text-2xl font-semibold mb-4">Frequently Asked Questions</h2>
-				<div className="space-y-3 sm:space-y-4 overflow-x-auto">
-					{visibleFaqs.length === 0 ? (
-						<div className="text-gray-500">No FAQs found for your search.</div>
-					) : (
-						visibleFaqs.map((faq, idx) => (
-							<div key={idx} className="border p-3 sm:p-4 rounded-lg bg-gray-50">
-								<p className="font-medium">{faq.question}</p>
-								<p className="text-xs sm:text-sm text-gray-600 mt-1">{faq.answer}</p>
-							</div>
-						))
-					)}
-					{filteredFaqs.length > 3 && !showAllFaqs && !faqSearch && (
-						<button
-							onClick={() => setShowAllFaqs(true)}
-							className="mt-2 text-blue-700 underline text-xs sm:text-sm font-medium hover:text-blue-900"
-						>
-							View More
-						</button>
-					)}
-					{showAllFaqs && !faqSearch && filteredFaqs.length > 3 && (
-						<button
-							onClick={() => setShowAllFaqs(false)}
-							className="mt-2 text-blue-700 underline text-xs sm:text-sm font-medium hover:text-blue-900"
-						>
-							Show Less
-						</button>
-					)}
-				</div>
-			</div>
-			
-
-			{/* Contact Support Form */}
-            <div className="mb-10 sm:mb-12 w-full max-w-lg mx-auto px-2 sm:px-4" >
-                <h2 id="contact-support" className="text-xl sm:text-2xl font-semibold mb-4">Still need help? Contact Us</h2>
-                <form className="space-y-3 sm:space-y-4" onSubmit={handleFormSubmit}>
-                    <input
-                        type="text"
-                        name="name"
-                        placeholder="Your Name"
-                        className="w-full p-2 sm:p-3 border rounded-lg text-sm sm:text-base"
-                        value={form.name}
-                        onChange={handleFormChange}
-                        disabled={formLoading}
-                    />
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="Your Email"
-                        className="w-full p-2 sm:p-3 border rounded-lg text-sm sm:text-base"
-                        value={form.email}
-                        onChange={handleFormChange}
-                        disabled={formLoading}
-                    />
-                    <textarea
-                        name="message"
-                        placeholder="Describe your issue..."
-                        className="w-full p-2 sm:p-3 border rounded-lg h-24 sm:h-32 text-sm sm:text-base"
-                        value={form.message}
-                        onChange={handleFormChange}
-                        disabled={formLoading}
-                    ></textarea>
-                    <button
-                        type="submit"
-                        className="bg-blue-600 text-white px-4 sm:px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-60 text-sm sm:text-base w-full"
-                        disabled={formLoading}
-                    >
-                        {formLoading ? "Submitting..." : "Submit Request"}
-                    </button>
-                    {formStatus && (
-                        <div className={`mt-2 text-xs sm:text-sm ${formStatus.includes('submitted') ? 'text-green-600' : 'text-red-600'}`}>{formStatus}</div>
-                    )}
-                </form>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Pro Features: Skill Coin Packages */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center mb-4">
+                <FaCoins className="text-yellow-500 text-2xl mr-3" />
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Pro Feature: Skill Coin Packages</h2>
+              </div>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg mb-6 text-yellow-800">
+                <p className="font-semibold mb-3">Unlock more learning and teaching opportunities with Skill Coin Packages!</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-4 rounded-lg border border-yellow-200">
+                    <h3 className="font-bold text-yellow-700 mb-2">Silver Coin Packages</h3>
+                    <ul className="text-sm space-y-1">
+                      <li>• Buy for live 1-on-1 sessions</li>
+                      <li>• Worth: ₹0.25 per coin</li>
+                      <li>• Packages coming soon!</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-yellow-200">
+                    <h3 className="font-bold text-yellow-700 mb-2">Golden Coin Packages</h3>
+                    <ul className="text-sm space-y-1">
+                      <li>• Buy for premium content</li>
+                      <li>• Worth: ₹2 per coin</li>
+                      <li>• Packages coming soon!</li>
+                    </ul>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-yellow-200">
+                    <h3 className="font-bold text-yellow-700 mb-2">Combo Packages</h3>
+                    <ul className="text-sm space-y-1">
+                      <li>• Mix of Golden & Silver</li>
+                      <li>• Special discounted price</li>
+                      <li>• Details coming soon!</li>
+                    </ul>
+                  </div>
+                </div>
+                <p className="mt-4 text-xs text-yellow-700">Stay tuned for more details and the ability to purchase packages directly from your dashboard!</p>
+              </div>
             </div>
+          </div>
 
-			{/* Quick Links */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 text-center mt-8">
-				<div>
-					<h3 className="font-semibold mb-1">Email Support</h3>
-					<a href="mailto:support@yourdomain.com" className="text-xs sm:text-sm text-blue-700 underline break-all">support@yourdomain.com</a>
-				</div>
-				<div>
-					<h3 className="font-semibold mb-1">Community Forum</h3>
-					<a href="#" className="text-xs sm:text-sm text-blue-700 underline">Ask and answer questions with others.</a>
-				</div>
-			</div>
-		</div>
-	);
+          {/* How SkillSwapHub Works Section */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center mb-6">
+                <img src="/assets/skillswap-logo.webp" alt="SkillSwapHub" className="h-8 mr-3" />
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">How SkillSwapHub Works</h2>
+              </div>
+              
+              <div className="mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-blue-50 p-5 rounded-lg border border-blue-100">
+                    <h3 className="font-semibold text-blue-800 mb-3 flex items-center">
+                      <FaUserGraduate className="mr-2" /> For Learners
+                    </h3>
+                    <ul className="space-y-3 text-sm">
+                      <li className="flex">
+                        <span className="bg-blue-100 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">1</span>
+                        <span>Set up your profile with skills you want to learn</span>
+                      </li>
+                      <li className="flex">
+                        <span className="bg-blue-100 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">2</span>
+                        <span>Book sessions using Skill Coins</span>
+                      </li>
+                      <li className="flex">
+                        <span className="bg-blue-100 text-blue-800 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">3</span>
+                        <span>Track your progress with the Contribution Calendar</span>
+                      </li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-purple-50 p-5 rounded-lg border border-purple-100">
+                    <h3 className="font-semibold text-purple-800 mb-3 flex items-center">
+                      <FaChalkboardTeacher className="mr-2" /> For Tutors
+                    </h3>
+                    <ul className="space-y-3 text-sm">
+                      <li className="flex">
+                        <span className="bg-purple-100 text-purple-800 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">1</span>
+                        <span>Showcase your expertise in your profile</span>
+                      </li>
+                      <li className="flex">
+                        <span className="bg-purple-100 text-purple-800 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">2</span>
+                        <span>Host sessions and earn Skill Coins</span>
+                      </li>
+                      <li className="flex">
+                        <span className="bg-purple-100 text-purple-800 rounded-full w-5 h-5 flex items-center justify-center mr-2 flex-shrink-0">3</span>
+                        <span>Grow your reputation with badges and ranks</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <h3 className="font-semibold text-lg mb-4 text-gray-700">Common User Actions</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <h4 className="font-medium mb-2 flex items-center">
+                    <FaUserGraduate className="text-blue-600 mr-2" /> Profile & Privacy
+                  </h4>
+                  <p className="text-sm text-gray-600">Edit your profile, update skills, and adjust privacy settings.</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <h4 className="font-medium mb-2 flex items-center">
+                    <FaCoins className="text-yellow-600 mr-2" /> Book Sessions
+                  </h4>
+                  <p className="text-sm text-gray-600">Book, edit, or cancel 1-on-1 sessions, mock interviews, or group discussions.</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <h4 className="font-medium mb-2 flex items-center">
+                    <FaHistory className="text-green-600 mr-2" /> History & Payments
+                  </h4>
+                  <p className="text-sm text-gray-600">View your session history and payment records.</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <h4 className="font-medium mb-2 flex items-center">
+                    <FaLock className="text-red-600 mr-2" /> Account Security
+                  </h4>
+                  <p className="text-sm text-gray-600">Reset password and manage account security.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* FAQ Section */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Frequently Asked Questions</h2>
+                <div className="relative w-64">
+                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search FAQs..."
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value={faqSearch}
+                    onChange={(e) => {
+                      setFaqSearch(e.target.value);
+                      setShowAllFaqs(false);
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {visibleFaqs.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <FiSearch className="mx-auto text-3xl mb-2" />
+                    <p>No FAQs found matching your search</p>
+                  </div>
+                ) : (
+                  visibleFaqs.map((faq, idx) => (
+                    <div key={idx} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-sm transition-shadow">
+                      <div className="p-4">
+                        <h3 className="font-medium text-gray-800">{faq.question}</h3>
+                        <p className="mt-2 text-sm text-gray-600">{faq.answer}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {filteredFaqs.length > 3 && !showAllFaqs && !faqSearch && (
+                <button
+                  onClick={() => setShowAllFaqs(true)}
+                  className="mt-6 w-full py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium flex items-center justify-center"
+                >
+                  Show More FAQs <FiChevronDown className="ml-2" />
+                </button>
+              )}
+              {showAllFaqs && !faqSearch && filteredFaqs.length > 3 && (
+                <button
+                  onClick={() => setShowAllFaqs(false)}
+                  className="mt-6 w-full py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium flex items-center justify-center"
+                >
+                  Show Less <FiChevronUp className="ml-2" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-8">
+          {/* Contact Support */}
+          <div id="contact-support" className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <div className="flex items-center mb-6">
+                <FiMessageSquare className="text-blue-600 text-2xl mr-3" />
+                <h2 className="text-xl font-bold text-gray-800">Contact Support</h2>
+              </div>
+              
+              <form className="space-y-4" onSubmit={handleFormSubmit}>
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    value={form.name}
+                    onChange={handleFormChange}
+                    disabled={formLoading}
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    value={form.email}
+                    onChange={handleFormChange}
+                    disabled={formLoading}
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">How can we help?</label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    rows="4"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    value={form.message}
+                    onChange={handleFormChange}
+                    disabled={formLoading}
+                  ></textarea>
+                </div>
+                
+                <button
+                  type="submit"
+                  className={`w-full py-2 px-4 rounded-lg font-medium text-white ${formLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} transition-colors`}
+                  disabled={formLoading}
+                >
+                  {formLoading ? 'Sending...' : 'Send Message'}
+                </button>
+                
+                {formStatus && (
+                  <div className={`mt-2 text-sm ${formStatus.includes('submitted') ? 'text-green-600' : 'text-red-600'}`}>
+                    {formStatus}
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
+
+          {/* Quick Help */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <h3 className="font-bold text-lg mb-4 text-gray-800">Quick Help</h3>
+              <div className="space-y-4">
+                <a href="#" className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                  <FiMail className="text-blue-600 mr-3" />
+                  <span>Email Support</span>
+                </a>
+                <a href="#" className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                  <FiExternalLink className="text-blue-600 mr-3" />
+                  <span>Community Forum</span>
+                </a>
+                <a href="#" className="flex items-center p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+                  <FiExternalLink className="text-blue-600 mr-3" />
+                  <span>Documentation</span>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* System Status */}
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <div className="p-6 sm:p-8">
+              <h3 className="font-bold text-lg mb-4 text-gray-800">System Status</h3>
+              <div className="flex items-center">
+                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                <span className="text-sm">All systems operational</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">Last updated: {new Date().toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default HelpSupportPage;
