@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from 'react';
 import { BACKEND_URL } from '../config.js';
 import SearchBar from './oneononeSection/serachBar'; 
@@ -101,8 +102,10 @@ const OneOnOne = () => {
   const [unit, setUnit] = useState('');
   const [topic, setTopic] = useState('');
   const [showTutors, setShowTutors] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [sessionRequestedTutor, setSessionRequestedTutor] = useState(null);
   const [pendingSession, setPendingSession] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [requestSentTutor, setRequestSentTutor] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
