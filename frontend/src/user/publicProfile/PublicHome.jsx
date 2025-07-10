@@ -154,7 +154,7 @@ const PublicHome = () => {
   }, [openMenuIdx]);
 
   // Menu options for public view
-  const menuOptions = ['report', 'save', 'share', 'saveToPlaylist'];
+  const menuOptions = ['report', 'save', 'share'];
 
   // Menu action handlers
   const handleSave = (video) => {
@@ -185,32 +185,6 @@ const PublicHome = () => {
     const shareUrl = `${baseUrl}/watch/${video.id}`;
     navigator.clipboard.writeText(shareUrl);
     alert(`Link copied to clipboard: ${shareUrl}`);
-  };
-
-  const handleSaveToPlaylist = (video) => {
-    // Simulate adding to playlist
-    const playlists = JSON.parse(localStorage.getItem('playlists') || '[]');
-    const defaultPlaylist = playlists.find(p => p.name === 'Default') || { name: 'Default', videos: [] };
-    if (!defaultPlaylist.videos.find(v => v.id === video.id)) {
-      defaultPlaylist.videos.push(video);
-      const updatedPlaylists = playlists.filter(p => p.name !== 'Default');
-      updatedPlaylists.push(defaultPlaylist);
-      localStorage.setItem('playlists', JSON.stringify(updatedPlaylists));
-      alert(`Added "${video.title}" to Default playlist`);
-    } else {
-      alert(`"${video.title}" is already in Default playlist`);
-    }
-    // Backend (commented)
-    /*
-    fetch('/api/user/playlist/add', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify({ videoId: video.id, playlistId: 'default' })
-    });
-    */
   };
 
   const handleReport = (video) => {
@@ -250,7 +224,6 @@ const PublicHome = () => {
               onReport={() => handleReport(item)}
               onSave={() => handleSave(item)}
               onShare={() => handleShare(item)}
-              onSaveToPlaylist={() => handleSaveToPlaylist(item)}
               openMenu={openMenuIdx === idx}
               setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
               menuRef={(el) => (menuRefs.current[idx] = el)}

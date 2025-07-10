@@ -158,22 +158,6 @@ const Videos = () => {
       throw new Error('Failed to archive video');
     }
   };
-
-  const saveToPlaylist = async (id, playlistId) => {
-    try {
-      const response = await fetch(`/api/playlists/${playlistId}/videos`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ videoId: id })
-      });
-      return await response.json();
-    } catch (err) {
-      throw new Error('Failed to add to playlist');
-    }
-  };
   */
 
   // Load videos (using static data for now)
@@ -425,22 +409,6 @@ const Videos = () => {
     }
   };
 
-  // Add to playlist
-  const handleAddToPlaylist = async (idx) => {
-    const video = videos[idx];
-    try {
-      // Replace with backend call when ready
-      // await saveToPlaylist(video.id, 'defaultPlaylistId');
-      const playlists = JSON.parse(localStorage.getItem("playlists") || "[]");
-      if (!playlists.some((v) => v.uploadDate === video.uploadDate)) {
-        playlists.unshift(video);
-        localStorage.setItem("playlists", JSON.stringify(playlists));
-      }
-    } catch (err) {
-      setError("Failed to add to playlist");
-    }
-  };
-
   // Share video
   const handleShare = (idx) => {
     const video = videos[idx];
@@ -652,9 +620,8 @@ const Videos = () => {
         onArchive={() => handleArchive(idx)}
         onDelete={() => handleDelete(idx)}
         onSave={() => handleSave(idx)}
-        onSaveToPlaylist={() => handleAddToPlaylist(idx)}
         onShare={() => handleShare(idx)}
-        menuOptions={["edit", "delete", "archive", "save", "saveToPlaylist", "share"]}
+        menuOptions={["edit", "delete", "archive", "save", "share"]}
         openMenu={openMenuIdx === idx}
         setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
         menuRef={(el) => (menuRefs.current[idx] = el)}

@@ -139,23 +139,7 @@ const Live = () => {
       throw new Error(err.message);
     }
   };
-
-  const saveToPlaylist = async (id, playlistId) => {
-    try {
-      const res = await fetch(`/api/playlists/${playlistId}/videos`, {
-        method: "POST",
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ videoId: id })
-      });
-      if (!res.ok) throw new Error("Failed to add to playlist");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
+  
   */
 
   // Load videos from localStorage or static data
@@ -436,15 +420,6 @@ const Live = () => {
     }
   };
 
-  const handleAddToPlaylist = (idx) => {
-    const video = videos[idx];
-    const playlists = JSON.parse(localStorage.getItem("playlists") || "[]");
-    if (!playlists.some((v) => v.id === video.id)) {
-      playlists.unshift(video);
-      localStorage.setItem("playlists", JSON.stringify(playlists));
-    }
-  };
-
   const handleShare = (idx) => {
     const video = videos[idx];
     navigator.clipboard.writeText(window.location.origin + "/live/" + video.id);
@@ -567,15 +542,9 @@ const Live = () => {
                                   videos.findIndex((v) => v.id === video.id)
                                 )
                               }
-                              onSaveToPlaylist={() =>
-                                handleAddToPlaylist(
-                                  videos.findIndex((v) => v.id === video.id)
-                                )
-                              }
                               menuOptions={[
                                 "edit",
                                 "share",
-                                "saveToPlaylist",
                                 "delete",
                               ]}
                               openMenu={
@@ -618,18 +587,16 @@ const Live = () => {
                         onArchive={() => handleArchive(idx)}
                         onSave={() => handleSave(idx)}
                         onShare={() => handleShare(idx)}
-                        onSaveToPlaylist={() => handleAddToPlaylist(idx)}
                         onEndLive={() => endLive(idx)}
                         menuOptions={
                           video.scheduledTime && !video.isLive
-                            ? ["edit", "share", "saveToPlaylist", "delete"]
+                            ? ["edit", "share", "delete"]
                             : video.isLive
                             ? ["share"]
                             : [
                                 "edit",
                                 "archive",
                                 "save",
-                                "saveToPlaylist",
                                 "share",
                                 "delete",
                               ]

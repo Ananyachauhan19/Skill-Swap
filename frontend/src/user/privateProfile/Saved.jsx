@@ -39,23 +39,6 @@ const Saved = () => {
     }
   };
 
-  const saveToPlaylist = async (videoId, playlistId) => {
-    try {
-      const res = await fetch(`/api/playlists/${playlistId}/videos`, {
-        method: "POST",
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ videoId })
-      });
-      if (!res.ok) throw new Error("Failed to add to playlist");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
   const reportVideo = async (videoId) => {
     try {
       const res = await fetch("/api/report/video", {
@@ -182,20 +165,6 @@ const Saved = () => {
     alert(`Link copied to clipboard: ${shareUrl}`);
   };
 
-  const handleSaveToPlaylist = (video) => {
-    const playlists = JSON.parse(localStorage.getItem("playlists") || "[]");
-    const defaultPlaylist = playlists.find(p => p.name === "Default") || { name: "Default", videos: [] };
-    if (!defaultPlaylist.videos.find(v => v.id === video.id)) {
-      defaultPlaylist.videos.push(video);
-      const updatedPlaylists = playlists.filter(p => p.name !== "Default");
-      updatedPlaylists.push(defaultPlaylist);
-      localStorage.setItem("playlists", JSON.stringify(updatedPlaylists));
-      alert(`Added "${video.title}" to Default playlist`);
-    } else {
-      alert(`"${video.title}" is already in Default playlist`);
-    }
-  };
-
   const handleReport = (video) => {
     alert(`Reported "${video.title}" for review`);
   };
@@ -229,11 +198,10 @@ const Saved = () => {
                   uploadDate: `Saved: ${video.uploadDate}`,
                   lastEdited: `Last Edited: ${video.lastEdited}`,
                 }}
-                menuOptions={["report", "remove", "share", "saveToPlaylist"]}
+                menuOptions={["report", "remove", "share"]}
                 onReport={() => handleReport(video)}
                 onRemove={() => handleRemove(idx)}
                 onShare={() => handleShare(video)}
-                onSaveToPlaylist={() => handleSaveToPlaylist(video)}
                 openMenu={openMenuIdx === idx}
                 setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
                 menuRef={(el) => (menuRefs.current[idx] = el)}

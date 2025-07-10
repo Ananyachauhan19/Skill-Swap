@@ -15,7 +15,6 @@ const VideoCard = ({
   openMenu,
   setOpenMenu,
   menuRef,
-  onSaveToPlaylist,
 }) => {
   const {
     thumbnail,
@@ -311,17 +310,6 @@ const VideoCard = ({
                     }}
                   >
                     Share
-                  </button>
-                )}
-                {menuOptions.includes("saveToPlaylist") && (
-                  <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
-                    onClick={() => {
-                      setOpenMenu(false);
-                      onSaveToPlaylist?.(video);
-                    }}
-                  >
-                    Save to Playlist
                   </button>
                 )}
               </div>
