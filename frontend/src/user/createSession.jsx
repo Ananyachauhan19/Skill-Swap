@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from 'react';
 import Cookies from 'js-cookie';
 import VideoCall from '../components/VideoCall';

@@ -24,6 +24,7 @@ import AccountSettings from './user/AccountSettings';
 import AccountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import UploadRecordedSession from './user/SessionsFolder/UploadRecordedSession';
 import Package from './user/Package';
+import StartSkillSwap from './user/StartSkillSwap';
 import socket from './socket';
 import Cookies from 'js-cookie';
 import { useEffect } from 'react';
@@ -58,6 +59,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/one-on-one" element={<OneOnOne />} />
+          <Route path="/startskillswap" element={<StartSkillSwap />} />
           <Route path="/discuss" element={<Discuss />} />
           <Route path="/interview" element={<Interview />} />
           <Route path="/session" element={<Sessions />} />
