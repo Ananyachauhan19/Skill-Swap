@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import VideoCard from "./VideoCard";
 import SearchBar from "./SearchBar";
-
+import { useNavigate } from "react-router-dom";
 const Saved = () => {
   const [saved, setSaved] = useState([]);
   const [filteredSaved, setFilteredSaved] = useState([]);
@@ -10,6 +10,7 @@ const Saved = () => {
   const [openMenuIdx, setOpenMenuIdx] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const menuRefs = useRef([]);
+  const navigate = useNavigate();
 
   // Backend API functions (commented for future implementation)
   /*
@@ -166,7 +167,8 @@ const Saved = () => {
   };
 
   const handleReport = (video) => {
-    alert(`Reported "${video.title}" for review`);
+    console.log("Navigating to /report with:", video);
+    navigate('/report', { state: { video } });
   };
 
   if (loading) return <div className="text-center py-8">Loading saved videos...</div>;
@@ -199,7 +201,7 @@ const Saved = () => {
                   lastEdited: `Last Edited: ${video.lastEdited}`,
                 }}
                 menuOptions={["report", "remove", "share"]}
-                onReport={() => handleReport(video)}
+                onReport={(video) => handleReport(video)}
                 onRemove={() => handleRemove(idx)}
                 onShare={() => handleShare(video)}
                 openMenu={openMenuIdx === idx}

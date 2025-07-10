@@ -8,8 +8,6 @@ const Panel = () => {
   const activeTab = "border-b-2 border-blue-600 text-blue-600";
   const normalTab = "text-gray-600 hover:text-blue-600";
   const location = useLocation();
-  // If on /profile/panel exactly, show welcome message
-  const isPanelRoot = location.pathname === "/profile/panel";
 
   useEffect(() => {
     // --- BACKEND FETCH COMMENTED OUT FOR DEMO ---
@@ -45,6 +43,14 @@ const Panel = () => {
   {/* Tab Navigation (always visible) */}
   <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 border-b mb-4">
     <NavLink
+      to="your-home"
+      className={({ isActive }) =>
+        `pb-2 px-2 text-sm font-medium ${isActive ? activeTab : normalTab}`
+      }
+    >
+      Home
+    </NavLink>
+    <NavLink
       to="live"
       className={({ isActive }) =>
         `pb-2 px-2 text-sm font-medium ${isActive ? activeTab : normalTab}`
@@ -61,17 +67,12 @@ const Panel = () => {
     >
       Videos
     </NavLink>
+    
   </div>
 
   {/* Tab content always below navigation */}
   <div>
-    {isPanelRoot ? (
-      <div className="text-gray-500 mt-6 text-base sm:text-lg">
-        Welcome to your Panel! Select a tab above to get started.
-      </div>
-    ) : (
       <Outlet />
-    )}
   </div>
 </div>
 

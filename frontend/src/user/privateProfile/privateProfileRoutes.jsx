@@ -8,14 +8,18 @@ import Archive from './Archive';
 import Saved from './Saved';
 import Analytics from './Analytics';
 import SkillMate from './SkillMate';
+import History from './History';
+import Home from './HomePage'
 
 const privateProfileChildren = [
-  { path: '', element: <Navigate to="panel" replace /> },
+  { path: '', element: <Navigate to="panel/your-home" replace /> },
+  { path: 'panel', element: <Navigate to="panel/your-home" replace /> },
   {
     path: 'panel',
     element: <Panel />,
     children: [
-      { index: true, element: null },
+      { index: true, element: <Navigate to="your-home" replace />  },
+      { path: 'your-home', element: <Home /> },
       { path: 'live', element: <Live /> },
       { path: 'videos', element: <Videos /> },
     ],
@@ -25,6 +29,7 @@ const privateProfileChildren = [
   { path: 'saved', element: <Saved /> },
   { path: 'analytics', element: <Analytics /> },
   { path: 'skillmates', element: <SkillMate /> },
+  { path: 'history', element: <History /> },
 ];
 
 export default privateProfileChildren;

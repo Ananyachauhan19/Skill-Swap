@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import VideoCard from "./VideoCard";
 import SearchBar from "./SearchBar";
 
+
 const Archive = () => {
   const [archived, setArchived] = useState([]);
   const [filteredArchived, setFilteredArchived] = useState([]);
@@ -229,7 +230,7 @@ const Archive = () => {
                   lastEdited: `Last Edited: ${video.lastEdited}`,
                 }}
                 onDelete={() => handleDelete(idx)}
-                onUnarchive={() => handleUnarchive(idx)}
+                onUnArchive={() => handleUnarchive(idx)}
                 menuOptions={["unarchive", "delete"]}
                 openMenu={openMenuIdx === idx}
                 setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}

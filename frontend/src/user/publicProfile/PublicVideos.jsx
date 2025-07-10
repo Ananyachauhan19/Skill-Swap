@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import VideoCard from '../privateProfile/VideoCard';
-
+import { useNavigate } from "react-router-dom";
 const PublicVideos = () => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openMenuIdx, setOpenMenuIdx] = useState(null);
-  const menuRefs = useRef([]); // Array of refs for each VideoCard menu
+  const menuRefs = useRef([]); 
+  const navigate = useNavigate();
 
   // Fetch uploaded videos from Videos.jsx (localStorage or backend)
   useEffect(() => {
@@ -131,7 +132,7 @@ const PublicVideos = () => {
 
   const handleReport = (video) => {
     // Simulate reporting video
-    alert(`Reported "${video.title}" for review`);
+    navigate("/report", { state: { video } });
     // Backend (commented)
     /*
     fetch('/api/report/video', {
@@ -163,7 +164,7 @@ const PublicVideos = () => {
               lastEdited: `Last Edited: ${video.lastEdited}`, // Include lastEdited
             }}
             menuOptions={menuOptions}
-            onReport={() => handleReport(video)}
+            onReport={(video) => handleReport(video)}
             onSave={() => handleSave(video)}
             onShare={() => handleShare(video)}
             openMenu={openMenuIdx === idx}

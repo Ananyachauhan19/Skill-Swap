@@ -1,7 +1,8 @@
-import React, { useEffect, useState, createContext } from 'react';
+import React, { useEffect, useRef, useState, createContext } from 'react';
 import {
   FaUserCircle,
   FaRegFileAlt,
+  FaChevronDown
 } from 'react-icons/fa';
 import { useNavigate, useLocation, Outlet, NavLink } from 'react-router-dom';
 import BioLink from './BioLink';
@@ -80,7 +81,6 @@ const SideBarPublic = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [inputQuery, setInputQuery] = useState(''); // Temporary input state for SearchBar
 
   // Load user profile data and handle updates
   useEffect(() => {
@@ -100,13 +100,37 @@ const SideBarPublic = () => {
     return () => window.removeEventListener('profileUpdated', loadProfile);
   }, []);
 
-  // Handle Search button click to apply searchQuery
-  const handleSearch = () => {
-    setSearchQuery(inputQuery.trim());
+  const [isSkillMate, setIsSkillMate] = useState(false);
+  const [skillMateCount, setSkillMateCount] = useState(0);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const toggleDropdown = () => setShowDropdown((prev) => !prev);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleAddSkillMate = () => {
+    setIsSkillMate(true);
+    setSkillMateCount((prev) => prev + 1);
   };
 
+  const handleRemoveSkillMate = () => {
+    setIsSkillMate(false);
+    setSkillMateCount((prev) => Math.max(prev - 1, 0));
+    setShowDropdown(false);
+  };
+
+
   return (
-    <ProfileContext.Provider value={{ searchQuery }}>
+    <ProfileContext.Provider value={{ searchQuery, setSearchQuery }}>
       <div className="flex min-h-screen overflow-x-hidden">
         {/* Sidebar */}
         <aside className="hidden sm:fixed sm:top-15 sm:left-0 sm:w-60 sm:h-screen bg-white px-4 pt-6 shadow z-10 overflow-y-auto sm:block">
@@ -194,34 +218,63 @@ const SideBarPublic = () => {
                   ]}
                 />
               </div>
-              {/* Add SkillMate Button */}
-              <div className="flex flex-col items-center justify-center min-w-[150px]">
-                <button
-                  className="flex items-center gap-2 px-4 py-2 rounded bg-blue-600 text-white text-xs shadow hover:bg-blue-700"
-                  onClick={() => navigate('add-skillmate', { replace: false })}
-                >
-                  <FaRegFileAlt className="text-sm" />
-                  Add SkillMate
-                </button>
-              </div>
-              {/* SkillMates and Search Section */}
-              <div className="flex flex-col items-center justify-center min-w-[180px] bg-gray-50 rounded-xl p-4 shadow-sm">
-                <span className="text-base text-gray-700 font-semibold">0</span>
-                <button
-                  className="flex items-center gap-2 px-3 py-1.5 rounded bg-gray-500 text-white text-xs shadow hover:bg-gray-600 mt-2"
-                >
-                  <FaRegFileAlt className="text-sm" />
-                  SkillMates
-                </button>
+              {/* SkillMate Button and Search Section */}
+              <div className="flex flex-col items-center justify-center min-w-[180px] bg-gray-50 rounded-xl p-4 shadow-sm relative">
+                <span className="text-base text-gray-700 font-semibold">{skillMateCount}</span>
+                {!isSkillMate ? (
+                  <button
+                    onClick={handleAddSkillMate}
+                    className="flex items-center gap-2 px-4 py-2 rounded bg-blue-600 text-white text-xs shadow hover:bg-blue-700 mt-2"
+                  >
+                    <FaRegFileAlt className="text-sm" />
+                    Add SkillMate
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={toggleDropdown}
+                      className="flex items-center gap-2 px-4 py-2 rounded bg-gray-500 text-white text-xs shadow hover:bg-gray-600 mt-2"
+                    >
+                      <FaRegFileAlt className="text-sm" />
+                      SkillMates
+                      <FaChevronDown className="text-sm" />
+                    </button>
+                    {showDropdown && (
+                      <div
+                        ref={dropdownRef}
+                        className="absolute z-50 top-full mt-2 w-44 bg-white border rounded shadow"
+                      >
+                        <button
+                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                          onClick={() => {
+                            alert("Notifications turned ON");
+                            setShowDropdown(false);
+                          }}
+                        >
+                          🔔 On Notification
+                        </button>
+                        <button
+                          className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                          onClick={() => {
+                            alert("Notifications muted");
+                            setShowDropdown(false);
+                          }}
+                        >
+                          🔕 Mute Notification
+                        </button>
+                        <button
+                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                          onClick={handleRemoveSkillMate}
+                        >
+                          ❌ Remove SkillMate
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
                 {/* Search bar */}
                 <div className="flex items-center gap-2 mt-3 w-full">
-                  <SearchBar searchQuery={inputQuery} setSearchQuery={setInputQuery} />
-                  <button
-                    className="bg-gray-600 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-700"
-                    onClick={handleSearch}
-                  >
-                    Search
-                  </button>
+                  <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
                 </div>
               </div>
             </div>

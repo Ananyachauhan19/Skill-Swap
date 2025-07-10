@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from "date-fns";
+
 const VideoCard = ({
   video,
   onEdit,
@@ -9,19 +10,23 @@ const VideoCard = ({
   onReport,
   onShare,
   onDelete,
+  onUnArchive,
   onSave,
   onPost,
   menuOptions = [],
   openMenu,
   setOpenMenu,
   menuRef,
+  onSaveToPlaylist,
+  userId, 
 }) => {
   const {
+    id,
     thumbnail,
     title,
     description,
     uploadDate,
-    userId,
+    userId: videoUserId,
     skillmates,
     views,
     likes = 0,
@@ -108,7 +113,10 @@ const VideoCard = ({
               poster={thumbnail}
               className="w-full h-full object-cover"
               controls
-              onPlay={() => setIsPlaying(true)}
+              onPlay={() => {
+                setIsPlaying(true);
+                logWatchHistory();
+              }}
               onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}
             />
@@ -167,7 +175,7 @@ const VideoCard = ({
             <h3 className="text-lg font-medium text-gray-900 line-clamp-2">
               {title}
             </h3>
-            <p className="text-sm text-gray-700 font-medium">@{userId}</p>
+            <p className="text-sm text-gray-700 font-medium">@{videoUserId}</p>
             <p className="text-sm text-gray-600 line-clamp-2">{description}</p>
             <div className="text-xs text-gray-500 mt-1">
               <span>
@@ -186,8 +194,7 @@ const VideoCard = ({
               </span>
               {video.lastEdited && (
                 <span className="ml-2">{video.lastEdited}</span>
-              )}{" "}
-              {/* Add lastEdited */}
+              )}
             </div>
           </div>
 
@@ -273,7 +280,7 @@ const VideoCard = ({
                     className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
                     onClick={() => {
                       setOpenMenu(false);
-                      onArchive?.(video);
+                      onUnArchive?.(video);
                     }}
                   >
                     Unarchive
@@ -310,6 +317,17 @@ const VideoCard = ({
                     }}
                   >
                     Share
+                  </button>
+                )}
+                {menuOptions.includes("saveToPlaylist") && (
+                  <button
+                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    onClick={() => {
+                      setOpenMenu(false);
+                      onSaveToPlaylist?.(video);
+                    }}
+                  >
+                    Save to Playlist
                   </button>
                 )}
               </div>

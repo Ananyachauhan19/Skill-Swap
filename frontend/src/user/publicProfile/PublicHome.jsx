@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useRef, useContext } from 'react';
 import VideoCard from '../privateProfile/VideoCard';
 import { ProfileContext } from './SideBarPublic';
+import { useNavigate } from "react-router-dom";
 
 const PublicHome = () => {
+  const navigate = useNavigate();
   const { searchQuery } = useContext(ProfileContext);
   const [content, setContent] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +191,7 @@ const PublicHome = () => {
 
   const handleReport = (video) => {
     // Simulate reporting video
-    alert(`Reported "${video.title}" for review`);
+    navigate("/report", { state: { video } });
     // Backend (commented)
     /*
     fetch('/api/report/video', {
@@ -221,7 +223,7 @@ const PublicHome = () => {
                 lastEdited: item.lastEdited ? `Last Edited: ${item.lastEdited}` : null,
               }}
               menuOptions={menuOptions}
-              onReport={() => handleReport(item)}
+              onReport={(item) => handleReport(item)}
               onSave={() => handleSave(item)}
               onShare={() => handleShare(item)}
               openMenu={openMenuIdx === idx}

@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import VideoCard from '../privateProfile/VideoCard';
-
+import { useNavigate } from "react-router-dom";
 const PublicLive = () => {
   const [liveVideos, setLiveVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openMenuIdx, setOpenMenuIdx] = useState(null);
-  const menuRefs = useRef([]); // Array of refs for each VideoCard menu
+  const menuRefs = useRef([]); 
+  const navigate = useNavigate();
 
-  // Fetch live and scheduled videos from Live.jsx (localStorage or backend)
+  // Fetch live and scheduled videos from Live.jsx 
   useEffect(() => {
     setTimeout(() => {
       try {
@@ -114,7 +115,7 @@ const PublicLive = () => {
 
   const handleReport = (video) => {
     // Simulate reporting video
-    alert(`Reported "${video.title}" for review`);
+    navigate("/report", { state: { video } });
     // Backend (commented)
     /*
     fetch('/api/report/video', {
@@ -144,7 +145,7 @@ const PublicLive = () => {
             menuOptions={menuOptions}
             onSave={() => handleSave(video)}
             onShare={() => handleShare(video)}
-            onReport={() => handleReport(video)}
+            onReport={(video) => handleReport(video)}
             openMenu={openMenuIdx === idx}
             setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
             menuRef={(el) => (menuRefs.current[idx] = el)}

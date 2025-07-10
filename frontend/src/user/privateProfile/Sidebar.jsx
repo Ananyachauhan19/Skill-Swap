@@ -140,6 +140,10 @@ const Sidebar = () => {
             <FaRegSave className="text-lg" />
             Saved
           </button>
+          <button onClick={() => navigate("/profile/history")} className={`flex items-center gap-2 px-3 py-2 rounded-md ${isActive("history")}`}>
+            <FaRegSave className="text-lg" />
+            History
+          </button>
           <button onClick={() => navigate("/accountSettings")} className="flex items-center gap-2 px-3 py-2 rounded-md">
             <FaUserCircle className="text-lg" />
             Account

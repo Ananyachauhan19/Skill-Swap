@@ -31,6 +31,7 @@ import PublicProfile from './user/PublicProfile';
 import publicProfileRoutes from './user/publicProfile/publicProfileRoutes';
 import StartSkillSwap from './user/StartSkillSwap';
 import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
+import ReportPage from './user/privateProfile/Report';
 
 function useRegisterSocket() {
   useEffect(() => {
@@ -61,11 +62,12 @@ const appRoutes = [
   { path: '/createSession', element: <CreateSession /> },
   { path: '/package', element: <Package /> },
   { path: '/uploaded', element: <UploadRecordedSession /> },
-  { path: '/history', element: <HistoryPage /> },
+  { path: '/learning-history', element: <HistoryPage /> },
   { path: '/help', element: <HelpSupportPage /> },
   { path: '/pro', element: <GoPro /> },
   { path: '/accountSettings', element: <AccountSettings /> },
   { path: '/StartSkillSwap', element: <StartSkillSwap /> },
+  { path: 'report', element: <ReportPage/>},
 
    ...accountSettingsRoutes,
   
