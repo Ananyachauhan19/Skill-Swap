@@ -1,10 +1,22 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import VideoCard from "./VideoCard";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
-import { useNavigate } from "react-router-dom";
+
+// Placeholder SearchBar component (replace with actual SearchBar implementation)
+const SearchBar = ({ searchQuery, setSearchQuery }) => {
+  return (
+    <input
+      type="text"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      placeholder="Search watch history..."
+      className="w-full max-w-xs p-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
+    />
+  );
+};
 
 // --- BACKEND READY: Uncomment and use these when backend is ready ---
 // import axios from 'axios';
@@ -27,7 +39,10 @@ import { useNavigate } from "react-router-dom";
 
 const History = () => {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const [history, setHistory] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredVideos, setFilteredVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -114,6 +129,20 @@ const History = () => {
     loadHistory();
   }, [userId]);
 
+  // Filter videos based on search
+  useEffect(() => {
+    let filtered = history;
+    if (searchQuery) {
+      filtered = history.filter(
+        (video) =>
+          video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (video.description &&
+            video.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+    setFilteredVideos(filtered);
+  }, [searchQuery, history]);
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (
@@ -127,34 +156,28 @@ const History = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMenuId]);
-const handleRemove = (video) => {
-  setHistory(prev =>
-    prev.filter(item => !(item.videoId === video.videoId && item.watchDate === video.watchDate))
-  );
-  toast.info("Video removed from history (simulated)");
-};
 
+  const handleRemove = (video) => {
+    setHistory(prev =>
+      prev.filter(item => !(item.videoId === video.videoId && item.watchDate === video.watchDate))
+    );
+    toast.info("Video removed from history (simulated)");
+  };
 
+  const handleReport = (video) => {
+    navigate('/report', { state: { video } });
+  };
 
-// Inside the component:
-const navigate = useNavigate();
-
-const handleReport = (video) => {
-  navigate('/report', { state: { video } });
-};
-
-
-  // Clear all history
   const handleClearHistory = () => {
     if (window.confirm("Are you sure you want to clear all watch history?")) {
       setHistory([]);
       setRenderKey(prev => prev + 1); // Force re-render
-      toast.info("Watch history cleared (simulated)");
+      toast.info("Watch history cleared");
     }
   };
 
-  // Group history by date
-  const groupedHistory = history.reduce((acc, item) => {
+  // Group filtered videos by date
+  const groupedHistory = filteredVideos.reduce((acc, item) => {
     const date = format(new Date(item.watchDate), "MMMM d, yyyy");
     if (!acc[date]) acc[date] = [];
     acc[date].push(item);
@@ -169,6 +192,7 @@ const handleReport = (video) => {
   return (
     <div className="p-4 max-w-3xl mx-auto min-h-[200px]" key={renderKey}>
       <div className="flex justify-between items-center mb-6">
+        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
         <h2 className="text-2xl font-bold">Watch History</h2>
         <button
           onClick={handleClearHistory}
@@ -180,10 +204,10 @@ const handleReport = (video) => {
       <ToastContainer position="top-center" autoClose={2000} />
       {loading && <div className="text-center py-8">Loading history...</div>}
       {error && <div className="text-red-500 text-center py-8">{error}</div>}
-      {!loading && !error && history.length === 0 && (
+      {!loading && !error && filteredVideos.length === 0 && (
         <div className="text-center text-gray-500">No watch history available.</div>
       )}
-      {!loading && !error && history.length > 0 && (
+      {!loading && !error && filteredVideos.length > 0 && (
         <div className="space-y-6">
           {sortedDates.map((date, dateIdx) => (
             <div key={dateIdx}>
@@ -209,7 +233,7 @@ const handleReport = (video) => {
                       }}
                       menuOptions={['remove', 'report']}
                       onRemove={() => handleRemove(item)}
-                      onReport={(item) => handleReport(item)}
+                      onReport={() => handleReport(item)}
                       openMenu={openMenuId === item.videoId}
                       setOpenMenu={(open) => setOpenMenuId(open ? item.videoId : null)}
                       menuRef={(el) => (menuRefs.current[item.videoId] = el)}

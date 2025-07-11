@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Package = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-200 pt-16 sm:pt-20 pb-10">
       {/* Enhanced Hero Section */}
-<div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white py-12 sm:py-16 px-4 sm:px-6 relative overflow-hidden">
-
-
+      <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white py-12 sm:py-16 px-4 sm:px-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-10 w-40 h-40 bg-blue-400 rounded-full blur-3xl"></div>
           <div className="absolute bottom-10 right-10 w-60 h-60 bg-blue-500 rounded-full blur-3xl"></div>
@@ -549,16 +546,39 @@ const PackageHistory = () => {
     setExpandedRow(expandedRow === id ? null : id);
   };
 
+  const deleteRow = (id) => {
+    setHistory(history.filter(pkg => pkg.id !== id));
+  };
+
+  const clearAllHistory = () => {
+    setHistory([]);
+  };
+
   return (
     <section className="w-full max-w-7xl mx-auto mb-12 sm:mb-16 bg-white bg-opacity-20 backdrop-blur-lg rounded-2xl shadow-xl border border-blue-100 p-4 sm:p-6 px-4 sm:px-6">
-      <motion.h2
-        className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900 mb-6 sm:mb-8 text-center font-lora"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        Your <span className="text-blue-700">Purchase</span> History
-      </motion.h2>
+      <div className="flex justify-between items-center mb-6 sm:mb-8">
+        <motion.h2
+          className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900 text-center font-lora"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          Your <span className="text-blue-700">Purchase</span> History
+        </motion.h2>
+        {history.length > 0 && (
+          <motion.button
+            className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold py-2 px-4 sm:px-6 rounded-full shadow-lg hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center font-nunito text-sm sm:text-base"
+            onClick={clearAllHistory}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5-4h4M4 7h16" />
+            </svg>
+            Clear All
+          </motion.button>
+        )}
+      </div>
       
       <AnimatePresence>
         {loading ? (
@@ -617,6 +637,7 @@ const PackageHistory = () => {
                   <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-blue-700 uppercase tracking-wider font-nunito">Value</th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-blue-700 uppercase tracking-wider font-nunito">Date</th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-blue-700 uppercase tracking-wider font-nunito">Status</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-semibold text-blue-700 uppercase tracking-wider font-nunito">Action</th>
                 </tr>
               </thead>
               <tbody className="bg-white bg-opacity-20 backdrop-blur-lg divide-y divide-blue-50">
@@ -664,6 +685,18 @@ const PackageHistory = () => {
                             {pkg.status.charAt(0).toUpperCase() + pkg.status.slice(1)}
                           </span>
                         </td>
+                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+                          <motion.button
+                            className="text-red-600 hover:text-red-800"
+                            onClick={(e) => { e.stopPropagation(); deleteRow(pkg.id); }}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </motion.button>
+                        </td>
                       </motion.tr>
                       
                       {expandedRow === pkg.id && (
@@ -673,7 +706,7 @@ const PackageHistory = () => {
                           exit={{ opacity: 0, height: 0 }}
                           className="bg-blue-50"
                         >
-                          <td colSpan="5" className="px-4 sm:px-6 py-4">
+                          <td colSpan="6" className="px-4 sm:px-6 py-4">
                             <div className="text-sm text-blue-600 font-nunito">
                               <p>{pkg.details}</p>
                               <button 

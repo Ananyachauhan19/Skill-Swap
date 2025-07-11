@@ -1,3 +1,3 @@
-import BuyRedeemCoins from './BuyRedeemCoins';
+import Package from "../Package";
 
-export default BuyRedeemCoins;
+export default Package;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import SearchBar from "./SearchBar";
 
 // Lazy load VideoCard component
 const VideoCard = lazy(() => import("./VideoCard"));
@@ -469,22 +470,7 @@ const Videos = () => {
         <div className="flex flex-col gap-4 mb-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <input
-                type="text"
-                className="w-full sm:w-64 border rounded px-3 py-2"
-                placeholder="Search by title..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <select
-                className="w-full sm:w-32 border rounded px-3 py-2"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="all">All</option>
-                <option value="published">Published</option>
-                <option value="draft">Drafts</option>
-              </select>
+              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
             </div>
             <button
               className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 text-sm sm:text-base"
