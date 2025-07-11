@@ -1,201 +1,151 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   FaUserCircle,
   FaChartBar,
   FaRegSave,
   FaRegFileAlt,
   FaArchive,
-  FaCoins,
+  FaHistory,
+  FaFileAlt,
 } from "react-icons/fa";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import CoinsBadges from "../myprofile/CoinsBadges";
+
+// Fetch user profile (replace with real API call in production)
+const fetchUserProfile = async () => {
+  try {
+    const staticProfile = {
+      fullName: "John Doe",
+      userId: "john_doe123",
+      profilePic: "https://placehold.co/100x100?text=JD",
+      profilePicPreview: "https://placehold.co/100x100?text=JD",
+      bio: "Passionate developer and lifelong learner.",
+      skillMatesCount: 42,
+    };
+    return staticProfile;
+  } catch (err) {
+    console.error("Error fetching user profile:", err.message);
+    throw new Error("Failed to fetch user profile");
+  }
+};
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const dropdownRef = useRef(null);
-
-  const [showCoins, setShowCoins] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch static user data (same as Profile.jsx)
-  const fetchUser = async () => {
+  const loadUser = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      // Static user data matching Profile.jsx
-      const userData = {
-        fullName: 'John Doe',
-        userId: 'john_doe123',
-        profilePic: 'https://placehold.co/100x100?text=JD',
-        profilePicPreview: 'https://placehold.co/100x100?text=JD',
-        silver: 1200, 
-        gold: 0,   
-        badges: ['Starter', 'Helper'],
-        rank: 'Bronze',
-      };
-      return userData;
-    } catch {
-      throw new Error('Failed to fetch user profile');
+      const data = await fetchUserProfile();
+      setUser(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    // Uncomment for backend integration
-    /*
-    const res = await fetch('/api/user/profile', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}' }
-    });
-    if (!res.ok) throw new Error('Failed to fetch user profile');
-    const data = await res.json();
-    return {
-      fullName: data.fullName || 'Your Name',
-      userId: data.userId || 'Your userID',
-      profilePic: data.profilePic || 'https://placehold.co/100x100?text=U',
-      profilePicPreview: data.profilePicPreview || 'https://placehold.co/100x100?text=U',
-      silver: data.silver || 0,
-      gold: data.gold || 0,
-      badges: data.badges || [''],
-      rank: data.rank || '',
-    };
-    */
   };
 
-  // Load user data and handle profile updates
   useEffect(() => {
-    async function loadUser() {
-      setLoading(true);
-      try {
-        const data = await fetchUser();
-        setUser(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    }
     loadUser();
-    window.addEventListener('profileUpdated', loadUser);
-    return () => window.removeEventListener('profileUpdated', loadUser);
-  }, []);
-
-  // Close coins dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowCoins(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("profileUpdated", loadUser);
+    return () => window.removeEventListener("profileUpdated", loadUser);
   }, []);
 
   const isActive = (path) =>
     location.pathname === `/profile/${path}` ||
     (path === "panel" && location.pathname === "/profile")
-      ? "bg-gray-100 text-blue-600 font-semibold"
-      : "hover:bg-gray-100 text-gray-700";
+      ? "text-blue-900 font-semibold bg-blue-200 rounded-lg"
+      : "text-blue-900 hover:bg-blue-100 hover:text-blue-700 rounded-lg";
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      <aside className="fixed w-60 h-[calc(100vh-60px)] bg-white px-4 pt-6 shadow z-10">
-        <div className="flex flex-col items-center mb-10">
-          {loading ? (
-            <span>Loading...</span>
-          ) : error ? (
-            <span className="text-red-500">{error}</span>
-          ) : user?.profilePic || user?.profilePicPreview ? (
-            <img
-              src={user.profilePicPreview || user.profilePic}
-              alt="Profile"
-              className="w-16 h-16 rounded-full object-cover mb-2"
-            />
-          ) : (
-            <FaUserCircle className="text-7xl text-gray-400 mb-2" />
-          )}
-          <span className="text-lg font-medium text-gray-800">
-            {user?.userId || "username"}
-          </span>
-          <span className="text-base text-gray-600 mt-1">
-            {user?.fullName || "fullname"}
-          </span>
-        </div>
-
-        <nav className="flex flex-col gap-3 text-sm">
-          <button onClick={() => navigate("/profile/panel")} className={`flex items-center gap-2 px-3 py-2 rounded-md ${isActive("panel")}`}>
-            <FaRegFileAlt className="text-lg" />
-            Panel
+    <div className="flex min-h-screen w-full bg-gradient-to-b from-[#f9fcff] to-[#eef7ff] font-sans animate-fade-in">
+      {/* Sidebar: Vertical on desktop, bottom nav on mobile */}
+      <aside className="fixed bottom-0 left-0 w-full sm:w-16 sm:static flex sm:flex-col justify-around sm:justify-start items-center sm:gap-[2vh] py-2 sm:py-4 sm:min-h-[calc(100vh-4rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto scrollbar-hidden bg-blue-50 bg-opacity-80 transition-all duration-500 animate-slide-in-left z-10 sm:z-auto">
+        {[
+          { path: "panel", icon: FaFileAlt, label: "Panel", title: "Go to Profile Panel" },
+          { path: "drafts", icon: FaRegFileAlt, label: "Drafts", title: "View Drafts" },
+          { path: "analytics", icon: FaChartBar, label: "Analytics", title: "View Analytics" },
+          { path: "archived", icon: FaArchive, label: "Archive", title: "View Archived Items" },
+          { path: "saved", icon: FaRegSave, label: "Saved", title: "View Saved Items" },
+          { path: "history", icon: FaHistory, label: "History", title: "View History" },
+          { path: "account", icon: FaUserCircle, label: "Account", title: "Go to Account Settings", route: "/accountSettings" },
+        ].map(({ path, icon: Icon, label, title, route }) => (
+          <button
+            key={path}
+            onClick={() => navigate(route || `/profile/${path}`)}
+            className={`flex flex-col items-center gap-1 p-2 sm:p-3 transition-all duration-300 transform hover:scale-105 ${isActive(path)}`}
+            title={title}
+            aria-label={title}
+          >
+            <Icon className="text-blue-900 text-xl sm:text-2xl transition-colors duration-300 hover:text-blue-700" />
+            <span className="text-blue-900 text-[10px] sm:text-xs">{label}</span>
           </button>
-          <button onClick={() => navigate("/profile/drafts")} className={`flex items-center gap-2 px-3 py-2 rounded-md ${isActive("drafts")}`}>
-            <FaRegFileAlt className="text-lg" />
-            Drafts
-          </button>
-          <button onClick={() => navigate("/profile/analytics")} className={`flex items-center gap-2 px-3 py-2 rounded-md ${isActive("analytics")}`}>
-            <FaChartBar className="text-lg" />
-            Analytics
-          </button>
-          <button onClick={() => navigate("/profile/archived")} className={`flex items-center gap-2 px-3 py-2 rounded-md ${isActive("archived")}`}>
-            <FaArchive className="text-lg" />
-            Archive
-          </button>
-          <button onClick={() => navigate("/profile/saved")} className={`flex items-center gap-2 px-3 py-2 rounded-md ${isActive("saved")}`}>
-            <FaRegSave className="text-lg" />
-            Saved
-          </button>
-          <button onClick={() => navigate("/profile/history")} className={`flex items-center gap-2 px-3 py-2 rounded-md ${isActive("history")}`}>
-            <FaRegSave className="text-lg" />
-            History
-          </button>
-          <button onClick={() => navigate("/accountSettings")} className="flex items-center gap-2 px-3 py-2 rounded-md">
-            <FaUserCircle className="text-lg" />
-            Account
-          </button>
-        </nav>
+        ))}
       </aside>
 
-      {/* Main Content */}
-      <main className="ml-0 md:ml-60 w-full md:w-[calc(100vw-16.1rem)] min-h-screen bg-gray-50">
-        {/* Top beside card */}
-        <div className="h-42 bg-white px-4 py-3 shadow w-full relative flex flex-col gap-4 justify-center">
-          {/* Coins Dropdown (top-right) */}
-          <div className="absolute top-3 right-4 z-50" ref={dropdownRef}>
-            <button
-              onClick={() => setShowCoins((prev) => !prev)}
-              className="flex items-center gap-1 px-2 py-1 bg-gray-200 rounded text-xs hover:bg-gray-300 shadow"
-            >
-              <FaCoins className="text-sm text-yellow-600" />
-              Coins
-            </button>
-            {showCoins && user && (
-              <div className="absolute top-8 right-0 z-50 bg-white border shadow-md p-3 rounded-xl w-56">
-                <CoinsBadges silver={user.silver || 1200} gold={user.gold || 0} profile={user} />
-              </div>
-            )}
-          </div>
-
-          {/* Buttons */}
-          <div className="flex items-center gap-4">
-            <button
-              className="flex items-center gap-2 px-3 py-1.5 rounded bg-gray-500 text-white text-xs shadow hover:bg-gray-600"
-              onClick={() => navigate("/your-profile")}
-            >
-              <FaRegFileAlt className="text-sm" />
-              Setup Profile
-            </button>
-
-            <div className="flex flex-col items-center">
-              <span className="text-base text-gray-700 font-semibold">0</span>
+      {/* Main content: Adjusted for mobile bottom nav */}
+      <main className="w-full sm:ml-16 sm:w-[calc(100%-4rem)] min-h-screen p-4 sm:p-6 overflow-y-auto scrollbar-hidden animate-fade-in scroll-smooth">
+        <div className="flex flex-col sm:flex-row items-start mb-6">
+          {loading ? (
+            <div className="flex items-center justify-center w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] mx-auto sm:mx-0">
+              <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center gap-2 mx-auto sm:mx-0">
+              <span className="text-red-500 text-sm transition-all duration-300 animate-fade-in">{error}</span>
               <button
-                className="flex items-center gap-2 px-3 py-1.5 rounded bg-gray-500 text-white text-xs shadow hover:bg-gray-600"
-                onClick={() => navigate("/profile/skillmates")}
+                onClick={loadUser}
+                className="text-blue-900 px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 hover:bg-blue-100 transition-all duration-300"
+                aria-label="Retry loading profile"
               >
-                <FaRegFileAlt className="text-sm" />
-                SkillMates
+                Retry
               </button>
             </div>
+          ) : (
+            <img
+              src={user?.profilePicPreview || user?.profilePic || "https://placehold.co/100x100?text=User"}
+              alt={`${user?.fullName || "User"}'s profile picture`}
+              className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] rounded-full object-cover border-2 border-blue-200 transition-all duration-300 hover:scale-105 mx-auto sm:mx-0"
+            />
+          )}
+          <div className="mt-4 sm:mt-0 sm:ml-4 flex-1 flex flex-col sm:flex-row items-center sm:items-start justify-between">
+            <div className="text-center sm:text-left">
+              <h1 className="text-xl sm:text-4xl font-bold text-blue-800 transition-colors duration-300">
+                {user?.fullName || "Full Name"}
+              </h1>
+              <p className="text-sm text-blue-600/70 transition-colors duration-300">@{user?.userId || "username"}</p>
+              <p className="text-sm text-blue-600/70 mt-2 max-w-md transition-colors duration-300">
+                {user?.bio || "Your bio goes here, set it in Setup Profile."}
+              </p>
+              <div className="mt-4">
+                <button
+                  className="border border-blue-200 text-blue-900 px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105"
+                  onClick={() => navigate("/profile/skillmates")}
+                  title="View SkillMates"
+                  aria-label="View SkillMates"
+                >
+                  <span>SkillMates</span>
+                  <span className="bg-blue-200 text-blue-900 px-2 py-1 rounded-full text-xs transition-colors duration-300 hover:bg-blue-300">
+                    {user?.skillMatesCount || 0}
+                  </span>
+                </button>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/your-profile")}
+              className="mt-4 sm:mt-0 border border-blue-200 text-blue-900 px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105"
+              aria-label="Setup Profile"
+            >
+              Setup Profile
+            </button>
           </div>
         </div>
 
-        {/* Main page content */}
-        <div className="p-4">
+        {/* Outlet content: Scrollable with smooth scrolling */}
+        <div className="h-[calc(100vh-16rem)] sm:h-[calc(100vh-20rem)] overflow-y-auto scrollbar-hidden animate-fade-in scroll-smooth">
           <Outlet />
         </div>
       </main>
