@@ -23,7 +23,6 @@ import HistoryPage from './user/HistoryPage';
 import HelpSupportPage from './user/HelpSupportPage';
 import GoPro from './user/HomeSection/GoPro';
 import AccountSettings from './user/AccountSettings';
-import UploadRecordedSession from './user/SessionsFolder/UploadRecordedSession';
 import Package from './user/Package';
 import privateProfileRoutes from './user/privateProfile/privateProfileRoutes';
 import PrivateProfile from './user/PrivateProfile';
@@ -61,7 +60,6 @@ const appRoutes = [
   { path: '/your-profile', element: <Profile /> },
   { path: '/createSession', element: <CreateSession /> },
   { path: '/package', element: <Package /> },
-  { path: '/uploaded', element: <UploadRecordedSession /> },
   { path: '/learning-history', element: <HistoryPage /> },
   { path: '/help', element: <HelpSupportPage /> },
   { path: '/pro', element: <GoPro /> },
