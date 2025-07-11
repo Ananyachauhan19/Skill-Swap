@@ -89,18 +89,25 @@ const HomeHero = () => {
   // Data: Feature tabs for quick access panel
   const featureTabs = [
     {
-      title: "Job Interview",
-      subtitle: "Real Practice. Real Growth.",
-      icon: <FaBriefcase className="text-3xl text-blue-800" />,
-      bg: "bg-blue-50",
-      path: "/interview",
-    },
-    {
       title: "1-on-1 Session",
       subtitle: "Personalized Mentorship",
       icon: <FaUserFriends className="text-3xl text-blue-800" />,
       bg: "bg-blue-50",
       path: "/one-on-one",
+    },
+    {
+      title: "Live/Recorded Session",
+      subtitle: "Explore. Learn, Teach",
+      icon: <FaUserFriends className="text-3xl text-blue-800" />,
+      bg: "bg-blue-50",
+      path: "/session",
+    },
+    {
+      title: "Job Interview",
+      subtitle: "Real Practice. Real Growth.",
+      icon: <FaBriefcase className="text-3xl text-blue-800" />,
+      bg: "bg-blue-50",
+      path: "/interview",
     },
     {
       title: "Group Discussion",
