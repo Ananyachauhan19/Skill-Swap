@@ -162,22 +162,59 @@ function App() {
   const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
   const [userForModal, setUserForModal] = useState(null);
 
+  // Helper to check if profile is complete
+  const isProfileIncomplete = (user) => {
+    return (
+      !user.username ||
+      user.username.startsWith('user') ||
+      !(user.skillsToTeach && user.skillsToTeach.length) ||
+      !(user.skillsToLearn && user.skillsToLearn.length)
+    );
+  };
+
+  // Fetch latest user info and update cookie/state after profile completion
+  const handleCompleteProfile = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, { credentials: 'include' });
+      if (res.ok) {
+        const user = await res.json();
+        Cookies.set('user', JSON.stringify(user));
+        setUserForModal(user);
+        if (isProfileIncomplete(user)) {
+          setShowCompleteProfileModal(true);
+        } else {
+          setShowCompleteProfileModal(false);
+        }
+      } else {
+        setShowCompleteProfileModal(false); // fallback
+      }
+    } catch {
+      setShowCompleteProfileModal(false); // fallback
+    }
+  };
+
+  // Always fetch latest profile on page load
   useEffect(() => {
-    // Try to get user from cookie
-    const userCookie = Cookies.get('user');
-    let user = null;
-    if (userCookie && userCookie !== 'undefined') {
+    async function fetchAndSetUser() {
       try {
-        user = JSON.parse(userCookie);
-      } catch (e) {
-        user = null;
+        const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, { credentials: 'include' });
+        if (res.ok) {
+          const user = await res.json();
+          Cookies.set('user', JSON.stringify(user));
+          setUserForModal(user);
+          if (isProfileIncomplete(user)) {
+            setShowCompleteProfileModal(true);
+          } else {
+            setShowCompleteProfileModal(false);
+          }
+        } else {
+          setShowCompleteProfileModal(false);
+        }
+      } catch {
+        setShowCompleteProfileModal(false);
       }
     }
-    // If user is missing username or skills, show modal
-    if (user && (!user.username || user.username.startsWith('user') || !(user.skillsToTeach && user.skillsToTeach.length) || !(user.skillsToLearn && user.skillsToLearn.length))) {
-      setUserForModal(user);
-      setShowCompleteProfileModal(true);
-    }
+    fetchAndSetUser();
   }, []);
 
   return (
@@ -190,7 +227,7 @@ function App() {
       </div>
       {!isAuthPage && <Footer />}
       {showCompleteProfileModal && userForModal && (
-        <CompleteProfileModal user={userForModal} onComplete={() => setShowCompleteProfileModal(false)} />
+        <CompleteProfileModal user={userForModal} onComplete={handleCompleteProfile} />
       )}
     </ModalProvider>
   );
