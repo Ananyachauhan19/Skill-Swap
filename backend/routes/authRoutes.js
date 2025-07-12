@@ -90,17 +90,60 @@ router.get('/user/profile', requireAuth, async (req, res) => {
   }
 });
 
-// Update user profile (skills)
+// Update user profile (comprehensive)
 router.put('/user/profile', requireAuth, async (req, res) => {
-  const { skillsToTeach, skillsToLearn } = req.body;
+  const { 
+    firstName, lastName, bio, country, profilePic, education, experience, 
+    certificates, linkedin, website, github, twitter, skillsToTeach, 
+    skillsToLearn, credits, goldCoins, silverCoins, badges, rank 
+  } = req.body;
+  
+  console.log('Profile update request:', { skillsToTeach, skillsToLearn });
+  
   try {
+    const updateData = {};
+    
+    // Only include fields that are provided in the request
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (bio !== undefined) updateData.bio = bio;
+    if (country !== undefined) updateData.country = country;
+    if (profilePic !== undefined) updateData.profilePic = profilePic;
+    if (education !== undefined) updateData.education = education;
+    if (experience !== undefined) updateData.experience = experience;
+    if (certificates !== undefined) updateData.certificates = certificates;
+    if (linkedin !== undefined) updateData.linkedin = linkedin;
+    if (website !== undefined) updateData.website = website;
+    if (github !== undefined) updateData.github = github;
+    if (twitter !== undefined) updateData.twitter = twitter;
+    if (skillsToTeach !== undefined) updateData.skillsToTeach = skillsToTeach;
+    if (skillsToLearn !== undefined) updateData.skillsToLearn = skillsToLearn;
+    if (credits !== undefined) updateData.credits = credits;
+    if (goldCoins !== undefined) updateData.goldCoins = goldCoins;
+    if (silverCoins !== undefined) updateData.silverCoins = silverCoins;
+    if (badges !== undefined) updateData.badges = badges;
+    if (rank !== undefined) updateData.rank = rank;
+
+    console.log('Updating user with data:', updateData);
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { skillsToTeach, skillsToLearn },
+      updateData,
       { new: true }
     );
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('Updated user skills:', { 
+      skillsToTeach: user.skillsToTeach, 
+      skillsToLearn: user.skillsToLearn 
+    });
+    
     res.json(user);
   } catch (err) {
+    console.error('Profile update error:', err);
     res.status(500).json({ message: 'Failed to update profile' });
   }
 });

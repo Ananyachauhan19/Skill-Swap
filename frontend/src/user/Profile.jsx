@@ -17,22 +17,115 @@ const fetchUserProfile = async () => {
     credentials: 'include',
   });
   if (!res.ok) throw new Error('Failed to fetch user profile');
-  return await res.json();
+  const user = await res.json();
+  
+  // Map backend fields to frontend format
+  return {
+    fullName: user.firstName && user.lastName 
+      ? `${user.firstName} ${user.lastName}` 
+      : user.firstName || user.username || '',
+    userId: user.username || user._id || '',
+    email: user.email || '',
+    profilePic: user.profilePic || null,
+    profilePicPreview: user.profilePic || null,
+    bio: user.bio || '',
+    country: user.country || '',
+    education: user.education || [],
+    teachSkills: user.skillsToTeach || [],
+    learnSkills: user.skillsToLearn || [],
+    experience: user.experience || [],
+    certificates: user.certificates || [],
+    linkedin: user.linkedin || '',
+    website: user.website || '',
+    github: user.github || '',
+    twitter: user.twitter || '',
+    credits: user.credits || 1200,
+    goldCoins: user.goldCoins || 0,
+    badges: user.badges || ['Starter', 'Helper'],
+    rank: user.rank || 'Bronze',
+    // Keep backend fields for compatibility
+    firstName: user.firstName,
+    lastName: user.lastName,
+    skillsToTeach: user.skillsToTeach || [],
+    skillsToLearn: user.skillsToLearn || [],
+  };
 };
 
 // --- Backend API to update user profile ---
 const updateUserProfile = async (profile) => {
   try {
-    // You may want to adjust the fields sent here
+    // Map frontend profile fields to backend fields
+    const backendData = {
+      firstName: profile.fullName ? profile.fullName.split(' ')[0] : '',
+      lastName: profile.fullName ? profile.fullName.split(' ').slice(1).join(' ') : '',
+      bio: profile.bio || '',
+      country: profile.country || '',
+      profilePic: profile.profilePic || '',
+      education: profile.education || [],
+      experience: profile.experience || [],
+      certificates: profile.certificates || [],
+      linkedin: profile.linkedin || '',
+      website: profile.website || '',
+      github: profile.github || '',
+      twitter: profile.twitter || '',
+      skillsToTeach: profile.skillsToTeach || profile.teachSkills || [],
+      skillsToLearn: profile.skillsToLearn || profile.learnSkills || [],
+      credits: profile.credits || 1200,
+      goldCoins: profile.goldCoins || 0,
+      silverCoins: profile.silver || 0,
+      badges: profile.badges || ['Starter', 'Helper'],
+      rank: profile.rank || 'Bronze'
+    };
+
+    console.log('Sending profile update to backend:', {
+      skillsToTeach: backendData.skillsToTeach,
+      skillsToLearn: backendData.skillsToLearn
+    });
+
     const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(profile),
+      body: JSON.stringify(backendData),
     });
-    if (!res.ok) throw new Error('Failed to update user profile');
-    return await res.json();
-  } catch {
+    
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Failed to update user profile');
+    }
+    
+    const updatedUser = await res.json();
+    
+    console.log('Received updated user from backend:', {
+      skillsToTeach: updatedUser.skillsToTeach,
+      skillsToLearn: updatedUser.skillsToLearn
+    });
+    
+    // Transform backend response back to frontend format
+    return {
+      ...profile,
+      fullName: updatedUser.firstName && updatedUser.lastName 
+        ? `${updatedUser.firstName} ${updatedUser.lastName}` 
+        : updatedUser.firstName || profile.fullName,
+      bio: updatedUser.bio || profile.bio,
+      country: updatedUser.country || profile.country,
+      profilePic: updatedUser.profilePic || profile.profilePic,
+      education: updatedUser.education || profile.education,
+      experience: updatedUser.experience || profile.experience,
+      certificates: updatedUser.certificates || profile.certificates,
+      linkedin: updatedUser.linkedin || profile.linkedin,
+      website: updatedUser.website || profile.website,
+      github: updatedUser.github || profile.github,
+      twitter: updatedUser.twitter || profile.twitter,
+      skillsToTeach: updatedUser.skillsToTeach || profile.skillsToTeach,
+      skillsToLearn: updatedUser.skillsToLearn || profile.skillsToLearn,
+      credits: updatedUser.credits || profile.credits,
+      goldCoins: updatedUser.goldCoins || profile.goldCoins,
+      badges: updatedUser.badges || profile.badges,
+      rank: updatedUser.rank || profile.rank
+    };
+  } catch (error) {
+    console.error('Profile update error:', error);
     throw new Error('Failed to update user profile');
   }
 };
@@ -60,6 +153,8 @@ const Profile = () => {
     education: [],
     teachSkills: [],
     learnSkills: [],
+    skillsToTeach: [],
+    skillsToLearn: [],
     experience: [],
     certificates: [],
     linkedin: '',
@@ -88,16 +183,8 @@ const Profile = () => {
     setLoading(true);
     fetchUserProfile()
       .then((user) => {
-        // Map backend fields to frontend state
-        const mappedProfile = {
-          ...user,
-          fullName: user.firstName && user.lastName
-            ? `${user.firstName} ${user.lastName}`
-            : user.firstName || user.username || '',
-          userId: user.username || user._id || '',
-        };
-        setProfile(mappedProfile);
-        setOriginalProfile(mappedProfile);
+        setProfile(user);
+        setOriginalProfile(user);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -252,25 +339,69 @@ const Profile = () => {
 
   // --- Array Field Handlers ---
   const handleArrayChange = (field, idx, value, subfield) => {
-    setProfile(prev => {
-      const arr = [...(prev[field] || [])];
-      if (subfield) {
-        arr[idx] = { ...arr[idx], [subfield]: value };
-      } else {
-        arr[idx] = value;
-      }
-      return { ...prev, [field]: arr };
-    });
+    console.log('handleArrayChange called:', { field, idx, value, subfield, editingField });
+    
+    if (editingField === 'userInfo') {
+      // When editing UserInfoSection, update fieldDraft
+      setFieldDraft(prev => {
+        const arr = [...(prev[field] || [])];
+        if (subfield) {
+          arr[idx] = { ...arr[idx], [subfield]: value };
+        } else {
+          arr[idx] = value;
+        }
+        const updated = { ...prev, [field]: arr };
+        console.log('Updated fieldDraft:', updated);
+        return updated;
+      });
+    } else {
+      // Otherwise update main profile state
+      setProfile(prev => {
+        const arr = [...(prev[field] || [])];
+        if (subfield) {
+          arr[idx] = { ...arr[idx], [subfield]: value };
+        } else {
+          arr[idx] = value;
+        }
+        return { ...prev, [field]: arr };
+      });
+    }
   };
   const handleArrayAdd = (field, template = '') => {
-    setProfile(prev => ({ ...prev, [field]: [...(prev[field] || []), template] }));
+    console.log('handleArrayAdd called:', { field, template, editingField });
+    
+    if (editingField === 'userInfo') {
+      // When editing UserInfoSection, update fieldDraft
+      setFieldDraft(prev => {
+        const updated = { ...prev, [field]: [...(prev[field] || []), template] };
+        console.log('Added to fieldDraft:', updated);
+        return updated;
+      });
+    } else {
+      // Otherwise update main profile state
+      setProfile(prev => ({ ...prev, [field]: [...(prev[field] || []), template] }));
+    }
   };
   const handleArrayRemove = (field, idx) => {
-    setProfile(prev => {
-      const arr = [...(prev[field] || [])];
-      arr.splice(idx, 1);
-      return { ...prev, [field]: arr };
-    });
+    console.log('handleArrayRemove called:', { field, idx, editingField });
+    
+    if (editingField === 'userInfo') {
+      // When editing UserInfoSection, update fieldDraft
+      setFieldDraft(prev => {
+        const arr = [...(prev[field] || [])];
+        arr.splice(idx, 1);
+        const updated = { ...prev, [field]: arr };
+        console.log('Removed from fieldDraft:', updated);
+        return updated;
+      });
+    } else {
+      // Otherwise update main profile state
+      setProfile(prev => {
+        const arr = [...(prev[field] || [])];
+        arr.splice(idx, 1);
+        return { ...prev, [field]: arr };
+      });
+    }
   };
 
   // --- Handler for uploading proof in teachSkills ---
@@ -386,29 +517,6 @@ const Profile = () => {
             cancelEdit={cancelEdit}
             onSaveEdit={handleSectionSave}
           />
-          {/* Display Skills to Teach and Learn */}
-          <div className="bg-white rounded-lg shadow p-6 mb-4">
-            <h2 className="text-lg font-bold mb-2 text-blue-900">What I Can Teach</h2>
-            <ul className="mb-4 list-disc list-inside text-blue-700">
-              {(profile.skillsToTeach || []).length > 0 ? (
-                profile.skillsToTeach.map((skill, idx) => (
-                  <li key={idx}>{skill}</li>
-                ))
-              ) : (
-                <li className="text-gray-400">No skills listed yet.</li>
-              )}
-            </ul>
-            <h2 className="text-lg font-bold mb-2 text-blue-900">What I Want to Learn</h2>
-            <ul className="list-disc list-inside text-green-700">
-              {(profile.skillsToLearn || []).length > 0 ? (
-                profile.skillsToLearn.map((skill, idx) => (
-                  <li key={idx}>{skill}</li>
-                ))
-              ) : (
-                <li className="text-gray-400">No skills listed yet.</li>
-              )}
-            </ul>
-          </div>
           <UserInfoSection
             profile={profile}
             editingField={editingField}
