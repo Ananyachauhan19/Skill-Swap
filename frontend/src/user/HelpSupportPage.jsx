@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { BACKEND_URL } from '../config.js';
 import { FiSearch, FiMail, FiMessageSquare, FiChevronDown, FiChevronUp, FiExternalLink } from "react-icons/fi";

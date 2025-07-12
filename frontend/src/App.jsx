@@ -31,6 +31,7 @@ import publicProfileRoutes from './user/publicProfile/publicProfileRoutes';
 import StartSkillSwap from './user/StartSkillSwap';
 import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
+import TeachingHistory from './user/TeachingHistory';
 
 function useRegisterSocket() {
   useEffect(() => {
@@ -72,7 +73,8 @@ const appRoutes = [
   { path: '/pro', element: <GoPro /> },
   { path: '/accountSettings', element: <AccountSettings /> },
   { path: '/StartSkillSwap', element: <StartSkillSwap /> },
-  { path: 'report', element: <ReportPage/>},
+  { path: '/report', element: <ReportPage/>},
+  { path: '/teaching-history', element: <TeachingHistory/>},
 
    ...accountSettingsRoutes,
   

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import VideoCard from '../privateProfile/VideoCard';
 import { useNavigate } from "react-router-dom";
+
 const PublicVideos = () => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -147,31 +148,33 @@ const PublicVideos = () => {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 md:px-8">
-      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center sm:text-left">Uploaded Videos</h2>
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-500">{error}</p>}
-      {videos.length === 0 && !loading && (
-        <p>No uploaded videos available.</p>
-      )}
-      <div className="space-y-6">
-        {videos.map((video, idx) => (
-          <VideoCard
-            key={idx}
-            video={{
-              ...video,
-              uploadDate: `Uploaded: ${video.uploadDate}`, // Format for display
-              lastEdited: `Last Edited: ${video.lastEdited}`, // Include lastEdited
-            }}
-            menuOptions={menuOptions}
-            onReport={(video) => handleReport(video)}
-            onSave={() => handleSave(video)}
-            onShare={() => handleShare(video)}
-            openMenu={openMenuIdx === idx}
-            setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
-            menuRef={(el) => (menuRefs.current[idx] = el)}
-          />
-        ))}
+    <div className="w-full bg-gradient-to-br from-blue-50 to-cream-100 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl w-full">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-dark-blue tracking-tight">Uploaded Videos</h2>
+        {loading && <p className="text-gray-600 text-sm">Loading...</p>}
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {videos.length === 0 && !loading && (
+          <p className="text-gray-600 text-sm">No uploaded videos available.</p>
+        )}
+        <div className="space-y-6">
+          {videos.map((video, idx) => (
+            <VideoCard
+              key={idx}
+              video={{
+                ...video,
+                uploadDate: `Uploaded: ${video.uploadDate}`, // Format for display
+                lastEdited: `Last Edited: ${video.lastEdited}`, // Include lastEdited
+              }}
+              menuOptions={menuOptions}
+              onReport={(video) => handleReport(video)}
+              onSave={() => handleSave(video)}
+              onShare={() => handleShare(video)}
+              openMenu={openMenuIdx === idx}
+              setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
+              menuRef={(el) => (menuRefs.current[idx] = el)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
