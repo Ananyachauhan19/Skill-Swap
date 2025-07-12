@@ -17,33 +17,6 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
         </div>
         {editingField === 'userInfo' ? (
           <>
-            {/* Can Teach */}
-            <div className="mt-2">
-              <div className="font-semibold text-blue-900 mb-1">Can Teach:</div>
-              <div className="flex flex-col gap-2 bg-blue-50 p-2 rounded-md border border-blue-200">
-                {(profile.teachSkills || []).map((s, i) => (
-                  <div key={i} className="flex gap-2 items-center flex-wrap">
-                    <input
-                      className="border-b border-green-200 focus:outline-none focus:border-green-600 bg-green-50 px-1 py-0.5 rounded text-xs"
-                      value={typeof s === 'string' ? s : s.skill || ''}
-                      onChange={e => handleArrayChange('teachSkills', i, e.target.value, typeof s === 'string' ? undefined : 'skill')}
-                      placeholder="Skill"
-                    />
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      onChange={e => handleTeachProofUpload(i, e.target.files[0])}
-                      className="text-xs"
-                    />
-                    {teachProofs[i]?.file && (
-                      <a href={teachProofs[i].url} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline text-xs">View Proof</a>
-                    )}
-                    <button onClick={() => handleArrayRemove('teachSkills', i)} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
-                  </div>
-                ))}
-                <button onClick={() => handleArrayAdd('teachSkills', { skill: '' })} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"><Plus size={14}/>Add Skill</button>
-              </div>
-            </div>
             {/* Certificates */}
             <div className="mt-2">
               <div className="font-semibold text-blue-900 mb-1">Certificates:</div>
@@ -144,24 +117,6 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
           </>
         ) : (
           <>
-            {/* Can Teach */}
-            <div className="mt-2">
-              <div className="font-semibold text-blue-900 mb-1">Can Teach:</div>
-              <ul className="flex flex-wrap gap-2">
-                {profile.teachSkills && profile.teachSkills.length > 0 ? (
-                  profile.teachSkills.map((s, i) => (
-                    <li key={i} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium border border-green-200 flex items-center gap-1">
-                      {typeof s === 'string' ? s : s.skill}
-                      {teachProofs[i]?.file && (
-                        <a href={teachProofs[i].url} target="_blank" rel="noopener noreferrer" className="ml-1 text-blue-700 underline text-xs">Proof</a>
-                      )}
-                    </li>
-                  ))
-                ) : (
-                  <div className="text-gray-400">Not added yet</div>
-                )}
-              </ul>
-            </div>
             {/* Certificates */}
             <div className="mt-2">
               <div className="font-semibold text-blue-900 mb-1">Certificates:</div>
@@ -202,7 +157,9 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
               <ul className="flex flex-wrap gap-2">
                 {profile.learnSkills && profile.learnSkills.length > 0 ? (
                   profile.learnSkills.map((s, i) => (
-                    <li key={i} className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-medium border border-yellow-200">{typeof s === 'string' ? s : s.skill}</li>
+                    <li key={i} className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-medium border border-yellow-200 flex items-center gap-1">
+                      {typeof s === 'string' ? s : s.skill}
+                    </li>
                   ))
                 ) : (
                   <div className="text-gray-400">Not added yet</div>

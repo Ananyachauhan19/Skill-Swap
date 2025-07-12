@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
+import { BACKEND_URL } from '../config.js';
 
 const StarRating = ({ rating, size = 'text-yellow-400 text-base' }) => (
   <span className={size}>
@@ -95,7 +96,7 @@ const Testimonial = ({ showAll = false }) => {
     setError(null);
     try {
       // Replace with your backend API endpoint
-      const res = await fetch('/api/testimonials', {
+      const res = await fetch(`${BACKEND_URL}/api/testimonials`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BACKEND_URL } from '../../config.js';
 
 const getProfilePic = (profilePic, name) => {
   if (profilePic) return profilePic;
@@ -18,7 +19,7 @@ const PastExpertsSection = () => {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch('/api/interview/past-experts')
+    fetch(`${BACKEND_URL}/api/interview/past-experts`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch past experts');
         return res.json();

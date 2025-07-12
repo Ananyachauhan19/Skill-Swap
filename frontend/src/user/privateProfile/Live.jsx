@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { BACKEND_URL } from '../../config.js';
 import LiveSetup from "./LiveSetup";
 import SearchBar from "./SearchBar";
 
@@ -63,17 +64,25 @@ const Live = () => {
   const observer = useRef(null);
   const navigate = useNavigate();
 
-  // Backend API functions (commented for future implementation)
-  /*
+  // Backend API functions
   const fetchLiveSessions = async () => {
     try {
-      const res = await fetch("/api/live", {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      const res = await fetch(`${BACKEND_URL}/api/live`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      if (!res.ok) throw new Error("Failed to fetch live sessions");
+      
+      if (!res.ok) {
+        throw new Error("Failed to fetch live sessions");
+      }
+      
       const data = await res.json();
-      return data;
+      return data.liveSessions || data || [];
     } catch (err) {
+      console.error('Error fetching live sessions:', err);
       throw new Error(err.message);
     }
   };
@@ -84,14 +93,19 @@ const Live = () => {
       formData.append(key, value);
     });
     try {
-      const res = await fetch("/api/videos/upload", {
+      const res = await fetch(`${BACKEND_URL}/api/videos/upload`, {
         method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        credentials: 'include',
         body: formData
       });
-      if (!res.ok) throw new Error("Failed to save video");
+      
+      if (!res.ok) {
+        throw new Error("Failed to save video");
+      }
+      
       return await res.json();
     } catch (err) {
+      console.error('Error saving video:', err);
       throw new Error(err.message);
     }
   };
@@ -102,63 +116,82 @@ const Live = () => {
       formData.append(key, value);
     });
     try {
-      const res = await fetch(`/api/live/${id}`, {
+      const res = await fetch(`${BACKEND_URL}/api/live/${id}`, {
         method: "PUT",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        credentials: 'include',
         body: formData
       });
-      if (!res.ok) throw new Error("Failed to update live session");
+      
+      if (!res.ok) {
+        throw new Error("Failed to update live session");
+      }
+      
       return await res.json();
     } catch (err) {
+      console.error('Error updating live session:', err);
       throw new Error(err.message);
     }
   };
 
   const deleteLiveSession = async (id) => {
     try {
-      const res = await fetch(`/api/live/${id}`, {
+      const res = await fetch(`${BACKEND_URL}/api/live/${id}`, {
         method: "DELETE",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      if (!res.ok) throw new Error("Failed to delete live session");
+      
+      if (!res.ok) {
+        throw new Error("Failed to delete live session");
+      }
+      
       return await res.json();
     } catch (err) {
+      console.error('Error deleting live session:', err);
       throw new Error(err.message);
     }
   };
 
   const archiveLiveSession = async (id) => {
     try {
-      const res = await fetch(`/api/live/${id}/archive`, {
+      const res = await fetch(`${BACKEND_URL}/api/live/${id}/archive`, {
         method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      if (!res.ok) throw new Error("Failed to archive live session");
+      
+      if (!res.ok) {
+        throw new Error("Failed to archive live session");
+      }
+      
       return await res.json();
     } catch (err) {
+      console.error('Error archiving live session:', err);
       throw new Error(err.message);
     }
   };
   
-  */
-
-  // Load videos from localStorage or static data
+  // Load live sessions from backend
   useEffect(() => {
-    setTimeout(() => {
+    const loadLiveSessions = async () => {
+      setLoading(true);
       try {
-        const savedVideos = JSON.parse(
-          localStorage.getItem("liveVideos") || "[]"
-        );
-        const initialVideos =
-          savedVideos.length > 0 ? savedVideos : staticVideos;
-        setVideos(initialVideos);
-        setFilteredVideos(initialVideos);
-        setLoading(false);
+        const sessionsData = await fetchLiveSessions();
+        setVideos(sessionsData);
+        setFilteredVideos(sessionsData);
       } catch (err) {
         setError("Failed to load live sessions");
+        console.error('Error loading live sessions:', err);
+      } finally {
         setLoading(false);
       }
-    }, 0);
+    };
+    
+    loadLiveSessions();
   }, []);
 
   // Lazy loading observer for video cards

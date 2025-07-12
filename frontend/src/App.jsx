@@ -35,7 +35,14 @@ import ReportPage from './user/privateProfile/Report';
 function useRegisterSocket() {
   useEffect(() => {
     const userCookie = Cookies.get('user');
-    const user = userCookie ? JSON.parse(userCookie) : null;
+    let user = null;
+    if (userCookie && userCookie !== 'undefined') {
+      try {
+        user = JSON.parse(userCookie);
+      } catch (e) {
+        user = null;
+      }
+    }
     if (user && user._id) {
       console.log('[Socket Register] Emitting register for user', user._id, user);
       socket.emit('register', user._id);

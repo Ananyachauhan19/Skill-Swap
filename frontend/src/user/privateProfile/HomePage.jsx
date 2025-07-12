@@ -2,17 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
 import CoinsBadges from '../myprofile/CoinsBadges';
 import { fetchSilverCoinBalance, fetchGoldenCoinBalance } from '../settings/CoinBalance.jsx';
+import { BACKEND_URL } from '../../config.js';
 
-// --- Helper to fetch user history ---
+// --- Helper to fetch user history from backend ---
 async function fetchUserHistory() {
   try {
-    const staticHistory = [
-      { date: '2025-07-09', sessions: ['React Workshop', 'Node.js Q&A'] },
-      { date: '2025-07-08', sessions: ['JavaScript Basics'] },
-    ];
-    return staticHistory;
-  } catch {
-    throw new Error('Failed to fetch history');
+    const response = await fetch(`${BACKEND_URL}/api/user/history`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch user history');
+    }
+
+    const data = await response.json();
+    
+    // Transform backend data to match frontend expectations
+    // If the backend doesn't have this endpoint yet, return empty array
+    return data.history || data.sessions || [];
+  } catch (error) {
+    console.error('Error fetching user history:', error);
+    // Return empty array if endpoint doesn't exist yet
+    return [];
   }
 }
 

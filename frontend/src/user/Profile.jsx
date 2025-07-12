@@ -9,42 +9,29 @@ import CoinsBadges from './myprofile/CoinsBadges';
 import AboutSection from './myprofile/AboutSection';
 import UserInfoSection from './myprofile/UserInfoSection';
 import SocialLinksSection from './myprofile/SocialLinksSection';
+import { BACKEND_URL } from '../config.js';
 
 // --- Backend API to fetch user profile ---
 const fetchUserProfile = async () => {
-  try {
-    const staticProfile = {
-      fullName: 'John Doe',
-      email: localStorage.getItem('registeredEmail') || 'john.doe@example.com',
-      userId: 'john_doe123',
-      profilePic: 'https://placehold.co/100x100?text=JD',
-      profilePicPreview: 'https://placehold.co/100x100?text=JD',
-      bio: 'Passionate developer and lifelong learner.',
-      country: 'United States',
-      education: [{ course: 'B.Tech', branch: 'Computer Science', college: 'XYZ University', city: 'New York', passingYear: '2020' }],
-      teachSkills: ['React', 'Node.js'],
-      learnSkills: ['Python', 'AI'],
-      experience: [{ company: 'Tech Corp', role: 'Frontend Developer', years: '2020-2023' }],
-      certificates: ['AWS Certified Developer'],
-      linkedin: 'https://linkedin.com/in/johndoe',
-      website: 'https://johndoe.com',
-      github: 'https://github.com/johndoe',
-      twitter: 'https://twitter.com/johndoe',
-      credits: 1200,
-      goldCoins: 0,
-      badges: ['Starter', 'Helper'],
-      rank: 'Bronze',
-    };
-    return staticProfile;
-  } catch {
-    throw new Error('Failed to fetch user profile');
-  }
+  const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('Failed to fetch user profile');
+  return await res.json();
 };
 
 // --- Backend API to update user profile ---
 const updateUserProfile = async (profile) => {
   try {
-    return profile;
+    // You may want to adjust the fields sent here
+    const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    });
+    if (!res.ok) throw new Error('Failed to update user profile');
+    return await res.json();
   } catch {
     throw new Error('Failed to update user profile');
   }
@@ -101,12 +88,16 @@ const Profile = () => {
     setLoading(true);
     fetchUserProfile()
       .then((user) => {
-        let email = user.email;
-        if (!email) {
-          email = localStorage.getItem('registeredEmail') || '';
-        }
-        setProfile({ ...user, email });
-        setOriginalProfile(user ? { ...user, email } : null);
+        // Map backend fields to frontend state
+        const mappedProfile = {
+          ...user,
+          fullName: user.firstName && user.lastName
+            ? `${user.firstName} ${user.lastName}`
+            : user.firstName || user.username || '',
+          userId: user.username || user._id || '',
+        };
+        setProfile(mappedProfile);
+        setOriginalProfile(mappedProfile);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -270,7 +261,6 @@ const Profile = () => {
       }
       return { ...prev, [field]: arr };
     });
- Snip
   };
   const handleArrayAdd = (field, template = '') => {
     setProfile(prev => ({ ...prev, [field]: [...(prev[field] || []), template] }));
@@ -396,6 +386,29 @@ const Profile = () => {
             cancelEdit={cancelEdit}
             onSaveEdit={handleSectionSave}
           />
+          {/* Display Skills to Teach and Learn */}
+          <div className="bg-white rounded-lg shadow p-6 mb-4">
+            <h2 className="text-lg font-bold mb-2 text-blue-900">What I Can Teach</h2>
+            <ul className="mb-4 list-disc list-inside text-blue-700">
+              {(profile.skillsToTeach || []).length > 0 ? (
+                profile.skillsToTeach.map((skill, idx) => (
+                  <li key={idx}>{skill}</li>
+                ))
+              ) : (
+                <li className="text-gray-400">No skills listed yet.</li>
+              )}
+            </ul>
+            <h2 className="text-lg font-bold mb-2 text-blue-900">What I Want to Learn</h2>
+            <ul className="list-disc list-inside text-green-700">
+              {(profile.skillsToLearn || []).length > 0 ? (
+                profile.skillsToLearn.map((skill, idx) => (
+                  <li key={idx}>{skill}</li>
+                ))
+              ) : (
+                <li className="text-gray-400">No skills listed yet.</li>
+              )}
+            </ul>
+          </div>
           <UserInfoSection
             profile={profile}
             editingField={editingField}
