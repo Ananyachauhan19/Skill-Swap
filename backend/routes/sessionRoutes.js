@@ -33,6 +33,7 @@ router.get('/search', async (req, res) => {
 // Create a session
 router.post('/', requireAuth, async (req, res) => {
   try {
+    console.log('Session creation - req.user:', req.user); // Debug log
     const { subject, topic,subtopic,description, date, time } = req.body;
     const session = await Session.create({
       subject, topic, subtopic,description, date, time,
