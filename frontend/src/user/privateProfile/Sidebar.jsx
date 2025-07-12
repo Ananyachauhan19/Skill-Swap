@@ -9,19 +9,40 @@ import {
   FaFileAlt,
 } from "react-icons/fa";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { BACKEND_URL } from '../../config.js';
 
-// Fetch user profile (replace with real API call in production)
+// Fetch user profile from backend
 const fetchUserProfile = async () => {
   try {
-    const staticProfile = {
-      fullName: "John Doe",
-      userId: "john_doe123",
-      profilePic: "https://placehold.co/100x100?text=JD",
-      profilePicPreview: "https://placehold.co/100x100?text=JD",
-      bio: "Passionate developer and lifelong learner.",
-      skillMatesCount: 42,
+    const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch user profile');
+    }
+
+    const userData = await response.json();
+    
+    // Transform backend data to match frontend expectations
+    return {
+      fullName: userData.firstName && userData.lastName 
+        ? `${userData.firstName} ${userData.lastName}` 
+        : userData.firstName || userData.fullName || 'User',
+      userId: userData.username || userData.userId || 'username',
+      profilePic: userData.profilePic || null,
+      profilePicPreview: userData.profilePic || null,
+      bio: userData.bio || 'Your bio goes here, set it in Setup Profile.',
+      skillMatesCount: userData.skillMatesCount || 0,
+      email: userData.email,
+      skillsToTeach: userData.skillsToTeach || [],
+      skillsToLearn: userData.skillsToLearn || [],
+      // Add other fields as needed
     };
-    return staticProfile;
   } catch (err) {
     console.error("Error fetching user profile:", err.message);
     throw new Error("Failed to fetch user profile");

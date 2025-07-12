@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import InterviewListSection from './InterviewListSection';
+import { BACKEND_URL } from '../../config.js';
 
 // Static data for suggestions
 const jobOptions = [
@@ -59,7 +60,7 @@ const InterviewSearchBox = ({ onSearch }) => {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch('/api/interviews')
+    fetch(`${BACKEND_URL}/api/interviews`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch interviews');
         return res.json();

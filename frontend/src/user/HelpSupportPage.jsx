@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
+import { BACKEND_URL } from '../config.js';
 import { FiSearch, FiMail, FiMessageSquare, FiChevronDown, FiChevronUp, FiExternalLink } from "react-icons/fi";
 import { FaCoins, FaUserGraduate, FaChalkboardTeacher, FaHistory, FaLock } from "react-icons/fa";
 import faqs from "./faqs";
@@ -41,7 +42,7 @@ const HelpSupportPage = () => {
     }
     setFormLoading(true);
     try {
-      const res = await fetch("/api/support/contact", {
+      const res = await fetch(`${BACKEND_URL}/api/support/contact`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

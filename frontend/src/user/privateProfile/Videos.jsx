@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import SearchBar from "./SearchBar";
+import { BACKEND_URL } from '../../config.js';
 
 // Lazy load VideoCard component
 const VideoCard = lazy(() => import("./VideoCard"));
@@ -85,18 +86,231 @@ const Videos = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+<<<<<<< HEAD
   // Load videos
+||||||| ecc8116
+  // Backend API functions (commented for future implementation)
+  /*
+  const fetchVideos = async () => {
+    try {
+      const response = await fetch('/api/videos', {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await response.json();
+      return data.videos;
+    } catch (err) {
+      throw new Error('Failed to fetch videos');
+    }
+  };
+
+  const uploadVideo = async (videoData) => {
+    const formData = new FormData();
+    Object.entries(videoData).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    try {
+      const response = await fetch('/api/videos/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: formData
+      });
+      return await response.json();
+    } catch (err) {
+      throw new Error('Failed to upload video');
+    }
+  };
+
+  const updateVideo = async (id, videoData) => {
+    const formData = new FormData();
+    Object.entries(videoData).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    try {
+      const response = await fetch(`/api/videos/${id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: formData
+      });
+      return await response.json();
+    } catch (err) {
+      throw new Error('Failed to update video');
+    }
+  };
+
+  const deleteVideo = async (id) => {
+    try {
+      const response = await fetch(`/api/videos/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      return await response.json();
+    } catch (err) {
+      throw new Error('Failed to delete video');
+    }
+  };
+
+  const archiveVideo = async (id) => {
+    try {
+      const response = await fetch(`/api/videos/${id}/archive`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+      return await response.json();
+    } catch (err) {
+      throw new Error('Failed to archive video');
+    }
+  };
+  */
+
+  // Load videos (using static data for now)
+=======
+  // Backend API functions
+  const fetchVideos = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch videos');
+      }
+      
+      const data = await response.json();
+      return data.videos || data || [];
+    } catch (err) {
+      console.error('Error fetching videos:', err);
+      throw new Error('Failed to fetch videos');
+    }
+  };
+
+  const uploadVideo = async (videoData) => {
+    const formData = new FormData();
+    Object.entries(videoData).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload video');
+      }
+      
+      return await response.json();
+    } catch (err) {
+      console.error('Error uploading video:', err);
+      throw new Error('Failed to upload video');
+    }
+  };
+
+  const updateVideo = async (id, videoData) => {
+    const formData = new FormData();
+    Object.entries(videoData).forEach(([key, value]) => {
+      formData.append(key, value);
+    });
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update video');
+      }
+      
+      return await response.json();
+    } catch (err) {
+      console.error('Error updating video:', err);
+      throw new Error('Failed to update video');
+    }
+  };
+
+  const deleteVideo = async (id) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete video');
+      }
+      
+      return await response.json();
+    } catch (err) {
+      console.error('Error deleting video:', err);
+      throw new Error('Failed to delete video');
+    }
+  };
+
+  const archiveVideo = async (id) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}/archive`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to archive video');
+      }
+      
+      return await response.json();
+    } catch (err) {
+      console.error('Error archiving video:', err);
+      throw new Error('Failed to archive video');
+    }
+  };
+
+  // Load videos from backend
+>>>>>>> 4fb8de77c48f5a30cdd7b93ce9ccb3c94785aeb5
   useEffect(() => {
+<<<<<<< HEAD
     setTimeout(() => {
+||||||| ecc8116
+    // Simulate async data fetching
+    setTimeout(() => {
+=======
+    const loadVideos = async () => {
+      setLoading(true);
+>>>>>>> 4fb8de77c48f5a30cdd7b93ce9ccb3c94785aeb5
       try {
+<<<<<<< HEAD
         setVideos(staticVideos);
         setFilteredVideos(staticVideos);
         setLoading(false);
+||||||| ecc8116
+        // Replace with fetchVideos() when backend is ready
+        setVideos(staticVideos);
+        setFilteredVideos(staticVideos);
+        setLoading(false);
+=======
+        const videosData = await fetchVideos();
+        setVideos(videosData);
+        setFilteredVideos(videosData);
+>>>>>>> 4fb8de77c48f5a30cdd7b93ce9ccb3c94785aeb5
       } catch (err) {
         setError("Failed to load videos");
+        console.error('Error loading videos:', err);
+      } finally {
         setLoading(false);
       }
-    }, 0);
+    };
+    
+    loadVideos();
   }, []);
 
   // Lazy loading observer

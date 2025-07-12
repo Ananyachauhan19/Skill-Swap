@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import Cookies from 'js-cookie';
+import { BACKEND_URL } from '../config.js';
 
 const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
   useEffect(() => {
@@ -61,7 +62,7 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
         onClick={async () => {
           Cookies.remove('user');
           localStorage.removeItem('token'); // Remove token from localStorage
-          await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+          await fetch(`${BACKEND_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
           window.dispatchEvent(new Event('authChanged'));
           onClose();
           navigate('/home');

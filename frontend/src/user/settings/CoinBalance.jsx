@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { BACKEND_URL } from '../../config.js';
 
 // --- Backend function: Fetch current silver coin balance ---
 async function fetchSilverCoinBalance() {
-  const res = await fetch('/api/coins/silver');
+  const res = await fetch(`${BACKEND_URL}/api/coins/silver`);
   if (!res.ok) throw new Error('Failed to fetch silver coin balance');
   return res.json();
 }
 // --- Backend function: Fetch current golden coin balance ---
 async function fetchGoldenCoinBalance() {
-  const res = await fetch('/api/coins/golden');
+  const res = await fetch(`${BACKEND_URL}/api/coins/golden`);
   if (!res.ok) throw new Error('Failed to fetch golden coin balance');
   return res.json();
 }

@@ -386,6 +386,12 @@ const SidebarCard = ({
             </button>
           </div>
         )}
+        {/* Username display */}
+        <div className="w-full text-center mt-1">
+          <span className="text-xs text-gray-500 bg-blue-100 rounded px-2 py-0.5 inline-block">
+            @{profile.username || 'username'}
+          </span>
+        </div>
         {editingField === "userId" ? (
           <div className="flex items-center gap-2 w-full">
             <input

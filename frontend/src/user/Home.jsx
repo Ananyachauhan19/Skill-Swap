@@ -37,6 +37,16 @@ const HomeHero = () => {
         Cookies.set('token', token, { expires: 1, path: '/' }); // Force global token cookie
         localStorage.setItem('token', token);
         setUser(userObj);
+        // Redirect to complete profile if skills are missing
+        if (
+          !userObj.skillsToTeach ||
+          !userObj.skillsToLearn ||
+          userObj.skillsToTeach.length === 0 ||
+          userObj.skillsToLearn.length === 0
+        ) {
+          navigate('/complete-profile');
+          return;
+        }
         setIsLoggedIn(true);
       } catch (e) {
         console.error("Error parsing user data:", e);

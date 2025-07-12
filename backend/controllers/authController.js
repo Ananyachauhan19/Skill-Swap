@@ -4,12 +4,17 @@ const jwt = require('jsonwebtoken');
 const { sendOtpEmail } = require('../utils/sendMail');
 
 exports.register = async (req, res) => {
-  const { firstName, lastName, email, phone, gender, password } = req.body;
+  const { firstName, lastName, email, phone, gender, password, username, skillsToTeach, skillsToLearn } = req.body;
   const userExists = await User.findOne({ email });
   if (userExists) return res.status(400).json({ message: 'Email already registered' });
+  const usernameExists = await User.findOne({ username });
+  if (usernameExists) return res.status(400).json({ message: 'Username already taken' });
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await User.create({ firstName, lastName, email, phone, gender, password: hashedPassword });
+  const user = await User.create({
+    firstName, lastName, email, phone, gender, password: hashedPassword,
+    username, skillsToTeach, skillsToLearn
+  });
   res.status(201).json({ message: 'User registered successfully' });
 };
 

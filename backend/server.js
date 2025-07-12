@@ -13,6 +13,7 @@ require('./config/passport');
 
 const authRoutes = require('./routes/authRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
+const privateProfileRoutes = require('./routes/privateProfileRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -44,6 +45,7 @@ app.set('io', io);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api', privateProfileRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {

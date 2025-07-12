@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BACKEND_URL } from '../../config.js';
 
 const PastInterviewSection = () => {
   const [sessions, setSessions] = useState([]);
@@ -8,7 +9,7 @@ const PastInterviewSection = () => {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch('/api/interview/past')
+    fetch(`${BACKEND_URL}/api/interview/past`)
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch past interviews');
         return res.json();

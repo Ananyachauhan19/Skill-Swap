@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BACKEND_URL } from '../../config.js';
 
 const FAQSection = () => {
   const [faqs, setFaqs] = useState([]);
@@ -10,7 +11,7 @@ const FAQSection = () => {
       setLoading(true);
       setError('');
       try {
-        const res = await fetch('/api/interview-faqs');
+        const res = await fetch(`${BACKEND_URL}/api/interview-faqs`);
         if (!res.ok) throw new Error('Failed to fetch FAQs');
         const data = await res.json();
         setFaqs(Array.isArray(data.faqs) ? data.faqs : []);
