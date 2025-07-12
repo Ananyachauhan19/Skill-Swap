@@ -56,7 +56,7 @@ const sections = [
     items: [
       "Current Silver & Golden Coin Balance",
       "Coin Earning History",
-      "Coin Spending / Usage History",
+      "Coin & Payment Spending History",
       "Buy More Coins / Redeem Offers",
     ],
   },

@@ -15,36 +15,52 @@ const CoinEarningHistory = () => {
 
   // Function to aggregate data based on view
   const aggregateHistory = (data, viewType) => {
+    // Only allow three types
+    const allowedTypes = [
+      "One-on-one session",
+      "Live session unlock",
+      "Uploaded video unlock"
+    ];
+    const filtered = data.filter(item => allowedTypes.includes(item.type));
     if (viewType === "Daily") {
-      return data; // No aggregation needed for daily view
+      // Map each item to gold/silver columns
+      return filtered.map(item => ({
+        date: item.date,
+        gold: ["Live session unlock", "Uploaded video unlock"].includes(item.type) ? item.amount : 0,
+        silver: item.type === "One-on-one session" ? item.amount : 0,
+        type: item.type
+      }));
     }
 
     const grouped = {};
-    data.forEach((item) => {
+    filtered.forEach((item) => {
       const date = new Date(item.date);
       let key;
 
       if (viewType === "Weekly") {
-        // Get the start of the week (Sunday)
         const weekStart = new Date(date);
         weekStart.setDate(date.getDate() - date.getDay());
         key = weekStart.toISOString().split("T")[0];
       } else if (viewType === "Monthly") {
-        // Get the first day of the month
         key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
       }
 
       if (!grouped[key]) {
-        grouped[key] = { date: key, amount: 0, types: [] };
+        grouped[key] = { date: key, gold: 0, silver: 0, types: [] };
       }
-      grouped[key].amount += item.amount;
+      if (["Live session unlock", "Uploaded video unlock"].includes(item.type)) {
+        grouped[key].gold += item.amount;
+      } else if (item.type === "One-on-one session") {
+        grouped[key].silver += item.amount;
+      }
       grouped[key].types.push(item.type);
     });
 
     return Object.values(grouped).map((item) => ({
       date: item.date,
-      amount: item.amount,
-      type: item.types.join(", "), // Combine types for display
+      gold: item.gold,
+      silver: item.silver,
+      type: item.types.join(", "),
     }));
   };
 
@@ -56,8 +72,9 @@ const CoinEarningHistory = () => {
         // const data = await fetchCoinEarningHistory();
         // setHistory(data);
         const sampleData = [
-          { date: "2025-07-01", amount: 10, type: "Session Completed" },
-          { date: "2025-06-28", amount: 5, type: "Referral Bonus" },
+          { date: "2025-07-01", amount: 10, type: "One-on-one session" },
+          { date: "2025-06-28", amount: 5, type: "Live session unlock" },
+          { date: "2025-06-27", amount: 7, type: "Uploaded video unlock" },
         ]; // Remove when backend is ready
         setHistory(sampleData);
         setDisplayedHistory(aggregateHistory(sampleData, view));
@@ -145,7 +162,8 @@ const CoinEarningHistory = () => {
               <thead>
                 <tr className="text-blue-900 bg-blue-50">
                   <th className="py-3 px-4 text-left">Date</th>
-                  <th className="py-3 px-4 text-left">Amount</th>
+                  <th className="py-3 px-4 text-left">Gold Coins</th>
+                  <th className="py-3 px-4 text-left">Silver Coins</th>
                   <th className="py-3 px-4 text-left">Type</th>
                   <th className="py-3 px-4 text-center w-8"></th>
                 </tr>
@@ -154,7 +172,8 @@ const CoinEarningHistory = () => {
                 {displayedHistory.map((item, i) => (
                   <tr key={i} className="border-t border-blue-100">
                     <td className="py-3 px-4 text-blue-900">{item.date}</td>
-                    <td className="py-3 px-4 text-blue-900">{item.amount}</td>
+                    <td className="py-3 px-4 text-blue-900">{item.gold || 0}</td>
+                    <td className="py-3 px-4 text-blue-900">{item.silver || 0}</td>
                     <td className="py-3 px-4 text-blue-900">{item.type}</td>
                     <td className="py-3 px-4 text-center">
                       <button

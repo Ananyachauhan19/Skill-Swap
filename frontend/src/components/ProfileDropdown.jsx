@@ -33,7 +33,7 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
       </button>
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
-        onClick={() => { onClose(); navigate('/history'); }}
+        onClick={() => { onClose(); navigate('/learning-history'); }}
       >
         Learning History
       </button>
