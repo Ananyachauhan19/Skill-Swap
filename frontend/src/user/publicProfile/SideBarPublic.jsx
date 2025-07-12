@@ -6,6 +6,7 @@ import {
   FaGithub,
   FaTwitter,
   FaGlobe,
+  FaSearch,
 } from 'react-icons/fa';
 import { useNavigate, useLocation, Outlet, NavLink } from 'react-router-dom';
 import ContributionCalendar from '../myprofile/ContributionCalendar';
@@ -77,8 +78,8 @@ const fetchUserProfile = async () => {
 const SideBarPublic = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const activeTab = 'border-b-2 border-blue-600 text-blue-900 font-semibold';
-  const normalTab = 'text-blue-900 hover:text-blue-700';
+  const activeTab = 'border-b-2 border-blue-600 text-dark-blue font-semibold';
+  const normalTab = 'text-gray-600 hover:text-dark-blue';
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -86,6 +87,7 @@ const SideBarPublic = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSkillMate, setIsSkillMate] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showSearchBar, setShowSearchBar] = useState(false);
   const dropdownRef = useRef(null);
 
   // Load user profile data and handle updates
@@ -127,23 +129,25 @@ const SideBarPublic = () => {
 
   const toggleDropdown = () => setShowDropdown((prev) => !prev);
 
+  const toggleSearchBar = () => setShowSearchBar((prev) => !prev);
+
   return (
     <ProfileContext.Provider value={{ searchQuery, setSearchQuery }}>
-      <div className="flex flex-col sm:flex-row min-h-screen w-full bg-gradient-to-b from-[#f9fcff] to-[#eef7ff] font-sans animate-fade-in">
+      <div className="flex flex-col sm:flex-row min-h-screen w-full bg-gradient-to-br from-blue-50 to-cream-100 font-sans animate-fade-in">
         {/* Sidebar */}
         <aside className="w-full sm:w-60 h-auto min-h-[calc(100vh-4rem)] bg-blue-50 bg-opacity-30 px-4 pt-8 z-10 overflow-y-auto scrollbar-hidden sm:border-r sm:border-blue-200">
           {/* Social Links */}
           <div className="mb-8">
-            <div className="font-semibold text-blue-900 mb-3 text-lg">Social</div>
+            <div className="font-semibold text-dark-blue mb-3 text-lg">Social</div>
             <div className="flex flex-col gap-3">
               {profile?.linkedin && (
                 <a
                   href={`https://linkedin.com/in/${profile.linkedin}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-blue-900 hover:text-blue-700 text-sm"
+                  className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm transition-colors duration-300"
                 >
-                  <FaLinkedin className="text-xl text-blue-800" />
+                  <FaLinkedin className="text-xl text-dark-blue" />
                   LinkedIn
                 </a>
               )}
@@ -152,9 +156,9 @@ const SideBarPublic = () => {
                   href={`https://github.com/${profile.github}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-blue-900 hover:text-blue-700 text-sm"
+                  className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm transition-colors duration-300"
                 >
-                  <FaGithub className="text-xl text-blue-800" />
+                  <FaGithub className="text-xl text-dark-blue" />
                   GitHub
                 </a>
               )}
@@ -163,9 +167,9 @@ const SideBarPublic = () => {
                   href={`https://twitter.com/${profile.twitter}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-blue-900 hover:text-blue-700 text-sm"
+                  className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm transition-colors duration-300"
                 >
-                  <FaTwitter className="text-xl text-blue-800" />
+                  <FaTwitter className="text-xl text-dark-blue" />
                   Twitter
                 </a>
               )}
@@ -174,9 +178,9 @@ const SideBarPublic = () => {
                   href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-blue-900 hover:text-blue-700 text-sm"
+                  className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm transition-colors duration-300"
                 >
-                  <FaGlobe className="text-xl text-blue-800" />
+                  <FaGlobe className="text-xl text-dark-blue" />
                   Website
                 </a>
               )}
@@ -185,15 +189,15 @@ const SideBarPublic = () => {
 
           {/* Education Section */}
           <div className="mb-8">
-            <div className="font-semibold text-blue-900 mb-3 text-lg">Education</div>
+            <div className="font-semibold text-dark-blue mb-3 text-lg">Education</div>
             {loading ? (
-              <span className="text-blue-600/70 text-sm">Loading...</span>
+              <span className="text-gray-600 text-sm">Loading...</span>
             ) : error ? (
               <span className="text-red-500 text-sm">{error}</span>
             ) : profile?.education && profile.education.length > 0 ? (
               <ul className="flex flex-col gap-4">
                 {profile.education.map((edu, i) => (
-                  <li key={i} className="text-xs text-gray-700 whitespace-pre-line">
+                  <li key={i} className="text-xs text-gray-600 whitespace-pre-line">
                     {edu.course && <div>{edu.course}</div>}
                     {edu.branch && <div>{edu.branch}</div>}
                     {edu.college && <div>{edu.college}</div>}
@@ -203,21 +207,21 @@ const SideBarPublic = () => {
                 ))}
               </ul>
             ) : (
-              <span className="text-xs text-gray-700">Not added yet</span>
+              <span className="text-xs text-gray-600">Not added yet</span>
             )}
           </div>
 
           {/* Experience Section */}
           <div className="mb-8">
-            <div className="font-semibold text-blue-900 mb-3 text-lg">Experience</div>
+            <div className="font-semibold text-dark-blue mb-3 text-lg">Experience</div>
             {loading ? (
-              <span className="text-blue-600/70 text-sm">Loading...</span>
+              <span className="text-gray-600 text-sm">Loading...</span>
             ) : error ? (
               <span className="text-red-500 text-sm">{error}</span>
             ) : profile?.experience && profile.experience.length > 0 ? (
               <ul className="flex flex-col gap-3">
                 {profile.experience.map((exp, i) => (
-                  <li key={i} className="text-xs text-gray-700">
+                  <li key={i} className="text-xs text-gray-600">
                     <span className="font-medium">{exp.title}</span>
                     {exp.company ? ` at ${exp.company}` : ''}
                     {exp.duration ? ` (${exp.duration})` : ''}
@@ -226,7 +230,7 @@ const SideBarPublic = () => {
                 ))}
               </ul>
             ) : (
-              <span className="text-xs text-gray-700">Not added yet</span>
+              <span className="text-xs text-gray-600">Not added yet</span>
             )}
           </div>
         </aside>
@@ -243,7 +247,7 @@ const SideBarPublic = () => {
                 <span className="text-red-500 text-sm transition-all duration-300 animate-fade-in">{error}</span>
                 <button
                   onClick={() => loadProfile()}
-                  className="text-blue-900 px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 hover:bg-blue-100 transition-all duration-300"
+                  className="text-dark-blue px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 hover:bg-blue-100 transition-all duration-300"
                   aria-label="Retry loading profile"
                 >
                   Retry
@@ -257,16 +261,16 @@ const SideBarPublic = () => {
               />
             )}
             <div className="mt-4 sm:mt-0 sm:ml-4 flex-1 flex flex-col items-center sm:items-start">
-              <h1 className="text-xl sm:text-4xl font-bold text-blue-800 transition-colors duration-300">
+              <h1 className="text-xl sm:text-4xl font-bold text-dark-blue transition-colors duration-300">
                 {profile?.fullName || 'Full Name'}
               </h1>
-              <p className="text-sm text-blue-600/70 transition-colors duration-300">@{profile?.userId || 'username'}</p>
-              <p className="text-sm text-blue-600/70 mt-2 max-w-md transition-colors duration-300">
+              <p className="text-sm text-gray-600 transition-colors duration-300">@{profile?.userId || 'username'}</p>
+              <p className="text-sm text-gray-600 mt-2 max-w-md transition-colors duration-300">
                 {profile?.bio || 'Your bio goes here, set it in Setup Profile.'}
               </p>
               <div className="mt-4">
                 <button
-                  className="border border-blue-200 text-blue-900 px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105"
+                  className="border border-blue-200 text-dark-blue px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105"
                   onClick={isSkillMate ? toggleDropdown : handleAddSkillMate}
                   title={isSkillMate ? 'Manage SkillMate' : 'Add SkillMate'}
                   aria-label={isSkillMate ? 'Manage SkillMate' : 'Add SkillMate'}
@@ -280,7 +284,7 @@ const SideBarPublic = () => {
                     className="absolute z-50 mt-2 w-44 bg-blue-50 border border-blue-200 rounded-lg shadow-lg"
                   >
                     <button
-                      className="block w-full text-left px-4 py-2 text-sm text-blue-900 hover:bg-blue-100"
+                      className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
                       onClick={() => {
                         alert('Notifications turned ON');
                         setShowDropdown(false);
@@ -289,7 +293,7 @@ const SideBarPublic = () => {
                       🔔 On Notification
                     </button>
                     <button
-                      className="block w-full text-left px-4 py-2 text-sm text-blue-900 hover:bg-blue-100"
+                      className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
                       onClick={() => {
                         alert('Notifications muted');
                         setShowDropdown(false);
@@ -347,21 +351,29 @@ const SideBarPublic = () => {
               >
                 Videos
               </NavLink>
-              <NavLink
-                to="/public-profile/contribution"
-                className={({ isActive }) =>
-                  `pb-2 px-2 text-sm font-medium ${isActive ? activeTab : normalTab}`
-                }
-              >
-                Contribution
-              </NavLink>
             </div>
           </div>
 
           {/* Tab Content Outlet */}
           <div className="relative min-h-[calc(100vh-28rem)] sm:min-h-[calc(100vh-32rem)] overflow-y-auto scrollbar-hidden animate-fade-in scroll-smooth">
-            <div className="absolute top-0 right-0 p-2 sm:p-4">
-              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+            <div className="absolute top-0 right-[2%] p-2 sm:p-4 flex items-center space-x-2">
+              <button
+                onClick={toggleSearchBar}
+                className="text-dark-blue hover:text-blue-700 transition-colors duration-300"
+                aria-label="Toggle search bar"
+                title="Search videos"
+              >
+                <FaSearch className="text-xl" />
+              </button>
+              <div
+                className={`transition-all duration-2000 ease-in-out transform ${
+                  showSearchBar ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'
+                }`}
+              >
+                {showSearchBar && (
+                  <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                )}
+              </div>
             </div>
             <Outlet />
           </div>

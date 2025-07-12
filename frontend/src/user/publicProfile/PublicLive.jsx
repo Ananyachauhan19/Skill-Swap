@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import VideoCard from '../privateProfile/VideoCard';
 import { useNavigate } from "react-router-dom";
+
 const PublicLive = () => {
   const [liveVideos, setLiveVideos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -130,27 +131,29 @@ const PublicLive = () => {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 md:px-8">
-      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center sm:text-left">Live & Scheduled Videos</h2>
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-500">{error}</p>}
-      {liveVideos.length === 0 && !loading && (
-        <p>No live or scheduled videos available.</p>
-      )}
-      <div className="space-y-6">
-        {liveVideos.map((video, idx) => (
-          <VideoCard
-            key={idx}
-            video={video}
-            menuOptions={menuOptions}
-            onSave={() => handleSave(video)}
-            onShare={() => handleShare(video)}
-            onReport={(video) => handleReport(video)}
-            openMenu={openMenuIdx === idx}
-            setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
-            menuRef={(el) => (menuRefs.current[idx] = el)}
-          />
-        ))}
+    <div className="w-full bg-gradient-to-br from-blue-50 to-cream-100 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl w-full">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-dark-blue tracking-tight">Live & Scheduled Videos</h2>
+        {loading && <div className="text-gray-600 text-sm py-8">Loading...</div>}
+        {error && <div className="text-red-500 text-sm py-8">{error}</div>}
+        {liveVideos.length === 0 && !loading && (
+          <div className="text-gray-600 text-sm py-8">No live or scheduled videos available.</div>
+        )}
+        <div className="space-y-6">
+          {liveVideos.map((video, idx) => (
+            <VideoCard
+              key={idx}
+              video={video}
+              menuOptions={menuOptions}
+              onSave={() => handleSave(video)}
+              onShare={() => handleShare(video)}
+              onReport={(video) => handleReport(video)}
+              openMenu={openMenuIdx === idx}
+              setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
+              menuRef={(el) => (menuRefs.current[idx] = el)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

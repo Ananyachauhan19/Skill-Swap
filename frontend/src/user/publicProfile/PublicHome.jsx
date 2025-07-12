@@ -206,32 +206,34 @@ const PublicHome = () => {
   };
 
   return (
-    <div className="min-h-[200px] w-full max-w-3xl mx-auto px-2 sm:px-4 md:px-8">
-      <h2 className="text-2xl font-bold mb-6">All Content</h2>
-      {loading && <div className="text-center py-8">Loading content...</div>}
-      {error && <div className="text-red-500 text-center py-8">{error}</div>}
-      {content.length === 0 && !loading && (
-        <div className="text-center text-gray-500">No content available.</div>
-      )}
-      <div className="space-y-6">
-        {content.map((item, idx) => (
-          <div key={idx} className="w-full">
-            <VideoCard
-              video={{
-                ...item,
-                uploadDate: item.type === 'live' ? `Live: ${item.scheduledTime || item.date}` : `Uploaded: ${item.uploadDate}`,
-                lastEdited: item.lastEdited ? `Last Edited: ${item.lastEdited}` : null,
-              }}
-              menuOptions={menuOptions}
-              onReport={(item) => handleReport(item)}
-              onSave={() => handleSave(item)}
-              onShare={() => handleShare(item)}
-              openMenu={openMenuIdx === idx}
-              setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
-              menuRef={(el) => (menuRefs.current[idx] = el)}
-            />
-          </div>
-        ))}
+    <div className="w-full bg-gradient-to-br from-blue-50 to-cream-100 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl w-full">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-dark-blue tracking-tight">All Content</h2>
+        {loading && <div className="text-gray-600 text-sm py-8">Loading content...</div>}
+        {error && <div className="text-red-500 text-sm py-8">{error}</div>}
+        {content.length === 0 && !loading && (
+          <div className="text-gray-600 text-sm py-8">No content available.</div>
+        )}
+        <div className="space-y-6">
+          {content.map((item, idx) => (
+            <div key={idx} className="w-full">
+              <VideoCard
+                video={{
+                  ...item,
+                  uploadDate: item.type === 'live' ? `Live: ${item.scheduledTime || item.date}` : `Uploaded: ${item.uploadDate}`,
+                  lastEdited: item.lastEdited ? `Last Edited: ${item.lastEdited}` : null,
+                }}
+                menuOptions={menuOptions}
+                onReport={(item) => handleReport(item)}
+                onSave={() => handleSave(item)}
+                onShare={() => handleShare(item)}
+                openMenu={openMenuIdx === idx}
+                setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
+                menuRef={(el) => (menuRefs.current[idx] = el)}
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
