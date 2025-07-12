@@ -68,6 +68,12 @@ const fetchUserProfile = async () => {
           description: 'Developed user interfaces for web applications.',
         },
       ],
+      skills: [
+        'C',
+        'Java',
+        'Python',
+        'Data Science',
+      ],
     };
     return userData;
   } catch {
@@ -226,6 +232,26 @@ const SideBarPublic = () => {
                     {exp.company ? ` at ${exp.company}` : ''}
                     {exp.duration ? ` (${exp.duration})` : ''}
                     {exp.description ? `: ${exp.description}` : ''}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-xs text-gray-600">Not added yet</span>
+            )}
+          </div>
+
+          {/* Skills Section */}
+          <div className="mb-8">
+            <div className="font-semibold text-dark-blue mb-3 text-lg">Skills</div>
+            {loading ? (
+              <span className="text-gray-600 text-sm">Loading...</span>
+            ) : error ? (
+              <span className="text-red-500 text-sm">{error}</span>
+            ) : profile?.skills && profile.skills.length > 0 ? (
+              <ul className="flex flex-col gap-3">
+                {profile.skills.map((skill, i) => (
+                  <li key={i} className="text-xs text-gray-600">
+                    {skill}
                   </li>
                 ))}
               </ul>
