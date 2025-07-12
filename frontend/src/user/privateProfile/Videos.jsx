@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import SearchBar from "./SearchBar";
 import { BACKEND_URL } from '../../config.js';
+import SearchBar from "./SearchBar";
 
 // Lazy load VideoCard component
 const VideoCard = lazy(() => import("./VideoCard"));
@@ -27,7 +28,7 @@ const getRelativeTime = (dateStr) => {
   return `${Math.floor(diffInSeconds / 31536000)} years ago`;
 };
 
-// Static video data (to be replaced with backend API calls)
+// Static video data (fallback for API failure)
 const staticVideos = [
   {
     id: "1",
@@ -86,84 +87,6 @@ const Videos = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-<<<<<<< HEAD
-  // Load videos
-||||||| ecc8116
-  // Backend API functions (commented for future implementation)
-  /*
-  const fetchVideos = async () => {
-    try {
-      const response = await fetch('/api/videos', {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
-      return data.videos;
-    } catch (err) {
-      throw new Error('Failed to fetch videos');
-    }
-  };
-
-  const uploadVideo = async (videoData) => {
-    const formData = new FormData();
-    Object.entries(videoData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
-    try {
-      const response = await fetch('/api/videos/upload', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: formData
-      });
-      return await response.json();
-    } catch (err) {
-      throw new Error('Failed to upload video');
-    }
-  };
-
-  const updateVideo = async (id, videoData) => {
-    const formData = new FormData();
-    Object.entries(videoData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
-    try {
-      const response = await fetch(`/api/videos/${id}`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: formData
-      });
-      return await response.json();
-    } catch (err) {
-      throw new Error('Failed to update video');
-    }
-  };
-
-  const deleteVideo = async (id) => {
-    try {
-      const response = await fetch(`/api/videos/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      return await response.json();
-    } catch (err) {
-      throw new Error('Failed to delete video');
-    }
-  };
-
-  const archiveVideo = async (id) => {
-    try {
-      const response = await fetch(`/api/videos/${id}/archive`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      return await response.json();
-    } catch (err) {
-      throw new Error('Failed to archive video');
-    }
-  };
-  */
-
-  // Load videos (using static data for now)
-=======
   // Backend API functions
   const fetchVideos = async () => {
     try {
@@ -174,16 +97,14 @@ const Videos = () => {
           'Content-Type': 'application/json',
         },
       });
-      
       if (!response.ok) {
         throw new Error('Failed to fetch videos');
       }
-      
       const data = await response.json();
       return data.videos || data || [];
     } catch (err) {
       console.error('Error fetching videos:', err);
-      throw new Error('Failed to fetch videos');
+      return staticVideos; // Fallback to static data
     }
   };
 
@@ -198,11 +119,9 @@ const Videos = () => {
         credentials: 'include',
         body: formData
       });
-      
       if (!response.ok) {
         throw new Error('Failed to upload video');
       }
-      
       return await response.json();
     } catch (err) {
       console.error('Error uploading video:', err);
@@ -221,11 +140,9 @@ const Videos = () => {
         credentials: 'include',
         body: formData
       });
-      
       if (!response.ok) {
         throw new Error('Failed to update video');
       }
-      
       return await response.json();
     } catch (err) {
       console.error('Error updating video:', err);
@@ -242,11 +159,9 @@ const Videos = () => {
           'Content-Type': 'application/json',
         },
       });
-      
       if (!response.ok) {
         throw new Error('Failed to delete video');
       }
-      
       return await response.json();
     } catch (err) {
       console.error('Error deleting video:', err);
@@ -263,11 +178,9 @@ const Videos = () => {
           'Content-Type': 'application/json',
         },
       });
-      
       if (!response.ok) {
         throw new Error('Failed to archive video');
       }
-      
       return await response.json();
     } catch (err) {
       console.error('Error archiving video:', err);
@@ -276,40 +189,21 @@ const Videos = () => {
   };
 
   // Load videos from backend
->>>>>>> 4fb8de77c48f5a30cdd7b93ce9ccb3c94785aeb5
   useEffect(() => {
-<<<<<<< HEAD
-    setTimeout(() => {
-||||||| ecc8116
-    // Simulate async data fetching
-    setTimeout(() => {
-=======
     const loadVideos = async () => {
       setLoading(true);
->>>>>>> 4fb8de77c48f5a30cdd7b93ce9ccb3c94785aeb5
       try {
-<<<<<<< HEAD
-        setVideos(staticVideos);
-        setFilteredVideos(staticVideos);
-        setLoading(false);
-||||||| ecc8116
-        // Replace with fetchVideos() when backend is ready
-        setVideos(staticVideos);
-        setFilteredVideos(staticVideos);
-        setLoading(false);
-=======
         const videosData = await fetchVideos();
         setVideos(videosData);
         setFilteredVideos(videosData);
->>>>>>> 4fb8de77c48f5a30cdd7b93ce9ccb3c94785aeb5
       } catch (err) {
         setError("Failed to load videos");
-        console.error('Error loading videos:', err);
+        setVideos(staticVideos); // Fallback to static data
+        setFilteredVideos(staticVideos);
       } finally {
         setLoading(false);
       }
     };
-    
     loadVideos();
   }, []);
 
@@ -423,9 +317,38 @@ const Videos = () => {
         uploadDate: existingVideo.uploadDate,
         isDraft: false,
       };
+      try {
+        const updatedVideo = await updateVideo(existingVideo.id, newVideo);
+        setVideos((prev) => {
+          const updated = [...prev];
+          updated[editVideoIdx] = updatedVideo;
+          localStorage.setItem("uploadedVideos", JSON.stringify(updated)); // For compatibility
+          return updated;
+        });
+        setFilteredVideos((prev) => {
+          let filtered = [...prev];
+          filtered = filtered.map((v, i) => (i === editVideoIdx ? updatedVideo : v));
+          if (searchQuery) {
+            filtered = filtered.filter(
+              (video) =>
+                video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (video.description && video.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            );
+          }
+          if (statusFilter !== "all") {
+            filtered = filtered.filter((video) =>
+              statusFilter === "draft" ? video.isDraft : !video.isDraft
+            );
+          }
+          return filtered;
+        });
+      } catch (err) {
+        setError("Failed to update video");
+        return;
+      }
     } else {
       newVideo = {
-        id: Date.now(),
+        id: Date.now().toString(),
         title,
         description,
         thumbnail: thumbnailPreview,
@@ -440,38 +363,39 @@ const Videos = () => {
         scheduledTime: null,
         isDraft: false,
       };
+      try {
+        const uploadedVideo = await uploadVideo(newVideo);
+        setVideos((prev) => {
+          const updated = [uploadedVideo, ...prev];
+          localStorage.setItem("uploadedVideos", JSON.stringify(updated)); // For compatibility
+          return updated;
+        });
+        setFilteredVideos((prev) => {
+          let filtered = [uploadedVideo, ...prev];
+          if (searchQuery) {
+            filtered = filtered.filter(
+              (video) =>
+                video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (video.description && video.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            );
+          }
+          if (statusFilter !== "all") {
+            filtered = filtered.filter((video) =>
+              statusFilter === "draft" ? video.isDraft : !video.isDraft
+            );
+          }
+          return filtered;
+        });
+      } catch (err) {
+        setError("Failed to upload video");
+        return;
+      }
     }
-    try {
-      let updatedVideos = JSON.parse(localStorage.getItem("uploadedVideos") || "[]");
-      if (editVideoIdx !== null && videos[editVideoIdx]) {
-        updatedVideos[editVideoIdx] = newVideo;
-      } else {
-        updatedVideos.unshift(newVideo);
-      }
-      localStorage.setItem("uploadedVideos", JSON.stringify(updatedVideos));
-      setVideos([...updatedVideos]);
-      let filtered = [...updatedVideos];
-      if (searchQuery) {
-        filtered = filtered.filter(
-          (video) =>
-            video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (video.description && video.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-      }
-      if (statusFilter !== "all") {
-        filtered = filtered.filter((video) =>
-          statusFilter === "draft" ? video.isDraft : !video.isDraft
-        );
-      }
-      setFilteredVideos(filtered);
-      setShowUpload(false);
-      resetForm();
-      setEditVideoIdx(null);
-      if (location.pathname !== "/profile/panel/videos") {
-        navigate("/profile/panel/videos");
-      }
-    } catch (err) {
-      setError("Failed to upload video");
+    setShowUpload(false);
+    resetForm();
+    setEditVideoIdx(null);
+    if (location.pathname !== "/profile/panel/videos") {
+      navigate("/profile/panel/videos");
     }
   };
 
@@ -490,9 +414,28 @@ const Videos = () => {
   const handleArchive = async (idx) => {
     const video = videos[idx];
     try {
-      const updatedVideos = videos.filter((_, i) => i !== idx);
-      setVideos(updatedVideos);
-      localStorage.setItem("uploadedVideos", JSON.stringify(updatedVideos));
+      await archiveVideo(video.id);
+      setVideos((prev) => {
+        const updated = prev.filter((_, i) => i !== idx);
+        localStorage.setItem("uploadedVideos", JSON.stringify(updated)); // For compatibility
+        return updated;
+      });
+      setFilteredVideos((prev) => {
+        let filtered = prev.filter((_, i) => i !== idx);
+        if (searchQuery) {
+          filtered = filtered.filter(
+            (video) =>
+              video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (video.description && video.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          );
+        }
+        if (statusFilter !== "all") {
+          filtered = filtered.filter((video) =>
+            statusFilter === "draft" ? video.isDraft : !video.isDraft
+          );
+        }
+        return filtered;
+      });
       const archive = JSON.parse(localStorage.getItem("archivedVideos") || "[]");
       archive.unshift({ ...video, isArchived: true });
       localStorage.setItem("archivedVideos", JSON.stringify(archive));
@@ -504,7 +447,7 @@ const Videos = () => {
   const handleSave = (idx) => {
     const video = videos[idx];
     const saved = JSON.parse(localStorage.getItem("savedVideos") || "[]");
-    if (!saved.some((v) => v.uploadDate === video.uploadDate)) {
+    if (!saved.some((v) => v.id === video.id)) {
       saved.unshift(video);
       localStorage.setItem("savedVideos", JSON.stringify(saved));
     }
@@ -521,11 +464,31 @@ const Videos = () => {
   };
 
   const confirmDelete = async () => {
+    if (showDeleteConfirm === null || !videos[showDeleteConfirm]) return;
     const video = videos[showDeleteConfirm];
     try {
-      const updatedVideos = videos.filter((_, i) => i !== showDeleteConfirm);
-      setVideos(updatedVideos);
-      localStorage.setItem("uploadedVideos", JSON.stringify(updatedVideos));
+      await deleteVideo(video.id);
+      setVideos((prev) => {
+        const updated = prev.filter((_, i) => i !== showDeleteConfirm);
+        localStorage.setItem("uploadedVideos", JSON.stringify(updated)); // For compatibility
+        return updated;
+      });
+      setFilteredVideos((prev) => {
+        let filtered = prev.filter((_, i) => i !== showDeleteConfirm);
+        if (searchQuery) {
+          filtered = filtered.filter(
+            (video) =>
+              video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (video.description && video.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          );
+        }
+        if (statusFilter !== "all") {
+          filtered = filtered.filter((video) =>
+            statusFilter === "draft" ? video.isDraft : !video.isDraft
+          );
+        }
+        return filtered;
+      });
       setShowDeleteConfirm(null);
     } catch (err) {
       setError("Failed to delete video");
@@ -605,11 +568,22 @@ const Videos = () => {
                   variants={itemVariants}
                   className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-2"
                 >
-                  <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                    <motion.select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full sm:w-32 border border-blue-200 rounded-md px-2 py-1.5 bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300 text-sm sm:text-base"
+                    >
+                      <option value="all">All</option>
+                      <option value="draft">Drafts</option>
+                      <option value="published">Published</option>
+                    </motion.select>
+                  </div>
                   <motion.button
                     whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                     whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
-                    className="w-full sm:w-auto bg-blue-800 text-white px-5 py-1.5 rounded-lg shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 font-semibold"
+                    className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
                     onClick={() => setShowUpload(true)}
                   >
                     + Upload Session
@@ -638,7 +612,7 @@ const Videos = () => {
                   <section className="space-y-4 overflow-y-auto">
                     {filteredVideos.map((video, idx) => (
                       <motion.article
-                        key={idx}
+                        key={video.id || idx}
                         variants={itemVariants}
                         className="video-card bg-[#E6F0FA]"
                       >
@@ -674,7 +648,6 @@ const Videos = () => {
               >
                 Upload Session
               </motion.h2>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <motion.label variants={itemVariants} className="block text-sm font-semibold text-black opacity-70">
                   Title
@@ -686,7 +659,6 @@ const Videos = () => {
                     required
                   />
                 </motion.label>
-
                 <motion.label variants={itemVariants} className="block text-sm font-semibold text-black opacity-70">
                   Description
                   <textarea
@@ -698,7 +670,6 @@ const Videos = () => {
                     required
                   />
                 </motion.label>
-
                 <motion.label variants={itemVariants} className="block text-sm font-semibold text-black opacity-70">
                   Thumbnail
                   <input
@@ -720,7 +691,6 @@ const Videos = () => {
                     )}
                   </AnimatePresence>
                 </motion.label>
-
                 <motion.label variants={itemVariants} className="block text-sm font-semibold text-black opacity-70">
                   Video File
                   <input
@@ -744,18 +714,16 @@ const Videos = () => {
                   </AnimatePresence>
                 </motion.label>
               </div>
-
               <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-2">
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                   whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
                   type="submit"
-                  disabled={!title || !description || !thumbnailPreview || !videoPreview}
-                  className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300"
+                  disabled={!title || !description || !thumbnailPreview || (!videoPreview && editVideoIdx === null)}
+                  className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
                 >
                   {editVideoIdx !== null ? "Save Changes" : "Upload"}
                 </motion.button>
-
                 {editVideoIdx === null && (
                   <motion.button
                     whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
@@ -763,17 +731,16 @@ const Videos = () => {
                     type="button"
                     disabled={!title || !description || !thumbnailPreview || !videoPreview}
                     onClick={handleSaveDraft}
-                    className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300"
+                    className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
                   >
                     Save as Draft
                   </motion.button>
                 )}
-
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                   whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
                   type="button"
-                  className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300"
+                  className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
                   onClick={() => {
                     setShowUpload(false);
                     resetForm();
@@ -805,7 +772,7 @@ const Videos = () => {
                     <motion.button
                       whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                       whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
-                      className="px-3 py-1.5 bg-blue-800 text-white rounded-md shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 font-semibold"
+                      className="px-3 py-1.5 bg-blue-800 text-white rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
                       onClick={() => setShowDeleteConfirm(null)}
                     >
                       Cancel
@@ -813,7 +780,7 @@ const Videos = () => {
                     <motion.button
                       whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                       whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
-                      className="px-3 py-1.5 bg-blue-800 text-white rounded-md shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 font-semibold"
+                      className="px-3 py-1.5 bg-blue-800 text-white rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
                       onClick={confirmDelete}
                     >
                       Delete

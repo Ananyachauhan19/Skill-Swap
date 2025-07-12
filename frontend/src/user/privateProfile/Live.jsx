@@ -1,13 +1,6 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
-<<<<<<< HEAD
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-||||||| ecc8116
-import { useNavigate } from "react-router-dom";
-=======
-import { useNavigate, useLocation } from "react-router-dom";
 import { BACKEND_URL } from '../../config.js';
->>>>>>> 4fb8de77c48f5a30cdd7b93ce9ccb3c94785aeb5
 import LiveSetup from "./LiveSetup";
 import SearchBar from "./SearchBar";
 
@@ -71,90 +64,6 @@ const Live = () => {
   const observer = useRef(null);
   const navigate = useNavigate();
 
-<<<<<<< HEAD
-  // Load videos from localStorage or static data
-||||||| ecc8116
-  // Backend API functions (commented for future implementation)
-  /*
-  const fetchLiveSessions = async () => {
-    try {
-      const res = await fetch("/api/live", {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error("Failed to fetch live sessions");
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const saveVideo = async (videoData) => {
-    const formData = new FormData();
-    Object.entries(videoData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
-    try {
-      const res = await fetch("/api/videos/upload", {
-        method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: formData
-      });
-      if (!res.ok) throw new Error("Failed to save video");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const updateLiveSession = async (id, videoData) => {
-    const formData = new FormData();
-    Object.entries(videoData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
-    try {
-      const res = await fetch(`/api/live/${id}`, {
-        method: "PUT",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: formData
-      });
-      if (!res.ok) throw new Error("Failed to update live session");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const deleteLiveSession = async (id) => {
-    try {
-      const res = await fetch(`/api/live/${id}`, {
-        method: "DELETE",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error("Failed to delete live session");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const archiveLiveSession = async (id) => {
-    try {
-      const res = await fetch(`/api/live/${id}/archive`, {
-        method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error("Failed to archive live session");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-  
-  */
-
-  // Load videos from localStorage or static data
-=======
   // Backend API functions
   const fetchLiveSessions = async () => {
     try {
@@ -187,7 +96,7 @@ const Live = () => {
       const res = await fetch(`${BACKEND_URL}/api/videos/upload`, {
         method: "POST",
         credentials: 'include',
-        body: formData
+        body: formData,
       });
       
       if (!res.ok) {
@@ -210,7 +119,7 @@ const Live = () => {
       const res = await fetch(`${BACKEND_URL}/api/live/${id}`, {
         method: "PUT",
         credentials: 'include',
-        body: formData
+        body: formData,
       });
       
       if (!res.ok) {
@@ -266,8 +175,7 @@ const Live = () => {
     }
   };
   
-  // Load live sessions from backend
->>>>>>> 4fb8de77c48f5a30cdd7b93ce9ccb3c94785aeb5
+  // Load live sessions from backend with fallback to static data
   useEffect(() => {
     const loadLiveSessions = async () => {
       setLoading(true);
@@ -278,6 +186,8 @@ const Live = () => {
       } catch (err) {
         setError("Failed to load live sessions");
         console.error('Error loading live sessions:', err);
+        setVideos(staticVideos); // Fallback to static data
+        setFilteredVideos(staticVideos);
       } finally {
         setLoading(false);
       }
@@ -300,7 +210,7 @@ const Live = () => {
     );
 
     const videoCards = document.querySelectorAll(".video-card");
-    videoCards.forEach((card) => observer.current.observe(card));
+    videoCards.forEach((card) => observer.current?.observe(card));
 
     return () => {
       if (observer.current) {
@@ -315,7 +225,7 @@ const Live = () => {
     if (searchQuery) {
       filtered = filtered.filter(
         (video) =>
-          video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          video.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (video.description &&
             video.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
@@ -323,7 +233,7 @@ const Live = () => {
     setFilteredVideos(filtered);
   }, [searchQuery, videos]);
 
-  // Live updation of views, like, dislike
+  // Live updation of views, likes, dislikes
   useEffect(() => {
     const liveVideos = videos.filter((v) => v.isLive);
     const intervals = liveVideos.map((video) => {
@@ -339,7 +249,11 @@ const Live = () => {
               dislikes: Math.max(0, updated[idx].dislikes + Math.floor(Math.random() * 2 - 1)),
             };
           }
-          localStorage.setItem("liveVideos", JSON.stringify(updated));
+          try {
+            localStorage.setItem("liveVideos", JSON.stringify(updated));
+          } catch (err) {
+            console.error('Error saving to localStorage:', err);
+          }
           return updated;
         });
         setFilteredVideos((prev) => {
@@ -356,8 +270,9 @@ const Live = () => {
           if (searchQuery) {
             filtered = filtered.filter(
               (v) =>
-                v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (v.description && v.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (v.description &&
+                  v.description.toLowerCase().includes(searchQuery.toLowerCase()))
             );
           }
           return filtered;
@@ -372,28 +287,30 @@ const Live = () => {
   // Simulate stream buffering for live sessions
   useEffect(() => {
     const liveVideos = videos.filter((v) => v.isLive);
-    liveVideos.forEach((video) => {
+    const intervals = liveVideos.map((video) => {
       if (!streamBuffer[video.id]) {
         setStreamBuffer((prev) => ({
           ...prev,
           [video.id]: { chunks: [], lastUpdated: Date.now() },
         }));
-        const interval = setInterval(() => {
-          setStreamBuffer((prev) => ({
-            ...prev,
-            [video.id]: {
-              ...prev[video.id],
-              chunks: [
-                ...(prev[video.id]?.chunks || []),
-                `chunk-${Date.now()}`,
-              ],
-            },
-          }));
-        }, 5000);
-        return () => clearInterval(interval);
       }
+      const interval = setInterval(() => {
+        setStreamBuffer((prev) => ({
+          ...prev,
+          [video.id]: {
+            ...prev[video.id],
+            chunks: [
+              ...(prev[video.id]?.chunks || []),
+              `chunk-${Date.now()}`,
+            ],
+          },
+        }));
+      }, 5000);
+      return { id: video.id, interval };
     });
-  }, [videos, streamBuffer]);
+
+    return () => intervals.forEach(({ interval }) => clearInterval(interval));
+  }, [videos]);
 
   // End live session and save as video
   const endLive = (idx) => {
@@ -407,13 +324,17 @@ const Live = () => {
       videoUrl: `https://sample-videos.com/processed/${video.id}.mp4`,
       viewers: 0,
       views: video.viewers || 0,
-      scheduledTime: null
+      scheduledTime: null,
     };
 
     setVideos((prev) => {
       const updated = [...prev];
       updated[idx] = processedVideo;
-      localStorage.setItem("liveVideos", JSON.stringify(updated));
+      try {
+        localStorage.setItem("liveVideos", JSON.stringify(updated));
+      } catch (err) {
+        console.error('Error saving to localStorage:', err);
+      }
       return updated;
     });
 
@@ -423,7 +344,7 @@ const Live = () => {
       if (searchQuery) {
         filtered = filtered.filter(
           (v) =>
-            v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (v.description &&
               v.description.toLowerCase().includes(searchQuery.toLowerCase()))
         );
@@ -443,7 +364,11 @@ const Live = () => {
       setVideos((prev) => {
         const updated = [...prev];
         updated[editData.idx] = { ...video, id: prev[editData.idx].id };
-        localStorage.setItem("liveVideos", JSON.stringify(updated));
+        try {
+          localStorage.setItem("liveVideos", JSON.stringify(updated));
+        } catch (err) {
+          console.error('Error saving to localStorage:', err);
+        }
         return updated;
       });
       setFilteredVideos((prev) => {
@@ -454,7 +379,7 @@ const Live = () => {
         if (searchQuery) {
           filtered = filtered.filter(
             (v) =>
-              v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
               (v.description &&
                 v.description.toLowerCase().includes(searchQuery.toLowerCase()))
           );
@@ -466,7 +391,11 @@ const Live = () => {
       const newVideo = { ...video, id: Date.now().toString() };
       setVideos((prev) => {
         const updated = [newVideo, ...prev];
-        localStorage.setItem("liveVideos", JSON.stringify(updated));
+        try {
+          localStorage.setItem("liveVideos", JSON.stringify(updated));
+        } catch (err) {
+          console.error('Error saving to localStorage:', err);
+        }
         return updated;
       });
       setFilteredVideos((prev) => {
@@ -474,7 +403,7 @@ const Live = () => {
         if (searchQuery) {
           filtered = filtered.filter(
             (v) =>
-              v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
               (v.description &&
                 v.description.toLowerCase().includes(searchQuery.toLowerCase()))
           );
@@ -488,7 +417,11 @@ const Live = () => {
   const handleDelete = (idx) => {
     setVideos((prev) => {
       const updated = prev.filter((_, i) => i !== idx);
-      localStorage.setItem("liveVideos", JSON.stringify(updated));
+      try {
+        localStorage.setItem("liveVideos", JSON.stringify(updated));
+      } catch (err) {
+        console.error('Error saving to localStorage:', err);
+      }
       return updated;
     });
     setFilteredVideos((prev) => {
@@ -496,7 +429,7 @@ const Live = () => {
       if (searchQuery) {
         filtered = filtered.filter(
           (v) =>
-            v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (v.description &&
               v.description.toLowerCase().includes(searchQuery.toLowerCase()))
         );
@@ -509,7 +442,11 @@ const Live = () => {
     const video = videos[idx];
     setVideos((prev) => {
       const updated = prev.filter((_, i) => i !== idx);
-      localStorage.setItem("liveVideos", JSON.stringify(updated));
+      try {
+        localStorage.setItem("liveVideos", JSON.stringify(updated));
+      } catch (err) {
+        console.error('Error saving to localStorage:', err);
+      }
       return updated;
     });
     setFilteredVideos((prev) => {
@@ -517,31 +454,55 @@ const Live = () => {
       if (searchQuery) {
         filtered = filtered.filter(
           (v) =>
-            v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (v.description &&
               v.description.toLowerCase().includes(searchQuery.toLowerCase()))
         );
       }
       return filtered;
     });
-    const archive = JSON.parse(localStorage.getItem("archivedVideos") || "[]");
-    archive.unshift({ ...video, isArchived: true });
-    localStorage.setItem("archivedVideos", JSON.stringify(archive));
+    try {
+      const archive = JSON.parse(localStorage.getItem("archivedVideos") || "[]");
+      archive.unshift({ ...video, isArchived: true });
+      localStorage.setItem("archivedVideos", JSON.stringify(archive));
+    } catch (err) {
+      console.error('Error saving to localStorage:', err);
+    }
   };
 
   const handleSave = (idx) => {
     const video = videos[idx];
-    const saved = JSON.parse(localStorage.getItem("savedVideos") || "[]");
-    if (!saved.some((v) => v.id === video.id)) {
-      saved.unshift(video);
-      localStorage.setItem("savedVideos", JSON.stringify(saved));
+    try {
+      const saved = JSON.parse(localStorage.getItem("savedVideos") || "[]");
+      if (!saved.some((v) => v.id === video.id)) {
+        saved.unshift(video);
+        localStorage.setItem("savedVideos", JSON.stringify(saved));
+      }
+    } catch (err) {
+      console.error('Error saving to localStorage:', err);
     }
   };
 
-  const handleShare = (idx) => {
+  const handleShare = async (idx) => {
     const video = videos[idx];
-    navigator.clipboard.writeText(window.location.origin + "/live/" + video.id);
-    alert("Live session link copied to clipboard!");
+    const shareUrl = `${window.location.origin}/live/${video.id}`;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        alert("Live session link copied to clipboard!");
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        alert("Live session link copied to clipboard!");
+      }
+    } catch (err) {
+      console.error('Error copying to clipboard:', err);
+      alert("Failed to copy link to clipboard.");
+    }
   };
 
   const handleEdit = (video, idx) => {
@@ -575,6 +536,11 @@ const Live = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenuIdx]);
 
+  // Initialize menuRefs
+  useEffect(() => {
+    menuRefs.current = videos.map(() => null);
+  }, [videos]);
+
   // Calendar view logic
   const getScheduledDates = () => {
     const dates = {};
@@ -590,223 +556,148 @@ const Live = () => {
 
   const scheduledDates = getScheduledDates();
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0, x: -50 },
-    visible: { opacity: 1, x: 0, transition: { duration: 0.5, when: "beforeChildren", staggerChildren: 0.2 } },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
-  };
+  if (loading)
+    return <div className="text-center py-8">Loading live sessions...</div>;
+  if (error)
+    return <div className="text-red-500 text-center py-8">{error}</div>;
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="min-h-screen max-h-screen w-full bg-[#E6F0FA] px-3 sm:px-4 md:px-6 font-[Inter] overflow-hidden"
-    >
-      {loading ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-8 text-black opacity-70 font-medium bg-[#E6F0FA]"
+    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 md:px-8">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+        <div className="flex gap-2">
+          <button
+            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 text-sm sm:text-base"
+            onClick={() => setShowCalendar(!showCalendar)}
+          >
+            {showCalendar ? "List View" : "Calendar View"}
+          </button>
+          <button
+            className="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 text-sm sm:text-base"
+            onClick={() => setShowSetup(true)}
+          >
+            + Go Live / Schedule Live Session
+          </button>
+        </div>
+      </div>
+      {showSetup && (
+        <LiveSetup
+          onSubmit={handleLiveSubmit}
+          editData={editData}
+          onClose={closeSetup}
+        />
+      )}
+      {!showSetup && (
+        <Suspense
+          fallback={
+            <div className="text-center py-8">Loading video cards...</div>
+          }
         >
-          Loading live sessions...
-        </motion.div>
-      ) : error ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-red-500 text-center py-8 font-medium bg-[#E6F0FA]"
-        >
-          {error}
-        </motion.div>
-      ) : (
-        <>
-          {!showSetup ? (
-            <>
-              <header className="py-3">
-                <motion.h1
-                  variants={itemVariants}
-                  className="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight"
-                >
-                  Live & Scheduled Sessions
-                </motion.h1>
-                <motion.div
-                  variants={itemVariants}
-                  className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-2"
-                >
-                  <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <motion.button
-                      whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
-                      whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
-                      className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                      onClick={() => setShowCalendar(!showCalendar)}
-                    >
-                      {showCalendar ? "List View" : "Calendar View"}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
-                      whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
-                      className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                      onClick={() => setShowSetup(true)}
-                    >
-                      + Go Live / Schedule Live Session
-                    </motion.button>
+          <div className="space-y-6">
+            {showCalendar ? (
+              <div className="calendar-view">
+                <h2 className="text-xl font-bold mb-4">Scheduled Sessions</h2>
+                {Object.keys(scheduledDates).length === 0 ? (
+                  <div className="text-center text-gray-500">
+                    No scheduled sessions.
                   </div>
-                </motion.div>
-              </header>
-              <Suspense
-                fallback={
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center py-8 text-black opacity-70 font-medium bg-[#E6F0FA]"
-                  >
-                    Loading video cards...
-                  </motion.div>
-                }
-              >
-                <div className="space-y-4">
-                  {showCalendar ? (
-                    <div className="calendar-view">
-                      <motion.h2
-                        variants={itemVariants}
-                        className="text-xl sm:text-2xl font-bold text-blue-900 mb-3"
-                      >
-                        Scheduled Sessions
-                      </motion.h2>
-                      {Object.keys(scheduledDates).length === 0 ? (
-                        <motion.div
-                          variants={itemVariants}
-                          className="text-center text-black opacity-70 text-lg font-medium"
-                        >
-                          No scheduled sessions.
-                        </motion.div>
-                      ) : (
-                        Object.entries(scheduledDates).map(([date, sessions]) => (
-                          <motion.div key={date} variants={itemVariants} className="mb-4">
-                            <h3 className="text-lg sm:text-xl font-semibold text-blue-900">{date}</h3>
-                            <div className="space-y-3 mt-2">
-                              {sessions.map((video, idx) => (
-                                <motion.div
-                                  key={idx}
-                                  variants={itemVariants}
-                                  className="w-full video-card"
-                                >
-                                  <VideoCard
-                                    video={video}
-                                    onEdit={() =>
-                                      handleEdit(
-                                        video,
-                                        videos.findIndex((v) => v.id === video.id)
-                                      )
-                                    }
-                                    onDelete={() =>
-                                      handleDelete(
-                                        videos.findIndex((v) => v.id === video.id)
-                                      )
-                                    }
-                                    onShare={() =>
-                                      handleShare(
-                                        videos.findIndex((v) => v.id === video.id)
-                                      )
-                                    }
-                                    menuOptions={["edit", "share", "delete"]}
-                                    openMenu={
-                                      openMenuIdx ===
-                                      videos.findIndex((v) => v.id === video.id)
-                                    }
-                                    setOpenMenu={(open) =>
-                                      setOpenMenuIdx(
-                                        open
-                                          ? videos.findIndex((v) => v.id === video.id)
-                                          : null
-                                      )
-                                    }
-                                    menuRef={(el) =>
-                                      (menuRefs.current[
-                                        videos.findIndex((v) => v.id === video.id)
-                                      ] = el)
-                                    }
-                                  />
-                                </motion.div>
-                              ))}
-                            </div>
-                          </motion.div>
-                        ))
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      {filteredVideos.length === 0 ? (
-                        <motion.div
-                          variants={itemVariants}
-                          className="text-center text-black opacity-70 mt-10 text-lg font-medium"
-                        >
-                          No live or scheduled sessions yet.
-                        </motion.div>
-                      ) : (
-                        filteredVideos.map((video, idx) => (
-                          <motion.div
-                            key={idx}
-                            variants={itemVariants}
-                            className="w-full video-card"
-                          >
+                ) : (
+                  Object.entries(scheduledDates).map(([date, sessions]) => (
+                    <div key={date} className="mb-6">
+                      <h3 className="text-lg font-semibold">{date}</h3>
+                      <div className="space-y-4 mt-2">
+                        {sessions.map((video, idx) => (
+                          <div key={video.id} className="w-full video-card">
                             <VideoCard
                               video={video}
-                              onEdit={() => handleEdit(video, idx)}
-                              onDelete={() => handleDelete(idx)}
-                              onArchive={() => handleArchive(idx)}
-                              onSave={() => handleSave(idx)}
-                              onShare={() => handleShare(idx)}
-                              onEndLive={() => endLive(idx)}
-                              menuOptions={
-                                video.scheduledTime && !video.isLive
-                                  ? ["edit", "share", "delete"]
-                                  : video.isLive
-                                  ? ["share"]
-                                  : ["edit", "archive", "save", "share", "delete"]
+                              onEdit={() =>
+                                handleEdit(
+                                  video,
+                                  videos.findIndex((v) => v.id === video.id)
+                                )
                               }
-                              openMenu={openMenuIdx === idx}
+                              onDelete={() =>
+                                handleDelete(
+                                  videos.findIndex((v) => v.id === video.id)
+                                )
+                              }
+                              onShare={() =>
+                                handleShare(
+                                  videos.findIndex((v) => v.id === video.id)
+                                )
+                              }
+                              menuOptions={["edit", "share", "delete"]}
+                              openMenu={
+                                openMenuIdx ===
+                                videos.findIndex((v) => v.id === video.id)
+                              }
                               setOpenMenu={(open) =>
-                                setOpenMenuIdx(open ? idx : null)
+                                setOpenMenuIdx(
+                                  open
+                                    ? videos.findIndex((v) => v.id === video.id)
+                                    : null
+                                )
                               }
-                              menuRef={(el) => (menuRefs.current[idx] = el)}
+                              menuRef={(el) =>
+                                (menuRefs.current[
+                                  videos.findIndex((v) => v.id === video.id)
+                                ] = el)
+                              }
                             />
-                            {video.isLive && (
-                              <motion.button
-                                whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
-                                whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
-                                className="mt-3 w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                                onClick={() => endLive(idx)}
-                              >
-                                End Live
-                              </motion.button>
-                            )}
-                          </motion.div>
-                        ))
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <>
+                {filteredVideos.length === 0 ? (
+                  <div className="text-center text-gray-500 mt-12">
+                    No live or scheduled sessions yet.
+                  </div>
+                ) : (
+                  filteredVideos.map((video, idx) => (
+                    <div key={video.id} className="w-full video-card">
+                      <VideoCard
+                        video={video}
+                        onEdit={() => handleEdit(video, idx)}
+                        onDelete={() => handleDelete(idx)}
+                        onArchive={() => handleArchive(idx)}
+                        onSave={() => handleSave(idx)}
+                        onShare={() => handleShare(idx)}
+                        onEndLive={() => endLive(idx)}
+                        menuOptions={
+                          video.scheduledTime && !video.isLive
+                            ? ["edit", "share", "delete"]
+                            : video.isLive
+                            ? ["share"]
+                            : ["edit", "archive", "save", "share", "delete"]
+                        }
+                        openMenu={openMenuIdx === idx}
+                        setOpenMenu={(open) =>
+                          setOpenMenuIdx(open ? idx : null)
+                        }
+                        menuRef={(el) => (menuRefs.current[idx] = el)}
+                      />
+                      {video.isLive && (
+                        <button
+                          className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                          onClick={() => endLive(idx)}
+                        >
+                          End Live
+                        </button>
                       )}
-                    </>
-                  )}
-                </div>
-              </Suspense>
-            </>
-          ) : (
-            <LiveSetup
-              onSubmit={handleLiveSubmit}
-              editData={editData}
-              onClose={closeSetup}
-              className="w-full h-[calc(100vh-4rem)] bg-[#E6F0FA] p-3 sm:p-4 flex flex-col justify-start overflow-hidden rounded-lg"
-            />
-          )}
-        </>
+                    </div>
+                  ))
+                )}
+              </>
+            )}
+          </div>
+        </Suspense>
       )}
-    </motion.div>
+    </div>
   );
 };
 
