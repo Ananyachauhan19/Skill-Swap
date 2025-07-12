@@ -33,7 +33,7 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
       </button>
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
-        onClick={() => { onClose(); navigate('/history'); }}
+        onClick={() => { onClose(); navigate('/learning-history'); }}
       >
         Learning History
       </button>
@@ -60,6 +60,7 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
         className="text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded"
         onClick={async () => {
           Cookies.remove('user');
+          localStorage.removeItem('token'); // Remove token from localStorage
           await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
           window.dispatchEvent(new Event('authChanged'));
           onClose();

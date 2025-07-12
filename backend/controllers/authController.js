@@ -66,6 +66,6 @@ exports.verifyOtp = async (req, res) => {
 
 // Add logout controller
 exports.logout = (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', { path: '/' }); // Ensure token cookie is cleared globally
   res.status(200).json({ message: 'Logged out' });
 };

@@ -1,43 +1,42 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import CoinBalance from "./settings/CoinBalance";
-import CoinSpendingHistory from "./settings/CoinSpendingHistory";
-// --- Static mock data for user session history ---
-const STATIC_HISTORY = [
+import CoinEarningHistory from "./settings/CoinEarningHistory";
+
+// --- Static mock data for teaching session history ---
+const STATIC_TEACHING_HISTORY = [
   {
     date: "2025-07-05",
     sessions: [
       {
         id: 1,
         type: "one-on-one",
-        with: "Alice Smith",
-        when: "2025-07-05T10:00:00Z",
+        with: "Bob Lee",
+        when: "2025-07-05T11:00:00Z",
         duration: 45,
-        credits: 10,
+        credits: 12,
         subject: "Mathematics",
         topic: "Algebra",
-        subtopic: "Linear Equations",
+        subtopic: "Quadratic Equations",
         rating: 5,
-        notes: "Discussed solving linear equations with variables on both sides."
+        notes: "Taught quadratic equations and their solutions."
       },
       {
         id: 2,
         type: "interview",
-        with: "Bob Lee",
-        when: "2025-07-05T14:00:00Z",
+        with: "Alice Smith",
+        when: "2025-07-05T15:00:00Z",
         duration: 30,
         credits: 15,
         rating: 4,
-        notes: "Mock interview for software engineering role."
+        notes: "Conducted a mock interview for frontend role."
       },
       {
         id: 3,
         type: "gd",
         with: ["Alice Smith", "Bob Lee", "Charlie Kim"],
-        when: "2025-07-05T16:00:00Z",
+        when: "2025-07-05T17:00:00Z",
         duration: 60,
-        credits: 5,
-        notes: "Group discussion on project management."
+        credits: 8,
+        notes: "Moderated a group discussion on leadership."
       },
     ],
   },
@@ -48,103 +47,40 @@ const STATIC_HISTORY = [
         id: 4,
         type: "one-on-one",
         with: "Charlie Kim",
-        when: "2025-07-04T09:00:00Z",
+        when: "2025-07-04T10:00:00Z",
         duration: 30,
-        credits: 8,
+        credits: 10,
         subject: "Physics",
         topic: "Optics",
-        subtopic: "Lenses",
+        subtopic: "Mirrors",
         rating: 4,
-        notes: "Covered lens formula and ray diagrams."
+        notes: "Explained mirror formula and image formation."
       },
     ],
   },
 ];
 
-const DEMO_SESSIONS = [
-  {
-    id: 1,
-    title: 'Algebra 101',
-    tutor: 'John Doe',
-    course: 'Mathematics',
-    unit: 'Algebra',
-    topic: 'Introduction to Algebra',
-    date: '2025-07-10',
-    time: '10:00 AM',
-    status: 'Upcoming',
-  },
-  {
-    id: 2,
-    title: 'Calculus: The Basics',
-    tutor: 'Jane Smith',
-    course: 'Mathematics',
-    unit: 'Calculus',
-    topic: 'Limits and Continuity',
-    date: '2025-07-12',
-    time: '2:00 PM',
-    status: 'Upcoming',
-  },
-  {
-    id: 3,
-    title: 'Physics: Motion in One Dimension',
-    tutor: 'Albert Einstein',
-    course: 'Physics',
-    unit: 'Kinematics',
-    topic: 'Introduction to Motion',
-    date: '2025-07-15',
-    time: '1:00 PM',
-    status: 'Completed',
-  },
-];
 
-// Merge completed sessions into STATIC_HISTORY
-const completedSessions = DEMO_SESSIONS.filter(s => s.status === 'Completed').map(s => ({
-  id: s.id,
-  type: 'one-on-one',
-  with: s.tutor,
-  when: `${s.date}T${s.time.replace(/\s*AM|\s*PM/i, '')}:00Z`,
-  duration: 60,
-  credits: 10,
-  subject: s.course,
-  topic: s.unit,
-  subtopic: s.topic,
-  rating: 5,
-  notes: s.title,
-}));
 
-const SESSIONS_HISTORY = [
-  ...STATIC_HISTORY,
-  ...(
-    completedSessions.length > 0
-      ? [{
-          date: completedSessions[0].when.split('T')[0],
-          sessions: completedSessions,
-        }]
-      : []
-  ),
-];
-
-export async function fetchUserHistory() {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(SESSIONS_HISTORY), 400);
-  });
-}
-
-const HistoryPage = () => {
+const TeachingHistory = () => {
   const [history, setHistory] = useState([]);
   const [filteredHistory, setFilteredHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const [hoveredDate, setHoveredDate] = useState(null);
   const [expandedSession, setExpandedSession] = useState(null);
-  const [activeTab, setActiveTab] = useState("session");
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("teaching");
 
   useEffect(() => {
     setLoading(true);
-    fetchUserHistory()
+    // fetchTeachingHistory as a local function
+    const fetchTeachingHistory = () => {
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(STATIC_TEACHING_HISTORY), 400);
+      });
+    };
+    fetchTeachingHistory()
       .then((data) => {
         setHistory(data);
         setFilteredHistory(data);
@@ -155,25 +91,22 @@ const HistoryPage = () => {
 
   useEffect(() => {
     let filtered = history;
-
     if (search) {
       const searchLower = search.toLowerCase();
       filtered = filtered.map((entry) => ({
         ...entry,
         sessions: entry.sessions.filter(
           (s) =>
-            s.with.toString().toLowerCase().includes(searchLower) ||
+            (Array.isArray(s.with) ? s.with.join(", ") : s.with).toLowerCase().includes(searchLower) ||
             (s.subject && s.subject.toLowerCase().includes(searchLower)) ||
             (s.topic && s.topic.toLowerCase().includes(searchLower)) ||
             (s.subtopic && s.subtopic.toLowerCase().includes(searchLower))
         ),
       }));
     }
-
     if (selectedDate) {
       filtered = filtered.filter((entry) => entry.date === selectedDate);
     }
-
     setFilteredHistory(filtered.filter((entry) => entry.sessions.length > 0));
   }, [search, selectedDate, history]);
 
@@ -227,31 +160,30 @@ const HistoryPage = () => {
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-lg shadow-sm bg-white">
             <button
-              className={`px-6 py-3 rounded-l-lg font-semibold border-r border-blue-200 focus:outline-none ${activeTab === 'session' ? 'text-blue-900 bg-blue-100 cursor-default' : 'text-blue-700 hover:bg-blue-50'}`}
-              disabled={activeTab === 'session'}
-              onClick={() => setActiveTab('session')}
+              className={`px-6 py-3 rounded-l-lg font-semibold border-r border-blue-200 focus:outline-none ${activeTab === 'teaching' ? 'text-blue-900 bg-blue-100 cursor-default' : 'text-blue-700 hover:bg-blue-50'}`}
+              disabled={activeTab === 'teaching'}
+              onClick={() => setActiveTab('teaching')}
             >
-              Session History
+              Teaching History
             </button>
             <button
               className={`px-6 py-3 rounded-r-lg font-semibold border-l border-blue-200 focus:outline-none ${activeTab === 'coin' ? 'text-blue-900 bg-blue-100 cursor-default' : 'text-blue-700 hover:bg-blue-50'}`}
               disabled={activeTab === 'coin'}
               onClick={() => setActiveTab('coin')}
             >
-              Coin Spending History
+              Coin Earning History
             </button>
           </div>
         </div>
-        {activeTab === 'session' ? (
+        {activeTab === 'teaching' ? (
           <>
             {/* Header Section */}
             <div className="mb-8 text-center">
-              <h1 className="text-4xl font-bold text-blue-900 mb-2">Session History</h1>
+              <h1 className="text-4xl font-bold text-blue-900 mb-2">Teaching History</h1>
               <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                Review your past learning sessions, interviews, and group discussions
+                Review your past teaching sessions, interviews, and group discussions
               </p>
             </div>
-
             {/* Filter Section */}
             <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
               <div className="flex flex-col md:flex-row gap-4 items-center">
@@ -263,17 +195,16 @@ const HistoryPage = () => {
                   </div>
                   <input
                     type="text"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                    placeholder="Search sessions..."
+                    className="block w-full pl-10 pr-3 py-3 border border-blue-200 rounded-lg bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+                    placeholder="Search teaching sessions..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                
                 <div className="flex items-center gap-2 w-full md:w-auto">
                   <input
                     type="date"
-                    className="border border-gray-200 rounded-lg px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-gray-50"
+                    className="border border-blue-200 rounded-lg px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-blue-50"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
                   />
@@ -289,7 +220,6 @@ const HistoryPage = () => {
                 </div>
               </div>
             </div>
-
             {/* Content Section */}
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               {loading ? (
@@ -301,7 +231,7 @@ const HistoryPage = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading history</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading teaching history</h3>
                   <p className="text-gray-600">{error}</p>
                   <button 
                     className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200"
@@ -317,7 +247,7 @@ const HistoryPage = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions found</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No teaching sessions found</h3>
                   <p className="text-gray-600 mb-4">Try adjusting your search or date filters</p>
                   <button 
                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200"
@@ -330,7 +260,7 @@ const HistoryPage = () => {
                   </button>
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-200">
+                <ul className="divide-y divide-blue-200">
                   {filteredHistory.map((entry, idx) => (
                     <li key={idx} className="p-6 hover:bg-blue-50 transition duration-150">
                       <div className="mb-4">
@@ -346,12 +276,11 @@ const HistoryPage = () => {
                           {entry.sessions.length} session{entry.sessions.length !== 1 ? 's' : ''}
                         </p>
                       </div>
-                      
                       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {entry.sessions.map((s) => (
                           <div 
                             key={s.id}
-                            className={`bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition duration-200 ${expandedSession === s.id ? 'ring-2 ring-blue-500' : 'border-gray-200'}`}
+                            className={`bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition duration-200 ${expandedSession === s.id ? 'ring-2 ring-blue-500' : 'border-blue-200'}`}
                           >
                             <div 
                               className="p-4 cursor-pointer"
@@ -373,18 +302,16 @@ const HistoryPage = () => {
                                       </span>
                                     )}
                                   </div>
-                                  
                                   <p className="text-sm text-gray-600 mt-1">
                                     {s.type === 'gd' ? 
                                       `With ${Array.isArray(s.with) ? s.with.join(', ') : s.with}` : 
                                       `With ${s.with}`}
                                   </p>
-                                  
                                   <div className="mt-2 flex flex-wrap gap-1">
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                       {formatTime(s.when)}
                                     </span>
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                       {s.duration} min
                                     </span>
                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
@@ -393,7 +320,6 @@ const HistoryPage = () => {
                                   </div>
                                 </div>
                               </div>
-                              
                               {s.subject && (
                                 <div className="mt-3">
                                   <div className="text-sm text-gray-700">
@@ -404,9 +330,8 @@ const HistoryPage = () => {
                                 </div>
                               )}
                             </div>
-                            
                             {expandedSession === s.id && (
-                              <div className="bg-gray-50 border-t border-gray-200 p-4 animate-fade-in">
+                              <div className="bg-blue-50 border-t border-blue-200 p-4 animate-fade-in">
                                 <h5 className="text-sm font-medium text-gray-700 mb-1">Session Notes</h5>
                                 <p className="text-sm text-gray-600">
                                   {s.notes || "No additional notes provided for this session."}
@@ -423,33 +348,9 @@ const HistoryPage = () => {
             </div>
           </>
         ) : (
-          <CoinSpendingHistory />
+          <CoinEarningHistory />
         )}
       </div>
-
-      {/* Help Section */}
-      <div className="max-w-7xl mx-auto mt-8 bg-blue-100 rounded-xl p-6">
-        <div className="flex flex-col md:flex-row items-center">
-          <div className="md:mr-6 mb-4 md:mb-0">
-            <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-medium text-blue-900 mb-2">Need help with your session history?</h3>
-            <p className="text-blue-800 mb-4">
-              If you notice any discrepancies or have questions about your session records, our support team is here to help.
-            </p>
-            <button className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg font-medium border border-blue-200 transition duration-200">
-              Contact Support
-            </button>
-          </div>
-        </div>
-      </div>
-      <div>
-
-      </div>
-
       <style jsx>{`
         .animate-fade-in {
           animation: fadeIn 0.3s ease-out;
@@ -459,9 +360,8 @@ const HistoryPage = () => {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-
     </div>
   );
 };
 
-export default HistoryPage;
+export default TeachingHistory;
