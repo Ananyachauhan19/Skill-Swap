@@ -95,10 +95,10 @@ router.put('/user/profile', requireAuth, async (req, res) => {
   const { 
     firstName, lastName, bio, country, profilePic, education, experience, 
     certificates, linkedin, website, github, twitter, skillsToTeach, 
-    skillsToLearn, credits, goldCoins, silverCoins, badges, rank 
+    skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
   
-  console.log('Profile update request:', { skillsToTeach, skillsToLearn });
+  console.log('Profile update request:', { skillsToTeach, skillsToLearn, username });
   
   try {
     const updateData = {};
@@ -123,6 +123,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     if (silverCoins !== undefined) updateData.silverCoins = silverCoins;
     if (badges !== undefined) updateData.badges = badges;
     if (rank !== undefined) updateData.rank = rank;
+    if (username !== undefined) updateData.username = username;
 
     console.log('Updating user with data:', updateData);
 
@@ -138,7 +139,8 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     
     console.log('Updated user skills:', { 
       skillsToTeach: user.skillsToTeach, 
-      skillsToLearn: user.skillsToLearn 
+      skillsToLearn: user.skillsToLearn,
+      username: user.username
     });
     
     res.json(user);
