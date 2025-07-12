@@ -33,15 +33,23 @@ router.get('/google/callback', passport.authenticate('google', {
     }
 
     let user = await User.findOne({ email: profile.email });
-
     if (!user) {
-      user = await User.create({
-        firstName: profile.firstName || profile.name || '',
-        lastName: profile.lastName || '',
-        email: profile.email,
-        googleId: profile.googleId || profile.id,
-        provider: 'google'
-      });
+      try {
+        user = await User.create({
+          firstName: profile.firstName || profile.name || '',
+          lastName: profile.lastName || '',
+          email: profile.email,
+          googleId: profile.googleId || profile.id,
+          provider: 'google'
+        });
+      } catch (err) {
+        if (err.code === 11000) {
+          // Duplicate key error, fetch the user
+          user = await User.findOne({ email: profile.email });
+        } else {
+          throw err;
+        }
+      }
     }
 
     const token = generateToken(user);

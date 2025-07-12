@@ -7,7 +7,7 @@ function filterNotifications(notifications) {
   const TWELVE_HOURS = 12 * 60 * 60 * 1000;
   const now = Date.now();
   return notifications.filter((n) => {
-    if (n.completed) return false;
+    if (n && n.completed) return false;
     if (n.timestamp && now - n.timestamp > TWELVE_HOURS) return false;
     return true;
   });
@@ -220,9 +220,9 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
   // Calculate unread counts for each tab
   const getUnreadCounts = () => {
     const sessionTypes = ['session-started', 'session-approved', 'session-rejected', 'session-cancelled', 'session-requested'];
-    const allUnread = notifications.filter((n) => !n.read).length;
-    const sessionUnread = notifications.filter((n) => !n.read && sessionTypes.includes(n.type)).length;
-    const skillmateUnread = notifications.filter((n) => !n.read && n.type === 'skillmate').length;
+    const allUnread = notifications.filter((n) => n && !n.read).length;
+    const sessionUnread = notifications.filter((n) => n && !n.read && sessionTypes.includes(n.type)).length;
+    const skillmateUnread = notifications.filter((n) => n && !n.read && n.type === 'skillmate').length;
     return { all: allUnread, session: sessionUnread, skillmate: skillmateUnread };
   };
 
