@@ -102,16 +102,16 @@ const VideoCard = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 border-b pb-6 pt-4 w-full">
+    <div className="flex flex-col sm:flex-row gap-4 bg-[#F0F7FF] p-4 rounded-lg shadow-sm w-full">
       {/* Video/Thumbnail */}
-      <div className="relative w-full sm:w-[360px] aspect-video shrink-0 rounded-lg overflow-hidden bg-gray-200">
+      <div className="relative w-full sm:w-[360px] aspect-video shrink-0 rounded-lg overflow-hidden">
         {videoUrl ? (
           <>
             <video
               ref={videoRef}
               src={videoUrl}
               poster={thumbnail}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover rounded-lg"
               controls
               onPlay={() => {
                 setIsPlaying(true);
@@ -122,11 +122,11 @@ const VideoCard = ({
             />
             {!isPlaying && (
               <div
-                className="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer"
+                className="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer rounded-lg"
                 onClick={() => videoRef.current?.play()}
               >
                 <button
-                  className="bg-white/90 hover:bg-white p-3 rounded-full shadow-md"
+                  className="bg-white/90 hover:bg-white p-3 rounded-full shadow-md transition-transform transform hover:scale-105"
                   onClick={(e) => {
                     e.stopPropagation();
                     videoRef.current?.play();
@@ -134,7 +134,7 @@ const VideoCard = ({
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-gray-800"
+                    className="h-6 w-6 text-[#1E3A8A]"
                     fill="currentColor"
                     viewBox="0 0 24 24"
                   >
@@ -148,7 +148,7 @@ const VideoCard = ({
           <img
             src={thumbnail}
             alt="Thumbnail"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-lg"
           />
         )}
         {duration !== null && (
@@ -171,19 +171,19 @@ const VideoCard = ({
       {/* Details */}
       <div className="flex flex-col justify-between w-full">
         <div className="flex justify-between items-start">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-lg font-medium text-gray-900 line-clamp-2">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-lg font-semibold text-[#1E3A8A] line-clamp-2">
               {title}
             </h3>
-            <p className="text-sm text-gray-700 font-medium">@{videoUserId}</p>
-            <p className="text-sm text-gray-600 line-clamp-2">{description}</p>
-            <div className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-[#1E3A8A] font-medium">@{videoUserId}</p>
+            <p className="text-sm text-[#4B5563]/80 line-clamp-2">{description}</p>
+            <div className="text-xs text-[#4B5563]/80 mt-1">
               <span>
                 {views} views •{" "}
                 {(() => {
                   let dateObj;
                   try {
-                    dateObj = new Date(uploadDate.replace("Saved: ", "")); // Remove "Saved: " prefix
+                    dateObj = new Date(uploadDate.replace("Saved: ", ""));
                     if (!uploadDate || isNaN(dateObj.getTime()))
                       throw new Error("Invalid date");
                     return formatDistanceToNow(dateObj, { addSuffix: true });
@@ -201,13 +201,13 @@ const VideoCard = ({
           {/* Menu */}
           <div className="relative">
             <button
-              className="p-1 rounded-full hover:bg-gray-200"
+              className="p-2 rounded-full hover:bg-[#E0E7FF] transition-colors"
               onClick={() => setOpenMenu((prev) => !prev)}
             >
               <svg
                 width="22"
                 height="22"
-                fill="currentColor"
+                fill="#1E3A8A"
                 viewBox="0 0 24 24"
               >
                 <circle cx="5" cy="12" r="2" />
@@ -218,11 +218,11 @@ const VideoCard = ({
             {openMenu && (
               <div
                 ref={menuRef}
-                className="absolute right-0 mt-2 w-40 bg-white border rounded shadow z-50"
+                className="absolute right-0 mt-2 w-48 bg-white border border-[#E0E7FF] rounded-lg shadow-lg z-50"
               >
                 {menuOptions.includes("edit") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onEdit?.(video);
@@ -233,7 +233,7 @@ const VideoCard = ({
                 )}
                 {menuOptions.includes("delete") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onDelete?.(video);
@@ -244,7 +244,7 @@ const VideoCard = ({
                 )}
                 {menuOptions.includes("report") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onReport?.(video);
@@ -255,7 +255,7 @@ const VideoCard = ({
                 )}
                 {menuOptions.includes("archive") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onArchive?.(video);
@@ -266,7 +266,7 @@ const VideoCard = ({
                 )}
                 {menuOptions.includes("save") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onSave?.(video);
@@ -277,7 +277,7 @@ const VideoCard = ({
                 )}
                 {menuOptions.includes("unarchive") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onUnArchive?.(video);
@@ -288,7 +288,7 @@ const VideoCard = ({
                 )}
                 {menuOptions.includes("post") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onPost?.(video);
@@ -299,7 +299,7 @@ const VideoCard = ({
                 )}
                 {menuOptions.includes("remove") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onRemove?.(video);
@@ -310,7 +310,7 @@ const VideoCard = ({
                 )}
                 {menuOptions.includes("share") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onShare?.(video);
@@ -321,7 +321,7 @@ const VideoCard = ({
                 )}
                 {menuOptions.includes("saveToPlaylist") && (
                   <button
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    className="block w-full text-left px-4 py-2 text-sm text-[#1E3A8A] hover:bg-[#E0E7FF] transition-colors"
                     onClick={() => {
                       setOpenMenu(false);
                       onSaveToPlaylist?.(video);
@@ -336,19 +336,19 @@ const VideoCard = ({
         </div>
 
         {/* Likes/Dislikes */}
-        <div className="flex gap-4 mt-3 text-sm text-gray-700 items-center">
+        <div className="flex gap-4 mt-4 text-sm text-[#1E3A8A] items-center">
           <button
             onClick={toggleLike}
-            className={`flex items-center gap-1 ${
-              userLiked ? "text-blue-600 font-semibold" : "hover:text-blue-600"
+            className={`flex items-center gap-1 transition-colors ${
+              userLiked ? "text-[#1E3A8A] font-semibold" : "hover:text-[#1E3A8A]/80"
             }`}
           >
             👍 {likeCount}
           </button>
           <button
             onClick={toggleDislike}
-            className={`flex items-center gap-1 ${
-              userDisliked ? "text-red-600 font-semibold" : "hover:text-red-600"
+            className={`flex items-center gap-1 transition-colors ${
+              userDisliked ? "text-[#1E3A8A] font-semibold" : "hover:text-[#1E3A8A]/80"
             }`}
           >
             👎 {dislikeCount}
