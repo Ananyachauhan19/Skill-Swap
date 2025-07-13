@@ -32,7 +32,6 @@ const fetchUserProfile = async () => {
     country: user.country || '',
     education: user.education || [],
     teachSkills: user.skillsToTeach || [],
-    learnSkills: user.skillsToLearn || [],
     experience: user.experience || [],
     certificates: user.certificates || [],
     linkedin: user.linkedin || '',
@@ -47,7 +46,6 @@ const fetchUserProfile = async () => {
     firstName: user.firstName,
     lastName: user.lastName,
     skillsToTeach: user.skillsToTeach || [],
-    skillsToLearn: user.skillsToLearn || [],
   };
 };
 
@@ -69,7 +67,6 @@ const updateUserProfile = async (profile) => {
       github: profile.github || '',
       twitter: profile.twitter || '',
       skillsToTeach: profile.skillsToTeach || profile.teachSkills || [],
-      skillsToLearn: profile.skillsToLearn || profile.learnSkills || [],
       credits: profile.credits || 1200,
       goldCoins: profile.goldCoins || 0,
       silverCoins: profile.silver || 0,
@@ -79,7 +76,6 @@ const updateUserProfile = async (profile) => {
 
     console.log('Sending profile update to backend:', {
       skillsToTeach: backendData.skillsToTeach,
-      skillsToLearn: backendData.skillsToLearn
     });
 
     const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
@@ -98,7 +94,6 @@ const updateUserProfile = async (profile) => {
     
     console.log('Received updated user from backend:', {
       skillsToTeach: updatedUser.skillsToTeach,
-      skillsToLearn: updatedUser.skillsToLearn
     });
     
     // Transform backend response back to frontend format
@@ -118,7 +113,6 @@ const updateUserProfile = async (profile) => {
       github: updatedUser.github || profile.github,
       twitter: updatedUser.twitter || profile.twitter,
       skillsToTeach: updatedUser.skillsToTeach || profile.skillsToTeach,
-      skillsToLearn: updatedUser.skillsToLearn || profile.skillsToLearn,
       credits: updatedUser.credits || profile.credits,
       goldCoins: updatedUser.goldCoins || profile.goldCoins,
       badges: updatedUser.badges || profile.badges,
@@ -152,9 +146,7 @@ const Profile = () => {
     country: '',
     education: [],
     teachSkills: [],
-    learnSkills: [],
     skillsToTeach: [],
-    skillsToLearn: [],
     experience: [],
     certificates: [],
     linkedin: '',

@@ -28,18 +28,6 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Real-time 1-on-1 Session */}
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold text-blue-900 mb-2">Real-time 1-on-1 Session</h2>
-          <p className="text-sm text-gray-800 mb-4">Schedule your live session now!</p>
-          <button
-            onClick={() => navigate('/one-on-one')}
-            className="bg-gradient-to-r from-blue-700 to-blue-500 text-white px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:from-blue-800 hover:to-blue-600 hover:scale-105 hover:shadow-lg"
-          >
-            Book Now
-          </button>
-        </div>
-
         {/* Support & Inquiry */}
         <div className="mt-6">
           <h3 className="text-lg font-semibold text-blue-900 mb-3">Support & Inquiry</h3>
@@ -51,15 +39,6 @@ const Footer = () => {
                 className="text-gray-800 hover:underline text-sm break-all"
               >
                 skillswaphub@example.com
-              </a>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-blue-800 text-sm w-16">Mobile:</span>
-              <a
-                href="tel:+917508669870"
-                className="text-gray-800 hover:underline text-sm"
-              >
-                +917508669870
               </a>
             </div>
           </div>
@@ -126,8 +105,8 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="/workshops" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
-                  Workshops
+                <a href="/session" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
+                  Live/Uploaded Sessions
                 </a>
               </li>
             </ul>
@@ -138,7 +117,7 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-blue-900 mb-3 border-b border-blue-300 pb-2">Company</h3>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="/help" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   About Us
                 </a>
               </li>
@@ -154,7 +133,7 @@ const Footer = () => {
               </li>
               <li>
                 <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
-                  Press
+                  Community
                 </a>
               </li>
             </ul>
@@ -165,23 +144,18 @@ const Footer = () => {
             <h3 className="text-lg font-semibold text-blue-900 mb-3 border-b border-blue-300 pb-2">Support</h3>
             <ul className="space-y-3">
               <li>
-                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="/help" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Help Center
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="/help" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   Contact Us
                 </a>
               </li>
               <li>
-                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
+                <a href="/help" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
                   FAQs
-                </a>
-              </li>
-              <li>
-                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
-                  Community
                 </a>
               </li>
             </ul>
@@ -206,18 +180,14 @@ const Footer = () => {
                   Cookie Policy
                 </a>
               </li>
-              <li>
-                <a href="#" className="text-gray-800 hover:text-blue-800 hover:underline transition-all duration-300">
-                  GDPR
-                </a>
-              </li>
+              
             </ul>
           </div>
         </div>
 
         {/* Newsletter */}
         <div className="mt-8">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">Subscribe to Our Newsletter</h3>
+          <h3 className="text-lg font-semibold text-blue-900 mb-3">Subscribe to SkillSwapHub</h3>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="email"
