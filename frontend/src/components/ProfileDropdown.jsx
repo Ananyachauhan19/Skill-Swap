@@ -48,7 +48,7 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
         onClick={() => { onClose(); navigate('/package'); }}
       >
-        Package
+        Purchase
       </button>
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"

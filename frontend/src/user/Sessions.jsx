@@ -224,54 +224,7 @@ const Sessions = () => {
               Personalized 1-on-1 sessions, live streams, and recorded videos
               with expert tutors to help you master any subject.
             </motion.p>
-            <motion.div
-              className="flex flex-wrap justify-center md:justify-start gap-6 mt-8"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.7 }}
-            >
-              <motion.button
-                onClick={() => navigate("/profile/panel/live")}
-                className="gradient-button text-white font-semibold px-8 py-4 rounded-xl hover:shadow-xl"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-2 inline-block"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Start Live Stream
-              </motion.button>
-
-              <motion.button
-                className="bg-gradient-to-r from-blue-50 to-blue-100 text-blue-900 font-semibold px-8 py-4 rounded-xl border border-blue-200 hover:bg-blue-200"
-                onClick={() => navigate("/profile/panel/videos")}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-2 inline-block"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                Upload Session
-              </motion.button>
-            </motion.div>
+           
           </div>
           <motion.img
             src="/assets/session.webp"
