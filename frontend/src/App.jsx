@@ -102,6 +102,7 @@ function CompleteProfileModal({ user, onComplete }) {
       ? user.skillsToTeach
       : [{ subject: '', topic: '', subtopic: '' }]
   );
+  const [role, setRole] = useState(user?.role || 'learner');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -120,7 +121,8 @@ function CompleteProfileModal({ user, onComplete }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim()) return setError('Username is required');
-    if (!skillsToTeach.length || skillsToTeach.some(s => !s.subject || !s.topic || !s.subtopic)) {
+    // If Teacher or Both, require at least one complete teaching skill
+    if ((role === 'teacher' || role === 'both') && (!skillsToTeach.length || skillsToTeach.some(s => !s.subject || !s.topic || !s.subtopic))) {
       return setError('Please select subject, topic, and subtopic for each teaching skill.');
     }
     setLoading(true);
@@ -132,6 +134,7 @@ function CompleteProfileModal({ user, onComplete }) {
         credentials: 'include',
         body: JSON.stringify({
           username,
+          role,
           skillsToTeach,
         }),
       });
@@ -157,45 +160,64 @@ function CompleteProfileModal({ user, onComplete }) {
           <input value={username} onChange={e => setUsername(e.target.value)} className="w-full border p-2 rounded" />
         </label>
         <div className="mb-2">
-          <div className="font-medium mb-1">What I Can Teach</div>
-          {skillsToTeach.map((skill, idx) => (
-            <div key={idx} className="flex gap-2 mb-2">
-              <select
-                className="border rounded px-2 py-1"
-                value={skill.subject}
-                onChange={e => handleSkillChange(idx, 'subject', e.target.value)}
-                required
-              >
-                <option value="">Select Subject</option>
-                {STATIC_COURSES.map(subj => <option key={subj} value={subj}>{subj}</option>)}
-              </select>
-              <select
-                className="border rounded px-2 py-1"
-                value={skill.topic}
-                onChange={e => handleSkillChange(idx, 'topic', e.target.value)}
-                required
-                disabled={!skill.subject}
-              >
-                <option value="">Select Topic</option>
-                {(STATIC_UNITS[skill.subject] || []).map(topic => <option key={topic} value={topic}>{topic}</option>)}
-              </select>
-              <select
-                className="border rounded px-2 py-1"
-                value={skill.subtopic}
-                onChange={e => handleSkillChange(idx, 'subtopic', e.target.value)}
-                required
-                disabled={!skill.topic}
-              >
-                <option value="">Select Subtopic</option>
-                {(STATIC_TOPICS[skill.topic] || []).map(subtopic => <option key={subtopic} value={subtopic}>{subtopic}</option>)}
-              </select>
-              {skillsToTeach.length > 1 && (
-                <button type="button" onClick={() => handleRemoveSkill(idx)} className="text-red-500 ml-1">Remove</button>
-              )}
-            </div>
-          ))}
-          <button type="button" onClick={handleAddSkill} className="text-blue-600 underline text-xs mt-1">Add Another</button>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Register as:</label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-1">
+              <input type="radio" name="role" value="teacher" checked={role === 'teacher'} onChange={() => setRole('teacher')} />
+              Teacher
+            </label>
+            <label className="flex items-center gap-1">
+              <input type="radio" name="role" value="learner" checked={role === 'learner'} onChange={() => setRole('learner')} />
+              Learner
+            </label>
+            <label className="flex items-center gap-1">
+              <input type="radio" name="role" value="both" checked={role === 'both'} onChange={() => setRole('both')} />
+              Both
+            </label>
+          </div>
         </div>
+        {(role === 'teacher' || role === 'both') && (
+          <div className="mb-2">
+            <div className="font-medium mb-1">What I Can Teach</div>
+            {skillsToTeach.map((skill, idx) => (
+              <div key={idx} className="flex gap-2 mb-2">
+                <select
+                  className="border rounded px-2 py-1"
+                  value={skill.subject}
+                  onChange={e => handleSkillChange(idx, 'subject', e.target.value)}
+                  required={role === 'teacher' || role === 'both'}
+                >
+                  <option value="">Select Subject</option>
+                  {STATIC_COURSES.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                </select>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={skill.topic}
+                  onChange={e => handleSkillChange(idx, 'topic', e.target.value)}
+                  required={role === 'teacher' || role === 'both'}
+                  disabled={!skill.subject}
+                >
+                  <option value="">Select Topic</option>
+                  {(STATIC_UNITS[skill.subject] || []).map(topic => <option key={topic} value={topic}>{topic}</option>)}
+                </select>
+                <select
+                  className="border rounded px-2 py-1"
+                  value={skill.subtopic}
+                  onChange={e => handleSkillChange(idx, 'subtopic', e.target.value)}
+                  required={role === 'teacher' || role === 'both'}
+                  disabled={!skill.topic}
+                >
+                  <option value="">Select Subtopic</option>
+                  {(STATIC_TOPICS[skill.topic] || []).map(subtopic => <option key={subtopic} value={subtopic}>{subtopic}</option>)}
+                </select>
+                {skillsToTeach.length > 1 && (
+                  <button type="button" onClick={() => handleRemoveSkill(idx)} className="text-red-500 ml-1">Remove</button>
+                )}
+              </div>
+            ))}
+            <button type="button" onClick={handleAddSkill} className="text-blue-600 underline text-xs mt-1">Add Another</button>
+          </div>
+        )}
         <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded mt-4" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
       </form>
     </div>
