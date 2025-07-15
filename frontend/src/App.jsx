@@ -32,6 +32,7 @@ import StartSkillSwap from './user/StartSkillSwap';
 import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
+import { STATIC_COURSES, STATIC_UNITS, STATIC_TOPICS } from './constants/teachingData';
 
 // Import the backend URL
 import { BACKEND_URL } from './config.js';
@@ -96,13 +97,32 @@ const appRoutes = [
 
 function CompleteProfileModal({ user, onComplete }) {
   const [username, setUsername] = useState(user?.username || '');
-  const [skillsToTeach, setSkillsToTeach] = useState((user?.skillsToTeach || []).join(', '));
+  const [skillsToTeach, setSkillsToTeach] = useState(
+    Array.isArray(user?.skillsToTeach) && user.skillsToTeach.length > 0
+      ? user.skillsToTeach
+      : [{ subject: '', topic: '', subtopic: '' }]
+  );
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleAddSkill = () => {
+    setSkillsToTeach([...skillsToTeach, { subject: '', topic: '', subtopic: '' }]);
+  };
+  const handleRemoveSkill = (idx) => {
+    setSkillsToTeach(skillsToTeach.filter((_, i) => i !== idx));
+  };
+  const handleSkillChange = (idx, field, value) => {
+    setSkillsToTeach(skillsToTeach.map((s, i) =>
+      i === idx ? { ...s, [field]: value, ...(field === 'subject' ? { topic: '', subtopic: '' } : field === 'topic' ? { subtopic: '' } : {}) } : s
+    ));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim()) return setError('Username is required');
+    if (!skillsToTeach.length || skillsToTeach.some(s => !s.subject || !s.topic || !s.subtopic)) {
+      return setError('Please select subject, topic, and subtopic for each teaching skill.');
+    }
     setLoading(true);
     setError('');
     try {
@@ -112,7 +132,7 @@ function CompleteProfileModal({ user, onComplete }) {
         credentials: 'include',
         body: JSON.stringify({
           username,
-          skillsToTeach: skillsToTeach.split(',').map(s => s.trim()).filter(Boolean),
+          skillsToTeach,
         }),
       });
       if (res.ok) {
@@ -136,10 +156,46 @@ function CompleteProfileModal({ user, onComplete }) {
           Username
           <input value={username} onChange={e => setUsername(e.target.value)} className="w-full border p-2 rounded" />
         </label>
-        <label className="block mb-2">
-          What I Can Teach (comma separated)
-          <input value={skillsToTeach} onChange={e => setSkillsToTeach(e.target.value)} className="w-full border p-2 rounded" />
-        </label>
+        <div className="mb-2">
+          <div className="font-medium mb-1">What I Can Teach</div>
+          {skillsToTeach.map((skill, idx) => (
+            <div key={idx} className="flex gap-2 mb-2">
+              <select
+                className="border rounded px-2 py-1"
+                value={skill.subject}
+                onChange={e => handleSkillChange(idx, 'subject', e.target.value)}
+                required
+              >
+                <option value="">Select Subject</option>
+                {STATIC_COURSES.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+              </select>
+              <select
+                className="border rounded px-2 py-1"
+                value={skill.topic}
+                onChange={e => handleSkillChange(idx, 'topic', e.target.value)}
+                required
+                disabled={!skill.subject}
+              >
+                <option value="">Select Topic</option>
+                {(STATIC_UNITS[skill.subject] || []).map(topic => <option key={topic} value={topic}>{topic}</option>)}
+              </select>
+              <select
+                className="border rounded px-2 py-1"
+                value={skill.subtopic}
+                onChange={e => handleSkillChange(idx, 'subtopic', e.target.value)}
+                required
+                disabled={!skill.topic}
+              >
+                <option value="">Select Subtopic</option>
+                {(STATIC_TOPICS[skill.topic] || []).map(subtopic => <option key={subtopic} value={subtopic}>{subtopic}</option>)}
+              </select>
+              {skillsToTeach.length > 1 && (
+                <button type="button" onClick={() => handleRemoveSkill(idx)} className="text-red-500 ml-1">Remove</button>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={handleAddSkill} className="text-blue-600 underline text-xs mt-1">Add Another</button>
+        </div>
         <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded mt-4" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
       </form>
     </div>

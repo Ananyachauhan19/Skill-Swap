@@ -38,44 +38,16 @@ const getContributionColor = (count) => {
   return 'bg-blue-700';
 };
 
-// Fetch user profile data
-const fetchUserProfile = async () => {
+// Fetch user profile data from backend
+const fetchUserProfile = async (userId) => {
   try {
-    const userData = {
-      fullName: 'John Doe',
-      userId: 'john_doe123',
-      profilePic: 'https://placehold.co/100x100?text=JD',
-      profilePicPreview: 'https://placehold.co/100x100?text=JD',
-      bio: 'Passionate developer and lifelong learner.',
-      linkedin: 'johndoe',
-      github: 'johndoe',
-      twitter: 'johndoe',
-      website: 'https://johndoe.com',
-      education: [
-        {
-          course: 'B.Tech',
-          branch: 'Computer Science',
-          college: 'XYZ University',
-          city: 'New York',
-          passingYear: '2020',
-        },
-      ],
-      experience: [
-        {
-          title: 'Frontend Developer',
-          company: 'Tech Corp',
-          duration: '2020-2023',
-          description: 'Developed user interfaces for web applications.',
-        },
-      ],
-      skills: [
-        'C',
-        'Java',
-        'Python',
-        'Data Science',
-      ],
-    };
-    return userData;
+    // Fetch by userId or username if available, fallback to current user
+    const res = await fetch(`/api/auth/user/profile?userId=${userId || ''}`, {
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Failed to fetch user profile');
+    const user = await res.json();
+    return user;
   } catch {
     throw new Error('Failed to fetch user profile');
   }
@@ -101,7 +73,9 @@ const SideBarPublic = () => {
     async function loadProfile() {
       setLoading(true);
       try {
-        const data = await fetchUserProfile();
+        // Optionally get userId from route params or location
+        const userId = new URLSearchParams(window.location.search).get('userId');
+        const data = await fetchUserProfile(userId);
         setProfile(data);
       } catch (err) {
         setError(err.message);
@@ -252,6 +226,26 @@ const SideBarPublic = () => {
                 {profile.skills.map((skill, i) => (
                   <li key={i} className="text-xs text-gray-600">
                     {skill}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <span className="text-xs text-gray-600">Not added yet</span>
+            )}
+          </div>
+
+          {/* What I Can Teach Section */}
+          <div className="mb-8">
+            <div className="font-semibold text-dark-blue mb-3 text-lg">What I Can Teach</div>
+            {loading ? (
+              <span className="text-gray-600 text-sm">Loading...</span>
+            ) : error ? (
+              <span className="text-red-500 text-sm">{error}</span>
+            ) : profile?.skillsToTeach && profile.skillsToTeach.length > 0 ? (
+              <ul className="flex flex-wrap gap-2">
+                {profile.skillsToTeach.map((s, i) => (
+                  <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
+                    {s.subject} {s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
                   </li>
                 ))}
               </ul>

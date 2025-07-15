@@ -14,6 +14,7 @@ import { useModal } from "../context/ModalContext";
 import { motion } from "framer-motion";
 import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config.js';
+import { STATIC_COURSES, STATIC_UNITS, STATIC_TOPICS } from '../constants/teachingData';
 
 const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const navigate = useNavigate();
@@ -27,8 +28,10 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     gender: "",
     password: "",
     confirmPassword: "",
-    skillsToTeach: "",
   });
+  const [skillsToTeach, setSkillsToTeach] = useState([
+    { subject: '', topic: '', subtopic: '' }
+  ]);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
@@ -84,6 +87,18 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
+  const handleAddSkill = () => {
+    setSkillsToTeach([...skillsToTeach, { subject: '', topic: '', subtopic: '' }]);
+  };
+  const handleRemoveSkill = (idx) => {
+    setSkillsToTeach(skillsToTeach.filter((_, i) => i !== idx));
+  };
+  const handleSkillChange = (idx, field, value) => {
+    setSkillsToTeach(skillsToTeach.map((s, i) =>
+      i === idx ? { ...s, [field]: value, ...(field === 'subject' ? { topic: '', subtopic: '' } : field === 'topic' ? { subtopic: '' } : {}) } : s
+    ));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const {
@@ -95,13 +110,15 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
       gender,
       password,
       confirmPassword,
-      skillsToTeach,
     } = form;
-    if (!firstName || !username || !email || !phone || !gender || !password || !confirmPassword || !skillsToTeach) {
+    if (!firstName || !username || !email || !phone || !gender || !password || !confirmPassword) {
       return setError("Please fill in all required fields.");
     }
     if (password !== confirmPassword) {
       return setError("Passwords do not match.");
+    }
+    if (!skillsToTeach.length || skillsToTeach.some(s => !s.subject || !s.topic || !s.subtopic)) {
+      return setError('Please select subject, topic, and subtopic for each teaching skill.');
     }
     try {
       setIsLoading(true);
@@ -114,7 +131,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         phone,
         gender,
         password,
-        skillsToTeach: skillsToTeach.split(',').map(s => s.trim()),
+        skillsToTeach,
       });
       const { token, user } = res.data;
       Cookies.set('user', JSON.stringify(user), { expires: 1 });
@@ -409,15 +426,43 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                   <label className="block text-xs font-medium text-gray-700 mb-1">
                     What do you want to teach?
                   </label>
-                  <input
-                    type="text"
-                    name="skillsToTeach"
-                    value={form.skillsToTeach}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded px-2 py-1"
-                    placeholder="e.g. Mathematics, Physics"
-                    required
-                  />
+                  {skillsToTeach.map((skill, idx) => (
+                    <div key={idx} className="flex gap-2 mb-2">
+                      <select
+                        className="border rounded px-2 py-1"
+                        value={skill.subject}
+                        onChange={e => handleSkillChange(idx, 'subject', e.target.value)}
+                        required
+                      >
+                        <option value="">Select Subject</option>
+                        {STATIC_COURSES.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                      </select>
+                      <select
+                        className="border rounded px-2 py-1"
+                        value={skill.topic}
+                        onChange={e => handleSkillChange(idx, 'topic', e.target.value)}
+                        required
+                        disabled={!skill.subject}
+                      >
+                        <option value="">Select Topic</option>
+                        {(STATIC_UNITS[skill.subject] || []).map(topic => <option key={topic} value={topic}>{topic}</option>)}
+                      </select>
+                      <select
+                        className="border rounded px-2 py-1"
+                        value={skill.subtopic}
+                        onChange={e => handleSkillChange(idx, 'subtopic', e.target.value)}
+                        required
+                        disabled={!skill.topic}
+                      >
+                        <option value="">Select Subtopic</option>
+                        {(STATIC_TOPICS[skill.topic] || []).map(subtopic => <option key={subtopic} value={subtopic}>{subtopic}</option>)}
+                      </select>
+                      {skillsToTeach.length > 1 && (
+                        <button type="button" onClick={() => handleRemoveSkill(idx)} className="text-red-500 ml-1">Remove</button>
+                      )}
+                    </div>
+                  ))}
+                  <button type="button" onClick={handleAddSkill} className="text-blue-600 underline text-xs mt-1">Add Another</button>
                 </div>
 
                 <div className="text-[10px] text-gray-600 flex items-start">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Edit2, Save, XCircle, Plus, Trash2 } from 'lucide-react';
+import { STATIC_COURSES, STATIC_UNITS, STATIC_TOPICS } from '../../constants/teachingData';
 
 const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdit, cancelEdit, handleArrayChange, handleArrayAdd, handleArrayRemove, handleTeachProofUpload, handleCertFileUpload, teachProofs, certFiles, onSaveEdit }) => {
   const handleSave = () => {
@@ -82,16 +83,39 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
               <div className="flex flex-col gap-2">
                 {(fieldDraft.skillsToTeach || profile.skillsToTeach || []).map((s, i) => (
                   <div key={i} className="flex gap-2 items-center">
-                    <input
-                      className="border-b border-blue-200 focus:outline-none focus:border-blue-600 bg-blue-50 px-1 py-0.5 rounded text-xs"
-                      value={typeof s === 'string' ? s : s.skill || ''}
-                      onChange={e => handleArrayChange('skillsToTeach', i, e.target.value, typeof s === 'string' ? undefined : 'skill')}
-                      placeholder="Skill"
-                    />
+                    <select
+                      className="border rounded px-2 py-1 text-xs"
+                      value={s.subject || ''}
+                      onChange={e => handleArrayChange('skillsToTeach', i, e.target.value, 'subject')}
+                      required
+                    >
+                      <option value="">Select Subject</option>
+                      {STATIC_COURSES.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                    </select>
+                    <select
+                      className="border rounded px-2 py-1 text-xs"
+                      value={s.topic || ''}
+                      onChange={e => handleArrayChange('skillsToTeach', i, e.target.value, 'topic')}
+                      required
+                      disabled={!s.subject}
+                    >
+                      <option value="">Select Topic</option>
+                      {(STATIC_UNITS[s.subject] || []).map(topic => <option key={topic} value={topic}>{topic}</option>)}
+                    </select>
+                    <select
+                      className="border rounded px-2 py-1 text-xs"
+                      value={s.subtopic || ''}
+                      onChange={e => handleArrayChange('skillsToTeach', i, e.target.value, 'subtopic')}
+                      required
+                      disabled={!s.topic}
+                    >
+                      <option value="">Select Subtopic</option>
+                      {(STATIC_TOPICS[s.topic] || []).map(subtopic => <option key={subtopic} value={subtopic}>{subtopic}</option>)}
+                    </select>
                     <button onClick={() => handleArrayRemove('skillsToTeach', i)} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
                   </div>
                 ))}
-                <button onClick={() => handleArrayAdd('skillsToTeach', '')} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"><Plus size={14}/>Add Skill</button>
+                <button onClick={() => handleArrayAdd('skillsToTeach', { subject: '', topic: '', subtopic: '' })} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"><Plus size={14}/>Add Skill</button>
               </div>
             </div>
             {/* Experience */}
@@ -178,7 +202,7 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
                 {(profile.skillsToTeach || []).length > 0 ? (
                   (profile.skillsToTeach || []).map((s, i) => (
                     <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
-                      {typeof s === 'string' ? s : s.skill}
+                      {s.subject} {s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
                     </li>
                   ))
                 ) : (

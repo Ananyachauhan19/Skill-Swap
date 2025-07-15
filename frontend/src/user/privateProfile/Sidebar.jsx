@@ -141,6 +141,21 @@ const Sidebar = () => {
               <p className="text-sm text-blue-600/70 mt-2 max-w-md transition-colors duration-300">
                 {user?.bio || "Your bio goes here, set it in Setup Profile."}
               </p>
+              {/* What I Can Teach Section */}
+              <div className="mt-4 text-left">
+                <div className="font-semibold text-blue-900 mb-1">What I Can Teach:</div>
+                <ul className="flex flex-wrap gap-2">
+                  {(user?.skillsToTeach || []).length > 0 ? (
+                    user.skillsToTeach.map((s, i) => (
+                      <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
+                        {s.subject} {s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
+                      </li>
+                    ))
+                  ) : (
+                    <div className="text-gray-400">Not added yet</div>
+                  )}
+                </ul>
+              </div>
               <div className="mt-4">
                 <button
                   className="border border-blue-200 text-blue-900 px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105"

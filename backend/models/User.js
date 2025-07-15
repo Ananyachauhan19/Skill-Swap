@@ -14,7 +14,13 @@ const userSchema = new mongoose.Schema({
   // 🔽 Add these two fields
   otp: String,
   otpExpires: Date,
-  skillsToTeach: [{ type: String, default: [] }],
+  skillsToTeach: [
+    {
+      subject: { type: String, required: true },
+      topic: { type: String, required: true },
+      subtopic: { type: String, required: true },
+    }
+  ],
   skillsToLearn: [{ type: String, default: [] }],
   
   // 🔽 Add comprehensive profile fields

@@ -2,17 +2,32 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../../config.js';
+import { STATIC_COURSES, STATIC_UNITS, STATIC_TOPICS } from '../../constants/teachingData';
 
 const CompleteProfile = () => {
   const navigate = useNavigate();
-  const [skillsToTeach, setSkillsToTeach] = useState('');
+  const [skillsToTeach, setSkillsToTeach] = useState([
+    { subject: '', topic: '', subtopic: '' }
+  ]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handleAddSkill = () => {
+    setSkillsToTeach([...skillsToTeach, { subject: '', topic: '', subtopic: '' }]);
+  };
+  const handleRemoveSkill = (idx) => {
+    setSkillsToTeach(skillsToTeach.filter((_, i) => i !== idx));
+  };
+  const handleSkillChange = (idx, field, value) => {
+    setSkillsToTeach(skillsToTeach.map((s, i) =>
+      i === idx ? { ...s, [field]: value, ...(field === 'subject' ? { topic: '', subtopic: '' } : field === 'topic' ? { subtopic: '' } : {}) } : s
+    ));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!skillsToTeach) {
-      setError('Please fill in the field.');
+    if (!skillsToTeach.length || skillsToTeach.some(s => !s.subject || !s.topic || !s.subtopic)) {
+      setError('Please select subject, topic, and subtopic for each teaching skill.');
       return;
     }
     setLoading(true);
@@ -25,7 +40,7 @@ const CompleteProfile = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          skillsToTeach: skillsToTeach.split(',').map(s => s.trim()),
+          skillsToTeach,
         }),
       });
       if (!res.ok) {
@@ -50,14 +65,43 @@ const CompleteProfile = () => {
         {error && <div className="mb-4 text-red-600 text-sm">{error}</div>}
         <div className="mb-6">
           <label className="block text-gray-700 mb-1">What do you want to teach?</label>
-          <input
-            type="text"
-            value={skillsToTeach}
-            onChange={e => setSkillsToTeach(e.target.value)}
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            placeholder="e.g. Mathematics, Physics"
-            required
-          />
+          {skillsToTeach.map((skill, idx) => (
+            <div key={idx} className="flex gap-2 mb-2">
+              <select
+                className="border rounded px-2 py-1"
+                value={skill.subject}
+                onChange={e => handleSkillChange(idx, 'subject', e.target.value)}
+                required
+              >
+                <option value="">Select Subject</option>
+                {STATIC_COURSES.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+              </select>
+              <select
+                className="border rounded px-2 py-1"
+                value={skill.topic}
+                onChange={e => handleSkillChange(idx, 'topic', e.target.value)}
+                required
+                disabled={!skill.subject}
+              >
+                <option value="">Select Topic</option>
+                {(STATIC_UNITS[skill.subject] || []).map(topic => <option key={topic} value={topic}>{topic}</option>)}
+              </select>
+              <select
+                className="border rounded px-2 py-1"
+                value={skill.subtopic}
+                onChange={e => handleSkillChange(idx, 'subtopic', e.target.value)}
+                required
+                disabled={!skill.topic}
+              >
+                <option value="">Select Subtopic</option>
+                {(STATIC_TOPICS[skill.topic] || []).map(subtopic => <option key={subtopic} value={subtopic}>{subtopic}</option>)}
+              </select>
+              {skillsToTeach.length > 1 && (
+                <button type="button" onClick={() => handleRemoveSkill(idx)} className="text-red-500 ml-1">Remove</button>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={handleAddSkill} className="text-blue-600 underline text-xs mt-1">Add Another</button>
         </div>
         <button
           type="submit"
