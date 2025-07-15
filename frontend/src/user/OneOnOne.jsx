@@ -2,7 +2,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from 'react';
 import { BACKEND_URL } from '../config.js';
-import SearchBar from './oneononeSection/serachBar'; 
+import SearchBar from './oneononeSection/serachBar';
 import TutorCard from './oneononeSection/TutorCard';
 import Testimonial from "./Testimonial";
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -91,7 +91,7 @@ const HowItWorks = () => (
           </svg>
         </div>
         <h3 className="text-base font-semibold text-blue-900">Example</h3>
-        <p className="text-xs text-blue-700 mt-1">A 40 min session = 10 Silver Coins (10 rupees)</p>
+        <p className="text-xs text-blue-700 mt-1">AA 40 min session = 10 Silver coins (10 rupees)</p>
         <p className="text-xs text-blue-700 mt-1">A 60 min session = 15 Silver Coins (15 rupees)</p>
       </div>
     </div>
@@ -139,7 +139,7 @@ const OneOnOne = () => {
 
       const res = await fetch(`${BACKEND_URL}/api/sessions/search?${queryParams.toString()}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          AuthorizationទAuthorization: `Bearer ${token}`,
         },
       });
 
@@ -204,7 +204,7 @@ const OneOnOne = () => {
 
   return (
     <div className="min-h-screen w-full bg-blue-50">
-      <header className="w-full max-w-7xl mx-auto text-center py-6 sm:py-10 px-4 sm:px-6 relative animate-fadeIn">
+      <header className="w-full max-w-7xl mx-auto text-center py-6 sm:py-10 px-4 sm:px-6 uova relative animate-fadeIn">
         <div className="relative flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex-1 text-left">
             <h1 className="text-4xl sm:text-5xl font-bold text-blue-900 mb-4 leading-tight">
@@ -246,49 +246,51 @@ const OneOnOne = () => {
           <span className="inline-block bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 hover:bg-blue-200">
             Flexible Scheduling
           </span>
-      </div>
+        </div>
       </header>
-      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-16 px-4 sm:px-6 pb-12">
+      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-16 px-4 sm:px-8 pb-16">
+        <div className="py-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-blue-900 mb-6 text-center animate-fadeIn">Find Your Expert</h2>
+          <SearchBar
+            ref={searchBarRef}
+            courseValue={course}
+            setCourseValue={setCourse}
+            unitValue={unit}
+            setUnitValue={setUnit}
+            topicValue={topic}
+            setTopicValue={setTopic}
+            onFindTutor={handleFindTutor}
+            id="oneonone-search-bar"
+          />
+          {showTutors && (
+            <div className="flex flex-col gap-8 mt-8 animate-fadeIn">
+              {loading ? (
+                <p className="text-center text-blue-600">Searching...</p>
+              ) : Array.isArray(searchResults) && searchResults.length === 0 ? (
+                <p className="text-center text-gray-500">No pending sessions found.</p>
+              ) : Array.isArray(searchResults) ? (
+                searchResults.map((session, idx) => (
+                  <TutorCard
+                    key={idx}
+                    tutor={{
+                      name: `${session.creator?.firstName ?? ''} ${session.creator?.lastName ?? ''}`.trim() || 'Unknown',
+                      profilePic: '/default-user.png',
+                      date: session.date,
+                      time: session.time,
+                      skills: [session.subject, session.topic, session.subtopic].filter(Boolean),
+                      status: `${session.status}` === 'pending' ? '🟢 Available' : `🔴 Busy (${session.status})`,
+                      rating: 4.5,
+                    }}
+                    onRequestSession={() => handleRequestSession(session)}
+                  />
+                ))
+              ) : (
+                <p className="text-red-600">Unexpected response format.</p>
+              )}
+            </div>
+          )}
+        </div>
         <HowItWorks />
-        <h2 className="text-xl sm:text-2xl font-bold text-blue-900 mb-4 text-center animate-fadeIn">Find Your Expert</h2>
-        <SearchBar
-          ref={searchBarRef}
-          courseValue={course}
-          setCourseValue={setCourse}
-          unitValue={unit}
-          setUnitValue={setUnit}
-          topicValue={topic}
-          setTopicValue={setTopic}
-          onFindTutor={handleFindTutor}
-          id="oneonone-search-bar"
-        />
-        {showTutors && (
-          <div className="flex flex-col gap-6 animate-fadeIn">
-            {loading ? (
-              <p className="text-center text-blue-600">Searching...</p>
-            ) : Array.isArray(searchResults) && searchResults.length === 0 ? (
-              <p className="text-center text-gray-500">No pending sessions found.</p>
-            ) : Array.isArray(searchResults) ? (
-              searchResults.map((session, idx) => (
-                <TutorCard
-                  key={idx}
-                  tutor={{
-                    name: `${session.creator?.firstName ?? ''} ${session.creator?.lastName ?? ''}`.trim() || 'Unknown',
-                    profilePic: '/default-user.png',
-                    date: session.date,
-                    time: session.time,
-                    skills: [session.subject, session.topic, session.subtopic].filter(Boolean),
-                    status: `${session.status}` === 'pending' ? '🟢 Available' : `🔴 Busy (${session.status})`,
-                    rating: 4.5,
-                  }}
-                  onRequestSession={() => handleRequestSession(session)}
-                />
-              ))
-            ) : (
-              <p className="text-red-600">Unexpected response format.</p>
-            )}
-          </div>
-        )}
         <Testimonial />
       </main>
 
