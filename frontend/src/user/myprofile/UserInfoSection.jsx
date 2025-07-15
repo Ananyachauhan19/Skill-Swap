@@ -9,7 +9,6 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
       ...fieldDraft,
       // Ensure skills are properly included
       skillsToTeach: fieldDraft.skillsToTeach || profile.skillsToTeach || [],
-      skillsToLearn: fieldDraft.skillsToLearn || profile.skillsToLearn || [],
     };
     
     console.log('UserInfoSection - Saving profile with skills:', {
@@ -17,7 +16,6 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
       profile: profile,
       updatedProfile: updatedProfile,
       skillsToTeach: updatedProfile.skillsToTeach,
-      skillsToLearn: updatedProfile.skillsToLearn
     });
     
     // Call the parent's save function
@@ -94,24 +92,6 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
                   </div>
                 ))}
                 <button onClick={() => handleArrayAdd('skillsToTeach', '')} className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"><Plus size={14}/>Add Skill</button>
-              </div>
-            </div>
-            {/* What I Want to Learn */}
-            <div className="mt-2">
-              <div className="font-semibold text-blue-900 mb-1">What I Want to Learn:</div>
-              <div className="flex flex-col gap-2">
-                {(fieldDraft.skillsToLearn || profile.skillsToLearn || []).map((s, i) => (
-                  <div key={i} className="flex gap-2 items-center">
-                    <input
-                      className="border-b border-yellow-200 focus:outline-none focus:border-yellow-600 bg-yellow-50 px-1 py-0.5 rounded text-xs"
-                      value={typeof s === 'string' ? s : s.skill || ''}
-                      onChange={e => handleArrayChange('skillsToLearn', i, e.target.value, typeof s === 'string' ? undefined : 'skill')}
-                      placeholder="Skill"
-                    />
-                    <button onClick={() => handleArrayRemove('skillsToLearn', i)} className="text-red-500 hover:text-red-700"><Trash2 size={16}/></button>
-                  </div>
-                ))}
-                <button onClick={() => handleArrayAdd('skillsToLearn', '')} className="flex items-center gap-1 text-yellow-600 hover:text-yellow-800 text-xs mt-1"><Plus size={14}/>Add Skill</button>
               </div>
             </div>
             {/* Experience */}
@@ -206,21 +186,7 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
                 )}
               </ul>
             </div>
-            {/* What I Want to Learn */}
-            <div className="mt-2">
-              <div className="font-semibold text-blue-900 mb-1">What I Want to Learn:</div>
-              <ul className="flex flex-wrap gap-2">
-                {(profile.skillsToLearn || []).length > 0 ? (
-                  (profile.skillsToLearn || []).map((s, i) => (
-                    <li key={i} className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-medium border border-yellow-200 flex items-center gap-1">
-                      {typeof s === 'string' ? s : s.skill}
-                    </li>
-                  ))
-                ) : (
-                  <div className="text-gray-400">Not added yet</div>
-                )}
-              </ul>
-            </div>
+            
             {/* Experience */}
             <div className="mt-2">
               <div className="font-semibold text-blue-900 mb-1">Experience:</div>
