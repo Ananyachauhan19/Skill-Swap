@@ -97,7 +97,6 @@ const appRoutes = [
 function CompleteProfileModal({ user, onComplete }) {
   const [username, setUsername] = useState(user?.username || '');
   const [skillsToTeach, setSkillsToTeach] = useState((user?.skillsToTeach || []).join(', '));
-  const [skillsToLearn, setSkillsToLearn] = useState((user?.skillsToLearn || []).join(', '));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -114,7 +113,6 @@ function CompleteProfileModal({ user, onComplete }) {
         body: JSON.stringify({
           username,
           skillsToTeach: skillsToTeach.split(',').map(s => s.trim()).filter(Boolean),
-          skillsToLearn: skillsToLearn.split(',').map(s => s.trim()).filter(Boolean),
         }),
       });
       if (res.ok) {
@@ -142,10 +140,6 @@ function CompleteProfileModal({ user, onComplete }) {
           What I Can Teach (comma separated)
           <input value={skillsToTeach} onChange={e => setSkillsToTeach(e.target.value)} className="w-full border p-2 rounded" />
         </label>
-        <label className="block mb-2">
-          What I Want to Learn (comma separated)
-          <input value={skillsToLearn} onChange={e => setSkillsToLearn(e.target.value)} className="w-full border p-2 rounded" />
-        </label>
         <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded mt-4" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
       </form>
     </div>
@@ -167,8 +161,7 @@ function App() {
     return (
       !user.username ||
       user.username.startsWith('user') ||
-      !(user.skillsToTeach && user.skillsToTeach.length) ||
-      !(user.skillsToLearn && user.skillsToLearn.length)
+      !(user.skillsToTeach && user.skillsToTeach.length)
     );
   };
 

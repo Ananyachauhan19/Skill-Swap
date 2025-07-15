@@ -7,7 +7,7 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
     const updatedProfile = {
       ...profile,
       ...fieldDraft,
-      // Ensure skills are properly included
+      // Only skillsToTeach is included now
       skillsToTeach: fieldDraft.skillsToTeach || profile.skillsToTeach || [],
     };
     
@@ -186,7 +186,6 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
                 )}
               </ul>
             </div>
-            
             {/* Experience */}
             <div className="mt-2">
               <div className="font-semibold text-blue-900 mb-1">Experience:</div>

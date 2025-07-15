@@ -28,7 +28,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     password: "",
     confirmPassword: "",
     skillsToTeach: "",
-    skillsToLearn: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -97,9 +96,8 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
       password,
       confirmPassword,
       skillsToTeach,
-      skillsToLearn,
     } = form;
-    if (!firstName || !username || !email || !phone || !gender || !password || !confirmPassword || !skillsToTeach || !skillsToLearn) {
+    if (!firstName || !username || !email || !phone || !gender || !password || !confirmPassword || !skillsToTeach) {
       return setError("Please fill in all required fields.");
     }
     if (password !== confirmPassword) {
@@ -117,7 +115,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         gender,
         password,
         skillsToTeach: skillsToTeach.split(',').map(s => s.trim()),
-        skillsToLearn: skillsToLearn.split(',').map(s => s.trim()),
       });
       const { token, user } = res.data;
       Cookies.set('user', JSON.stringify(user), { expires: 1 });
@@ -419,20 +416,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                     onChange={handleChange}
                     className="w-full border border-gray-300 rounded px-2 py-1"
                     placeholder="e.g. Mathematics, Physics"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    What do you want to learn?
-                  </label>
-                  <input
-                    type="text"
-                    name="skillsToLearn"
-                    value={form.skillsToLearn}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded px-2 py-1"
-                    placeholder="e.g. Chemistry, Programming"
                     required
                   />
                 </div>

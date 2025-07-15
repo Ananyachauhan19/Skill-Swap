@@ -266,73 +266,17 @@ const Profile = () => {
     setFieldDraft({});
   };
   const saveEdit = (field) => {
-    if (field === 'links') {
-      setProfile(prev => ({
-        ...prev,
-        linkedin: fieldDraft.linkedin,
-        github: fieldDraft.github,
-        twitter: fieldDraft.twitter,
-        website: fieldDraft.website,
-      }));
-      setEditingField(null);
-      setFieldDraft({});
-      setTimeout(() => {
-        localStorage.setItem('user', JSON.stringify({
-          ...profile,
-          linkedin: fieldDraft.linkedin,
-          github: fieldDraft.github,
-          twitter: fieldDraft.twitter,
-          website: fieldDraft.website,
-        }));
-        window.dispatchEvent(new Event('profileUpdated'));
-      }, 0);
-    } else if (field === 'education') {
-      setProfile(prev => ({
-        ...prev,
-        education: [
-          {
-            course: fieldDraft.course || '',
-            branch: fieldDraft.branch || '',
-            college: fieldDraft.college || '',
-            city: fieldDraft.city || '',
-            passingYear: fieldDraft.passingYear || '',
-          },
-          ...prev.education.filter((_, i) => i !== 0),
-        ],
-      }));
-      setEditingField(null);
-      setFieldDraft({});
-      setTimeout(() => {
-        localStorage.setItem('user', JSON.stringify({
-          ...profile,
-          education: [
-            {
-              course: fieldDraft.course || '',
-              branch: fieldDraft.branch || '',
-              college: fieldDraft.college || '',
-              city: fieldDraft.city || '',
-              passingYear: fieldDraft.passingYear || '',
-            },
-            ...profile.education.filter((_, i) => i !== 0),
-          ],
-        }));
-        window.dispatchEvent(new Event('profileUpdated'));
-      }, 0);
-    } else {
-      setProfile(prev => ({ ...prev, [field]: fieldDraft[field] }));
-      setEditingField(null);
-      setFieldDraft({});
-      setTimeout(() => {
-        localStorage.setItem('user', JSON.stringify({ ...profile, [field]: fieldDraft[field] }));
-        window.dispatchEvent(new Event('profileUpdated'));
-      }, 0);
-    }
+    setProfile(prev => ({ ...prev, [field]: fieldDraft[field] }));
+    setEditingField(null);
+    setFieldDraft({});
+    setTimeout(() => {
+      localStorage.setItem('user', JSON.stringify({ ...profile, [field]: fieldDraft[field] }));
+      window.dispatchEvent(new Event('profileUpdated'));
+    }, 0);
   };
 
   // --- Array Field Handlers ---
   const handleArrayChange = (field, idx, value, subfield) => {
-    console.log('handleArrayChange called:', { field, idx, value, subfield, editingField });
-    
     if (editingField === 'userInfo') {
       // When editing UserInfoSection, update fieldDraft
       setFieldDraft(prev => {
@@ -342,9 +286,7 @@ const Profile = () => {
         } else {
           arr[idx] = value;
         }
-        const updated = { ...prev, [field]: arr };
-        console.log('Updated fieldDraft:', updated);
-        return updated;
+        return { ...prev, [field]: arr };
       });
     } else {
       // Otherwise update main profile state
@@ -360,31 +302,21 @@ const Profile = () => {
     }
   };
   const handleArrayAdd = (field, template = '') => {
-    console.log('handleArrayAdd called:', { field, template, editingField });
-    
     if (editingField === 'userInfo') {
       // When editing UserInfoSection, update fieldDraft
-      setFieldDraft(prev => {
-        const updated = { ...prev, [field]: [...(prev[field] || []), template] };
-        console.log('Added to fieldDraft:', updated);
-        return updated;
-      });
+      setFieldDraft(prev => ({ ...prev, [field]: [...(prev[field] || []), template] }));
     } else {
       // Otherwise update main profile state
       setProfile(prev => ({ ...prev, [field]: [...(prev[field] || []), template] }));
     }
   };
   const handleArrayRemove = (field, idx) => {
-    console.log('handleArrayRemove called:', { field, idx, editingField });
-    
     if (editingField === 'userInfo') {
       // When editing UserInfoSection, update fieldDraft
       setFieldDraft(prev => {
         const arr = [...(prev[field] || [])];
         arr.splice(idx, 1);
-        const updated = { ...prev, [field]: arr };
-        console.log('Removed from fieldDraft:', updated);
-        return updated;
+        return { ...prev, [field]: arr };
       });
     } else {
       // Otherwise update main profile state
