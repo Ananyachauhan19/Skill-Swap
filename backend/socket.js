@@ -1,5 +1,8 @@
 const User = require('./models/User');
 
+// Export onlineUsers at module level so it can be imported by other modules
+const onlineUsers = new Map();
+
 module.exports = (io) => {
   // Store session rooms
   const sessionRooms = new Map();
@@ -19,6 +22,12 @@ module.exports = (io) => {
           console.log(`[Socket Register] No user found for userId: ${userId}`);
         }
       }
+    });
+
+    // When a user registers their userId after login
+    socket.on('register', (userId) => {
+      onlineUsers.set(userId, socket.id);
+      io.emit('online-users', Array.from(onlineUsers.keys())); // broadcast online users
     });
 
     // Join session room for video calling
@@ -67,6 +76,15 @@ module.exports = (io) => {
     });
 
     socket.on('disconnect', () => {
+      // Remove user from onlineUsers map
+      for (const [userId, socketId] of onlineUsers.entries()) {
+        if (socketId === socket.id) {
+          onlineUsers.delete(userId);
+          break;
+        }
+      }
+      // Broadcast updated online users list
+      io.emit('online-users', Array.from(onlineUsers.keys()));
       
       // Remove socket from all session rooms
       for (const [sessionId, sockets] of sessionRooms.entries()) {
@@ -80,7 +98,6 @@ module.exports = (io) => {
           }
         }
       }
-      
       // Optionally: clear socketId from user here
     });
 
@@ -88,5 +105,18 @@ module.exports = (io) => {
     socket.on('start-call', ({ to }) => {
       io.to(to).emit('call-started');
     });
+
+    // Handle request sending
+    socket.on('send-session-request', ({ toUserId, fromUser }) => {
+      const targetSocketId = onlineUsers.get(toUserId);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('receive-session-request', { fromUser });
+      }
+    });
   });
+
+  return { onlineUsers };
 };
+
+// Export onlineUsers for use in other modules
+module.exports.onlineUsers = onlineUsers;

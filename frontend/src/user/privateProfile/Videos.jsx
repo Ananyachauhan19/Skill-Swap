@@ -304,14 +304,14 @@ const Videos = () => {
 
   // Handle upload
   const handleUpload = async (e) => {
-    e.preventDefault();
-    let newVideo;
-    if (editVideoIdx !== null && videos[editVideoIdx]) {
-      const existingVideo = videos[editVideoIdx];
-      newVideo = {
+  e.preventDefault();
+  let newVideo;
+  if (editVideoIdx !== null && videos[editVideoIdx]) {
+    const existingVideo = videos[editVideoIdx];
+    newVideo = {
         ...existingVideo,
         title,
-        description,
+      description,
         thumbnail: thumbnailPreview || existingVideo.thumbnail,
         videoUrl: videoPreview || existingVideo.videoUrl,
         uploadDate: existingVideo.uploadDate,
@@ -346,23 +346,23 @@ const Videos = () => {
         setError("Failed to update video");
         return;
       }
-    } else {
-      newVideo = {
+  } else {
+    newVideo = {
         id: Date.now().toString(),
-        title,
-        description,
-        thumbnail: thumbnailPreview,
-        videoUrl: videoPreview,
-        uploadDate: new Date().toLocaleString(),
-        userId: "user123",
-        skillmates: 0,
-        views: 0,
-        likes: 0,
-        dislikes: 0,
-        isLive: false,
-        scheduledTime: null,
-        isDraft: false,
-      };
+      title,
+      description,
+      thumbnail: thumbnailPreview,
+      videoUrl: videoPreview,
+      uploadDate: new Date().toLocaleString(),
+      userId: "user123",
+      skillmates: 0,
+      views: 0,
+      likes: 0,
+      dislikes: 0,
+      isLive: false,
+      scheduledTime: null,
+      isDraft: false,
+    };
       try {
         const uploadedVideo = await uploadVideo(newVideo);
         setVideos((prev) => {
@@ -372,18 +372,18 @@ const Videos = () => {
         });
         setFilteredVideos((prev) => {
           let filtered = [uploadedVideo, ...prev];
-          if (searchQuery) {
+    if (searchQuery) {
             filtered = filtered.filter(
               (video) =>
-                video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (video.description && video.description.toLowerCase().includes(searchQuery.toLowerCase()))
-            );
-          }
-          if (statusFilter !== "all") {
-            filtered = filtered.filter((video) =>
-              statusFilter === "draft" ? video.isDraft : !video.isDraft
-            );
-          }
+        video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (video.description && video.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+    }
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((video) =>
+        statusFilter === "draft" ? video.isDraft : !video.isDraft
+      );
+    }
           return filtered;
         });
       } catch (err) {
@@ -396,8 +396,8 @@ const Videos = () => {
     setEditVideoIdx(null);
     if (location.pathname !== "/profile/panel/videos") {
       navigate("/profile/panel/videos");
-    }
-  };
+  }
+};
 
   // Edit, archive, save, share, delete
   const handleEdit = (video, idx) => {
@@ -568,8 +568,8 @@ const Videos = () => {
                   variants={itemVariants}
                   className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-2"
                 >
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
                     <motion.select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
@@ -579,14 +579,14 @@ const Videos = () => {
                       <option value="draft">Drafts</option>
                       <option value="published">Published</option>
                     </motion.select>
-                  </div>
+            </div>
                   <motion.button
                     whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                     whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
                     className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                    onClick={() => setShowUpload(true)}
-                  >
-                    + Upload Session
+              onClick={() => setShowUpload(true)}
+            >
+              + Upload Session
                   </motion.button>
                 </motion.div>
               </header>
@@ -640,8 +640,8 @@ const Videos = () => {
               initial="hidden"
               animate="visible"
               className="w-full h-[calc(100vh-4rem)] bg-[#E6F0FA] p-3 sm:p-4 flex flex-col justify-start overflow-hidden rounded-lg"
-              onSubmit={handleUpload}
-            >
+          onSubmit={handleUpload}
+        >
               <motion.h2
                 variants={itemVariants}
                 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-3"
@@ -651,110 +651,110 @@ const Videos = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <motion.label variants={itemVariants} className="block text-sm font-semibold text-black opacity-70">
                   Title
-                  <input
+            <input
                     className="mt-1 w-full border border-blue-200 rounded-md px-2 py-1.5 bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Enter session title"
-                    required
-                  />
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter session title"
+              required
+            />
                 </motion.label>
                 <motion.label variants={itemVariants} className="block text-sm font-semibold text-black opacity-70">
-                  Description
-                  <textarea
+              Description
+            <textarea
                     className="mt-1 w-full border border-blue-200 rounded-md px-2 py-1.5 bg-white/90 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-300"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
                     placeholder="Enter session description"
                     rows="2"
-                    required
-                  />
+              required
+            />
                 </motion.label>
                 <motion.label variants={itemVariants} className="block text-sm font-semibold text-black opacity-70">
                   Thumbnail
-                  <input
-                    type="file"
-                    accept="image/*"
+            <input
+              type="file"
+              accept="image/*"
                     className="mt-1 w-full text-black opacity-70 file:bg-blue-800 file:text-white file:rounded-md file:px-3 file:py-1 file:border-none hover:file:bg-blue-900 file:transition-all file:duration-300"
-                    onChange={handleThumbnailChange}
-                  />
+              onChange={handleThumbnailChange}
+            />
                   <AnimatePresence>
-                    {thumbnailPreview && (
+            {thumbnailPreview && (
                       <motion.img
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                         className="mt-2 w-24 h-16 object-cover rounded shadow"
-                        src={thumbnailPreview}
-                        alt="Preview"
+                src={thumbnailPreview}
+                alt="Preview"
                       />
                     )}
                   </AnimatePresence>
                 </motion.label>
                 <motion.label variants={itemVariants} className="block text-sm font-semibold text-black opacity-70">
                   Video File
-                  <input
-                    type="file"
-                    accept="video/*"
+            <input
+              type="file"
+              accept="video/*"
                     className="mt-1 w-full text-black opacity-70 file:bg-blue-800 file:text-white file:rounded-md file:px-3 file:py-1 file:border-none hover:file:bg-blue-900 file:transition-all file:duration-300"
-                    onChange={handleVideoChange}
-                    disabled={editVideoIdx !== null}
-                  />
+              onChange={handleVideoChange}
+              disabled={editVideoIdx !== null}
+            />
                   <AnimatePresence>
-                    {videoPreview && (
+            {videoPreview && (
                       <motion.video
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                         className="mt-2 w-full sm:w-32 h-20 rounded shadow"
-                        src={videoPreview}
-                        controls
-                      />
-                    )}
+                src={videoPreview}
+                controls
+              />
+            )}
                   </AnimatePresence>
                 </motion.label>
-              </div>
+          </div>
               <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-2">
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                   whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
-                  type="submit"
+              type="submit"
                   disabled={!title || !description || !thumbnailPreview || (!videoPreview && editVideoIdx === null)}
                   className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                >
-                  {editVideoIdx !== null ? "Save Changes" : "Upload"}
+            >
+              {editVideoIdx !== null ? "Save Changes" : "Upload"}
                 </motion.button>
-                {editVideoIdx === null && (
+            {editVideoIdx === null && (
                   <motion.button
                     whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                     whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
-                    type="button"
+                type="button"
                     disabled={!title || !description || !thumbnailPreview || !videoPreview}
-                    onClick={handleSaveDraft}
+                onClick={handleSaveDraft}
                     className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                  >
-                    Save as Draft
+              >
+                Save as Draft
                   </motion.button>
-                )}
+            )}
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                   whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
-                  type="button"
+              type="button"
                   className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                  onClick={() => {
-                    setShowUpload(false);
-                    resetForm();
-                    setEditVideoIdx(null);
-                    navigate("/profile/panel/videos");
-                  }}
-                >
-                  Cancel
+              onClick={() => {
+                setShowUpload(false);
+                resetForm();
+                setEditVideoIdx(null);
+                navigate("/profile/panel/videos");
+              }}
+            >
+              Cancel
                 </motion.button>
               </motion.div>
             </motion.form>
           )}
           <AnimatePresence>
-            {showDeleteConfirm !== null && (
+      {showDeleteConfirm !== null && (
               <motion.div
                 variants={modalVariants}
                 initial="hidden"
@@ -768,24 +768,24 @@ const Videos = () => {
                 >
                   <h3 className="text-lg font-bold text-blue-900 tracking-tight mb-3">Confirm Delete</h3>
                   <p className="mb-3 text-black opacity-70 font-medium">Are you sure you want to delete this video?</p>
-                  <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2">
                     <motion.button
                       whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                       whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
                       className="px-3 py-1.5 bg-blue-800 text-white rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                      onClick={() => setShowDeleteConfirm(null)}
-                    >
-                      Cancel
+                onClick={() => setShowDeleteConfirm(null)}
+              >
+                Cancel
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.05, boxShadow: "6px 6px 12px #d1d9e6, -6px -6px 12px #f5f7ff" }}
                       whileTap={{ scale: 0.95, boxShadow: "inset 2px 2px 4px #d1d9e6" }}
                       className="px-3 py-1.5 bg-blue-800 text-white rounded-md font-semibold shadow-[6px_6px_12px_#d1d9e6,-6px_-6px_12px_#f5f7ff] hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                      onClick={confirmDelete}
-                    >
-                      Delete
+                onClick={confirmDelete}
+              >
+                Delete
                     </motion.button>
-                  </div>
+            </div>
                 </motion.div>
               </motion.div>
             )}

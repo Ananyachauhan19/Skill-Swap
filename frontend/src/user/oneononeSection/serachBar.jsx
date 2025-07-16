@@ -87,7 +87,7 @@ const STATIC_TOPICS = {
   'Probability Theory': ['Random Variables', 'Probability Distributions'],
 };
 
-const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitValue, topicValue, setTopicValue, onFindTutor }, ref) => {
+const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitValue, topicValue, setTopicValue, onFindTutor, hasOnlineUsers, onlineUserCount, isSearching }, ref) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
   const [showTopicDropdown, setShowTopicDropdown] = useState(false);
@@ -184,6 +184,23 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
 
   return (
     <div ref={ref} className="flex flex-col sm:flex-row gap-4 p-6 bg-blue-50 rounded-xl shadow-lg border border-blue-200/50 max-w-4xl mx-auto">
+      {/* Online Status Indicator */}
+      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+        <div className={`px-4 py-1 rounded-full text-sm font-medium ${
+          hasOnlineUsers 
+            ? 'bg-green-100 text-green-800 border border-green-300' 
+            : 'bg-gray-100 text-gray-600 border border-gray-300'
+        }`}>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${hasOnlineUsers ? 'bg-green-500' : 'bg-gray-400'}`}></div>
+            {hasOnlineUsers 
+              ? `${onlineUserCount} Tutor${onlineUserCount > 1 ? 's' : ''} Online` 
+              : 'No Tutors Online'
+            }
+          </div>
+        </div>
+      </div>
+      
       {/* Course Input */}
       <div className="relative flex-1">
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500">
@@ -349,15 +366,24 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
       {/* Find Tutor Button */}
       <motion.button
         type="button"
-        className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+        className={`px-6 py-3 rounded-full font-semibold text-lg shadow-lg transition-all duration-300 ${
+          hasOnlineUsers && courseValue && unitValue && topicValue && !isSearching
+            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-xl hover:scale-105'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+        }`}
         onClick={() => {
-          if (onFindTutor) onFindTutor();
+          if (onFindTutor && hasOnlineUsers && !isSearching) onFindTutor();
         }}
-        disabled={!courseValue || !unitValue || !topicValue}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        disabled={!hasOnlineUsers || !courseValue || !unitValue || !topicValue || isSearching}
+        whileHover={hasOnlineUsers && courseValue && unitValue && topicValue && !isSearching ? { scale: 1.05 } : {}}
+        whileTap={hasOnlineUsers && courseValue && unitValue && topicValue && !isSearching ? { scale: 0.95 } : {}}
       >
-        Find Tutor
+        {isSearching ? (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            Searching...
+          </div>
+        ) : hasOnlineUsers ? 'Find Tutor' : 'No Tutors Online'}
       </motion.button>
     </div>
   );
