@@ -32,7 +32,6 @@ import StartSkillSwap from './user/StartSkillSwap';
 import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
-// In App.jsx or any file inside src/
 import CompleteProfile from './user/myprofile/CompleteProfile';
 
 

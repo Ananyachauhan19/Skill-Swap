@@ -4,6 +4,7 @@ import { FaBriefcase, FaUserFriends, FaComments, FaChalkboardTeacher, FaUsers, F
 import { motion, AnimatePresence } from "framer-motion";
 import Login from "../auth/Login";
 import Register from "../auth/Register";
+import CompleteProfile from '../user/myprofile/CompleteProfile';
 import { useModal } from "../context/ModalContext";
 import HeroSection from "./HomeSection/HeroSection";
 import ExploreOpportunitiesSection from "./HomeSection/ExploreOpportunitiesSection";
@@ -15,17 +16,15 @@ import LetsStartSection from "./HomeSection/LetsStartSection";
 import Testimonial from "./Testimonial";
 import Cookies from 'js-cookie';
 
-// HomeHero component: Main landing page for SkillSwap-Hub
 const HomeHero = () => {
   const navigate = useNavigate();
   const { showLoginModal, showRegisterModal, openLogin, openRegister, closeModals } = useModal();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
+  const [showCompleteProfile, setShowCompleteProfile] = useState(false);
 
-  // Ref for Explore Opportunities section
   const exploreRef = React.useRef(null);
 
-  // Effect: Handle OAuth and user persistence
   useEffect(() => {
     const url = new URL(window.location.href);
     const token = url.searchParams.get("token");
@@ -34,18 +33,17 @@ const HomeHero = () => {
       try {
         const userObj = JSON.parse(decodeURIComponent(user));
         Cookies.set('user', JSON.stringify(userObj), { expires: 1 });
-        Cookies.set('token', token, { expires: 1, path: '/' }); // Force global token cookie
+        Cookies.set('token', token, { expires: 1, path: '/' });
         localStorage.setItem('token', token);
         setUser(userObj);
-        // Redirect to complete profile if skills are missing
         if (
-          !userObj.skillsToTeach ||
-          !userObj.skillsToLearn ||
-          userObj.skillsToTeach.length === 0 ||
-          userObj.skillsToLearn.length === 0
+          !userObj?.username ||
+          userObj.username.startsWith('user') ||
+          !(userObj.skillsToTeach && userObj.skillsToTeach.length)
         ) {
-          navigate('/complete-profile');
-          return;
+          setShowCompleteProfile(true);
+        } else {
+          setShowCompleteProfile(false);
         }
         setIsLoggedIn(true);
       } catch (e) {
@@ -58,19 +56,61 @@ const HomeHero = () => {
 
     const storedUser = Cookies.get('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const userObj = JSON.parse(storedUser);
+      setUser(userObj);
       setIsLoggedIn(true);
+      if (
+        !userObj?.username ||
+        userObj.username.startsWith('user') ||
+        !(userObj.skillsToTeach && userObj.skillsToTeach.length)
+      ) {
+        setShowCompleteProfile(true);
+      } else {
+        setShowCompleteProfile(false);
+      }
     }
   }, []);
 
-  // Data: Stats for activity section
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    setIsLoggedIn(true);
+    closeModals();
+    if (
+      !userData?.username ||
+      userData.username.startsWith('user') ||
+      !(userData.skillsToTeach && userData.skillsToTeach.length)
+    ) {
+      setShowCompleteProfile(true);
+    } else {
+      setShowCompleteProfile(false);
+    }
+  };
+
+  const handleRegisterSuccess = (userData) => {
+    setUser(userData);
+    setIsLoggedIn(true);
+    closeModals();
+    if (
+      !userData?.username ||
+      userData.username.startsWith('user') ||
+      !(userData.skillsToTeach && userData.skillsToTeach.length)
+    ) {
+      setShowCompleteProfile(true);
+    } else {
+      setShowCompleteProfile(false);
+    }
+  };
+
+  const handleProfileComplete = () => {
+    setShowCompleteProfile(false);
+  };
+
   const stats = [
     { icon: <FaChalkboardTeacher className="text-5xl text-blue-800" />, value: 18200, label: "Active Members" },
     { icon: <FaUsers className="text-5xl text-blue-800" />, value: 4500, label: "Experts Available" },
     { icon: <FaComments className="text-5xl text-blue-800" />, value: 50, label: "Session Types" },
   ];
 
-  // Data: Top performers for showcase
   const performers = [
     {
       img: "/user1.webp",
@@ -98,7 +138,6 @@ const HomeHero = () => {
     },
   ];
 
-  // Data: Feature tabs for quick access panel
   const featureTabs = [
     {
       title: "1-on-1 Session",
@@ -130,7 +169,6 @@ const HomeHero = () => {
     },
   ];
 
-  // Animation: Enhanced variants for text entrance
   const textVariants = {
     hidden: { opacity: 0, y: 50, rotateX: -10 },
     visible: {
@@ -141,7 +179,6 @@ const HomeHero = () => {
     },
   };
 
-  // Animation: Enhanced variants for buttons
   const buttonVariants = {
     hidden: { opacity: 0, scale: 0.8 },
     visible: { opacity: 1, scale: 1, transition: { duration: 0.5 } },
@@ -153,7 +190,6 @@ const HomeHero = () => {
     tap: { scale: 0.9 },
   };
 
-  // Animation: Enhanced variants for tabs
   const tabVariants = {
     hidden: { opacity: 0, y: 50, rotate: 5 },
     visible: {
@@ -172,101 +208,101 @@ const HomeHero = () => {
     tap: { scale: 0.95 },
   };
 
-  // Handler: Login success callback
-  const handleLoginSuccess = (userData) => {
-    setUser(userData);
-    setIsLoggedIn(true);
-    closeModals();
-  };
-
-  // Handler: Register success callback
-  const handleRegisterSuccess = (userData) => {
-    setUser(userData);
-    setIsLoggedIn(true);
-    closeModals();
+  const contentVariants = {
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+    faded: { opacity: 0.6, transition: { duration: 0.3 } },
   };
 
   return (
     <main
       className={`bg-gradient-to-b from-blue-50 to-gray-100 text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] ${
-        showLoginModal || showRegisterModal ? "overflow-hidden" : "overflow-auto"
+        showLoginModal || showRegisterModal || showCompleteProfile ? "overflow-hidden" : "overflow-auto"
       } relative pt-8`}
     >
-      {/* Section: Login Modal */}
       <AnimatePresence>
-        {showLoginModal && (
+        {showCompleteProfile && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/20"
+            className="fixed inset-0 flex items-center justify-center z-50 p-4"
           >
-            <Login
-              onClose={closeModals}
-              onLoginSuccess={handleLoginSuccess}
-              isModal={true}
-            />
+            <CompleteProfile onProfileComplete={handleProfileComplete} />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Section: Register Modal */}
-      <AnimatePresence>
-        {showRegisterModal && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/20"
-          >
-            <Register
-              onClose={closeModals}
-              onRegisterSuccess={handleRegisterSuccess}
-              isModal={true}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <motion.div
+        variants={contentVariants}
+        initial="visible"
+        animate={showCompleteProfile ? "faded" : "visible"}
+      >
+        <AnimatePresence>
+          {showLoginModal && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/40"
+            >
+              <Login
+                onClose={closeModals}
+                onLoginSuccess={handleLoginSuccess}
+                isModal={true}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Section: Hero Section */}
-      <HeroSection
-        isLoggedIn={isLoggedIn}
-        user={user}
-        showLoginModal={showLoginModal}
-        showRegisterModal={showRegisterModal}
-        openRegister={openRegister}
-        closeModals={closeModals}
-        buttonVariants={buttonVariants}
-        textVariants={textVariants}
-        navigate={navigate}
-        exploreRef={exploreRef}
-      />
+        <AnimatePresence>
+          {showRegisterModal && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/40"
+            >
+              <Register
+                onClose={closeModals}
+                onRegisterSuccess={handleRegisterSuccess}
+                isModal={true}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Section: Explore Opportunities */}
-      <ExploreOpportunitiesSection
-        featureTabs={featureTabs}
-        tabVariants={tabVariants}
-        navigate={navigate}
-        exploreRef={exploreRef}
-      />
+        <HeroSection
+          isLoggedIn={isLoggedIn}
+          user={user}
+          showLoginModal={showLoginModal}
+          showRegisterModal={showRegisterModal}
+          openRegister={openRegister}
+          closeModals={closeModals}
+          buttonVariants={buttonVariants}
+          textVariants={textVariants}
+          navigate={navigate}
+          exploreRef={exploreRef}
+        />
 
-      {/* Section: Activity Section (Stats) */}
-      <ActivityStatsSection stats={stats} />
+        <ExploreOpportunitiesSection
+          featureTabs={featureTabs}
+          tabVariants={tabVariants}
+          navigate={navigate}
+          exploreRef={exploreRef}
+        />
 
-      {/* Section: Top Performers Section */}
-      <TopPerformersSection performers={performers} />
+        <ActivityStatsSection stats={stats} />
 
-      {/* Section: Who Are We */}
-      <WhoAreWeSection navigate={navigate} />
+        <TopPerformersSection performers={performers} />
 
-      {/* Section: Why Choose SkillSwap-Hub */}
-      <WhyChooseSection isLoggedIn={isLoggedIn} openRegister={openRegister} />
+        <WhoAreWeSection navigate={navigate} />
 
-      {/* Section: Let's Start */}
-      <LetsStartSection isLoggedIn={isLoggedIn} openLogin={openLogin} buttonVariants={buttonVariants} />
+        <WhyChooseSection isLoggedIn={isLoggedIn} openRegister={openRegister} />
 
-      {/* Section: Testimonials */}
-      <Testimonial />
+        <LetsStartSection isLoggedIn={isLoggedIn} openLogin={openLogin} buttonVariants={buttonVariants} />
+
+        <Testimonial />
+      </motion.div>
     </main>
   );
 };
