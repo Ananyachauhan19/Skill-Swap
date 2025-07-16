@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { useLocation, useRoutes, Navigate } from 'react-router-dom';
@@ -32,30 +32,8 @@ import StartSkillSwap from './user/StartSkillSwap';
 import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
-import { STATIC_COURSES, STATIC_UNITS, STATIC_TOPICS } from './constants/teachingData';
-
-// Import the backend URL
-import { BACKEND_URL } from './config.js';
-
-function useRegisterSocket() {
-  useEffect(() => {
-    const userCookie = Cookies.get('user');
-    let user = null;
-    if (userCookie && userCookie !== 'undefined') {
-      try {
-        user = JSON.parse(userCookie);
-      } catch (e) {
-        user = null;
-      }
-    }
-    if (user && user._id) {
-      console.log('[Socket Register] Emitting register for user', user._id, user);
-      socket.emit('register', user._id);
-    } else {
-      console.log('[Socket Register] No user found in cookie');
-    }
-  }, []);
-}
+// In App.jsx or any file inside src/
+import CompleteProfile from './user/myprofile/CompleteProfile';
 
 
 // Define all routes in a single array for useRoutes
@@ -77,12 +55,9 @@ const appRoutes = [
   { path: '/pro', element: <GoPro /> },
   { path: '/accountSettings', element: <AccountSettings /> },
   { path: '/StartSkillSwap', element: <StartSkillSwap /> },
-  { path: '/report', element: <ReportPage/>},
-  { path: '/teaching-history', element: <TeachingHistory/>},
-
-   ...accountSettingsRoutes,
-  
-  // Private profile routes (nested under /profile)
+  { path: '/report', element: <ReportPage /> },
+  { path: '/teaching-history', element: <TeachingHistory /> },
+  ...accountSettingsRoutes,
   {
     path: '/profile',
     element: <PrivateProfile />,
@@ -95,133 +70,24 @@ const appRoutes = [
   },
 ];
 
-function CompleteProfileModal({ user, onComplete }) {
-  const [username, setUsername] = useState(user?.username || '');
-  const [skillsToTeach, setSkillsToTeach] = useState(
-    Array.isArray(user?.skillsToTeach) && user.skillsToTeach.length > 0
-      ? user.skillsToTeach
-      : [{ subject: '', topic: '', subtopic: '' }]
-  );
-  const [role, setRole] = useState(user?.role || 'learner');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleAddSkill = () => {
-    setSkillsToTeach([...skillsToTeach, { subject: '', topic: '', subtopic: '' }]);
-  };
-  const handleRemoveSkill = (idx) => {
-    setSkillsToTeach(skillsToTeach.filter((_, i) => i !== idx));
-  };
-  const handleSkillChange = (idx, field, value) => {
-    setSkillsToTeach(skillsToTeach.map((s, i) =>
-      i === idx ? { ...s, [field]: value, ...(field === 'subject' ? { topic: '', subtopic: '' } : field === 'topic' ? { subtopic: '' } : {}) } : s
-    ));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!username.trim()) return setError('Username is required');
-    // If Teacher or Both, require at least one complete teaching skill
-    if ((role === 'teacher' || role === 'both') && (!skillsToTeach.length || skillsToTeach.some(s => !s.subject || !s.topic || !s.subtopic))) {
-      return setError('Please select subject, topic, and subtopic for each teaching skill.');
-    }
-    setLoading(true);
-    setError('');
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          username,
-          role,
-          skillsToTeach,
-        }),
-      });
-      if (res.ok) {
-        onComplete();
-      } else {
-        setError('Failed to update profile');
+function useRegisterSocket() {
+  useEffect(() => {
+    const userCookie = Cookies.get('user');
+    let user = null;
+    if (userCookie && userCookie !== 'undefined') {
+      try {
+        user = JSON.parse(userCookie);
+      } catch (e) {
+        user = null;
       }
-    } catch (err) {
-      setError('Failed to update profile');
-    } finally {
-      setLoading(false);
     }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Complete Your Profile</h2>
-        {error && <div className="text-red-500 mb-2">{error}</div>}
-        <label className="block mb-2">
-          Username
-          <input value={username} onChange={e => setUsername(e.target.value)} className="w-full border p-2 rounded" />
-        </label>
-        <div className="mb-2">
-          <label className="block text-xs font-medium text-gray-700 mb-1">Register as:</label>
-          <div className="flex gap-4">
-            <label className="flex items-center gap-1">
-              <input type="radio" name="role" value="teacher" checked={role === 'teacher'} onChange={() => setRole('teacher')} />
-              Teacher
-            </label>
-            <label className="flex items-center gap-1">
-              <input type="radio" name="role" value="learner" checked={role === 'learner'} onChange={() => setRole('learner')} />
-              Learner
-            </label>
-            <label className="flex items-center gap-1">
-              <input type="radio" name="role" value="both" checked={role === 'both'} onChange={() => setRole('both')} />
-              Both
-            </label>
-          </div>
-        </div>
-        {(role === 'teacher' || role === 'both') && (
-          <div className="mb-2">
-            <div className="font-medium mb-1">What I Can Teach</div>
-            {skillsToTeach.map((skill, idx) => (
-              <div key={idx} className="flex gap-2 mb-2">
-                <select
-                  className="border rounded px-2 py-1"
-                  value={skill.subject}
-                  onChange={e => handleSkillChange(idx, 'subject', e.target.value)}
-                  required={role === 'teacher' || role === 'both'}
-                >
-                  <option value="">Select Subject</option>
-                  {STATIC_COURSES.map(subj => <option key={subj} value={subj}>{subj}</option>)}
-                </select>
-                <select
-                  className="border rounded px-2 py-1"
-                  value={skill.topic}
-                  onChange={e => handleSkillChange(idx, 'topic', e.target.value)}
-                  required={role === 'teacher' || role === 'both'}
-                  disabled={!skill.subject}
-                >
-                  <option value="">Select Topic</option>
-                  {(STATIC_UNITS[skill.subject] || []).map(topic => <option key={topic} value={topic}>{topic}</option>)}
-                </select>
-                <select
-                  className="border rounded px-2 py-1"
-                  value={skill.subtopic}
-                  onChange={e => handleSkillChange(idx, 'subtopic', e.target.value)}
-                  required={role === 'teacher' || role === 'both'}
-                  disabled={!skill.topic}
-                >
-                  <option value="">Select Subtopic</option>
-                  {(STATIC_TOPICS[skill.topic] || []).map(subtopic => <option key={subtopic} value={subtopic}>{subtopic}</option>)}
-                </select>
-                {skillsToTeach.length > 1 && (
-                  <button type="button" onClick={() => handleRemoveSkill(idx)} className="text-red-500 ml-1">Remove</button>
-                )}
-              </div>
-            ))}
-            <button type="button" onClick={handleAddSkill} className="text-blue-600 underline text-xs mt-1">Add Another</button>
-          </div>
-        )}
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded mt-4" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
-      </form>
-    </div>
-  );
+    if (user && user._id) {
+      console.log('[Socket Register] Emitting register for user', user._id, user);
+      socket.emit('register', user._id);
+    } else {
+      console.log('[Socket Register] No user found in cookie');
+    }
+  }, []);
 }
 
 function App() {
@@ -230,64 +96,6 @@ function App() {
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const element = useRoutes(appRoutes);
 
-  // --- Complete Profile Modal Logic ---
-  const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
-  const [userForModal, setUserForModal] = useState(null);
-
-  // Helper to check if profile is complete
-  const isProfileIncomplete = (user) => {
-    return (
-      !user.username ||
-      user.username.startsWith('user') ||
-      !(user.skillsToTeach && user.skillsToTeach.length)
-    );
-  };
-
-  // Fetch latest user info and update cookie/state after profile completion
-  const handleCompleteProfile = async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, { credentials: 'include' });
-      if (res.ok) {
-        const user = await res.json();
-        Cookies.set('user', JSON.stringify(user));
-        setUserForModal(user);
-        if (isProfileIncomplete(user)) {
-          setShowCompleteProfileModal(true);
-        } else {
-          setShowCompleteProfileModal(false);
-        }
-      } else {
-        setShowCompleteProfileModal(false); // fallback
-      }
-    } catch {
-      setShowCompleteProfileModal(false); // fallback
-    }
-  };
-
-  // Always fetch latest profile on page load
-  useEffect(() => {
-    async function fetchAndSetUser() {
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, { credentials: 'include' });
-        if (res.ok) {
-          const user = await res.json();
-          Cookies.set('user', JSON.stringify(user));
-          setUserForModal(user);
-          if (isProfileIncomplete(user)) {
-            setShowCompleteProfileModal(true);
-          } else {
-            setShowCompleteProfileModal(false);
-          }
-        } else {
-          setShowCompleteProfileModal(false);
-        }
-      } catch {
-        setShowCompleteProfileModal(false);
-      }
-    }
-    fetchAndSetUser();
-  }, []);
-
   return (
     <ModalProvider>
       <ModalBodyScrollLock />
@@ -295,11 +103,9 @@ function App() {
       {!isAuthPage && <Navbar />}
       <div className={location.pathname === '/home' ? '' : 'pt-8'}>
         {element}
+        <CompleteProfile /> {/* Render the CompleteProfile component */}
       </div>
       {!isAuthPage && <Footer />}
-      {showCompleteProfileModal && userForModal && (
-        <CompleteProfileModal user={userForModal} onComplete={handleCompleteProfile} />
-      )}
     </ModalProvider>
   );
 }
