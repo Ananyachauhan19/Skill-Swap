@@ -6,7 +6,6 @@ const {
   verifyOtp
 } = require('../controllers/authController');
 const generateToken = require('../utils/generateToken');
-const { onlineUsers } = require('../socket');
 const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
 
@@ -75,36 +74,6 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
   } catch (error) {
     console.error(error);
     res.redirect('/auth/failure');
-  }
-});
-
-// POST /api/online-tutors/search
-router.post('/online-tutors/search', requireAuth, async (req, res) => {
-  const { subject, topic, subtopic } = req.body;
-  try {
-    // Get all online userIds except the current user
-    const onlineUserIds = Array.from(onlineUsers.keys()).filter(id => id !== req.user._id.toString());
-    
-    // If no online users, return empty array immediately
-    if (!onlineUserIds.length) {
-      return res.json([]);
-    }
-
-    // Find users whose skillsToTeach matches the search AND are currently online
-    const tutors = await User.find({
-      _id: { $in: onlineUserIds },
-      skillsToTeach: {
-        $elemMatch: { subject, topic, subtopic }
-      }
-    }).select('firstName lastName username profilePic skillsToTeach');
-
-    // Double-check that returned tutors are still online
-    const onlineTutors = tutors.filter(tutor => onlineUserIds.includes(tutor._id.toString()));
-
-    res.json(onlineTutors);
-  } catch (err) {
-    console.error('Search online tutors error:', err);
-    res.status(500).json({ message: 'Failed to search online tutors' });
   }
 });
 
