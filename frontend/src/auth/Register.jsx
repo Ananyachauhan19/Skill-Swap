@@ -48,6 +48,8 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   ];
   const extendedImages = [...carouselImages, ...carouselImages];
 
+  const MAX_SKILLS = 3; // Limit to 3 skills to prevent overflow
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) =>
@@ -89,11 +91,17 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleAddSkill = () => {
-    setSkillsToTeach([...skillsToTeach, { subject: '', topic: '', subtopic: '' }]);
+    if (skillsToTeach.length < MAX_SKILLS) {
+      setSkillsToTeach([...skillsToTeach, { subject: '', topic: '', subtopic: '' }]);
+    } else {
+      setError("Maximum of 3 skills can be added.");
+    }
   };
+
   const handleRemoveSkill = (idx) => {
     setSkillsToTeach(skillsToTeach.filter((_, i) => i !== idx));
   };
+
   const handleSkillChange = (idx, field, value) => {
     setSkillsToTeach(skillsToTeach.map((s, i) =>
       i === idx ? { ...s, [field]: value, ...(field === 'subject' ? { topic: '', subtopic: '' } : field === 'topic' ? { subtopic: '' } : {}) } : s
@@ -118,7 +126,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     if (password !== confirmPassword) {
       return setError("Passwords do not match.");
     }
-    // If Teacher or Both, require at least one complete teaching skill
     if ((role === 'teacher' || role === 'both') && (!skillsToTeach.length || skillsToTeach.some(s => !s.subject || !s.topic || !s.subtopic))) {
       return setError('Please select subject, topic, and subtopic for each teaching skill.');
     }
@@ -167,14 +174,14 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
 
   const registerButtonColor = isFormValid
     ? "bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950"
-    : "bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700";
+    : "bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 to-gray-700";
 
   return (
     <div
       className={`${
         isModal
           ? "fixed inset-0 z-50 flex items-center justify-center"
-          : "min-h-screen flex items-center justify-center pt-16 pb-10 px-4"
+          : "min-h-screen flex items-center justify-center pt-12 pb-8 px-4"
       }`}
       style={{
         backgroundColor: isModal ? "rgba(0,0,0,0.2)" : "transparent",
@@ -186,7 +193,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
-        className="bg-white rounded-xl p-4 shadow-2xl w-[95vw] max-w-[1100px] h-[90vh] md:h-[650px] overflow-hidden flex flex-col"
+        className="bg-white rounded-xl p-4 w-[90vw] max-w-[1000px] h-[85vh] md:h-[650px] flex flex-col"
       >
         <div className="flex flex-col md:flex-row w-full h-full">
           {/* Left Panel */}
@@ -195,11 +202,11 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
             className="w-full md:w-1/2 relative"
             style={{
               backgroundColor: "#e6f2fb",
-              borderTopLeftRadius: "40px",
-              borderBottomRightRadius: "40px",
+              borderTopLeftRadius: "32px",
+              borderBottomRightRadius: "32px",
             }}
           >
-            <div className="absolute top-4 left-4 z-30">
+            <div className="absolute top-3 left-3 z-30">
               <img
                 src="/assets/skillswap-logo.webp"
                 alt="SkillSwap Logo"
@@ -230,7 +237,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
               </div>
             </div>
 
-            <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 z-30">
+            <div className="absolute bottom-3 left-0 right-0 flex justify-center space-x-2 z-30">
               {carouselImages.map((_, idx) => (
                 <button
                   key={idx}
@@ -247,33 +254,33 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
           </div>
 
           {/* Right Panel */}
-          <div className="w-full md:w-1/2 p-4 md:p-6 bg-gray-50 relative">
-            <div className="bg-white rounded-lg p-4 shadow-md h-full flex flex-col">
+          <div className="w-full md:w-1/2 p-6 bg-white flex items-center justify-center">
+            <div className={`w-full ${skillsToTeach.length > 1 ? 'max-w-[450px]' : 'max-w-[380px]'} bg-white rounded-lg p-3 flex flex-col gap-1.5 overflow-hidden`}>
               {isModal && (
                 <button
                   onClick={onClose}
-                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                  className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition-colors"
                   aria-label="Close"
                 >
                   <FaTimes className="w-4 h-4" />
                 </button>
               )}
 
-              <h1 className="text-xl font-bold text-[#154360] mb-4 text-center">
+              <h1 className="text-lg font-bold text-[#154360] text-center">
                 Create an Account
               </h1>
 
               {error && (
-                <div className="mb-3 p-1.5 bg-red-50 text-red-700 rounded-lg text-xs flex items-center">
-                  <FaExclamationCircle className="mr-1.5 w-3 h-3" />
+                <div className="p-1 bg-red-50 text-red-700 rounded-lg text-[11px] flex items-center gap-1">
+                  <FaExclamationCircle className="w-3 h-3" />
                   <span>{error}</span>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-3 flex-1">
-                <div className="flex gap-2">
-                  <div className="w-full">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+              <form onSubmit={handleSubmit} className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
                       First Name*
                     </label>
                     <input
@@ -281,11 +288,12 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                       name="firstName"
                       value={form.firstName}
                       onChange={handleChange}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none transition-all text-sm"
+                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      placeholder="Enter first name"
                     />
                   </div>
-                  <div className="w-full">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
                       Last Name
                     </label>
                     <input
@@ -293,13 +301,14 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                       name="lastName"
                       value={form.lastName}
                       onChange={handleChange}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none transition-all text-sm"
+                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      placeholder="Enter last name"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
                     Username*
                   </label>
                   <input
@@ -307,14 +316,14 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                     name="username"
                     value={form.username}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded px-2 py-1"
+                    className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
                     placeholder="Choose a unique username"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
                     Email*
                   </label>
                   <input
@@ -323,12 +332,13 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                     value={form.email}
                     onChange={handleChange}
                     autoComplete="email"
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none transition-all text-sm"
+                    className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                    placeholder="Enter your email"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
                     Phone*
                   </label>
                   <input
@@ -336,32 +346,33 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                     name="phone"
                     value={form.phone}
                     onChange={handleChange}
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none transition-all text-sm"
+                    className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                    placeholder="Enter your phone number"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
                     Gender*
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     {["male", "female", "other"].map((g) => (
                       <button
                         key={g}
                         type="button"
                         onClick={() => setForm({ ...form, gender: g })}
-                        className={`border px-2 py-1 rounded-full flex items-center gap-1 text-xs ${
+                        className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-medium transition-all ${
                           form.gender === g
                             ? "border-blue-600 bg-blue-50 text-blue-800"
-                            : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                            : "border-gray-300 text-gray-700 hover:bg-gray-100 border"
                         }`}
                       >
                         {g === "male" ? (
-                          <FaMale className="w-3 h-3" />
+                          <FaMale className="w-2.5 h-2.5" />
                         ) : g === "female" ? (
-                          <FaFemale className="w-3 h-3" />
+                          <FaFemale className="w-2.5 h-2.5" />
                         ) : (
-                          <MdOutlineMoreHoriz className="w-3 h-3" />
+                          <MdOutlineMoreHoriz className="w-2.5 h-2.5" />
                         )}
                         {g.charAt(0).toUpperCase() + g.slice(1)}
                       </button>
@@ -370,7 +381,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
                     Password*
                   </label>
                   <div className="relative">
@@ -381,24 +392,24 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                       value={form.password}
                       onChange={handleChange}
                       autoComplete="new-password"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none transition-all text-sm"
+                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
                     />
                     <button
                       type="button"
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
-                        <FaEyeSlash className="w-3 h-3" />
+                        <FaEyeSlash className="w-2.5 h-2.5" />
                       ) : (
-                        <FaEye className="w-3 h-3" />
+                        <FaEye className="w-2.5 h-2.5" />
                       )}
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
                     Confirm Password*
                   </label>
                   <div className="relative">
@@ -409,93 +420,127 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                       value={form.confirmPassword}
                       onChange={handleChange}
                       autoComplete="new-password"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none transition-all text-sm"
+                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
                     />
                     <button
                       type="button"
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500"
+                      className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
                       {showConfirmPassword ? (
-                        <FaEyeSlash className="w-3 h-3" />
+                        <FaEyeSlash className="w-2.5 h-2.5" />
                       ) : (
-                        <FaEye className="w-3 h-3" />
+                        <FaEye className="w-2.5 h-2.5" />
                       )}
                     </button>
                   </div>
                 </div>
 
-                <div className="mb-2">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Register as:</label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center gap-1">
-                      <input type="radio" name="role" value="teacher" checked={role === 'teacher'} onChange={() => setRole('teacher')} />
-                      Teacher
-                    </label>
-                    <label className="flex items-center gap-1">
-                      <input type="radio" name="role" value="learner" checked={role === 'learner'} onChange={() => setRole('learner')} />
-                      Learner
-                    </label>
-                    <label className="flex items-center gap-1">
-                      <input type="radio" name="role" value="both" checked={role === 'both'} onChange={() => setRole('both')} />
-                      Both
-                    </label>
+                <div>
+                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                    Register as:
+                  </label>
+                  <div className="flex gap-1.5">
+                    {["teacher", "learner", "both"].map((r) => (
+                      <label key={r} className="flex items-center gap-0.5">
+                        <input
+                          type="radio"
+                          name="role"
+                          value={r}
+                          checked={role === r}
+                          onChange={() => setRole(r)}
+                          className="w-2.5 h-2.5 text-blue-600"
+                        />
+                        <span className="text-[11px]">{r.charAt(0).toUpperCase() + r.slice(1)}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
+
                 {(role === 'teacher' || role === 'both') && (
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      What do you want to teach?
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                      What do you want to teach? (Max {MAX_SKILLS} skills)
                     </label>
                     {skillsToTeach.map((skill, idx) => (
-                      <div key={idx} className="flex gap-2 mb-2">
+                      <div key={idx} className="flex gap-1 mb-0.5 items-center">
                         <select
-                          className="border rounded px-2 py-1"
+                          className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
                           value={skill.subject}
-                          onChange={e => handleSkillChange(idx, 'subject', e.target.value)}
+                          onChange={(e) => handleSkillChange(idx, 'subject', e.target.value)}
                           required={role === 'teacher' || role === 'both'}
                         >
                           <option value="">Select Subject</option>
-                          {STATIC_COURSES.map(subj => <option key={subj} value={subj}>{subj}</option>)}
+                          {STATIC_COURSES.map((subj) => (
+                            <option key={subj} value={subj}>
+                              {subj}
+                            </option>
+                          ))}
                         </select>
                         <select
-                          className="border rounded px-2 py-1"
+                          className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
                           value={skill.topic}
-                          onChange={e => handleSkillChange(idx, 'topic', e.target.value)}
+                          onChange={(e) => handleSkillChange(idx, 'topic', e.target.value)}
                           required={role === 'teacher' || role === 'both'}
                           disabled={!skill.subject}
                         >
                           <option value="">Select Topic</option>
-                          {(STATIC_UNITS[skill.subject] || []).map(topic => <option key={topic} value={topic}>{topic}</option>)}
+                          {(STATIC_UNITS[skill.subject] || []).map((topic) => (
+                            <option key={topic} value={topic}>
+                              {topic}
+                            </option>
+                          ))}
                         </select>
                         <select
-                          className="border rounded px-2 py-1"
+                          className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
                           value={skill.subtopic}
-                          onChange={e => handleSkillChange(idx, 'subtopic', e.target.value)}
+                          onChange={(e) => handleSkillChange(idx, 'subtopic', e.target.value)}
                           required={role === 'teacher' || role === 'both'}
                           disabled={!skill.topic}
                         >
                           <option value="">Select Subtopic</option>
-                          {(STATIC_TOPICS[skill.topic] || []).map(subtopic => <option key={subtopic} value={subtopic}>{subtopic}</option>)}
+                          {(STATIC_TOPICS[skill.topic] || []).map((subtopic) => (
+                            <option key={subtopic} value={subtopic}>
+                              {subtopic}
+                            </option>
+                          ))}
                         </select>
                         {skillsToTeach.length > 1 && (
-                          <button type="button" onClick={() => handleRemoveSkill(idx)} className="text-red-500 ml-1">Remove</button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSkill(idx)}
+                            className="text-red-500 hover:text-red-700 font-medium text-[11px]"
+                          >
+                            Remove
+                          </button>
                         )}
                       </div>
                     ))}
-                    <button type="button" onClick={handleAddSkill} className="text-blue-600 underline text-xs mt-1">Add Another</button>
+                    {skillsToTeach.length < MAX_SKILLS && (
+                      <button
+                        type="button"
+                        onClick={handleAddSkill}
+                        className="text-blue-600 hover:text-blue-800 underline text-[11px]"
+                      >
+                        Add Another Skill
+                      </button>
+                    )}
                   </div>
                 )}
 
-                <div className="text-[10px] text-gray-600 flex items-start">
-                  <input type="checkbox" required className="mt-0.5 mr-1.5 w-3 h-3" />
+                <div className="flex items-start text-[11px] text-gray-600">
+                  <input
+                    type="checkbox"
+                    required
+                    className="mt-0.5 mr-1 w-2.5 h-2.5 text-blue-600"
+                  />
                   <span>
                     I agree to the{" "}
-                    <a href="#" className="text-blue-600 underline">
+                    <a href="#" className="text-blue-600 hover:underline">
                       Privacy Policy
                     </a>{" "}
                     and{" "}
-                    <a href="#" className="text-blue-600 underline">
+                    <a href="#" className="text-blue-600 hover:underline">
                       Terms
                     </a>
                   </span>
@@ -504,7 +549,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 <button
                   type="submit"
                   disabled={isLoading || !isFormValid}
-                  className={`w-full py-2.5 ${registerButtonColor} rounded-lg font-medium text-sm text-white shadow-md transition-all flex items-center justify-center ${
+                  className={`w-full py-1.5 ${registerButtonColor} rounded-lg font-semibold text-[11px] text-white transition-all flex items-center justify-center ${
                     isLoading ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"
                   }`}
                 >
@@ -529,9 +574,10 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                   )}
                 </button>
 
-                <div className="mt-4 text-center text-xs">
+                <div className="text-center text-[11px]">
                   <span className="text-gray-600">Already have an account? </span>
                   <button
+                    type="button"
                     onClick={() => {
                       if (isModal && onClose) {
                         onClose();
@@ -540,7 +586,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                         navigate("/login");
                       }
                     }}
-                    className="font-medium text-[#154360] hover:underline"
+                    className="font-semibold text-[#154360] hover:underline"
                   >
                     Login
                   </button>
