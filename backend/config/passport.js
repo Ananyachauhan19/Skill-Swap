@@ -23,12 +23,12 @@ passport.use(new GoogleStrategy({
   async (accessToken, refreshToken, profile, done) => {
     try {
       let user = await User.findOne({ email: profile.emails[0].value });
-      if (!user) {
+    if (!user) {
         const baseUsername = (profile.name.givenName || 'user') + (profile.name.familyName || '');
         const username = await generateUsername(baseUsername);
-        user = await User.create({
-          googleId: profile.id,
-          email: profile.emails[0].value,
+      user = await User.create({
+        googleId: profile.id,
+        email: profile.emails[0].value,
           firstName: profile.name.givenName || 'Google',
           lastName: profile.name.familyName || 'User',
           username,
@@ -55,8 +55,8 @@ passport.use(new GoogleStrategy({
         user.googleId = profile.id;
         user.provider = 'google';
         await user.save();
-      }
-      return done(null, user);
+    }
+    return done(null, user);
     } catch (err) {
       if (err.code === 11000) {
         const user = await User.findOne({ email: profile.emails[0].value });

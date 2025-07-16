@@ -311,8 +311,8 @@ const CreateSession = () => {
         }
         throw new Error(err.message || 'Failed to delete session');
       }
-      setScheduledSessions(prev => prev.filter(s => s._id !== id));
-      if (editId === id) setEditId(null);
+    setScheduledSessions(prev => prev.filter(s => s._id !== id));
+    if (editId === id) setEditId(null);
       alert('Session deleted!');
     } catch (error) {
       alert('Error deleting session: ' + error.message);
@@ -834,8 +834,8 @@ const CreateSession = () => {
                       )}
                       {/* Start Session for creator when approved */}
                       {session.status === 'approved' && currentUser && isCurrentUserCreator(session) && (
-                        <button
-                          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                      <button
+                        className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
                           onClick={() => handleStartSession(session)}
                           disabled={startingSession === session._id}
                         >
@@ -858,7 +858,7 @@ const CreateSession = () => {
                             disabled={actionLoading[`cancel-${session._id}`]}
                           >
                             {actionLoading[`cancel-${session._id}`] ? 'Cancelling...' : 'Cancel Session'}
-                          </button>
+                      </button>
                         </div>
                       )}
                     </div>

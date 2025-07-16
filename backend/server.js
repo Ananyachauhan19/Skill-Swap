@@ -44,7 +44,7 @@ require('./socket')(io);
 app.set('io', io);
 
 app.use('/api/auth', authRoutes);
-app.use('/api/sessions', sessionRoutes);
+app.use('/api/sessions', sessionRoutes); 
 app.use('/api', privateProfileRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
