@@ -3,21 +3,20 @@ const passport = require('passport');
 const {
   register,
   login,
-  verifyOtp
+  verifyOtp,
+  logout
 } = require('../controllers/authController');
 const generateToken = require('../utils/generateToken');
 const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
 
-
 const router = express.Router();
 
-// Email-based
+// Email-based routes
 router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
-router.post('/logout', require('../controllers/authController').logout);
-
+router.post('/logout', logout);
 
 // Google OAuth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -26,15 +25,11 @@ router.get('/google/callback', passport.authenticate('google', {
 }), async (req, res) => {
   try {
     const user = req.user;
-
     if (!user || !user.email) {
       console.error('Missing Google user or email');
       return res.redirect('/auth/failure');
     }
-
     const token = generateToken(user);
-
-    // Use a fixed frontend URL for redirect
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.redirect(`${frontendUrl}/home?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
   } catch (error) {
@@ -43,36 +38,28 @@ router.get('/google/callback', passport.authenticate('google', {
   }
 });
 
-
-
+// Google OAuth success/failure
 router.get('/success', (req, res) => {
   res.send('Google login successful!');
-
 });
 
 router.get('/failure', (req, res) => {
   res.send('Google login failed.');
 });
 
-
-
 // LinkedIn OAuth
 router.get('/linkedin', passport.authenticate('linkedin'));
-
 router.get('/linkedin/callback', passport.authenticate('linkedin', {
   failureRedirect: '/auth/failure'
 }), async (req, res) => {
   try {
     const user = req.user;
     const token = generateToken(user);
-    
-    // Get the origin from the request to determine the frontend URL
     const origin = req.get('origin') || req.get('referer') || 'http://localhost:5173';
     const frontendUrl = origin.includes('localhost') ? 'http://localhost:5173' : origin.replace(/\/$/, '');
-    
     res.redirect(`${frontendUrl}/home?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
   } catch (error) {
-    console.error(error);
+    console.error('LinkedIn OAuth error:', error);
     res.redirect('/auth/failure');
   }
 });
@@ -80,17 +67,49 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
 // Get user profile
 router.get('/user/profile', requireAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id).select('-password -otp -otpExpires');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json(user);
+    console.log('Fetched user profile:', {
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      bio: user.bio,
+      skillsToTeach: user.skillsToTeach
+    });
+    res.json({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      email: user.email,
+      profilePic: user.profilePic,
+      bio: user.bio,
+      skillsToTeach: user.skillsToTeach,
+      skillsToLearn: user.skillsToLearn,
+      country: user.country,
+      education: user.education,
+      experience: user.experience,
+      certificates: user.certificates,
+      linkedin: user.linkedin,
+      website: user.website,
+      github: user.github,
+      twitter: user.twitter,
+      credits: user.credits,
+      goldCoins: user.goldCoins,
+      silverCoins: user.silverCoins,
+      badges: user.badges,
+      rank: user.rank
+    });
   } catch (err) {
+    console.error('Profile fetch error:', err);
     res.status(500).json({ message: 'Failed to fetch profile' });
   }
 });
 
-// Update user profile (comprehensive)
+// Update user profile
 router.put('/user/profile', requireAuth, async (req, res) => {
   const { 
     firstName, lastName, bio, country, profilePic, education, experience, 
@@ -98,7 +117,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
   
-  console.log('Profile update request:', { skillsToTeach, skillsToLearn, username });
+  console.log('Profile update request:', { firstName, lastName, bio, skillsToTeach, username });
   
   try {
     const updateData = {};
@@ -129,34 +148,193 @@ router.put('/user/profile', requireAuth, async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      updateData,
-      { new: true }
-    );
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password -otp -otpExpires');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    console.log('Updated user skills:', { 
-      skillsToTeach: user.skillsToTeach, 
-      skillsToLearn: user.skillsToLearn,
-      username: user.username
+    console.log('Updated user profile:', { 
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      bio: user.bio,
+      skillsToTeach: user.skillsToTeach
     });
     
-    res.json(user);
+    res.json({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      email: user.email,
+      profilePic: user.profilePic,
+      bio: user.bio,
+      skillsToTeach: user.skillsToTeach,
+      skillsToLearn: user.skillsToLearn,
+      country: user.country,
+      education: user.education,
+      experience: user.experience,
+      certificates: user.certificates,
+      linkedin: user.linkedin,
+      website: user.website,
+      github: user.github,
+      twitter: user.twitter,
+      credits: user.credits,
+      goldCoins: user.goldCoins,
+      silverCoins: user.silverCoins,
+      badges: user.badges,
+      rank: user.rank
+    });
   } catch (err) {
     console.error('Profile update error:', err);
     res.status(500).json({ message: 'Failed to update profile' });
   }
 });
 
-// Test endpoint to check socket connection
+// Sync /api/user/profile to /api/auth/user/profile
+router.get('/profile', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password -otp -otpExpires');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    console.log('Fetched user profile (/profile):', {
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      bio: user.bio,
+      skillsToTeach: user.skillsToTeach
+    });
+    res.json({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      email: user.email,
+      profilePic: user.profilePic,
+      bio: user.bio,
+      skillsToTeach: user.skillsToTeach,
+      skillsToLearn: user.skillsToLearn,
+      country: user.country,
+      education: user.education,
+      experience: user.experience,
+      certificates: user.certificates,
+      linkedin: user.linkedin,
+      website: user.website,
+      github: user.github,
+      twitter: user.twitter,
+      credits: user.credits,
+      goldCoins: user.goldCoins,
+      silverCoins: user.silverCoins,
+      badges: user.badges,
+      rank: user.rank
+    });
+  } catch (err) {
+    console.error('Profile fetch error (/profile):', err);
+    res.status(500).json({ message: 'Failed to fetch profile' });
+  }
+});
+
+// Sync /api/user/profile update to /api/auth/user/profile
+router.put('/profile', requireAuth, async (req, res) => {
+  const { 
+    firstName, lastName, bio, country, profilePic, education, experience, 
+    certificates, linkedin, website, github, twitter, skillsToTeach, 
+    skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
+  } = req.body;
+  
+  console.log('Profile update request (/profile):', { firstName, lastName, bio, skillsToTeach, username });
+  
+  try {
+    const updateData = {};
+    
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (bio !== undefined) updateData.bio = bio;
+    if (country !== undefined) updateData.country = country;
+    if (profilePic !== undefined) updateData.profilePic = profilePic;
+    if (education !== undefined) updateData.education = education;
+    if (experience !== undefined) updateData.experience = experience;
+    if (certificates !== undefined) updateData.certificates = certificates;
+    if (linkedin !== undefined) updateData.linkedin = linkedin;
+    if (website !== undefined) updateData.website = website;
+    if (github !== undefined) updateData.github = github;
+    if (twitter !== undefined) updateData.twitter = twitter;
+    if (skillsToTeach !== undefined) updateData.skillsToTeach = skillsToTeach;
+    if (skillsToLearn !== undefined) updateData.skillsToLearn = skillsToLearn;
+    if (credits !== undefined) updateData.credits = credits;
+    if (goldCoins !== undefined) updateData.goldCoins = goldCoins;
+    if (silverCoins !== undefined) updateData.silverCoins = silverCoins;
+    if (badges !== undefined) updateData.badges = badges;
+    if (rank !== undefined) updateData.rank = rank;
+    if (username !== undefined) updateData.username = username;
+
+    console.log('Updating user with data (/profile):', updateData);
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password -otp -otpExpires');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    console.log('Updated user profile (/profile):', { 
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      bio: user.bio,
+      skillsToTeach: user.skillsToTeach
+    });
+    
+    res.json({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      email: user.email,
+      profilePic: user.profilePic,
+      bio: user.bio,
+      skillsToTeach: user.skillsToTeach,
+      skillsToLearn: user.skillsToLearn,
+      country: user.country,
+      education: user.education,
+      experience: user.experience,
+      certificates: user.certificates,
+      linkedin: user.linkedin,
+      website: user.website,
+      github: user.github,
+      twitter: user.twitter,
+      credits: user.credits,
+      goldCoins: user.goldCoins,
+      silverCoins: user.silverCoins,
+      badges: user.badges,
+      rank: user.rank
+    });
+  } catch (err) {
+    console.error('Profile update error (/profile):', err);
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+});
+
+// Coins endpoint
 router.get('/coins', requireAuth, async (req, res) => {
   try {
-    // For now, return default coins. You can implement actual coin logic later
+    const user = await User.findById(req.user._id).select('goldCoins silverCoins');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
     res.json({
-      golden: 100, // Default golden coins
-      silver: 50   // Default silver coins
+      golden: user.goldCoins || 0,
+      silver: user.silverCoins || 0
     });
   } catch (error) {
     console.error('Coins error:', error);
@@ -167,7 +345,7 @@ router.get('/coins', requireAuth, async (req, res) => {
 // Get user history/sessions
 router.get('/user/history', requireAuth, async (req, res) => {
   try {
-    // For now, return mock history data. You can implement actual session history later
+    // Mock history data (replace with actual implementation later)
     const mockHistory = [
       { 
         date: '2025-01-15', 
@@ -195,7 +373,7 @@ router.get('/user/history', requireAuth, async (req, res) => {
 // Get user videos
 router.get('/videos', requireAuth, async (req, res) => {
   try {
-    // For now, return mock videos data. You can implement actual video storage later
+    // Mock videos data (replace with actual implementation later)
     const mockVideos = [
       {
         id: "1",
@@ -242,7 +420,6 @@ router.get('/videos', requireAuth, async (req, res) => {
 // Upload video
 router.post('/videos/upload', requireAuth, async (req, res) => {
   try {
-    // For now, return mock response. You can implement actual file upload later
     const mockVideo = {
       id: Date.now().toString(),
       title: req.body.title || "Untitled Video",
@@ -271,7 +448,6 @@ router.post('/videos/upload', requireAuth, async (req, res) => {
 router.put('/videos/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    // For now, return mock response. You can implement actual video update later
     const mockUpdatedVideo = {
       id,
       title: req.body.title || "Updated Video",
@@ -300,7 +476,6 @@ router.put('/videos/:id', requireAuth, async (req, res) => {
 router.delete('/videos/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    // For now, return success response. You can implement actual video deletion later
     res.json({ message: 'Video deleted successfully', id });
   } catch (error) {
     console.error('Video deletion error:', error);
@@ -312,7 +487,6 @@ router.delete('/videos/:id', requireAuth, async (req, res) => {
 router.post('/videos/:id/archive', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    // For now, return success response. You can implement actual video archiving later
     res.json({ message: 'Video archived successfully', id });
   } catch (error) {
     console.error('Video archive error:', error);
@@ -323,7 +497,6 @@ router.post('/videos/:id/archive', requireAuth, async (req, res) => {
 // Get live sessions
 router.get('/live', requireAuth, async (req, res) => {
   try {
-    // For now, return mock live sessions data. You can implement actual live streaming later
     const mockLiveSessions = [
       {
         id: "1",
@@ -374,7 +547,6 @@ router.get('/live', requireAuth, async (req, res) => {
 // Create live session
 router.post('/live', requireAuth, async (req, res) => {
   try {
-    // For now, return mock response. You can implement actual live session creation later
     const mockLiveSession = {
       id: Date.now().toString(),
       title: req.body.title || "New Live Session",
@@ -405,7 +577,6 @@ router.post('/live', requireAuth, async (req, res) => {
 router.put('/live/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    // For now, return mock response. You can implement actual live session update later
     const mockUpdatedLiveSession = {
       id,
       title: req.body.title || "Updated Live Session",
@@ -436,7 +607,6 @@ router.put('/live/:id', requireAuth, async (req, res) => {
 router.delete('/live/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    // For now, return success response. You can implement actual live session deletion later
     res.json({ message: 'Live session deleted successfully', id });
   } catch (error) {
     console.error('Live session deletion error:', error);
@@ -448,137 +618,10 @@ router.delete('/live/:id', requireAuth, async (req, res) => {
 router.post('/live/:id/archive', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    // For now, return success response. You can implement actual live session archiving later
     res.json({ message: 'Live session archived successfully', id });
   } catch (error) {
     console.error('Live session archive error:', error);
     res.status(500).json({ error: 'Failed to archive live session' });
-  }
-});
-
-// Get user history/sessions
-router.get('/user/history', requireAuth, async (req, res) => {
-  try {
-    // For now, return mock history data. You can implement actual session history later
-    const mockHistory = [
-      { 
-        date: '2025-01-15', 
-        sessions: ['React Workshop', 'Node.js Q&A'],
-        count: 2
-      },
-      { 
-        date: '2025-01-14', 
-        sessions: ['JavaScript Basics'],
-        count: 1
-      },
-      { 
-        date: '2025-01-13', 
-        sessions: ['Python Tutorial', 'Data Structures'],
-        count: 2
-      }
-    ];
-    res.json({ history: mockHistory });
-  } catch (error) {
-    console.error('History error:', error);
-    res.status(500).json({ error: 'Failed to fetch history' });
-  }
-});
-
-// Get user videos
-router.get('/videos', requireAuth, async (req, res) => {
-  try {
-    // For now, return mock videos data. You can implement actual video storage later
-    const mockVideos = [
-      {
-        id: "1",
-        title: "React Tutorial",
-        description: "Complete React tutorial for beginners",
-        thumbnail: "https://placehold.co/320x180?text=React+Tutorial",
-        videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
-        uploadDate: new Date().toLocaleString(),
-        userId: req.user._id,
-        skillmates: 5,
-        views: 120,
-        likes: 20,
-        dislikes: 1,
-        isLive: false,
-        scheduledTime: null,
-        isDraft: false,
-        isArchived: false,
-      },
-      {
-        id: "2",
-        title: "Node.js Crash Course",
-        description: "Quick start guide to Node.js",
-        thumbnail: "https://placehold.co/320x180?text=Node+JS",
-        videoUrl: "https://www.w3schools.com/html/movie.mp4",
-        uploadDate: new Date().toLocaleString(),
-        userId: req.user._id,
-        skillmates: 3,
-        views: 80,
-        likes: 10,
-        dislikes: 0,
-        isLive: false,
-        scheduledTime: null,
-        isDraft: false,
-        isArchived: false,
-      }
-    ];
-    res.json({ videos: mockVideos });
-  } catch (error) {
-    console.error('Videos error:', error);
-    res.status(500).json({ error: 'Failed to fetch videos' });
-  }
-});
-
-// Get live sessions
-router.get('/live', requireAuth, async (req, res) => {
-  try {
-    // For now, return mock live sessions data. You can implement actual live streaming later
-    const mockLiveSessions = [
-      {
-        id: "1",
-        title: "React Live Coding",
-        description: "Live coding session on React",
-        thumbnail: "https://placehold.co/320x180?text=Live+1",
-        videoUrl: null,
-        isLive: true,
-        scheduledTime: new Date(Date.now() + 3600 * 1000).toISOString(),
-        uploadDate: new Date().toLocaleString(),
-        host: req.user.firstName + " " + req.user.lastName,
-        userId: req.user._id,
-        viewers: 120,
-        skillmates: 10,
-        views: 0,
-        likes: 0,
-        dislikes: 0,
-        isDraft: false,
-        isRecorded: false,
-      },
-      {
-        id: "2",
-        title: "Node.js Q&A",
-        description: "Q&A session on Node.js",
-        thumbnail: "https://placehold.co/320x180?text=Live+2",
-        videoUrl: null,
-        isLive: false,
-        scheduledTime: new Date(Date.now() + 7200 * 1000).toISOString(),
-        uploadDate: new Date().toLocaleString(),
-        host: req.user.firstName + " " + req.user.lastName,
-        userId: req.user._id,
-        viewers: 80,
-        skillmates: 8,
-        views: 0,
-        likes: 0,
-        dislikes: 0,
-        isDraft: false,
-        isRecorded: false,
-      }
-    ];
-    res.json({ liveSessions: mockLiveSessions });
-  } catch (error) {
-    console.error('Live sessions error:', error);
-    res.status(500).json({ error: 'Failed to fetch live sessions' });
   }
 });
 

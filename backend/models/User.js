@@ -10,8 +10,6 @@ const userSchema = new mongoose.Schema({
   googleId: String,
   socketId: String, // Add this field for real-time notifications
   username: { type: String, unique: true, required: true },
-
-  // 🔽 Add these two fields
   otp: String,
   otpExpires: Date,
   skillsToTeach: [
@@ -22,8 +20,6 @@ const userSchema = new mongoose.Schema({
     }
   ],
   skillsToLearn: [{ type: String, default: [] }],
-  
-  // 🔽 Add comprehensive profile fields
   bio: { type: String, default: '' },
   country: { type: String, default: '' },
   profilePic: { type: String, default: '' },

@@ -14,34 +14,32 @@ import { BACKEND_URL } from '../../config.js';
 // Fetch user profile from backend
 const fetchUserProfile = async () => {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/user/profile`, {
+    const response = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
       method: 'GET',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch user profile');
-    }
-
+    if (!response.ok) throw new Error('Failed to fetch user profile');
     const userData = await response.json();
+    console.log("Sidebar fetchUserProfile response:", userData);
     
-    // Transform backend data to match frontend expectations
     return {
       fullName: userData.firstName && userData.lastName 
         ? `${userData.firstName} ${userData.lastName}` 
-        : userData.firstName || userData.fullName || 'User',
-      userId: userData.username || userData.userId || 'username',
+        : userData.firstName || userData.username || 'User',
+      userId: userData.username || userData._id || 'viveksemwal',
       profilePic: userData.profilePic || null,
       profilePicPreview: userData.profilePic || null,
       bio: userData.bio || 'Your bio goes here, set it in Setup Profile.',
+      country: userData.country || 'Not specified',
+      education: userData.education || [],
+      experience: userData.experience || [],
       skillMatesCount: userData.skillMatesCount || 0,
-      email: userData.email,
+      email: userData.email || '',
       skillsToTeach: userData.skillsToTeach || [],
       skillsToLearn: userData.skillsToLearn || [],
-      // Add other fields as needed
     };
   } catch (err) {
     console.error("Error fetching user profile:", err.message);
@@ -57,10 +55,12 @@ const Sidebar = () => {
   const [error, setError] = useState(null);
 
   const loadUser = async () => {
+    console.log("loadUser triggered");
     setLoading(true);
     setError(null);
     try {
       const data = await fetchUserProfile();
+      console.log("Fetched user data:", data);
       setUser(data);
     } catch (err) {
       setError(err.message);
@@ -83,7 +83,6 @@ const Sidebar = () => {
 
   return (
     <div className="flex min-h-screen w-full bg-gradient-to-b from-[#f9fcff] to-[#eef7ff] font-sans animate-fade-in">
-      {/* Sidebar: Vertical on desktop, bottom nav on mobile */}
       <aside className="fixed bottom-0 left-0 w-full sm:w-16 sm:static flex sm:flex-col justify-around sm:justify-start items-center sm:gap-[2vh] py-2 sm:py-4 sm:min-h-[calc(100vh-4rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto scrollbar-hidden bg-blue-50 bg-opacity-80 transition-all duration-500 animate-slide-in-left z-10 sm:z-auto">
         {[
           { path: "panel", icon: FaFileAlt, label: "Panel", title: "Go to Profile Panel" },
@@ -107,7 +106,6 @@ const Sidebar = () => {
         ))}
       </aside>
 
-      {/* Main content: Adjusted for mobile bottom nav */}
       <main className="w-full sm:ml-16 sm:w-[calc(100%-4rem)] min-h-screen p-4 sm:p-6 overflow-y-auto scrollbar-hidden animate-fade-in scroll-smooth">
         <div className="flex flex-col sm:flex-row items-start mb-6">
           {loading ? (
@@ -135,13 +133,17 @@ const Sidebar = () => {
           <div className="mt-4 sm:mt-0 sm:ml-4 flex-1 flex flex-col sm:flex-row items-center sm:items-start justify-between">
             <div className="text-center sm:text-left">
               <h1 className="text-xl sm:text-4xl font-bold text-blue-800 transition-colors duration-300">
-                {user?.fullName || "Full Name"}
+                {user?.fullName || "User"}
               </h1>
-              <p className="text-sm text-blue-600/70 transition-colors duration-300">@{user?.userId || "username"}</p>
+              <p className="text-sm text-blue-600/70 transition-colors duration-300">@{user?.userId || "viveksemwal"}</p>
               <p className="text-sm text-blue-600/70 mt-2 max-w-md transition-colors duration-300">
                 {user?.bio || "Your bio goes here, set it in Setup Profile."}
               </p>
-              {/* What I Can Teach Section */}
+              {/* Country */}
+              <p className="text-sm text-blue-600/70 mt-2">
+                <span className="font-semibold">Country:</span> {user?.country || "Not specified"}
+              </p>
+              {/* What I Can Teach */}
               <div className="mt-4 text-left">
                 <div className="font-semibold text-blue-900 mb-1">What I Can Teach:</div>
                 <ul className="flex flex-wrap gap-2">
@@ -156,6 +158,42 @@ const Sidebar = () => {
                   )}
                 </ul>
               </div>
+              {/* Education */}
+              <div className="mt-4 text-left">
+                <div className="font-semibold text-blue-900 mb-1">Education:</div>
+                {(user?.education || []).length > 0 ? (
+                  <ul className="list-disc list-inside text-sm text-blue-600/70">
+                    {user.education.map((edu, i) => (
+                      <li key={i}>
+                        {edu.course} {edu.branch ? `(${edu.branch})` : ''} 
+                        {edu.college ? `, ${edu.college}` : ''} 
+                        {edu.city ? `, ${edu.city}` : ''} 
+                        {edu.passingYear ? `, ${edu.passingYear}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-gray-400">Not added yet</div>
+                )}
+              </div>
+              {/* Experience */}
+              <div className="mt-4 text-left">
+                <div className="font-semibold text-blue-900 mb-1">Experience:</div>
+                {(user?.experience || []).length > 0 ? (
+                  <ul className="list-disc list-inside text-sm text-blue-600/70">
+                    {user.experience.map((exp, i) => (
+                      <li key={i}>
+                        {exp.position} {exp.company ? `at ${exp.company}` : ''} 
+                        {exp.duration ? `, ${exp.duration}` : ''} 
+                        {exp.description ? `- ${exp.description}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-gray-400">Not added yet</div>
+                )}
+              </div>
+              {/* SkillMates */}
               <div className="mt-4">
                 <button
                   className="border border-blue-200 text-blue-900 px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105"
@@ -179,8 +217,6 @@ const Sidebar = () => {
             </button>
           </div>
         </div>
-
-        {/* Outlet content: Scrollable with smooth scrolling */}
         <div className="h-[calc(100vh-16rem)] sm:h-[calc(100vh-20rem)] overflow-y-auto scrollbar-hidden animate-fade-in scroll-smooth">
           <Outlet />
         </div>
