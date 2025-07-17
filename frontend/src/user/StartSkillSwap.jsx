@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import SearchBar from './oneononeSection/serachBar';
+import SearchBar from '../components/searchBar';
 import TutorCard from './oneononeSection/TutorCard';
 
 
