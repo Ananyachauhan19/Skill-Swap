@@ -29,6 +29,7 @@ import PrivateProfile from './user/PrivateProfile';
 import PublicProfile from './user/PublicProfile';
 import publicProfileRoutes from './user/publicProfile/publicProfileRoutes';
 import StartSkillSwap from './user/StartSkillSwap';
+import SessionRequests from './user/SessionRequests';
 import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
@@ -45,6 +46,7 @@ const appRoutes = [
   { path: '/discuss', element: <Discuss /> },
   { path: '/interview', element: <Interview /> },
   { path: '/session', element: <Sessions /> },
+  { path: '/session-requests', element: <SessionRequests /> },
   { path: '/testimonials', element: <Testimonial showAll={true} /> },
   { path: '/your-profile', element: <Profile /> },
   { path: '/createSession', element: <CreateSession /> },

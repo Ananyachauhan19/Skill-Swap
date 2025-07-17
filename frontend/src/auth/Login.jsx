@@ -107,6 +107,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
 
     const { user } = res.data;
     Cookies.set('user', JSON.stringify(user), { expires: 1 });
+    localStorage.setItem('user', JSON.stringify(user));
     Cookies.set('registeredEmail', emailForOtp, { expires: 1 }); 
     Cookies.set('isRegistered', 'true', { expires: 1 }); 
     window.dispatchEvent(new Event("authChanged"));

@@ -182,7 +182,7 @@ const OneOnOne = () => {
     } catch (error) {
       console.error('Session request error:', error);
       alert('Failed to send session request.');
-    }
+      }
   };
 
   const handleCloseRequestSent = () => {

@@ -13,6 +13,7 @@ require('./config/passport');
 
 const authRoutes = require('./routes/authRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
+const sessionRequestRoutes = require('./routes/sessionRequestRoutes');
 const privateProfileRoutes = require('./routes/privateProfileRoutes');
 
 const app = express();
@@ -20,13 +21,13 @@ const server = http.createServer(app);
 
 const io = socketIO(server, {
   cors: { 
-    origin: true, // Allow all origins
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true 
   },
 });
 
 app.use(cors({ 
-  origin: true, // Allow all origins
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true 
 }));
 app.use(express.json());
@@ -44,7 +45,8 @@ require('./socket')(io);
 app.set('io', io);
 
 app.use('/api/auth', authRoutes);
-app.use('/api/sessions', sessionRoutes); 
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/session-requests', sessionRequestRoutes);
 app.use('/api', privateProfileRoutes);
 
 mongoose.connect(process.env.MONGO_URI)

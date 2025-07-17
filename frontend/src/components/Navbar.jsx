@@ -18,6 +18,78 @@ function useSessionSocketNotifications(setNotifications) {
       socket.emit('register', user._id);
     }
 
+    // Listen for session request received (for tutors)
+    socket.on('session-request-received', (data) => {
+      const { sessionRequest, requester } = data;
+      setNotifications((prev) => [
+        {
+          type: 'session-request',
+          sessionRequest,
+          requester,
+          message: `New session request from ${requester.firstName} ${requester.lastName}`,
+          timestamp: Date.now(),
+          read: false,
+          onAccept: async () => {
+            try {
+              const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${sessionRequest._id}`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              if (response.ok) {
+                // Send socket notification to requester
+                socket.emit('session-request-response', {
+                  requestId: sessionRequest._id,
+                  action: 'approve'
+                });
+                return true;
+              }
+            } catch (error) {
+              console.error('Error approving request:', error);
+              return false;
+            }
+          },
+          onReject: async () => {
+            try {
+              const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${sessionRequest._id}`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              if (response.ok) {
+                // Send socket notification to requester
+                socket.emit('session-request-response', {
+                  requestId: sessionRequest._id,
+                  action: 'reject'
+                });
+                return true;
+              }
+            } catch (error) {
+              console.error('Error rejecting request:', error);
+              return false;
+            }
+          }
+        },
+        ...prev,
+      ]);
+    });
+
+    // Listen for session request updated (for requesters)
+    socket.on('session-request-updated', (data) => {
+      const { sessionRequest, action } = data;
+      setNotifications((prev) => [
+        {
+          type: 'session-request-response',
+          sessionRequest,
+          action,
+          message: `Your session request was ${action}ed by ${sessionRequest.tutor.firstName} ${sessionRequest.tutor.lastName}`,
+          timestamp: Date.now(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    });
+
     // Listen for session-requested (for creators)
     socket.on('session-requested', (session) => {
       setNotifications((prev) => [
@@ -125,6 +197,8 @@ function useSessionSocketNotifications(setNotifications) {
 
     // Cleanup listeners on unmount
     return () => {
+      socket.off('session-request-received');
+      socket.off('session-request-updated');
       socket.off('session-requested');
       socket.off('session-approved');
       socket.off('session-rejected');
@@ -374,6 +448,7 @@ const Navbar = () => {
               { path: "/home", label: "Home" },
               { path: "/one-on-one", label: "1-on-1" },
               { path: "/session", label: "Session" },
+              { path: "/session-requests", label: "Requests" },
               { path: "/discuss", label: "Discuss" },
               { path: "/interview", label: "Interview" },
             ].map(({ path, label }) => (

@@ -40,6 +40,12 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const [isLoading, setIsLoading] = useState(false);
   const leftPanelRef = useRef(null);
 
+  // ✅ New OTP States
+  const [otp, setOtp] = useState("");
+  const [showOtp, setShowOtp] = useState(false);
+  const [emailForOtp, setEmailForOtp] = useState("");
+  const [registrationData, setRegistrationData] = useState(null);
+
   const carouselImages = [
     "/assets/interview-illustration.webp",
     "/assets/expert-connect-illustration.webp",
@@ -132,6 +138,21 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     try {
       setIsLoading(true);
       setError("");
+      
+      // Store registration data for OTP verification
+      setRegistrationData({
+        firstName,
+        lastName,
+        username,
+        email,
+        phone,
+        gender,
+        password,
+        role,
+        skillsToTeach,
+      });
+      
+      // Send registration request
       const res = await axios.post(`${BACKEND_URL}/api/auth/register`, {
         firstName,
         lastName,
@@ -143,10 +164,34 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         role,
         skillsToTeach,
       });
-      const { token, user } = res.data;
+      
+      // Show OTP verification
+      setEmailForOtp(email);
+      setShowOtp(true);
+      setError("");
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Registration failed. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp) return setError("Enter the OTP sent to your email.");
+
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/auth/verify-otp`, {
+        email: emailForOtp,
+        otp,
+      }, { withCredentials: true });
+
+      const { user } = res.data;
       Cookies.set('user', JSON.stringify(user), { expires: 1 });
-      Cookies.set('registeredName', `${firstName}${lastName ? " " + lastName : ""}`, { expires: 1 });
-      Cookies.set('registeredEmail', email, { expires: 1 });
+      localStorage.setItem('user', JSON.stringify(user));
+      Cookies.set('registeredName', `${registrationData.firstName}${registrationData.lastName ? " " + registrationData.lastName : ""}`, { expires: 1 });
+      Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
       Cookies.set('isRegistered', 'true', { expires: 1 });
       window.dispatchEvent(new Event("authChanged"));
       if (onRegisterSuccess) onRegisterSuccess(user);
@@ -156,11 +201,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         navigate("/home");
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Registration failed. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
+      setError(err.response?.data?.message || "OTP verification failed.");
     }
   };
 
@@ -277,321 +318,371 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-1.5">
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      First Name*
-                    </label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={form.firstName}
-                      onChange={handleChange}
-                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                      placeholder="Enter first name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={form.lastName}
-                      onChange={handleChange}
-                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                      placeholder="Enter last name"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Username*
-                  </label>
-                  <input
-                    type="text"
-                    name="username"
-                    value={form.username}
-                    onChange={handleChange}
-                    className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                    placeholder="Choose a unique username"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Email*
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    autoComplete="email"
-                    className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                    placeholder="Enter your email"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Phone*
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Gender*
-                  </label>
-                  <div className="flex gap-1">
-                    {["male", "female", "other"].map((g) => (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => setForm({ ...form, gender: g })}
-                        className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-medium transition-all ${
-                          form.gender === g
-                            ? "border-blue-600 bg-blue-50 text-blue-800"
-                            : "border-gray-300 text-gray-700 hover:bg-gray-100 border"
-                        }`}
-                      >
-                        {g === "male" ? (
-                          <FaMale className="w-2.5 h-2.5" />
-                        ) : g === "female" ? (
-                          <FaFemale className="w-2.5 h-2.5" />
-                        ) : (
-                          <MdOutlineMoreHoriz className="w-2.5 h-2.5" />
-                        )}
-                        {g.charAt(0).toUpperCase() + g.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Password*
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      placeholder="Create password"
-                      value={form.password}
-                      onChange={handleChange}
-                      autoComplete="new-password"
-                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <FaEyeSlash className="w-2.5 h-2.5" />
-                      ) : (
-                        <FaEye className="w-2.5 h-2.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Confirm Password*
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      name="confirmPassword"
-                      placeholder="Re-enter password"
-                      value={form.confirmPassword}
-                      onChange={handleChange}
-                      autoComplete="new-password"
-                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? (
-                        <FaEyeSlash className="w-2.5 h-2.5" />
-                      ) : (
-                        <FaEye className="w-2.5 h-2.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Register as:
-                  </label>
-                  <div className="flex gap-1.5">
-                    {["teacher", "learner", "both"].map((r) => (
-                      <label key={r} className="flex items-center gap-0.5">
-                        <input
-                          type="radio"
-                          name="role"
-                          value={r}
-                          checked={role === r}
-                          onChange={() => setRole(r)}
-                          className="w-2.5 h-2.5 text-blue-600"
-                        />
-                        <span className="text-[11px]">{r.charAt(0).toUpperCase() + r.slice(1)}</span>
+              {!showOtp ? (
+                <form onSubmit={handleSubmit} className="space-y-1.5">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                        First Name*
                       </label>
-                    ))}
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={form.firstName}
+                        onChange={handleChange}
+                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                        placeholder="Enter first name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={form.lastName}
+                        onChange={handleChange}
+                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                        placeholder="Enter last name"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {(role === 'teacher' || role === 'both') && (
                   <div>
                     <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      What do you want to teach? (Max {MAX_SKILLS} skills)
+                      Username*
                     </label>
-                    {skillsToTeach.map((skill, idx) => (
-                      <div key={idx} className="flex gap-1 mb-0.5 items-center">
-                        <select
-                          className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={skill.subject}
-                          onChange={(e) => handleSkillChange(idx, 'subject', e.target.value)}
-                          required={role === 'teacher' || role === 'both'}
+                    <input
+                      type="text"
+                      name="username"
+                      value={form.username}
+                      onChange={handleChange}
+                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      placeholder="Choose a unique username"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                      Email*
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      autoComplete="email"
+                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                      Phone*
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                      Gender*
+                    </label>
+                    <div className="flex gap-1">
+                      {["male", "female", "other"].map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => setForm({ ...form, gender: g })}
+                          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-medium transition-all ${
+                            form.gender === g
+                              ? "border-blue-600 bg-blue-50 text-blue-800"
+                              : "border-gray-300 text-gray-700 hover:bg-gray-100 border"
+                          }`}
                         >
-                          <option value="">Select Subject</option>
-                          {STATIC_COURSES.map((subj) => (
-                            <option key={subj} value={subj}>
-                              {subj}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={skill.topic}
-                          onChange={(e) => handleSkillChange(idx, 'topic', e.target.value)}
-                          required={role === 'teacher' || role === 'both'}
-                          disabled={!skill.subject}
-                        >
-                          <option value="">Select Topic</option>
-                          {(STATIC_UNITS[skill.subject] || []).map((topic) => (
-                            <option key={topic} value={topic}>
-                              {topic}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={skill.subtopic}
-                          onChange={(e) => handleSkillChange(idx, 'subtopic', e.target.value)}
-                          required={role === 'teacher' || role === 'both'}
-                          disabled={!skill.topic}
-                        >
-                          <option value="">Select Subtopic</option>
-                          {(STATIC_TOPICS[skill.topic] || []).map((subtopic) => (
-                            <option key={subtopic} value={subtopic}>
-                              {subtopic}
-                            </option>
-                          ))}
-                        </select>
-                        {skillsToTeach.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveSkill(idx)}
-                            className="text-red-500 hover:text-red-700 font-medium text-[11px]"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    {skillsToTeach.length < MAX_SKILLS && (
+                          {g === "male" ? (
+                            <FaMale className="w-2.5 h-2.5" />
+                          ) : g === "female" ? (
+                            <FaFemale className="w-2.5 h-2.5" />
+                          ) : (
+                            <MdOutlineMoreHoriz className="w-2.5 h-2.5" />
+                          )}
+                          {g.charAt(0).toUpperCase() + g.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                      Password*
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        placeholder="Create password"
+                        value={form.password}
+                        onChange={handleChange}
+                        autoComplete="new-password"
+                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      />
                       <button
                         type="button"
-                        onClick={handleAddSkill}
-                        className="text-blue-600 hover:text-blue-800 underline text-[11px]"
+                        className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowPassword(!showPassword)}
                       >
-                        Add Another Skill
+                        {showPassword ? (
+                          <FaEyeSlash className="w-2.5 h-2.5" />
+                        ) : (
+                          <FaEye className="w-2.5 h-2.5" />
+                        )}
                       </button>
-                    )}
+                    </div>
                   </div>
-                )}
 
-                <div className="flex items-start text-[11px] text-gray-600">
-                  <input
-                    type="checkbox"
-                    required
-                    className="mt-0.5 mr-1 w-2.5 h-2.5 text-blue-600"
-                  />
-                  <span>
-                    I agree to the{" "}
-                    <a href="#" className="text-blue-600 hover:underline">
-                      Privacy Policy
-                    </a>{" "}
-                    and{" "}
-                    <a href="#" className="text-blue-600 hover:underline">
-                      Terms
-                    </a>
-                  </span>
-                </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                      Confirm Password*
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        name="confirmPassword"
+                        placeholder="Re-enter password"
+                        value={form.confirmPassword}
+                        onChange={handleChange}
+                        autoComplete="new-password"
+                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <FaEyeSlash className="w-2.5 h-2.5" />
+                        ) : (
+                          <FaEye className="w-2.5 h-2.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={isLoading || !isFormValid}
-                  className={`w-full py-1.5 ${registerButtonColor} rounded-lg font-semibold text-[11px] text-white transition-all flex items-center justify-center ${
-                    isLoading ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"
-                  }`}
-                >
-                  {isLoading ? (
-                    <svg className="animate-spin h-3 w-3 text-white" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                  ) : (
-                    "Create Account"
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                      Register as:
+                    </label>
+                    <div className="flex gap-1.5">
+                      {["teacher", "learner", "both"].map((r) => (
+                        <label key={r} className="flex items-center gap-0.5">
+                          <input
+                            type="radio"
+                            name="role"
+                            value={r}
+                            checked={role === r}
+                            onChange={() => setRole(r)}
+                            className="w-2.5 h-2.5 text-blue-600"
+                          />
+                          <span className="text-[11px]">{r.charAt(0).toUpperCase() + r.slice(1)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {(role === 'teacher' || role === 'both') && (
+                    <div>
+                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                        What do you want to teach? (Max {MAX_SKILLS} skills)
+                      </label>
+                      {skillsToTeach.map((skill, idx) => (
+                        <div key={idx} className="flex gap-1 mb-0.5 items-center">
+                          <select
+                            className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={skill.subject}
+                            onChange={(e) => handleSkillChange(idx, 'subject', e.target.value)}
+                            required={role === 'teacher' || role === 'both'}
+                          >
+                            <option value="">Select Subject</option>
+                            {STATIC_COURSES.map((subj) => (
+                              <option key={subj} value={subj}>
+                                {subj}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={skill.topic}
+                            onChange={(e) => handleSkillChange(idx, 'topic', e.target.value)}
+                            required={role === 'teacher' || role === 'both'}
+                            disabled={!skill.subject}
+                          >
+                            <option value="">Select Topic</option>
+                            {(STATIC_UNITS[skill.subject] || []).map((topic) => (
+                              <option key={topic} value={topic}>
+                                {topic}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={skill.subtopic}
+                            onChange={(e) => handleSkillChange(idx, 'subtopic', e.target.value)}
+                            required={role === 'teacher' || role === 'both'}
+                            disabled={!skill.topic}
+                          >
+                            <option value="">Select Subtopic</option>
+                            {(STATIC_TOPICS[skill.topic] || []).map((subtopic) => (
+                              <option key={subtopic} value={subtopic}>
+                                {subtopic}
+                              </option>
+                            ))}
+                          </select>
+                          {skillsToTeach.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSkill(idx)}
+                              className="text-red-500 hover:text-red-700 font-medium text-[11px]"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {skillsToTeach.length < MAX_SKILLS && (
+                        <button
+                          type="button"
+                          onClick={handleAddSkill}
+                          className="text-blue-600 hover:text-blue-800 underline text-[11px]"
+                        >
+                          Add Another Skill
+                        </button>
+                      )}
+                    </div>
                   )}
-                </button>
 
-                <div className="text-center text-[11px]">
-                  <span className="text-gray-600">Already have an account? </span>
+                  <div className="flex items-start text-[11px] text-gray-600">
+                    <input
+                      type="checkbox"
+                      required
+                      className="mt-0.5 mr-1 w-2.5 h-2.5 text-blue-600"
+                    />
+                    <span>
+                      I agree to the{" "}
+                      <a href="#" className="text-blue-600 hover:underline">
+                        Privacy Policy
+                      </a>{" "}
+                      and{" "}
+                      <a href="#" className="text-blue-600 hover:underline">
+                        Terms
+                      </a>
+                    </span>
+                  </div>
+
                   <button
-                    type="button"
-                    onClick={() => {
-                      if (isModal && onClose) {
-                        onClose();
-                        openLogin();
-                      } else {
-                        navigate("/login");
-                      }
-                    }}
-                    className="font-semibold text-[#154360] hover:underline"
+                    type="submit"
+                    disabled={isLoading || !isFormValid}
+                    className={`w-full py-1.5 ${registerButtonColor} rounded-lg font-semibold text-[11px] text-white transition-all flex items-center justify-center ${
+                      isLoading ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"
+                    }`}
                   >
-                    Login
+                    {isLoading ? (
+                      <svg className="animate-spin h-3 w-3 text-white" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                    ) : (
+                      "Create Account"
+                    )}
                   </button>
+
+                  <div className="text-center text-[11px]">
+                    <span className="text-gray-600">Already have an account? </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isModal && onClose) {
+                          onClose();
+                          openLogin();
+                        } else {
+                          navigate("/login");
+                        }
+                      }}
+                      className="font-semibold text-[#154360] hover:underline"
+                    >
+                      Login
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="text-center">
+                    <h2 className="text-lg font-bold text-[#154360] mb-2">Verify Your Email</h2>
+                    <p className="text-[11px] text-gray-600 mb-4">
+                      We've sent a verification code to <strong>{emailForOtp}</strong>
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                      Enter OTP*
+                    </label>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      placeholder="Enter 6-digit code"
+                      maxLength={6}
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleVerifyOtp}
+                    disabled={!otp || otp.length !== 6}
+                    className={`w-full py-1.5 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 rounded-lg font-semibold text-[11px] text-white transition-all flex items-center justify-center ${
+                      !otp || otp.length !== 6 ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"
+                    }`}
+                  >
+                    Verify & Complete Registration
+                  </button>
+
+                  <div className="text-center text-[11px]">
+                    <span className="text-gray-600">Didn't receive the code? </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowOtp(false);
+                        setOtp("");
+                        setError("");
+                      }}
+                      className="font-semibold text-[#154360] hover:underline"
+                    >
+                      Go Back
+                    </button>
+                  </div>
                 </div>
-              </form>
+              )}
             </div>
           </div>
         </div>

@@ -1,8 +1,11 @@
 const User = require('./models/User');
+const SessionRequest = require('./models/SessionRequest');
 
 module.exports = (io) => {
   // Store session rooms
   const sessionRooms = new Map();
+  // Store online users
+  const onlineUsers = new Map();
 
   io.on('connection', (socket) => {
     // Register user with their socket ID
@@ -10,6 +13,21 @@ module.exports = (io) => {
       if (userId) {
         const user = await User.findByIdAndUpdate(userId, { socketId: socket.id }, { new: true });
         if (user) {
+          // Store userId on socket for later use
+          socket.userId = userId;
+          
+          // Add user to online users map
+          onlineUsers.set(socket.id, {
+            userId: user._id,
+            socketId: socket.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            skillsToTeach: user.skillsToTeach,
+            profilePic: user.profilePic,
+            rating: user.rating || 4.5, // Default rating
+            status: 'Available'
+          });
+          
           console.log(`[Socket Register] Registered socket ${socket.id} for user ${userId}`, {
             userId: user._id,
             socketId: user.socketId,
@@ -18,6 +36,209 @@ module.exports = (io) => {
         } else {
           console.log(`[Socket Register] No user found for userId: ${userId}`);
         }
+      }
+    });
+
+    // Handle session request
+    socket.on('send-session-request', async (data) => {
+      try {
+        const { tutorId, subject, topic, subtopic, message } = data;
+        const requesterId = socket.userId; // We'll need to store this when user registers
+
+        // Find the requester's user data
+        let requesterData = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === requesterId) {
+            requesterData = userData;
+            break;
+          }
+        }
+
+        if (!requesterData) {
+          socket.emit('session-request-error', { message: 'User not found' });
+          return;
+        }
+
+        // Find tutor's socket ID
+        let tutorSocketId = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === tutorId) {
+            tutorSocketId = socketId;
+            break;
+          }
+        }
+
+        if (!tutorSocketId) {
+          socket.emit('session-request-error', { message: 'Tutor is not online' });
+          return;
+        }
+
+        // Create session request in database
+        const sessionRequest = new SessionRequest({
+          requester: requesterId,
+          tutor: tutorId,
+          subject,
+          topic,
+          subtopic,
+          message: message || ''
+        });
+
+        await sessionRequest.save();
+
+        // Populate user details
+        await sessionRequest.populate('requester', 'firstName lastName profilePic');
+        await sessionRequest.populate('tutor', 'firstName lastName profilePic');
+
+        // Send notification to tutor
+        io.to(tutorSocketId).emit('session-request-received', {
+          sessionRequest,
+          requester: requesterData
+        });
+
+        // Send confirmation to requester
+        socket.emit('session-request-sent', {
+          message: 'Session request sent successfully',
+          sessionRequest
+        });
+
+        console.log(`[Session Request] Request sent from ${requesterData.firstName} to tutor ${tutorId}`);
+
+      } catch (error) {
+        console.error('[Session Request] Error:', error);
+        socket.emit('session-request-error', { message: 'Failed to send session request' });
+      }
+    });
+
+    // Handle session request response (approve/reject)
+    socket.on('session-request-response', async (data) => {
+      try {
+        const { requestId, action } = data; // action: 'approve' or 'reject'
+        const tutorId = socket.userId;
+
+        const sessionRequest = await SessionRequest.findOne({
+          _id: requestId,
+          tutor: tutorId,
+          status: 'pending'
+        });
+
+        if (!sessionRequest) {
+          socket.emit('session-request-response-error', { message: 'Session request not found' });
+          return;
+        }
+
+        // Update status
+        sessionRequest.status = action === 'approve' ? 'approved' : 'rejected';
+        await sessionRequest.save();
+
+        // Populate user details
+        await sessionRequest.populate('requester', 'firstName lastName profilePic socketId');
+        await sessionRequest.populate('tutor', 'firstName lastName profilePic socketId');
+
+        // Find requester's socket ID
+        let requesterSocketId = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === sessionRequest.requester._id.toString()) {
+            requesterSocketId = socketId;
+            break;
+          }
+        }
+
+        // Send response to requester
+        if (requesterSocketId) {
+          io.to(requesterSocketId).emit('session-request-updated', {
+            sessionRequest,
+            action
+          });
+        }
+
+        // Send confirmation to tutor
+        socket.emit('session-request-response-sent', {
+          message: `Session request ${action}d successfully`,
+          sessionRequest
+        });
+
+        // If approved, emit 'session-started' to both tutor and requester
+        if (action === 'approve') {
+          const sessionStartedPayload = {
+            sessionId: sessionRequest._id.toString(),
+            sessionRequest,
+            tutor: sessionRequest.tutor,
+            requester: sessionRequest.requester
+          };
+          // To tutor
+          socket.emit('session-started', sessionStartedPayload);
+          // To requester
+          if (requesterSocketId) {
+            io.to(requesterSocketId).emit('session-started', sessionStartedPayload);
+          }
+        }
+
+        console.log(`[Session Request] Request ${action}d by tutor ${tutorId}`);
+
+      } catch (error) {
+        console.error('[Session Request Response] Error:', error);
+        socket.emit('session-request-response-error', { message: 'Failed to process response' });
+      }
+    });
+
+    // Find online tutors based on skills
+    socket.on('find-tutors', async (searchCriteria) => {
+      try {
+        const { subject, topic, subtopic } = searchCriteria;
+        
+        // Find online users who can teach the specified skills
+        const matchingTutors = [];
+        
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          // Exclude the searching user
+          if (socketId === socket.id) continue;
+          const userSkills = userData.skillsToTeach || [];
+          
+          // Check if user has matching skills
+          const hasMatchingSkill = userSkills.some(skill => {
+            const subjectMatch = !subject || skill.subject === subject;
+            const topicMatch = !topic || skill.topic === topic;
+            const subtopicMatch = !subtopic || skill.subtopic === subtopic;
+            
+            return subjectMatch && topicMatch && subtopicMatch;
+          });
+          
+          if (hasMatchingSkill) {
+            matchingTutors.push({
+              userId: userData.userId,
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+              profilePic: userData.profilePic,
+              rating: userData.rating,
+              status: userData.status,
+              socketId: userData.socketId
+            });
+          }
+        }
+        
+        // Send matching tutors back to the client
+        socket.emit('tutors-found', {
+          tutors: matchingTutors,
+          searchCriteria
+        });
+        
+        console.log(`[Find Tutors] Found ${matchingTutors.length} tutors for criteria:`, searchCriteria);
+        
+      } catch (error) {
+        console.error('[Find Tutors] Error:', error);
+        socket.emit('tutors-found', {
+          tutors: [],
+          error: 'Failed to find tutors'
+        });
+      }
+    });
+
+    // Update user status
+    socket.on('update-status', (status) => {
+      const userData = onlineUsers.get(socket.id);
+      if (userData) {
+        userData.status = status;
+        console.log(`[Status Update] User ${userData.firstName} status updated to: ${status}`);
       }
     });
 
@@ -66,7 +287,72 @@ module.exports = (io) => {
       socket.to(sessionId).emit('ice-candidate', { sessionId, candidate });
     });
 
+    // Start session after approval (tutor triggers this)
+    socket.on('start-session', async ({ sessionId }) => {
+      try {
+        const sessionRequest = await require('./models/SessionRequest').findById(sessionId)
+          .populate('tutor', 'firstName lastName profilePic socketId')
+          .populate('requester', 'firstName lastName profilePic socketId');
+        if (!sessionRequest || sessionRequest.status !== 'approved') return;
+
+        // Find sockets
+        let tutorSocketId = null, requesterSocketId = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === sessionRequest.tutor._id.toString()) tutorSocketId = socketId;
+          if (userData.userId.toString() === sessionRequest.requester._id.toString()) requesterSocketId = socketId;
+        }
+
+        const payload = {
+          sessionId: sessionRequest._id.toString(),
+          sessionRequest,
+          tutor: sessionRequest.tutor,
+          requester: sessionRequest.requester
+        };
+        if (tutorSocketId) io.to(tutorSocketId).emit('session-started', payload);
+        if (requesterSocketId) io.to(requesterSocketId).emit('session-started', payload);
+      } catch (err) {
+        console.error('[start-session] Error:', err);
+      }
+    });
+
+    // Cancel session (requester triggers this)
+    socket.on('cancel-session', async ({ sessionId }) => {
+      try {
+        const sessionRequest = await require('./models/SessionRequest').findById(sessionId)
+          .populate('tutor', 'firstName lastName profilePic socketId')
+          .populate('requester', 'firstName lastName profilePic socketId');
+        if (!sessionRequest) return;
+
+        // Find sockets
+        let tutorSocketId = null, requesterSocketId = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === sessionRequest.tutor._id.toString()) tutorSocketId = socketId;
+          if (userData.userId.toString() === sessionRequest.requester._id.toString()) requesterSocketId = socketId;
+        }
+
+        // Mark as cancelled
+        sessionRequest.status = 'cancelled';
+        await sessionRequest.save();
+
+        const payload = {
+          sessionId: sessionRequest._id.toString(),
+          sessionRequest,
+          message: 'Session was cancelled by the requester.'
+        };
+        if (tutorSocketId) io.to(tutorSocketId).emit('session-cancelled', payload);
+        if (requesterSocketId) io.to(requesterSocketId).emit('session-cancelled', payload);
+      } catch (err) {
+        console.error('[cancel-session] Error:', err);
+      }
+    });
+
     socket.on('disconnect', () => {
+      // Remove user from online users
+      const userData = onlineUsers.get(socket.id);
+      if (userData) {
+        console.log(`Socket Disconnect] User ${userData.firstName} went offline`);
+        onlineUsers.delete(socket.id);
+      }
       
       // Remove socket from all session rooms
       for (const [sessionId, sockets] of sessionRooms.entries()) {

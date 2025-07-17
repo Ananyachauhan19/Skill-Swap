@@ -15,7 +15,21 @@ exports.register = async (req, res) => {
     firstName, lastName, email, phone, gender, password: hashedPassword,
     username, skillsToTeach, skillsToLearn
   });
-  res.status(201).json({ message: 'User registered successfully' });
+
+  // Generate OTP for email verification
+  const otp = Math.floor(100000 + Math.random() * 900000);
+  const otpExpires = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+  user.otp = otp;
+  user.otpExpires = otpExpires;
+  await user.save()
+    .then(() => console.log('OTP saved for registration:', otp))
+    .catch((err) => console.error('Error saving OTP:', err));
+
+  // Send OTP to user's email
+  await sendOtpEmail(user.email, otp);
+
+  res.status(201).json({ message: 'User registered successfully. OTP sent to email.', otpSent: true });
 };
 
 exports.login = async (req, res) => {
@@ -45,10 +59,19 @@ await sendOtpEmail(user.email, otp);
 exports.verifyOtp = async (req, res) => {
   const { email, otp } = req.body;
 
+  console.log('OTP verification request:', { email, otp });
+
   const user = await User.findOne({ email });
   if (!user || String(user.otp) !== String(otp) || Date.now() > user.otpExpires) {
+    console.log('OTP verification failed:', { 
+      userExists: !!user, 
+      otpMatch: user ? String(user.otp) === String(otp) : false,
+      otpExpired: user ? Date.now() > user.otpExpires : false
+    });
     return res.status(400).json({ message: 'Invalid or expired OTP' });
   }
+
+  console.log('OTP verification successful for user:', user._id);
 
   // Clear OTP
   user.otp = undefined;
@@ -58,6 +81,8 @@ exports.verifyOtp = async (req, res) => {
   // Generate JWT token after successful OTP verification
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
+  console.log('Generated token:', token.substring(0, 20) + '...');
+
   // Set token as httpOnly cookie
   res.cookie('token', token, {
     httpOnly: true,
@@ -65,6 +90,8 @@ exports.verifyOtp = async (req, res) => {
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000, // 1 day
   });
+
+  console.log('Token cookie set successfully');
 
   return res.status(200).json({ message: 'Login successful', user });
 };

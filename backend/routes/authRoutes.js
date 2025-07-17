@@ -18,6 +18,18 @@ router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
 router.post('/logout', logout);
 
+// Test endpoint to check cookies
+router.get('/test-cookie', (req, res) => {
+  console.log('Test Cookie - All cookies:', req.cookies);
+  res.cookie('test', 'test-value', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000
+  });
+  res.json({ message: 'Test cookie set', cookies: req.cookies });
+});
+
 // Google OAuth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback', passport.authenticate('google', {
@@ -31,7 +43,14 @@ router.get('/google/callback', passport.authenticate('google', {
     }
     const token = generateToken(user);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/home?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : null
+    });
+    res.redirect(`${frontendUrl}/home`);
   } catch (error) {
     console.error('OAuth error:', error);
     res.redirect('/auth/failure');

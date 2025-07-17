@@ -34,7 +34,6 @@ const HomeHero = () => {
         const userObj = JSON.parse(decodeURIComponent(user));
         Cookies.set('user', JSON.stringify(userObj), { expires: 1 });
         Cookies.set('token', token, { expires: 1, path: '/' });
-        localStorage.setItem('token', token);
         setUser(userObj);
         if (
           !userObj?.username ||
