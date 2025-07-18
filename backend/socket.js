@@ -1,5 +1,6 @@
 const User = require('./models/User');
 const SessionRequest = require('./models/SessionRequest');
+const Session = require('./models/Session');
 
 module.exports = (io) => {
   // Store session rooms
@@ -275,11 +276,21 @@ module.exports = (io) => {
       // Check if both users are present, then start timer if not already started
       const userIds = getUserIdsInSession(sessionId);
       if (userIds.length === 2 && !sessionTimers.has(sessionId)) {
-        // Get session request to find tutor and requester
-        const sessionRequest = await SessionRequest.findById(sessionId);
-        if (!sessionRequest) return;
-        const requesterId = String(sessionRequest.requester);
-        const tutorId = String(sessionRequest.tutor);
+        // Try to find session in SessionRequest first, then Session
+        let sessionRequest = await SessionRequest.findById(sessionId);
+        let requesterId, tutorId;
+        if (sessionRequest) {
+          requesterId = String(sessionRequest.requester);
+          tutorId = String(sessionRequest.tutor);
+        } else {
+          // Try Session (scheduled session)
+          const session = await Session.findById(sessionId);
+          if (session) {
+            requesterId = session.requester ? String(session.requester) : null;
+            tutorId = session.creator ? String(session.creator) : null;
+          }
+        }
+        if (!requesterId || !tutorId) return;
         // Start timer
         let minutesElapsed = 0;
         const timer = setInterval(async () => {
