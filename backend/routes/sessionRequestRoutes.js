@@ -183,4 +183,44 @@ router.get('/all', requireAuth, async (req, res) => {
   }
 });
 
+// Get active session for a user
+router.get('/active', requireAuth, async (req, res) => {
+  try {
+    // Find approved session requests where the user is either tutor or requester
+    const activeSession = await SessionRequest.findOne({
+      $or: [
+        { tutor: req.user._id },
+        { requester: req.user._id }
+      ],
+      status: 'approved'
+    })
+    .populate('requester', 'firstName lastName profilePic username')
+    .populate('tutor', 'firstName lastName profilePic username')
+    .sort({ updatedAt: -1 });
+
+    if (!activeSession) {
+      return res.json({ activeSession: null });
+    }
+
+    // Determine user role
+    let role = null;
+    if (activeSession.tutor._id.toString() === req.user._id.toString()) {
+      role = 'tutor';
+    } else if (activeSession.requester._id.toString() === req.user._id.toString()) {
+      role = 'requester';
+    }
+
+    res.json({
+      activeSession: {
+        sessionId: activeSession._id.toString(),
+        sessionRequest: activeSession,
+        role
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching active session:', error);
+    res.status(500).json({ message: 'Failed to fetch active session' });
+  }
+});
+
 module.exports = router; 

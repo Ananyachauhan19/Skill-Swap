@@ -12,11 +12,23 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isInitiator, setIsInitiator] = useState(false);
   
+  // Whiteboard states
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawingColor, setDrawingColor] = useState('#000000');
+  const [brushSize, setBrushSize] = useState(3);
+  const [drawingTool, setDrawingTool] = useState('pen'); // pen, eraser, text
+  
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const screenVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
+  
+  // Whiteboard refs
+  const canvasRef = useRef(null);
+  const contextRef = useRef(null);
+  const lastPointRef = useRef(null);
 
   useEffect(() => {
     console.info('[DEBUG] VideoCall: Setting up socket listeners for session:', sessionId);
@@ -46,6 +58,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
         socket.on('ice-candidate', handleIceCandidate);
         socket.on('user-left', handleUserLeft);
         
+        // Whiteboard socket events
+        socket.on('whiteboard-draw', handleRemoteDraw);
+        socket.on('whiteboard-clear', handleRemoteClear);
+        
         setIsConnected(true);
         
       } catch (error) {
@@ -58,8 +74,30 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
     return () => {
       console.info('[DEBUG] VideoCall: Cleaning up socket listeners for session:', sessionId);
       cleanup();
+      // Also clear localStorage if component unmounts unexpectedly
+      localStorage.removeItem('activeSession');
     };
   }, [sessionId, userRole]);
+
+  // Initialize whiteboard canvas
+  useEffect(() => {
+    if (showWhiteboard && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      // Set canvas size
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      
+      // Set default styles
+      context.strokeStyle = drawingColor;
+      context.lineWidth = brushSize;
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      
+      contextRef.current = context;
+    }
+  }, [showWhiteboard, drawingColor, brushSize]);
 
   const cleanup = () => {
     if (localStream) {
@@ -77,6 +115,92 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
     socket.off('answer');
     socket.off('ice-candidate');
     socket.off('user-left');
+    socket.off('whiteboard-draw');
+    socket.off('whiteboard-clear');
+  };
+
+  // Whiteboard functions
+  const startDrawing = (e) => {
+    if (!contextRef.current) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    setIsDrawing(true);
+    lastPointRef.current = { x, y };
+    
+    contextRef.current.beginPath();
+    contextRef.current.moveTo(x, y);
+  };
+
+  const draw = (e) => {
+    if (!isDrawing || !contextRef.current || !lastPointRef.current) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    contextRef.current.lineTo(x, y);
+    contextRef.current.stroke();
+    
+    // Send drawing data to other user
+    socket.emit('whiteboard-draw', {
+      sessionId,
+      fromX: lastPointRef.current.x,
+      fromY: lastPointRef.current.y,
+      toX: x,
+      toY: y,
+      color: drawingColor,
+      size: brushSize,
+      tool: drawingTool
+    });
+    
+    lastPointRef.current = { x, y };
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+    lastPointRef.current = null;
+  };
+
+  const handleRemoteDraw = (data) => {
+    if (!contextRef.current) return;
+    
+    const context = contextRef.current;
+    const originalColor = context.strokeStyle;
+    const originalSize = context.lineWidth;
+    
+    context.strokeStyle = data.color;
+    context.lineWidth = data.size;
+    
+    context.beginPath();
+    context.moveTo(data.fromX, data.fromY);
+    context.lineTo(data.toX, data.toY);
+    context.stroke();
+    
+    // Restore original settings
+    context.strokeStyle = originalColor;
+    context.lineWidth = originalSize;
+  };
+
+  const clearWhiteboard = () => {
+    if (!contextRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const context = contextRef.current;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Send clear command to other user
+    socket.emit('whiteboard-clear', { sessionId });
+  };
+
+  const handleRemoteClear = () => {
+    if (!contextRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const context = contextRef.current;
+    context.clearRect(0, 0, canvas.width, canvas.height);
   };
 
   const createPeerConnection = () => {
@@ -259,7 +383,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-6 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg p-6 max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-800">Video Call - Session {sessionId}</h2>
           <button
@@ -320,6 +444,68 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
             />
           </div>
         )}
+
+        {/* Whiteboard */}
+        {showWhiteboard && (
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold">Whiteboard</h3>
+              <div className="flex gap-2">
+                {/* Color Picker */}
+                <input
+                  type="color"
+                  value={drawingColor}
+                  onChange={(e) => setDrawingColor(e.target.value)}
+                  className="w-10 h-10 rounded border cursor-pointer"
+                  title="Choose color"
+                />
+                
+                {/* Brush Size */}
+                <select
+                  value={brushSize}
+                  onChange={(e) => setBrushSize(Number(e.target.value))}
+                  className="px-2 py-1 border rounded text-sm"
+                >
+                  <option value={1}>1px</option>
+                  <option value={3}>3px</option>
+                  <option value={5}>5px</option>
+                  <option value={10}>10px</option>
+                  <option value={20}>20px</option>
+                </select>
+                
+                {/* Drawing Tool */}
+                <select
+                  value={drawingTool}
+                  onChange={(e) => setDrawingTool(e.target.value)}
+                  className="px-2 py-1 border rounded text-sm"
+                >
+                  <option value="pen">Pen</option>
+                  <option value="eraser">Eraser</option>
+                </select>
+                
+                {/* Clear Button */}
+                <button
+                  onClick={clearWhiteboard}
+                  className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            
+            <div className="border-2 border-gray-300 rounded-lg overflow-hidden">
+              <canvas
+                ref={canvasRef}
+                onMouseDown={startDrawing}
+                onMouseMove={draw}
+                onMouseUp={stopDrawing}
+                onMouseLeave={stopDrawing}
+                className="w-full h-96 bg-white cursor-crosshair"
+                style={{ touchAction: 'none' }}
+              />
+            </div>
+          </div>
+        )}
         
         {/* Controls */}
         <div className="flex justify-center gap-4 flex-wrap">
@@ -366,6 +552,19 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </button>
+
+          {/* Whiteboard Toggle */}
+          <button
+            onClick={() => setShowWhiteboard(!showWhiteboard)}
+            className={`p-3 rounded-full transition-colors ${
+              showWhiteboard ? 'bg-green-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
+            }`}
+            title={showWhiteboard ? 'Hide Whiteboard' : 'Show Whiteboard'}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </button>
         </div>
         
         {/* Session Info */}
@@ -374,6 +573,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
           <p>Your Role: {userRole}</p>
           <p>Status: {isConnected ? 'Connected' : 'Connecting...'}</p>
           {remoteStream && <p className="text-green-600">Partner Connected!</p>}
+          {showWhiteboard && <p className="text-blue-600">Whiteboard Active - Draw to collaborate!</p>}
         </div>
       </div>
     </div>

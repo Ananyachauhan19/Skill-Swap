@@ -287,6 +287,17 @@ module.exports = (io) => {
       socket.to(sessionId).emit('ice-candidate', { sessionId, candidate });
     });
 
+    // Whiteboard events
+    socket.on('whiteboard-draw', ({ sessionId, fromX, fromY, toX, toY, color, size, tool }) => {
+      socket.to(sessionId).emit('whiteboard-draw', {
+        fromX, fromY, toX, toY, color, size, tool
+      });
+    });
+
+    socket.on('whiteboard-clear', ({ sessionId }) => {
+      socket.to(sessionId).emit('whiteboard-clear');
+    });
+
     // Start session after approval (tutor triggers this)
     socket.on('start-session', async ({ sessionId }) => {
       try {

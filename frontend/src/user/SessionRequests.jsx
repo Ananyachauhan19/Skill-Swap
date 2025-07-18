@@ -18,9 +18,71 @@ const SessionRequests = () => {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [cancelledMessage, setCancelledMessage] = useState('');
 
+  // Load active session from localStorage on component mount
+  useEffect(() => {
+    const savedActiveSession = localStorage.getItem('activeSession');
+    if (savedActiveSession) {
+      try {
+        const session = JSON.parse(savedActiveSession);
+        // Check if the session is still valid (not expired)
+        const sessionAge = Date.now() - session.timestamp;
+        const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
+        
+        if (sessionAge < SESSION_TIMEOUT) {
+          setActiveSession(session);
+          console.info('[DEBUG] SessionRequests: Restored active session from localStorage:', session);
+        } else {
+          // Session expired, remove from localStorage
+          localStorage.removeItem('activeSession');
+          console.info('[DEBUG] SessionRequests: Active session expired, removed from localStorage');
+        }
+      } catch (error) {
+        console.error('[DEBUG] SessionRequests: Error parsing saved session:', error);
+        localStorage.removeItem('activeSession');
+      }
+    }
+    
+    // Also check for active sessions from backend as fallback
+    checkActiveSessionFromBackend();
+  }, []);
+
+  // Check for active sessions from backend
+  const checkActiveSessionFromBackend = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/session-requests/active`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.activeSession) {
+          console.info('[DEBUG] SessionRequests: Found active session from backend:', data.activeSession);
+          setActiveSession(data.activeSession);
+        }
+      }
+    } catch (error) {
+      console.error('[DEBUG] SessionRequests: Error checking active session from backend:', error);
+    }
+  };
+
   useEffect(() => {
     fetchSessionRequests();
   }, []);
+
+  // Save active session to localStorage whenever it changes
+  useEffect(() => {
+    if (activeSession) {
+      const sessionWithTimestamp = {
+        ...activeSession,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('activeSession', JSON.stringify(sessionWithTimestamp));
+      console.info('[DEBUG] SessionRequests: Saved active session to localStorage:', sessionWithTimestamp);
+    } else {
+      localStorage.removeItem('activeSession');
+      console.info('[DEBUG] SessionRequests: Removed active session from localStorage');
+    }
+  }, [activeSession]);
 
   // Socket event handlers
   useEffect(() => {
@@ -41,11 +103,12 @@ const SessionRequests = () => {
       if (user && data.tutor && user._id === data.tutor._id) role = 'tutor';
       if (user && data.requester && user._id === data.requester._id) role = 'requester';
       if (role) {
-        setActiveSession({
+        const newActiveSession = {
           sessionId: data.sessionId,
           sessionRequest: data.sessionRequest,
           role
-        });
+        };
+        setActiveSession(newActiveSession);
         setShowVideoModal(false);
         setReadyToStartSession(null);
         console.info('[DEBUG] SessionRequests: activeSession set for role:', role);
@@ -56,6 +119,8 @@ const SessionRequests = () => {
       setShowVideoModal(false);
       setActiveSession(null);
       setReadyToStartSession(null);
+      // Clear from localStorage as well
+      localStorage.removeItem('activeSession');
       setCancelledMessage(data.message || 'Session was cancelled.');
       setTimeout(() => setCancelledMessage(""), 5000);
     });
@@ -147,6 +212,8 @@ const SessionRequests = () => {
     setShowVideoModal(false);
     setActiveSession(null);
     setReadyToStartSession(null);
+    // Clear from localStorage as well
+    localStorage.removeItem('activeSession');
   };
 
   const getStatusColor = (status) => {
