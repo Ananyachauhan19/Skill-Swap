@@ -6,6 +6,8 @@ import SearchBar from './oneononeSection/serachBar';
 import TutorCard from './oneononeSection/TutorCard';
 import Testimonial from "./Testimonial";
 import { useNavigate, useLocation } from 'react-router-dom';
+import TopPerformersSection from "./HomeSection/TopPerformersSection";
+import Blog from '../user/company/Blog'; 
 
 const HowItWorks = () => (
   <section className="relative bg-white rounded-xl shadow p-6 flex flex-col gap-6 border border-blue-200 mb-8 animate-fadeIn">
@@ -288,38 +290,13 @@ const OneOnOne = () => {
           )}
         </div>
         <HowItWorks />
-        <Testimonial />
+         <TopPerformersSection />
+          <Blog />
+           
+       
       </main>
 
-      {/* Custom Tailwind animation styles */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-out;
-        }
-        .animate-slideUp {
-          animation: slideUp 0.5s ease-out;
-        }
-      `}</style>
+      
     </div>
   );
 };

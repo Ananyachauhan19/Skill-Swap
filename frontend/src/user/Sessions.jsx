@@ -5,7 +5,8 @@ import UploadedVideos from "./SessionsFolder/UploadedVideos";
 import ScheduledSessions from "./SessionsFolder/Scheduled";
 import Testimonial from "./Testimonial";
 import { useNavigate } from "react-router-dom";
-
+import TopPerformersSection from "./HomeSection/TopPerformersSection";
+import Blog from '../user/company/Blog'; 
 const Sessions = () => {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
@@ -497,7 +498,9 @@ const Sessions = () => {
         </div>
       </section>
       <section>
-        <Testimonial />
+          <TopPerformersSection />
+           <Blog />
+           
       </section>
     </div>
   );

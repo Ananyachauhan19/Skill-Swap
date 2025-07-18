@@ -4,6 +4,8 @@ import FAQSection from './discussSection/FAQSection';
 import Testimonial from './Testimonial';
 import InterviewSearchBox from './interviewSection/InterviewSearchBox';
 import PastGDExpertSection from './discussSection/PastGDExpertSection';
+import TopPerformersSection from "./HomeSection/TopPerformersSection";
+import Blog from '../user/company/Blog'; 
 
 const HowItWorks = () => (
   <section className="relative bg-white rounded-xl shadow p-4 flex flex-col gap-4 border border-blue-200 mb-8">
@@ -125,7 +127,10 @@ const Discuss = () => {
         <PastGDExpertSection />
         <PastGDSection />
         <FAQSection />
-        <Testimonial />
+            <TopPerformersSection />
+             <Blog />
+           
+      
       </main>
     </div>
   );

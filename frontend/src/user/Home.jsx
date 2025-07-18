@@ -14,6 +14,8 @@ import WhoAreWeSection from "./HomeSection/WhoAreWeSection";
 import WhyChooseSection from "./HomeSection/WhyChooseSection";
 import LetsStartSection from "./HomeSection/LetsStartSection";
 import Testimonial from "./Testimonial";
+import Blog from '../user/company/Blog'; // adjust the path if needed
+
 import Cookies from 'js-cookie';
 
 const HomeHero = () => {
@@ -107,33 +109,6 @@ const HomeHero = () => {
     { icon: <FaChalkboardTeacher className="text-5xl text-blue-800" />, value: 18200, label: "Active Members" },
     { icon: <FaUsers className="text-5xl text-blue-800" />, value: 4500, label: "Experts Available" },
     { icon: <FaComments className="text-5xl text-blue-800" />, value: 50, label: "Session Types" },
-  ];
-
-  const performers = [
-    {
-      img: "/user1.webp",
-      imgFallback: "/user1.png",
-      alt: "Most Active",
-      title: "Most Active Learner",
-      name: "Aditya Singh",
-      stat: "15 sessions",
-    },
-    {
-      img: "/user2.webp",
-      imgFallback: "/user2.png",
-      alt: "Top Tutor",
-      title: "Highest Rated Tutor",
-      name: "Ananya S.",
-      extra: <span className="text-yellow-400 text-2xl">★★★★★</span>,
-    },
-    {
-      img: "/user3.webp",
-      imgFallback: "/user3.png",
-      alt: "Top Earner",
-      title: "Top Earner",
-      name: "Rahul",
-      stat: <span className="text-green-600 font-semibold">₹ 8,200 Earned</span>,
-    },
   ];
 
   const featureTabs = [
@@ -291,15 +266,17 @@ const HomeHero = () => {
 
         <ActivityStatsSection stats={stats} />
 
-        <TopPerformersSection performers={performers} />
+        <TopPerformersSection />
 
         <WhoAreWeSection navigate={navigate} />
 
         <WhyChooseSection isLoggedIn={isLoggedIn} openRegister={openRegister} />
 
         <LetsStartSection isLoggedIn={isLoggedIn} openLogin={openLogin} buttonVariants={buttonVariants} />
+            
+         <Blog />
+           
 
-        <Testimonial />
       </motion.div>
     </main>
   );

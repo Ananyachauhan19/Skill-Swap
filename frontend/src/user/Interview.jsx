@@ -1,9 +1,10 @@
-import React from 'react';
-import InterviewListSection from './interviewSection/InterviewListSection';
-import PastInterviewSection from './interviewSection/PastInterviewSection';
-import FAQSection from './interviewSection/FAQ';
-import Testimonial from './Testimonial';
-import InterviewSearchBox from './interviewSection/InterviewSearchBox';
+import React from "react";
+import InterviewListSection from "./interviewSection/InterviewListSection";
+import PastInterviewSection from "./interviewSection/PastInterviewSection";
+import FAQSection from "./interviewSection/FAQ";
+import InterviewSearchBox from "./interviewSection/InterviewSearchBox";
+import TopPerformersSection from "./HomeSection/TopPerformersSection";
+import Blog from '../user/company/Blog'; 
 
 const HowItWorks = () => (
   <section className="relative bg-white rounded-xl shadow p-4 flex flex-col gap-4 border border-blue-200 mb-8">
@@ -58,6 +59,37 @@ const HowItWorks = () => (
   </section>
 );
 
+// Sample performers data
+const performers = [
+  {
+    title: "Top Scorer",
+    name: "John Doe",
+    img: "/assets/john-doe.webp",
+    imgFallback: "/assets/john-doe.jpg",
+    alt: "John Doe",
+    stat: "Aced 5 mock interviews",
+    extra: <p className="text-sm text-blue-600 mt-2">Placed at Google</p>,
+  },
+  {
+    title: "Best Communicator",
+    name: "Jane Smith",
+    img: "/assets/jane-smith.webp",
+    imgFallback: "/assets/jane-smith.jpg",
+    alt: "Jane Smith",
+    stat: "95% feedback score",
+    extra: <p className="text-sm text-blue-600 mt-2">Placed at Microsoft</p>,
+  },
+  {
+    title: "Most Improved",
+    name: "Alex Johnson",
+    img: "/assets/alex-johnson.webp",
+    imgFallback: "/assets/alex-johnson.jpg",
+    alt: "Alex Johnson",
+    stat: "Improved score by 40%",
+    extra: <p className="text-sm text-blue-600 mt-2">Placed at Amazon</p>,
+  },
+];
+
 const Interview = () => {
   // Ref for InterviewListSection
   const interviewListRef = React.useRef(null);
@@ -74,21 +106,21 @@ const Interview = () => {
     setFilteredInterviews({
       keyword: searchTerm.trim(),
       job: selectedJob,
-      course: selectedCourse
+      course: selectedCourse,
     });
     if (interviewListRef.current) {
-      interviewListRef.current.scrollIntoView({ behavior: 'smooth' });
+      interviewListRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
   const handleInputKeyDown = (e) => {
-    if (e.key === 'Enter') handleSearch();
+    if (e.key === "Enter") handleSearch();
   };
 
   // --- Handler for Book a Mock Interview button ---
   const handleBookClick = () => {
     if (interviewListRef.current) {
-      interviewListRef.current.scrollIntoView({ behavior: 'smooth' });
+      interviewListRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -149,7 +181,9 @@ const Interview = () => {
         />
         <PastInterviewSection />
         <FAQSection />
-        <Testimonial />
+        <TopPerformersSection performers={performers} />
+         <Blog />
+           
       </main>
     </div>
   );

@@ -433,7 +433,7 @@ const Navbar = () => {
               { path: "/one-on-one", label: "1-on-1" },
               { path: "/session", label: "Session" },
               { path: "/session-requests", label: "Requests" },
-              { path: "/discuss", label: "Discuss" },
+              { path: "/discuss", label: "GD" },
               { path: "/interview", label: "Interview" },
             ].map(({ path, label }) => (
               <button
