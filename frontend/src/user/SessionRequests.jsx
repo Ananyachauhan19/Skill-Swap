@@ -1,18 +1,71 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaCheck, FaTimes, FaClock, FaUser, FaBook } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaClock, FaUser, FaBook, FaPlay, FaVideo } from 'react-icons/fa';
 import { BACKEND_URL } from '../config.js';
+import socket from '../socket';
+import { useAuth } from '../context/AuthContext';
+import VideoCall from '../components/VideoCall';
 
 const SessionRequests = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [requests, setRequests] = useState({ received: [], sent: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('received');
+  const [readyToStartSession, setReadyToStartSession] = useState(null);
+  const [activeSession, setActiveSession] = useState(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [cancelledMessage, setCancelledMessage] = useState('');
 
   useEffect(() => {
     fetchSessionRequests();
   }, []);
+
+  // Socket event handlers
+  useEffect(() => {
+    if (!user || !user._id) return;
+
+    socket.emit('register', user._id);
+
+    // Listen for new session requests
+    socket.on('session-request-received', (data) => {
+      console.info('[DEBUG] SessionRequests: New request received:', data);
+      fetchSessionRequests(); // Refresh the list
+    });
+
+    // Listen for session-started events
+    socket.on('session-started', (data) => {
+      console.info('[DEBUG] SessionRequests: session-started event received:', data);
+      let role = null;
+      if (user && data.tutor && user._id === data.tutor._id) role = 'tutor';
+      if (user && data.requester && user._id === data.requester._id) role = 'requester';
+      if (role) {
+        setActiveSession({
+          sessionId: data.sessionId,
+          sessionRequest: data.sessionRequest,
+          role
+        });
+        setShowVideoModal(false);
+        setReadyToStartSession(null);
+        console.info('[DEBUG] SessionRequests: activeSession set for role:', role);
+      }
+    });
+
+    socket.on('session-cancelled', (data) => {
+      setShowVideoModal(false);
+      setActiveSession(null);
+      setReadyToStartSession(null);
+      setCancelledMessage(data.message || 'Session was cancelled.');
+      setTimeout(() => setCancelledMessage(""), 5000);
+    });
+
+    return () => {
+      socket.off('session-request-received');
+      socket.off('session-started');
+      socket.off('session-cancelled');
+    };
+  }, [user]);
 
   const fetchSessionRequests = async () => {
     try {
@@ -43,15 +96,12 @@ const SessionRequests = () => {
       });
       
       if (response.ok) {
-        // Refresh the requests
+        // Find the approved request
+        const approvedRequest = requests.received.find(req => req._id === requestId);
+        if (approvedRequest) {
+          setReadyToStartSession(approvedRequest);
+        }
         fetchSessionRequests();
-        // Navigate to create session page
-        navigate('/create-session', { 
-          state: { 
-            mode: 'from-request',
-            requestId: requestId
-          }
-        });
       } else {
         setError('Failed to approve request');
       }
@@ -69,7 +119,6 @@ const SessionRequests = () => {
       });
       
       if (response.ok) {
-        // Refresh the requests
         fetchSessionRequests();
       } else {
         setError('Failed to reject request');
@@ -77,6 +126,27 @@ const SessionRequests = () => {
     } catch (error) {
       setError('Failed to reject request');
     }
+  };
+
+  const handleStartSession = () => {
+    if (readyToStartSession) {
+      console.info('[DEBUG] SessionRequests: Starting session:', readyToStartSession._id);
+      socket.emit('start-session', { sessionId: readyToStartSession._id });
+      setShowVideoModal(true);
+    }
+  };
+
+  const handleCancelSession = () => {
+    if (activeSession) {
+      socket.emit('cancel-session', { sessionId: activeSession.sessionId });
+    }
+  };
+
+  const handleEndCall = () => {
+    console.info('[DEBUG] SessionRequests: Call ended, clearing session state');
+    setShowVideoModal(false);
+    setActiveSession(null);
+    setReadyToStartSession(null);
   };
 
   const getStatusColor = (status) => {
@@ -190,6 +260,65 @@ const SessionRequests = () => {
         {error && (
           <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
             {error}
+          </div>
+        )}
+
+        {/* Show Start Session button for tutor after approval */}
+        {readyToStartSession && (
+          <div className="mb-8 flex flex-col items-center">
+            <div className="bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg mb-2">
+              Session approved! Click below to <b>Start Session</b>.<br />
+              <button
+                className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold flex items-center space-x-2"
+                onClick={handleStartSession}
+              >
+                <FaPlay className="text-xs" />
+                <span>Start Session</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {cancelledMessage && (
+          <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+            {cancelledMessage}
+          </div>
+        )}
+
+        {/* Active Session Join Button - Shows for both users */}
+        {activeSession && (
+          <div className="mb-8 flex flex-col items-center">
+            <div className="bg-green-100 border border-green-400 text-green-800 px-6 py-4 rounded-lg mb-2">
+              Your session is ready! Click below to <b>Join Session</b>{activeSession.role === 'requester' && <> or <b>Cancel Session</b></>}.<br />
+              <div className="flex gap-4 mt-3">
+                <button
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold flex items-center space-x-2"
+                  onClick={() => setShowVideoModal(true)}
+                >
+                  <FaVideo className="text-xs" />
+                  <span>Join Session</span>
+                </button>
+                {activeSession.role === 'requester' && (
+                  <button
+                    className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md font-semibold"
+                    onClick={handleCancelSession}
+                  >
+                    Cancel Session
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Video Call Modal */}
+        {showVideoModal && activeSession && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <VideoCall
+              sessionId={activeSession.sessionId}
+              userRole={activeSession.role}
+              onEndCall={handleEndCall}
+            />
           </div>
         )}
 
