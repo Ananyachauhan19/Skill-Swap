@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BACKEND_URL } from '../../config.js';
+import socket from '../../socket.js';
 
 // --- Backend function: Fetch current silver coin balance ---
 async function fetchSilverCoinBalance() {
@@ -36,6 +37,16 @@ const CoinBalance = () => {
       }
     }
     loadBalances();
+
+    // Listen for real-time coin updates
+    socket.on('coin-update', (data) => {
+      if (typeof data.silverCoins === 'number') {
+        setSilver(data.silverCoins);
+      }
+    });
+    return () => {
+      socket.off('coin-update');
+    };
   }, []);
 
   return (

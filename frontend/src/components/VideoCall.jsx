@@ -30,6 +30,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
   const contextRef = useRef(null);
   const lastPointRef = useRef(null);
 
+  const [callStartTime, setCallStartTime] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
   useEffect(() => {
     console.info('[DEBUG] VideoCall: Setting up socket listeners for session:', sessionId);
     const initializeCall = async () => {
@@ -71,13 +74,40 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
 
     initializeCall();
 
+    // Listen for end-call event from the server
+    socket.on('end-call', ({ sessionId: endedSessionId }) => {
+      if (endedSessionId === sessionId) {
+        handleEndCall();
+      }
+    });
+
     return () => {
       console.info('[DEBUG] VideoCall: Cleaning up socket listeners for session:', sessionId);
       cleanup();
       // Also clear localStorage if component unmounts unexpectedly
       localStorage.removeItem('activeSession');
+      socket.off('end-call');
     };
   }, [sessionId, userRole]);
+
+  // Start timer when call connects
+  useEffect(() => {
+    if (isConnected && !callStartTime) {
+      setCallStartTime(Date.now());
+      setElapsedSeconds(0);
+    }
+  }, [isConnected]);
+
+  // Update timer every second
+  useEffect(() => {
+    let interval;
+    if (callStartTime) {
+      interval = setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - callStartTime) / 1000));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [callStartTime]);
 
   // Initialize whiteboard canvas
   useEffect(() => {
@@ -298,7 +328,11 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
   };
 
   const handleEndCall = () => {
+    // Emit end-call event to server
+    socket.emit('end-call', { sessionId });
     cleanup();
+    setCallStartTime(null);
+    setElapsedSeconds(0);
     if (onEndCall) {
       onEndCall();
     }
@@ -384,6 +418,15 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
       <div className="bg-white rounded-lg p-6 max-w-7xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        {/* Call Timer */}
+        <div className="text-center text-lg font-semibold text-blue-700 mb-2">
+          {callStartTime && (
+            <>
+              Call Time: {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:
+              {String(elapsedSeconds % 60).padStart(2, '0')}
+            </>
+          )}
+        </div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-800">Video Call - Session {sessionId}</h2>
           <button

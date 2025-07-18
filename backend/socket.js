@@ -6,6 +6,8 @@ module.exports = (io) => {
   const sessionRooms = new Map();
   // Store online users
   const onlineUsers = new Map();
+  // Store active session timers
+  const sessionTimers = new Map();
 
   io.on('connection', (socket) => {
     // Register user with their socket ID
@@ -242,20 +244,73 @@ module.exports = (io) => {
       }
     });
 
+    // Helper to get userId from socketId
+    function getUserIdFromSocketId(socketId) {
+      const userData = onlineUsers.get(socketId);
+      return userData ? userData.userId : null;
+    }
+
+    // Helper to get all userIds in a session room
+    function getUserIdsInSession(sessionId) {
+      const sockets = sessionRooms.get(sessionId) || new Set();
+      return Array.from(sockets).map(getUserIdFromSocketId).filter(Boolean);
+    }
+
+    // Helper to get socketIds for a userId
+    function getSocketIdsForUserId(userId) {
+      return Array.from(onlineUsers.entries())
+        .filter(([_, data]) => String(data.userId) === String(userId))
+        .map(([socketId, _]) => socketId);
+    }
+
     // Join session room for video calling
-    socket.on('join-session', ({ sessionId, userRole }) => {
-      // Join the session room
+    socket.on('join-session', async ({ sessionId, userRole }) => {
       socket.join(sessionId);
-      
-      // Store session info
       if (!sessionRooms.has(sessionId)) {
         sessionRooms.set(sessionId, new Set());
       }
       sessionRooms.get(sessionId).add(socket.id);
-      
-      // Notify other users in the session that someone joined
       socket.to(sessionId).emit('user-joined', { sessionId, userRole });
-      
+
+      // Check if both users are present, then start timer if not already started
+      const userIds = getUserIdsInSession(sessionId);
+      if (userIds.length === 2 && !sessionTimers.has(sessionId)) {
+        // Get session request to find tutor and requester
+        const sessionRequest = await SessionRequest.findById(sessionId);
+        if (!sessionRequest) return;
+        const requesterId = String(sessionRequest.requester);
+        const tutorId = String(sessionRequest.tutor);
+        // Start timer
+        let minutesElapsed = 0;
+        const timer = setInterval(async () => {
+          minutesElapsed++;
+          try {
+            // Deduct 1 silver coin from requester
+            const requester = await User.findById(requesterId);
+            if (requester && requester.silverCoins >= 1) {
+              requester.silverCoins -= 1;
+              await requester.save();
+            }
+            // Credit 0.75 silver coin to tutor
+            const tutor = await User.findById(tutorId);
+            if (tutor) {
+              tutor.silverCoins += 0.75;
+              await tutor.save();
+            }
+            // Optionally: emit balance updates to both users
+            getSocketIdsForUserId(requesterId).forEach(sid => {
+              io.to(sid).emit('coin-update', { silverCoins: requester ? requester.silverCoins : null });
+            });
+            getSocketIdsForUserId(tutorId).forEach(sid => {
+              io.to(sid).emit('coin-update', { silverCoins: tutor ? tutor.silverCoins : null });
+            });
+          } catch (err) {
+            console.error('[Session Timer] Error updating coins:', err);
+          }
+        }, 60 * 1000); // Every minute
+        sessionTimers.set(sessionId, timer);
+        console.log(`[Session Timer] Started for session ${sessionId}`);
+      }
     });
 
     // Leave session room
@@ -354,6 +409,17 @@ module.exports = (io) => {
         if (requesterSocketId) io.to(requesterSocketId).emit('session-cancelled', payload);
       } catch (err) {
         console.error('[cancel-session] Error:', err);
+      }
+    });
+
+    // End call for all users in the session
+    socket.on('end-call', ({ sessionId }) => {
+      io.to(sessionId).emit('end-call', { sessionId });
+      // Stop timer if running
+      if (sessionTimers.has(sessionId)) {
+        clearInterval(sessionTimers.get(sessionId));
+        sessionTimers.delete(sessionId);
+        console.log(`[Session Timer] Stopped for session ${sessionId}`);
       }
     });
 
