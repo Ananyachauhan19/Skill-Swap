@@ -14,7 +14,7 @@ import WhoAreWeSection from "./HomeSection/WhoAreWeSection";
 import WhyChooseSection from "./HomeSection/WhyChooseSection";
 import LetsStartSection from "./HomeSection/LetsStartSection";
 import Testimonial from "./Testimonial";
-import Blog from '../user/company/Blog'; // adjust the path if needed
+import Blog from '../user/company/Blog'; 
 
 import Cookies from 'js-cookie';
 
