@@ -12,13 +12,6 @@ const UserInfoSection = ({ profile, editingField, fieldDraft, startEdit, saveEdi
       skillsToTeach: fieldDraft.skillsToTeach || profile.skillsToTeach || [],
     };
     
-    console.log('UserInfoSection - Saving profile with skills:', {
-      fieldDraft: fieldDraft,
-      profile: profile,
-      updatedProfile: updatedProfile,
-      skillsToTeach: updatedProfile.skillsToTeach,
-    });
-    
     // Call the parent's save function
     if (onSaveEdit) {
       onSaveEdit(updatedProfile);

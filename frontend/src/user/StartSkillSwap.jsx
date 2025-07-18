@@ -58,13 +58,13 @@ const StartSkillSwap = () => {
   }, [user]);
 
   useEffect(() => {
-    // Register user with socket when component mounts
-    if (user && user._id) {
-      socket.emit('register', user._id);
-    }
+    if (!user || !user._id) return; // Only register handlers if user is loaded
+
+    socket.emit('register', user._id);
 
     // Listen for tutors found
     socket.on('tutors-found', (data) => {
+      console.info('[DEBUG] StartSkillSwap: tutors-found event received:', data);
       setLoading(false);
       if (data.error) {
         setError(data.error);
@@ -89,6 +89,7 @@ const StartSkillSwap = () => {
 
     // Listen for session-started events
     socket.on('session-started', (data) => {
+      console.info('[DEBUG] session-started event received:', data, 'Current user:', user && user._id);
       let role = null;
       if (user && data.tutor && user._id === data.tutor._id) role = 'tutor';
       if (user && data.requester && user._id === data.requester._id) role = 'requester';
@@ -96,6 +97,10 @@ const StartSkillSwap = () => {
         setActiveSession({
           sessionId: data.sessionId,
           sessionRequest: data.sessionRequest,
+          role
+        });
+        console.info('[DEBUG] activeSession set:', {
+          sessionId: data.sessionId,
           role
         });
         setShowVideoModal(false); // Hide any previous modal
@@ -125,6 +130,7 @@ const StartSkillSwap = () => {
       setError("Please select all fields (Subject, Topic, and Subtopic)");
       return;
     }
+    console.info('[DEBUG] StartSkillSwap: handleFindTutor called, user:', user && user._id);
     setLoading(true);
     setError("");
     socket.emit('find-tutors', {
@@ -136,6 +142,7 @@ const StartSkillSwap = () => {
 
   // Approve/Reject handlers for pending requests
   const handleApprove = async (request) => {
+    console.info('[DEBUG] StartSkillSwap: handleApprove called for request:', request._id);
     try {
       const res = await fetch(`${BACKEND_URL}/api/session-requests/approve/${request._id}`, {
         method: 'POST',
@@ -143,6 +150,7 @@ const StartSkillSwap = () => {
         headers: { 'Content-Type': 'application/json' }
       });
       if (res.ok) {
+        console.info('[DEBUG] StartSkillSwap: Request approved successfully');
         setPendingRequests((prev) => prev.filter((r) => r._id !== request._id));
         setReadyToStartSession(request); // Show Start Session button for this request
       }
@@ -166,6 +174,7 @@ const StartSkillSwap = () => {
   };
 
   const handleStartSession = () => {
+    console.info('[DEBUG] StartSkillSwap: handleStartSession called, readyToStartSession:', readyToStartSession && readyToStartSession._id);
     if (readyToStartSession) {
       socket.emit('start-session', { sessionId: readyToStartSession._id });
       setShowVideoModal(true); // Open the video call for the tutor immediately
@@ -293,13 +302,16 @@ const StartSkillSwap = () => {
         )}
 
         {showVideoModal && activeSession && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <VideoCall
-              sessionId={activeSession.sessionId}
-              userRole={activeSession.role}
-              onEndCall={() => setShowVideoModal(false)}
-            />
-          </div>
+          <>
+            {console.info('[DEBUG] Rendering VideoCall for session:', activeSession.sessionId, 'role:', activeSession.role)}
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+              <VideoCall
+                sessionId={activeSession.sessionId}
+                userRole={activeSession.role}
+                onEndCall={() => setShowVideoModal(false)}
+              />
+            </div>
+          </>
         )}
 
         <SearchBar

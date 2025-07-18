@@ -36,7 +36,6 @@ const ReportPage = () => {
       reportedVideo: video,
     };
 
-    console.log("Report submitted:", reportData); // Replace with API call
     alert("Report submitted successfully!");
     navigate(-1); // Go back
   };

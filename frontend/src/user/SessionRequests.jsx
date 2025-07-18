@@ -28,7 +28,6 @@ const SessionRequests = () => {
         setError('Failed to fetch session requests');
       }
     } catch (error) {
-      console.error('Error fetching session requests:', error);
       setError('Failed to fetch session requests');
     } finally {
       setLoading(false);
@@ -57,7 +56,6 @@ const SessionRequests = () => {
         setError('Failed to approve request');
       }
     } catch (error) {
-      console.error('Error approving request:', error);
       setError('Failed to approve request');
     }
   };
@@ -77,7 +75,6 @@ const SessionRequests = () => {
         setError('Failed to reject request');
       }
     } catch (error) {
-      console.error('Error rejecting request:', error);
       setError('Failed to reject request');
     }
   };

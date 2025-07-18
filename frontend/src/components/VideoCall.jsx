@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import socket from '../socket.js';
 
 const VideoCall = ({ sessionId, onEndCall, userRole }) => {
+  console.info('[DEBUG] VideoCall: Initializing for session:', sessionId, 'role:', userRole);
   const [isConnected, setIsConnected] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -18,6 +19,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
   const localStreamRef = useRef(null);
 
   useEffect(() => {
+    console.info('[DEBUG] VideoCall: Setting up socket listeners for session:', sessionId);
     const initializeCall = async () => {
       try {
         // Get user media (camera and microphone)
@@ -35,6 +37,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
         
         // Join the session room
         socket.emit('join-session', { sessionId, userRole });
+        console.info('[DEBUG] VideoCall: Joined session room:', sessionId);
         
         // Listen for other user joining
         socket.on('user-joined', handleUserJoined);
@@ -44,10 +47,8 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
         socket.on('user-left', handleUserLeft);
         
         setIsConnected(true);
-        console.log('Video call initialized for session:', sessionId);
         
       } catch (error) {
-        console.error('Error accessing media devices:', error);
         alert('Unable to access camera/microphone. Please check permissions.');
       }
     };
@@ -55,6 +56,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
     initializeCall();
 
     return () => {
+      console.info('[DEBUG] VideoCall: Cleaning up socket listeners for session:', sessionId);
       cleanup();
     };
   }, [sessionId, userRole]);
@@ -117,7 +119,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
   };
 
   const handleUserJoined = async (data) => {
-    console.log('User joined:', data);
     const pc = createPeerConnection();
     
     try {
@@ -131,12 +132,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
       
       setIsInitiator(true);
     } catch (error) {
-      console.error('Error creating offer:', error);
     }
   };
 
   const handleOffer = async (data) => {
-    console.log('Received offer:', data);
     const pc = createPeerConnection();
     
     try {
@@ -149,16 +148,13 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
         answer: answer
       });
     } catch (error) {
-      console.error('Error handling offer:', error);
     }
   };
 
   const handleAnswer = async (data) => {
-    console.log('Received answer:', data);
     try {
       await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
     } catch (error) {
-      console.error('Error handling answer:', error);
     }
   };
 
@@ -166,12 +162,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
     try {
       await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
     } catch (error) {
-      console.error('Error adding ICE candidate:', error);
     }
   };
 
   const handleUserLeft = () => {
-    console.log('User left the session');
     setRemoteStream(null);
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
@@ -239,7 +233,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole }) => {
         stopScreenShare();
       }
     } catch (error) {
-      console.error('Error sharing screen:', error);
     }
   };
 

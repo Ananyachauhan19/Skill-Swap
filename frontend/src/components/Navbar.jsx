@@ -45,7 +45,6 @@ function useSessionSocketNotifications(setNotifications) {
                 return true;
               }
             } catch (error) {
-              console.error('Error approving request:', error);
               return false;
             }
           },
@@ -65,7 +64,6 @@ function useSessionSocketNotifications(setNotifications) {
                 return true;
               }
             } catch (error) {
-              console.error('Error rejecting request:', error);
               return false;
             }
           }
@@ -135,7 +133,6 @@ function useSessionSocketNotifications(setNotifications) {
 
     // Listen for session-started (for approved users)
     socket.on('session-started', (data) => {
-      console.log('Received session-started notification:', data);
       const newNotification = {
         type: 'session-started',
         session: data,
@@ -144,14 +141,10 @@ function useSessionSocketNotifications(setNotifications) {
         read: false,
         onJoin: () => {
           // Handle joining the video call
-          console.log('User joined session, starting video call...');
-          console.log('Setting activeVideoCall to:', data.sessionId);
           setActiveVideoCall(data.sessionId);
         },
         onCancel: () => {
           // Handle canceling the session
-          console.log('User cancelled session');
-          // Call the cancel API
           fetch(`${BACKEND_URL}/api/sessions/${data.sessionId}/cancel`, {
             method: 'POST',
             headers: {
@@ -161,28 +154,21 @@ function useSessionSocketNotifications(setNotifications) {
           })
           .then(response => {
             if (response.ok) {
-              console.log('Session cancelled successfully');
             } else {
-              console.error('Failed to cancel session');
             }
           })
           .catch(error => {
-            console.error('Error cancelling session:', error);
           });
         }
       };
-      console.log('Adding new notification:', newNotification);
       setNotifications((prev) => {
-        console.log('Previous notifications:', prev);
         const updated = [newNotification, ...prev];
-        console.log('Updated notifications:', updated);
         return updated;
       });
     });
 
     // Listen for session-cancelled (for creators)
     socket.on('session-cancelled', (data) => {
-      console.log('Received session-cancelled notification:', data);
       setNotifications((prev) => [
         {
           type: 'session-cancelled',
@@ -232,7 +218,6 @@ const Navbar = () => {
         const parsed = JSON.parse(savedNotifications);
         setNotifications(parsed);
       } catch (error) {
-        console.error('Error parsing saved notifications:', error);
         localStorage.removeItem('notifications');
       }
     }
@@ -255,7 +240,6 @@ const Navbar = () => {
       });
       
       if (filteredNotifications.length !== notifications.length) {
-        console.log('Cleaning up old notifications:', notifications.length - filteredNotifications.length, 'removed');
         setNotifications(filteredNotifications);
       }
     };
@@ -587,7 +571,6 @@ const Navbar = () => {
         <VideoCall
           sessionId={activeVideoCall}
           onEndCall={() => {
-            console.log('Ending video call');
             setActiveVideoCall(null);
           }}
           userRole="Participant"

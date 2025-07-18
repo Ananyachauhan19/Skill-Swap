@@ -34,6 +34,7 @@ import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
 import CompleteProfile from './user/myprofile/CompleteProfile';
+import { useAuth } from './context/AuthContext';
 
 
 // Define all routes in a single array for useRoutes
@@ -83,19 +84,29 @@ function useRegisterSocket() {
       }
     }
     if (user && user._id) {
-      console.log('[Socket Register] Emitting register for user', user._id, user);
       socket.emit('register', user._id);
     } else {
-      console.log('[Socket Register] No user found in cookie');
+      // No user found in cookie
     }
   }, []);
 }
 
 function App() {
-  useRegisterSocket();
+  const { user } = useAuth();
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const element = useRoutes(appRoutes);
+
+  // Register socket whenever user changes
+  React.useEffect(() => {
+    console.info('[DEBUG] App: User changed:', user && user._id);
+    if (user && user._id) {
+      socket.emit('register', user._id);
+      console.info('[DEBUG] Socket register emitted for user:', user && user._id);
+    } else {
+      console.info('[DEBUG] App: No user found in context');
+    }
+  }, [user]);
 
   return (
     <ModalProvider>

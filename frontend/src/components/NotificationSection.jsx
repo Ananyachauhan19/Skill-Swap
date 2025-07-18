@@ -22,8 +22,8 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
 
   // Debug: Log incoming notifications and route
   useEffect(() => {
-    console.log("Notifications received:", notifications);
-    console.log("Current route:", location.pathname);
+    // console.log("Notifications received:", notifications);
+    // console.log("Current route:", location.pathname);
   }, [notifications, location.pathname]);
 
   // Close dropdown when clicking outside
@@ -46,7 +46,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
       if (onUpdate) {
         const filtered = filterNotifications(notifications);
         if (filtered.length !== notifications.length) {
-          console.log("Filtered old/completed notifications:", filtered);
+          // console.log("Filtered old/completed notifications:", filtered);
           onUpdate(filtered);
         }
       }
@@ -56,7 +56,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
 
   // Clear all notifications
   const handleClear = () => {
-    console.log("Clearing all notifications");
+    // console.log("Clearing all notifications");
     if (onClear) {
       onClear();
       localStorage.removeItem('notifications');
@@ -65,7 +65,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
 
   // Mark notification as read
   const handleNotificationRead = (index) => {
-    console.log("Marking notification as read at index:", index);
+    // console.log("Marking notification as read at index:", index);
     const updatedNotifications = notifications.map((notification, i) => {
       if (i === index) {
         return { ...notification, read: true };
@@ -80,7 +80,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
 
   // Handle approve session request
   const handleApproveSession = async (sessionId, index) => {
-    console.log("Approving session:", sessionId, "at index:", index);
+    // console.log("Approving session:", sessionId, "at index:", index);
     setLoading((prev) => ({ ...prev, [`approve-${index}`]: true }));
     try {
       const response = await fetch(`${BACKEND_URL}/api/sessions/approve/${sessionId}`, {
@@ -95,14 +95,14 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
         throw new Error('Failed to approve session');
       }
 
-      console.log('Session approved successfully');
+      // console.log('Session approved successfully');
       const updatedNotifications = notifications.filter((_, i) => i !== index);
       if (onUpdate) {
         onUpdate(updatedNotifications);
         localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
       }
     } catch (error) {
-      console.error('Error approving session:', error);
+      // console.error('Error approving session:', error);
       alert('Failed to approve session. Please try again.');
     } finally {
       setLoading((prev) => ({ ...prev, [`approve-${index}`]: false }));
@@ -111,7 +111,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
 
   // Handle reject session request
   const handleRejectSession = async (sessionId, index) => {
-    console.log("Rejecting session:", sessionId, "at index:", index);
+    // console.log("Rejecting session:", sessionId, "at index:", index);
     setLoading((prev) => ({ ...prev, [`reject-${index}`]: true }));
     try {
       const response = await fetch(`${BACKEND_URL}/api/sessions/reject/${sessionId}`, {
@@ -126,14 +126,14 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
         throw new Error('Failed to reject session');
       }
 
-      console.log('Session rejected successfully');
+      // console.log('Session rejected successfully');
       const updatedNotifications = notifications.filter((_, i) => i !== index);
       if (onUpdate) {
         onUpdate(updatedNotifications);
         localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
       }
     } catch (error) {
-      console.error('Error rejecting session:', error);
+      // console.error('Error rejecting session:', error);
       alert('Failed to reject session. Please try again.');
     } finally {
       setLoading((prev) => ({ ...prev, [`reject-${index}`]: false }));
@@ -148,8 +148,8 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
     const sessionRoutes = ['/one-on-one', '/discuss', '/interview', '/session'];
     const isSessionRoute = sessionRoutes.some((route) => path.includes(route));
 
-    console.log("Active tab:", activeTab);
-    console.log("Is session route:", isSessionRoute);
+    // console.log("Active tab:", activeTab);
+    // console.log("Is session route:", isSessionRoute);
 
     // Route-based filtering
     if (isSessionRoute) {
@@ -179,7 +179,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
       filtered = filtered.filter((n) => n.type === 'skillmate');
     }
 
-    console.log("Filtered notifications for display:", filtered);
+    // console.log("Filtered notifications for display:", filtered);
     return filtered;
   };
 
@@ -335,7 +335,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => {
-                            console.log('Join button clicked for session-started notification');
+                            // console.log('Join button clicked for session-started notification');
                             if (n.onJoin) n.onJoin();
                             handleNotificationRead(idx);
                           }}
@@ -345,7 +345,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
                         </button>
                         <button
                           onClick={() => {
-                            console.log('Cancel button clicked for session-started notification');
+                            // console.log('Cancel button clicked for session-started notification');
                             if (n.onCancel) n.onCancel();
                             handleNotificationRead(idx);
                           }}

@@ -18,7 +18,6 @@ const SessionRequestNotification = ({ sessionRequest, requester, onAccept, onRej
         }
       });
     } catch (error) {
-      console.error('Error accepting request:', error);
     } finally {
       setIsProcessing(false);
     }
@@ -29,7 +28,6 @@ const SessionRequestNotification = ({ sessionRequest, requester, onAccept, onRej
     try {
       await onReject();
     } catch (error) {
-      console.error('Error rejecting request:', error);
     } finally {
       setIsProcessing(false);
     }

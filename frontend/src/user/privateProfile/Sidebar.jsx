@@ -23,7 +23,6 @@ const fetchUserProfile = async () => {
     });
     if (!response.ok) throw new Error('Failed to fetch user profile');
     const userData = await response.json();
-    console.log("Sidebar fetchUserProfile response:", userData);
     
     return {
       fullName: userData.firstName && userData.lastName 
@@ -42,7 +41,6 @@ const fetchUserProfile = async () => {
       skillsToLearn: userData.skillsToLearn || [],
     };
   } catch (err) {
-    console.error("Error fetching user profile:", err.message);
     throw new Error("Failed to fetch user profile");
   }
 };
@@ -55,12 +53,10 @@ const Sidebar = () => {
   const [error, setError] = useState(null);
 
   const loadUser = async () => {
-    console.log("loadUser triggered");
     setLoading(true);
     setError(null);
     try {
       const data = await fetchUserProfile();
-      console.log("Fetched user data:", data);
       setUser(data);
     } catch (err) {
       setError(err.message);
