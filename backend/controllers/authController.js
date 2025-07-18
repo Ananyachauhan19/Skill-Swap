@@ -13,7 +13,9 @@ exports.register = async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   const user = await User.create({
     firstName, lastName, email, phone, gender, password: hashedPassword,
-    username, skillsToTeach, skillsToLearn
+    username, skillsToTeach, skillsToLearn,
+    silverCoins: 100,
+    goldCoins: 0
   });
 
   // Generate OTP for email verification
@@ -72,6 +74,18 @@ exports.verifyOtp = async (req, res) => {
   }
 
   console.log('OTP verification successful for user:', user._id);
+
+  // Ensure coins are set
+  let updated = false;
+  if (typeof user.silverCoins !== 'number' || user.silverCoins < 100) {
+    user.silverCoins = 100;
+    updated = true;
+  }
+  if (typeof user.goldCoins !== 'number') {
+    user.goldCoins = 0;
+    updated = true;
+  }
+  if (updated) await user.save();
 
   // Clear OTP
   user.otp = undefined;

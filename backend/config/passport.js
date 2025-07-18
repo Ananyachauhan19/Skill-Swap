@@ -23,12 +23,12 @@ passport.use(new GoogleStrategy({
   async (accessToken, refreshToken, profile, done) => {
     try {
       let user = await User.findOne({ email: profile.emails[0].value });
-    if (!user) {
+      if (!user) {
         const baseUsername = (profile.name.givenName || 'user') + (profile.name.familyName || '');
         const username = await generateUsername(baseUsername);
-      user = await User.create({
-        googleId: profile.id,
-        email: profile.emails[0].value,
+        user = await User.create({
+          googleId: profile.id,
+          email: profile.emails[0].value,
           firstName: profile.name.givenName || 'Google',
           lastName: profile.name.familyName || 'User',
           username,
@@ -47,16 +47,28 @@ passport.use(new GoogleStrategy({
           twitter: '',
           credits: 1200,
           goldCoins: 0,
-          silverCoins: 0,
+          silverCoins: 100,
           badges: ['Starter', 'Helper'],
           rank: 'Bronze'
         });
-      } else if (!user.googleId) {
-        user.googleId = profile.id;
-        user.provider = 'google';
-        await user.save();
-    }
-    return done(null, user);
+      } else {
+        let updated = false;
+        if (!user.googleId) {
+          user.googleId = profile.id;
+          user.provider = 'google';
+          updated = true;
+        }
+        if (typeof user.silverCoins !== 'number' || user.silverCoins < 100) {
+          user.silverCoins = 100;
+          updated = true;
+        }
+        if (typeof user.goldCoins !== 'number') {
+          user.goldCoins = 0;
+          updated = true;
+        }
+        if (updated) await user.save();
+      }
+      return done(null, user);
     } catch (err) {
       if (err.code === 11000) {
         const user = await User.findOne({ email: profile.emails[0].value });
