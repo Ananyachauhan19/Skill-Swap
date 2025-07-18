@@ -20,6 +20,9 @@ const StartSkillSwap = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [cancelledMessage, setCancelledMessage] = useState("");
+  const [sessionStarted, setSessionStarted] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [showSessionButtons, setShowSessionButtons] = useState(false);
 
   useEffect(() => {
     // Register user with socket when component mounts
@@ -52,10 +55,36 @@ const StartSkillSwap = () => {
       setTimeout(() => setError(""), 5000);
     });
 
+    // Listen for session-started event
+    socket.on('session-started', (data) => {
+      setSessionStarted(true);
+      setActiveSessionId(data.sessionId);
+      setShowSessionButtons(true);
+    });
+
+    // Listen for end-call and session-completed events
+    socket.on('end-call', ({ sessionId }) => {
+      if (sessionId === activeSessionId) {
+        setShowSessionButtons(false);
+        setSessionStarted(false);
+        setActiveSessionId(null);
+      }
+    });
+    socket.on('session-completed', ({ sessionId }) => {
+      if (sessionId === activeSessionId) {
+        setShowSessionButtons(false);
+        setSessionStarted(false);
+        setActiveSessionId(null);
+      }
+    });
+
     return () => {
       socket.off('tutors-found');
       socket.off('session-request-sent');
       socket.off('session-request-error');
+      socket.off('session-started');
+      socket.off('end-call');
+      socket.off('session-completed');
     };
   }, [user]);
 
@@ -168,6 +197,24 @@ const StartSkillSwap = () => {
           </div>
         )}
         
+        {/* Session Buttons */}
+        {showSessionButtons && (
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <button
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-semibold"
+              onClick={() => setShowVideoModal(true)}
+            >
+              Start Session
+            </button>
+            <button
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold"
+              onClick={() => setShowVideoModal(true)}
+            >
+              Join Session
+            </button>
+          </div>
+        )}
+
         <div className="mt-12 text-center">
           <button
             className="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105"

@@ -424,13 +424,21 @@ module.exports = (io) => {
     });
 
     // End call for all users in the session
-    socket.on('end-call', ({ sessionId }) => {
+    socket.on('end-call', async ({ sessionId }) => {
       io.to(sessionId).emit('end-call', { sessionId });
       // Stop timer if running
       if (sessionTimers.has(sessionId)) {
         clearInterval(sessionTimers.get(sessionId));
         sessionTimers.delete(sessionId);
         console.log(`[Session Timer] Stopped for session ${sessionId}`);
+      }
+      // Mark scheduled session as completed if it exists
+      const session = await Session.findById(sessionId);
+      if (session && session.status !== 'completed') {
+        session.status = 'completed';
+        await session.save();
+        io.to(sessionId).emit('session-completed', { sessionId });
+        console.log(`[Session] Marked as completed: ${sessionId}`);
       }
     });
 

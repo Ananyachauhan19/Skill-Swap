@@ -125,12 +125,32 @@ const SessionRequests = () => {
       setTimeout(() => setCancelledMessage(""), 5000);
     });
 
+    // Hide session block when call ends or session is completed
+    socket.on('end-call', ({ sessionId }) => {
+      if (activeSession && activeSession.sessionId === sessionId) {
+        setShowVideoModal(false);
+        setActiveSession(null);
+        setReadyToStartSession(null);
+        localStorage.removeItem('activeSession');
+      }
+    });
+    socket.on('session-completed', ({ sessionId }) => {
+      if (activeSession && activeSession.sessionId === sessionId) {
+        setShowVideoModal(false);
+        setActiveSession(null);
+        setReadyToStartSession(null);
+        localStorage.removeItem('activeSession');
+      }
+    });
+
     return () => {
       socket.off('session-request-received');
       socket.off('session-started');
       socket.off('session-cancelled');
+      socket.off('end-call');
+      socket.off('session-completed');
     };
-  }, [user]);
+  }, [user, activeSession]);
 
   const fetchSessionRequests = async () => {
     try {

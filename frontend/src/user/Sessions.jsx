@@ -6,7 +6,8 @@ import ScheduledSessions from "./SessionsFolder/Scheduled";
 import Testimonial from "./Testimonial";
 import { useNavigate } from "react-router-dom";
 import TopPerformersSection from "./HomeSection/TopPerformersSection";
-import Blog from '../user/company/Blog'; 
+import Blog from '../user/company/Blog';
+import socket from '../socket';
 const Sessions = () => {
   const navigate = useNavigate();
   const [sessions, setSessions] = useState([]);
@@ -110,6 +111,18 @@ const Sessions = () => {
       setLiveStreams(DEMO_LIVE_STREAMS);
       setUploadedVideos(DEMO_UPLOADED_VIDEOS);
     }, 500);
+
+    // Listen for session-completed event
+    socket.on('session-completed', ({ sessionId }) => {
+      setSessions(prevSessions => prevSessions.map(session =>
+        String(session.id) === String(sessionId) || String(session._id) === String(sessionId)
+          ? { ...session, status: 'COMPLETED' }
+          : session
+      ));
+    });
+    return () => {
+      socket.off('session-completed');
+    };
   }, []);
 
   // Real-time search based on keyword (course, unit, topic, tutor, description)
@@ -225,7 +238,7 @@ const Sessions = () => {
               Personalized 1-on-1 sessions, live streams, and recorded videos
               with expert tutors to help you master any subject.
             </motion.p>
-           
+
           </div>
           <motion.img
             src="/assets/session.webp"
@@ -500,7 +513,7 @@ const Sessions = () => {
       <section>
           <TopPerformersSection />
            <Blog />
-           
+
       </section>
     </div>
   );
