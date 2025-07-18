@@ -309,7 +309,6 @@ const SidebarCard = ({
       alt="Profile"
       className="w-full h-full rounded-full object-cover border-2 border-blue-600"
       onError={() => {
-        console.log('Image failed to load:', profile.profilePicPreview);
         setProfile((prev) => ({ ...prev, profilePicPreview: null }));
       }}
     />
@@ -329,7 +328,6 @@ const SidebarCard = ({
     type="file"
     accept="image/jpeg,image/png,image/gif"
     onChange={(e) => {
-      console.log('File input triggered, files:', e.target.files);
       handleProfilePicChange(e);
     }}
     className="absolute inset-0 opacity-0 cursor-pointer"
@@ -340,7 +338,6 @@ const SidebarCard = ({
   <button
     type="button"
     onClick={() => {
-      console.log('Edit button clicked');
       fileInputRef.current?.click();
     }}
     className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 hover:bg-blue-800"

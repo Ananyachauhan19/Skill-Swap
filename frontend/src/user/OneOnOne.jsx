@@ -148,7 +148,6 @@ const OneOnOne = () => {
       const data = await res.json();
       setSearchResults(data);
     } catch (err) {
-      console.error('Search failed:', err);
       setSearchResults([]);
     } finally {
       setLoading(false);
@@ -156,7 +155,6 @@ const OneOnOne = () => {
   };
 
   const handleRequestSession = async (session) => {
-    console.log('Requesting session with:', session);
 
     if (!session._id) {
       alert('Error: Missing sessionId in session data.');
@@ -180,7 +178,6 @@ const OneOnOne = () => {
 
       alert('Session request sent successfully!');
     } catch (error) {
-      console.error('Session request error:', error);
       alert('Failed to send session request.');
       }
   };

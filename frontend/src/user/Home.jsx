@@ -46,7 +46,6 @@ const HomeHero = () => {
         }
         setIsLoggedIn(true);
       } catch (e) {
-        console.error("Error parsing user data:", e);
       }
       window.dispatchEvent(new Event("authChanged"));
       url.search = "";

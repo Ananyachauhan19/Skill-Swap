@@ -167,7 +167,6 @@ const Saved = () => {
   };
 
   const handleReport = (video) => {
-    console.log("Navigating to /report with:", video);
     navigate('/report', { state: { video } });
   };
 

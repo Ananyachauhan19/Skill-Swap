@@ -44,7 +44,6 @@ router.get('/google/callback', passport.authenticate('google', {
     const token = generateToken(user);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.cookie('token', token, {
-      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 1 day

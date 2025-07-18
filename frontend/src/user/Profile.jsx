@@ -21,7 +21,6 @@ const fetchUserProfile = async () => {
       throw new Error(errorData.message || 'Failed to fetch user profile');
     }
     const user = await res.json();
-    console.log('Profile fetchUserProfile response:', user);
 
     return {
       fullName: user.firstName && user.lastName 
@@ -51,7 +50,6 @@ const fetchUserProfile = async () => {
       lastName: user.lastName || '',
     };
   } catch (err) {
-    console.error('Profile fetchUserProfile error:', err.message);
     throw err;
   }
 };
@@ -82,8 +80,6 @@ const updateUserProfile = async (profile) => {
       username: profile.userId || '',
     };
 
-    console.log('Sending profile update to backend:', backendData);
-
     const res = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
       method: 'PUT',
       credentials: 'include',
@@ -97,7 +93,6 @@ const updateUserProfile = async (profile) => {
     }
 
     const updatedUser = await res.json();
-    console.log('Received updated user from backend:', updatedUser);
 
     return {
       fullName: updatedUser.firstName && updatedUser.lastName 
@@ -127,7 +122,6 @@ const updateUserProfile = async (profile) => {
       lastName: updatedUser.lastName || '',
     };
   } catch (error) {
-    console.error('Profile update error:', error.message);
     throw error;
   }
 };
@@ -184,7 +178,6 @@ const Profile = () => {
       .then((user) => {
         setProfile(user);
         setOriginalProfile(user);
-        console.log('Profile loaded:', user);
       })
       .catch((err) => {
         setError(err.message);
@@ -265,7 +258,6 @@ const Profile = () => {
       setOriginalProfile(updated);
       setEditMode(false);
       window.dispatchEvent(new Event('profileUpdated'));
-      console.log('Profile saved, event dispatched:', updated);
       toast.success('Profile updated successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to update profile');
@@ -294,7 +286,6 @@ const Profile = () => {
       setEditingField(null);
       setFieldDraft({});
       window.dispatchEvent(new Event('profileUpdated'));
-      console.log('Field saved, event dispatched:', { [field]: fieldDraft[field] });
       toast.success('Profile section updated successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to update profile section');
@@ -364,7 +355,6 @@ const Profile = () => {
       setProfile(updated);
       setOriginalProfile(updated);
       window.dispatchEvent(new Event('profileUpdated'));
-      console.log('Section saved, event dispatched:', updated);
       toast.success('Profile section updated successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to update profile section');

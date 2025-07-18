@@ -103,7 +103,6 @@ const Videos = () => {
       const data = await response.json();
       return data.videos || data || [];
     } catch (err) {
-      console.error('Error fetching videos:', err);
       return staticVideos; // Fallback to static data
     }
   };
@@ -124,7 +123,6 @@ const Videos = () => {
       }
       return await response.json();
     } catch (err) {
-      console.error('Error uploading video:', err);
       throw new Error('Failed to upload video');
     }
   };
@@ -145,7 +143,6 @@ const Videos = () => {
       }
       return await response.json();
     } catch (err) {
-      console.error('Error updating video:', err);
       throw new Error('Failed to update video');
     }
   };
@@ -164,7 +161,6 @@ const Videos = () => {
       }
       return await response.json();
     } catch (err) {
-      console.error('Error deleting video:', err);
       throw new Error('Failed to delete video');
     }
   };
@@ -183,7 +179,6 @@ const Videos = () => {
       }
       return await response.json();
     } catch (err) {
-      console.error('Error archiving video:', err);
       throw new Error('Failed to archive video');
     }
   };

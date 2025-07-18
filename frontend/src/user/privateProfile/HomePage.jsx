@@ -26,7 +26,6 @@ async function fetchUserHistory() {
     // If the backend doesn't have this endpoint yet, return empty array
     return data.history || data.sessions || [];
   } catch (error) {
-    console.error('Error fetching user history:', error);
     // Return empty array if endpoint doesn't exist yet
     return [];
   }

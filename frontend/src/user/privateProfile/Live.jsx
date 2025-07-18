@@ -82,7 +82,6 @@ const Live = () => {
       const data = await res.json();
       return data.liveSessions || data || [];
     } catch (err) {
-      console.error('Error fetching live sessions:', err);
       throw new Error(err.message);
     }
   };
@@ -105,7 +104,6 @@ const Live = () => {
       
       return await res.json();
     } catch (err) {
-      console.error('Error saving video:', err);
       throw new Error(err.message);
     }
   };
@@ -128,7 +126,6 @@ const Live = () => {
       
       return await res.json();
     } catch (err) {
-      console.error('Error updating live session:', err);
       throw new Error(err.message);
     }
   };
@@ -149,7 +146,6 @@ const Live = () => {
       
       return await res.json();
     } catch (err) {
-      console.error('Error deleting live session:', err);
       throw new Error(err.message);
     }
   };
@@ -170,7 +166,6 @@ const Live = () => {
       
       return await res.json();
     } catch (err) {
-      console.error('Error archiving live session:', err);
       throw new Error(err.message);
     }
   };
@@ -185,7 +180,6 @@ const Live = () => {
         setFilteredVideos(sessionsData);
       } catch (err) {
         setError("Failed to load live sessions");
-        console.error('Error loading live sessions:', err);
         setVideos(staticVideos); // Fallback to static data
         setFilteredVideos(staticVideos);
       } finally {
@@ -252,7 +246,7 @@ const Live = () => {
           try {
             localStorage.setItem("liveVideos", JSON.stringify(updated));
           } catch (err) {
-            console.error('Error saving to localStorage:', err);
+            // console.error('Error saving to localStorage:', err);
           }
           return updated;
         });
@@ -333,7 +327,7 @@ const Live = () => {
       try {
         localStorage.setItem("liveVideos", JSON.stringify(updated));
       } catch (err) {
-        console.error('Error saving to localStorage:', err);
+        // console.error('Error saving to localStorage:', err);
       }
       return updated;
     });
@@ -367,7 +361,7 @@ const Live = () => {
         try {
           localStorage.setItem("liveVideos", JSON.stringify(updated));
         } catch (err) {
-          console.error('Error saving to localStorage:', err);
+          // console.error('Error saving to localStorage:', err);
         }
         return updated;
       });
@@ -394,7 +388,7 @@ const Live = () => {
         try {
           localStorage.setItem("liveVideos", JSON.stringify(updated));
         } catch (err) {
-          console.error('Error saving to localStorage:', err);
+          // console.error('Error saving to localStorage:', err);
         }
         return updated;
       });
@@ -420,7 +414,7 @@ const Live = () => {
       try {
         localStorage.setItem("liveVideos", JSON.stringify(updated));
       } catch (err) {
-        console.error('Error saving to localStorage:', err);
+        // console.error('Error saving to localStorage:', err);
       }
       return updated;
     });
@@ -445,7 +439,7 @@ const Live = () => {
       try {
         localStorage.setItem("liveVideos", JSON.stringify(updated));
       } catch (err) {
-        console.error('Error saving to localStorage:', err);
+        // console.error('Error saving to localStorage:', err);
       }
       return updated;
     });
@@ -466,7 +460,7 @@ const Live = () => {
       archive.unshift({ ...video, isArchived: true });
       localStorage.setItem("archivedVideos", JSON.stringify(archive));
     } catch (err) {
-      console.error('Error saving to localStorage:', err);
+      // console.error('Error saving to localStorage:', err);
     }
   };
 
@@ -479,7 +473,7 @@ const Live = () => {
         localStorage.setItem("savedVideos", JSON.stringify(saved));
       }
     } catch (err) {
-      console.error('Error saving to localStorage:', err);
+      // console.error('Error saving to localStorage:', err);
     }
   };
 
@@ -500,7 +494,6 @@ const Live = () => {
         alert("Live session link copied to clipboard!");
       }
     } catch (err) {
-      console.error('Error copying to clipboard:', err);
       alert("Failed to copy link to clipboard.");
     }
   };

@@ -323,33 +323,33 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                   <div className="grid grid-cols-2 gap-1.5">
                     <div>
                       <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                        First Name*
-                      </label>
-                      <input
-                        type="text"
-                        name="firstName"
-                        value={form.firstName}
-                        onChange={handleChange}
+                      First Name*
+                    </label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      value={form.firstName}
+                      onChange={handleChange}
                         className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
                         placeholder="Enter first name"
-                      />
-                    </div>
+                    />
+                  </div>
                     <div>
                       <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                        Last Name
-                      </label>
-                      <input
-                        type="text"
-                        name="lastName"
-                        value={form.lastName}
-                        onChange={handleChange}
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      value={form.lastName}
+                      onChange={handleChange}
                         className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
                         placeholder="Enter last name"
-                      />
-                    </div>
+                    />
                   </div>
+                </div>
 
-                  <div>
+                <div>
                     <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
                       Username*
                     </label>
@@ -366,117 +366,117 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
 
                   <div>
                     <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      Email*
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      autoComplete="email"
+                    Email*
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={form.email}
+                    onChange={handleChange}
+                    autoComplete="email"
                       className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
                       placeholder="Enter your email"
-                    />
-                  </div>
+                  />
+                </div>
 
-                  <div>
+                <div>
                     <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      Phone*
-                    </label>
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={form.phone}
-                      onChange={handleChange}
+                    Phone*
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={form.phone}
+                    onChange={handleChange}
                       className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
                       placeholder="Enter your phone number"
-                    />
-                  </div>
+                  />
+                </div>
 
-                  <div>
+                <div>
                     <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      Gender*
-                    </label>
+                    Gender*
+                  </label>
                     <div className="flex gap-1">
-                      {["male", "female", "other"].map((g) => (
-                        <button
-                          key={g}
-                          type="button"
-                          onClick={() => setForm({ ...form, gender: g })}
+                    {["male", "female", "other"].map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => setForm({ ...form, gender: g })}
                           className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-medium transition-all ${
-                            form.gender === g
-                              ? "border-blue-600 bg-blue-50 text-blue-800"
+                          form.gender === g
+                            ? "border-blue-600 bg-blue-50 text-blue-800"
                               : "border-gray-300 text-gray-700 hover:bg-gray-100 border"
-                          }`}
-                        >
-                          {g === "male" ? (
+                        }`}
+                      >
+                        {g === "male" ? (
                             <FaMale className="w-2.5 h-2.5" />
-                          ) : g === "female" ? (
+                        ) : g === "female" ? (
                             <FaFemale className="w-2.5 h-2.5" />
-                          ) : (
+                        ) : (
                             <MdOutlineMoreHoriz className="w-2.5 h-2.5" />
-                          )}
-                          {g.charAt(0).toUpperCase() + g.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      Password*
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        name="password"
-                        placeholder="Create password"
-                        value={form.password}
-                        onChange={handleChange}
-                        autoComplete="new-password"
-                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <FaEyeSlash className="w-2.5 h-2.5" />
-                        ) : (
-                          <FaEye className="w-2.5 h-2.5" />
                         )}
+                        {g.charAt(0).toUpperCase() + g.slice(1)}
                       </button>
-                    </div>
+                    ))}
                   </div>
+                </div>
 
-                  <div>
+                <div>
                     <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      Confirm Password*
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        name="confirmPassword"
-                        placeholder="Re-enter password"
-                        value={form.confirmPassword}
-                        onChange={handleChange}
-                        autoComplete="new-password"
+                    Password*
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      placeholder="Create password"
+                      value={form.password}
+                      onChange={handleChange}
+                      autoComplete="new-password"
                         className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                      />
-                      <button
-                        type="button"
+                    />
+                    <button
+                      type="button"
                         className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      >
-                        {showConfirmPassword ? (
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
                           <FaEyeSlash className="w-2.5 h-2.5" />
-                        ) : (
+                      ) : (
                           <FaEye className="w-2.5 h-2.5" />
-                        )}
-                      </button>
-                    </div>
+                      )}
+                    </button>
                   </div>
+                </div>
+
+                <div>
+                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                    Confirm Password*
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirmPassword"
+                      placeholder="Re-enter password"
+                      value={form.confirmPassword}
+                      onChange={handleChange}
+                      autoComplete="new-password"
+                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                    />
+                    <button
+                      type="button"
+                        className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                          <FaEyeSlash className="w-2.5 h-2.5" />
+                      ) : (
+                          <FaEye className="w-2.5 h-2.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
 
                   <div>
                     <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
@@ -576,64 +576,64 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                       required
                       className="mt-0.5 mr-1 w-2.5 h-2.5 text-blue-600"
                     />
-                    <span>
-                      I agree to the{" "}
+                  <span>
+                    I agree to the{" "}
                       <a href="#" className="text-blue-600 hover:underline">
-                        Privacy Policy
-                      </a>{" "}
-                      and{" "}
+                      Privacy Policy
+                    </a>{" "}
+                    and{" "}
                       <a href="#" className="text-blue-600 hover:underline">
-                        Terms
-                      </a>
-                    </span>
-                  </div>
+                      Terms
+                    </a>
+                  </span>
+                </div>
 
-                  <button
-                    type="submit"
-                    disabled={isLoading || !isFormValid}
+                <button
+                  type="submit"
+                  disabled={isLoading || !isFormValid}
                     className={`w-full py-1.5 ${registerButtonColor} rounded-lg font-semibold text-[11px] text-white transition-all flex items-center justify-center ${
-                      isLoading ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"
-                    }`}
-                  >
-                    {isLoading ? (
-                      <svg className="animate-spin h-3 w-3 text-white" viewBox="0 0 24 24">
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                        />
-                      </svg>
-                    ) : (
-                      "Create Account"
-                    )}
-                  </button>
+                    isLoading ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"
+                  }`}
+                >
+                  {isLoading ? (
+                    <svg className="animate-spin h-3 w-3 text-white" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                      />
+                    </svg>
+                  ) : (
+                    "Create Account"
+                  )}
+                </button>
 
                   <div className="text-center text-[11px]">
-                    <span className="text-gray-600">Already have an account? </span>
-                    <button
+                  <span className="text-gray-600">Already have an account? </span>
+                  <button
                       type="button"
-                      onClick={() => {
-                        if (isModal && onClose) {
-                          onClose();
-                          openLogin();
-                        } else {
-                          navigate("/login");
-                        }
-                      }}
+                    onClick={() => {
+                      if (isModal && onClose) {
+                        onClose();
+                        openLogin();
+                      } else {
+                        navigate("/login");
+                      }
+                    }}
                       className="font-semibold text-[#154360] hover:underline"
-                    >
-                      Login
-                    </button>
-                  </div>
-                </form>
+                  >
+                    Login
+                  </button>
+                </div>
+              </form>
               ) : (
                 <div className="space-y-1.5">
                   <div className="text-center">
