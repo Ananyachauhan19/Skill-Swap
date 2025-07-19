@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
-import { fetchSilverCoinBalance, fetchGoldenCoinBalance } from './settings/CoinBalance.jsx';
 import SidebarCard from './myprofile/SidebarCard';
 import CoinsBadges from './myprofile/CoinsBadges';
 import AboutSection from './myprofile/AboutSection';
 import UserInfoSection from './myprofile/UserInfoSection';
 import SocialLinksSection from './myprofile/SocialLinksSection';
 import { BACKEND_URL } from '../config.js';
+import socket from '../socket.js'; // Import socket for real-time updates
 
 // Fetch user profile from backend
 const fetchUserProfile = async () => {
@@ -190,15 +190,36 @@ const Profile = () => {
   useEffect(() => {
     async function loadCoins() {
       try {
-        const silverData = await fetchSilverCoinBalance();
-        setSilver(silverData.silver || 0);
-        const goldData = await fetchGoldenCoinBalance();
-        setGold(goldData.gold || 0);
+        const response = await fetch(`${BACKEND_URL}/api/auth/coins`, {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch coin balances');
+        }
+        const data = await response.json();
+        setSilver(data.silver || 0);
+        setGold(data.golden || 0);
       } catch (err) {
         console.error('Error loading coins:', err.message);
+        toast.error('Failed to fetch coin balances.');
       }
     }
     loadCoins();
+
+    // Listen for real-time coin updates
+    socket.on('coin-update', (data) => {
+      if (typeof data.silverCoins === 'number') {
+        setSilver(data.silverCoins);
+      }
+    });
+
+    // Cleanup socket listener on unmount
+    return () => {
+      socket.off('coin-update');
+    };
   }, []);
 
   // Profile picture change
