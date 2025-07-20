@@ -182,7 +182,7 @@ const Interview = () => {
         <PastInterviewSection />
         <FAQSection />
         <TopPerformersSection performers={performers} />
-         <Blog />
+        
            
       </main>
     </div>

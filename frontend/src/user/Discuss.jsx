@@ -128,7 +128,7 @@ const Discuss = () => {
         <PastGDSection />
         <FAQSection />
             <TopPerformersSection />
-             <Blog />
+          
            
       
       </main>

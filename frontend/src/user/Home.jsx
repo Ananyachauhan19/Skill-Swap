@@ -274,7 +274,7 @@ const HomeHero = () => {
 
         <LetsStartSection isLoggedIn={isLoggedIn} openLogin={openLogin} buttonVariants={buttonVariants} />
             
-         <Blog />
+      
            
 
       </motion.div>

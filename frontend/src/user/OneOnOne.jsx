@@ -291,7 +291,7 @@ const OneOnOne = () => {
         </div>
         <HowItWorks />
         <TopPerformersSection />
-           <Blog />
+           
            
       </main>
 
