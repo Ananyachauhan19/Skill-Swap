@@ -6,7 +6,7 @@ import AboutSection from './myprofile/AboutSection';
 import UserInfoSection from './myprofile/UserInfoSection';
 import SocialLinksSection from './myprofile/SocialLinksSection';
 import { BACKEND_URL } from '../config.js';
-import socket from '../socket.js'; // Import socket for real-time updates
+import socket from '../socket.js';
 
 // Fetch user profile from backend
 const fetchUserProfile = async () => {
@@ -23,13 +23,14 @@ const fetchUserProfile = async () => {
     const user = await res.json();
 
     return {
-      fullName: user.firstName && user.lastName 
-        ? `${user.firstName} ${user.lastName}` 
-        : user.firstName || user.username || '',
-      userId: user.username || user._id || '',
+      _id: user._id || '',
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
+      fullName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.firstName || user.username || '',
+      userId: user.username || '',
       email: user.email || '',
-      profilePic: user.profilePic || null,
-      profilePicPreview: user.profilePic || null,
+      profilePic: user.profilePic || '',
+      profilePicPreview: user.profilePic || '',
       bio: user.bio || '',
       country: user.country || '',
       education: user.education || [],
@@ -46,8 +47,6 @@ const fetchUserProfile = async () => {
       silverCoins: user.silverCoins || 0,
       badges: user.badges || ['Starter', 'Helper'],
       rank: user.rank || 'Bronze',
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
     };
   } catch (err) {
     throw err;
@@ -57,15 +56,28 @@ const fetchUserProfile = async () => {
 // Update user profile
 const updateUserProfile = async (profile) => {
   try {
+    // Sanitize array fields to remove _id
+    const sanitizeArray = (arr, validKeys) => {
+      return arr.map(item => {
+        const sanitized = {};
+        validKeys.forEach(key => {
+          if (item[key] !== undefined) {
+            sanitized[key] = item[key];
+          }
+        });
+        return sanitized;
+      });
+    };
+
     const backendData = {
-      firstName: profile.firstName || (profile.fullName ? profile.fullName.split(' ')[0] : ''),
-      lastName: profile.lastName || (profile.fullName ? profile.fullName.split(' ').slice(1).join(' ') : ''),
+      firstName: profile.firstName || '',
+      lastName: profile.lastName || '',
       bio: profile.bio || '',
       country: profile.country || '',
       profilePic: profile.profilePic || '',
-      education: profile.education || [],
-      experience: profile.experience || [],
-      certificates: profile.certificates || [],
+      education: profile.education ? sanitizeArray(profile.education, ['course', 'branch', 'college', 'city', 'passingYear']) : [],
+      experience: profile.experience ? sanitizeArray(profile.experience, ['company', 'position', 'duration', 'description']) : [],
+      certificates: profile.certificates ? sanitizeArray(profile.certificates, ['name', 'issuer', 'date', 'url']) : [],
       linkedin: profile.linkedin || '',
       website: profile.website || '',
       github: profile.github || '',
@@ -95,13 +107,16 @@ const updateUserProfile = async (profile) => {
     const updatedUser = await res.json();
 
     return {
+      _id: updatedUser._id || '',
+      firstName: updatedUser.firstName || '',
+      lastName: updatedUser.lastName || '',
       fullName: updatedUser.firstName && updatedUser.lastName 
         ? `${updatedUser.firstName} ${updatedUser.lastName}` 
         : updatedUser.firstName || updatedUser.username || '',
-      userId: updatedUser.username || updatedUser._id || '',
+      userId: updatedUser.username || '',
       email: updatedUser.email || '',
-      profilePic: updatedUser.profilePic || null,
-      profilePicPreview: updatedUser.profilePic || null,
+      profilePic: updatedUser.profilePic || '',
+      profilePicPreview: updatedUser.profilePic || '',
       bio: updatedUser.bio || '',
       country: updatedUser.country || '',
       education: updatedUser.education || [],
@@ -118,8 +133,6 @@ const updateUserProfile = async (profile) => {
       silverCoins: updatedUser.silverCoins || 0,
       badges: updatedUser.badges || ['Starter', 'Helper'],
       rank: updatedUser.rank || 'Bronze',
-      firstName: updatedUser.firstName || '',
-      lastName: updatedUser.lastName || '',
     };
   } catch (error) {
     throw error;
@@ -138,11 +151,14 @@ const uploadProfilePic = async (file) => {
 
 const Profile = () => {
   const [profile, setProfile] = useState({
+    _id: '',
+    firstName: '',
+    lastName: '',
     fullName: '',
     userId: '',
     email: '',
-    profilePic: null,
-    profilePicPreview: null,
+    profilePic: '',
+    profilePicPreview: '',
     bio: '',
     country: '',
     education: [],
@@ -159,8 +175,6 @@ const Profile = () => {
     silverCoins: 0,
     badges: ['Starter', 'Helper'],
     rank: 'Bronze',
-    firstName: '',
-    lastName: '',
   });
   const [originalProfile, setOriginalProfile] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -214,6 +228,9 @@ const Profile = () => {
       if (typeof data.silverCoins === 'number') {
         setSilver(data.silverCoins);
       }
+      if (typeof data.goldCoins === 'number') {
+        setGold(data.goldCoins);
+      }
     });
 
     // Cleanup socket listener on unmount
@@ -239,16 +256,10 @@ const Profile = () => {
       const previewUrl = URL.createObjectURL(file);
       setProfile((prev) => ({ ...prev, profilePicPreview: previewUrl }));
       const result = await uploadProfilePic(file);
-      setProfile((prev) => ({
-        ...prev,
-        profilePic: result.url,
-        profilePicPreview: result.url,
-      }));
-      setOriginalProfile((prev) => ({
-        ...prev,
-        profilePic: result.url,
-        profilePicPreview: result.url,
-      }));
+      const updatedProfile = { ...profile, profilePic: result.url, profilePicPreview: result.url };
+      const updated = await updateUserProfile(updatedProfile);
+      setProfile(updated);
+      setOriginalProfile(updated);
       toast.success('Profile picture updated successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to upload profile picture.');
@@ -278,10 +289,13 @@ const Profile = () => {
       setProfile(updated);
       setOriginalProfile(updated);
       setEditMode(false);
+      setEditingField(null);
+      setFieldDraft({});
       window.dispatchEvent(new Event('profileUpdated'));
       toast.success('Profile updated successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to update profile');
+      setProfile({ ...originalProfile });
     } finally {
       setLoading(false);
     }
@@ -296,6 +310,7 @@ const Profile = () => {
   const cancelEdit = () => {
     setEditingField(null);
     setFieldDraft({});
+    setProfile({ ...originalProfile });
   };
 
   const saveEdit = async (field) => {
@@ -310,6 +325,7 @@ const Profile = () => {
       toast.success('Profile section updated successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to update profile section');
+      setProfile({ ...originalProfile });
     }
   };
 
@@ -375,10 +391,13 @@ const Profile = () => {
       const updated = await updateUserProfile(updatedProfile);
       setProfile(updated);
       setOriginalProfile(updated);
+      setEditingField(null);
+      setFieldDraft({});
       window.dispatchEvent(new Event('profileUpdated'));
       toast.success('Profile section updated successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to update profile section');
+      setProfile({ ...originalProfile });
     } finally {
       setLoading(false);
     }
@@ -387,6 +406,8 @@ const Profile = () => {
   return (
     <div className={`min-h-screen bg-blue-50 pt-24 px-2 sm:px-4 md:px-8 lg:px-12 py-8 ${editMode ? 'edit-mode-bg' : ''}`}>
       <Toaster position="top-center" />
+      {loading && <div>Loading...</div>}
+      {error && <div className="text-red-500">{error}</div>}
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8">
         <SidebarCard
           profile={profile}
@@ -406,7 +427,7 @@ const Profile = () => {
           handleArrayRemove={handleArrayRemove}
           onSaveEdit={handleSectionSave}
         />
-        <div className="w-full md:w-3/4 flex flex-col gap-8">
+        <div className="7xl md:w-3/4 flex flex-col gap-8">
           <CoinsBadges silver={silver} gold={gold} profile={profile} />
           <AboutSection
             profile={profile}

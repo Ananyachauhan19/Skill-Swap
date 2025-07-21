@@ -12,6 +12,19 @@ const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
 
+// Sanitize array fields to remove invalid keys (e.g., _id)
+const sanitizeArrayFields = (data, validKeys) => {
+  return data.map(item => {
+    const sanitized = {};
+    validKeys.forEach(key => {
+      if (item[key] !== undefined) {
+        sanitized[key] = item[key];
+      }
+    });
+    return sanitized;
+  });
+};
+
 // Email-based routes
 router.post('/register', register);
 router.post('/login', login);
@@ -123,7 +136,7 @@ router.get('/user/profile', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Profile fetch error:', err);
-    res.status(500).json({ message: 'Failed to fetch profile' });
+    res.status(500).json({ message: 'Failed to fetch profile', error: err.message });
   }
 });
 
@@ -134,21 +147,29 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     certificates, linkedin, website, github, twitter, skillsToTeach, 
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
-  
+
   console.log('Profile update request:', { firstName, lastName, bio, skillsToTeach, username });
-  
+
   try {
     const updateData = {};
-    
-    // Only include fields that are provided in the request
+
+    // Sanitize array fields to remove invalid keys
+    if (education !== undefined) {
+      updateData.education = sanitizeArrayFields(education, ['course', 'branch', 'college', 'city', 'passingYear']);
+    }
+    if (experience !== undefined) {
+      updateData.experience = sanitizeArrayFields(experience, ['company', 'position', 'duration', 'description']);
+    }
+    if (certificates !== undefined) {
+      updateData.certificates = sanitizeArrayFields(certificates, ['name', 'issuer', 'date', 'url']);
+    }
+
+    // Include other fields if provided
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
     if (bio !== undefined) updateData.bio = bio;
     if (country !== undefined) updateData.country = country;
     if (profilePic !== undefined) updateData.profilePic = profilePic;
-    if (education !== undefined) updateData.education = education;
-    if (experience !== undefined) updateData.experience = experience;
-    if (certificates !== undefined) updateData.certificates = certificates;
     if (linkedin !== undefined) updateData.linkedin = linkedin;
     if (website !== undefined) updateData.website = website;
     if (github !== undefined) updateData.github = github;
@@ -169,11 +190,11 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       { $set: updateData },
       { new: true, runValidators: true }
     ).select('-password -otp -otpExpires');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     console.log('Updated user profile:', { 
       _id: user._id,
       firstName: user.firstName,
@@ -182,7 +203,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       bio: user.bio,
       skillsToTeach: user.skillsToTeach
     });
-    
+
     res.json({
       _id: user._id,
       firstName: user.firstName,
@@ -209,7 +230,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Profile update error:', err);
-    res.status(500).json({ message: 'Failed to update profile' });
+    res.status(500).json({ message: 'Failed to update profile', error: err.message });
   }
 });
 
@@ -254,7 +275,7 @@ router.get('/profile', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Profile fetch error (/profile):', err);
-    res.status(500).json({ message: 'Failed to fetch profile' });
+    res.status(500).json({ message: 'Failed to fetch profile', error: err.message });
   }
 });
 
@@ -265,20 +286,29 @@ router.put('/profile', requireAuth, async (req, res) => {
     certificates, linkedin, website, github, twitter, skillsToTeach, 
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
-  
+
   console.log('Profile update request (/profile):', { firstName, lastName, bio, skillsToTeach, username });
-  
+
   try {
     const updateData = {};
-    
+
+    // Sanitize array fields to remove invalid keys
+    if (education !== undefined) {
+      updateData.education = sanitizeArrayFields(education, ['course', 'branch', 'college', 'city', 'passingYear']);
+    }
+    if (experience !== undefined) {
+      updateData.experience = sanitizeArrayFields(experience, ['company', 'position', 'duration', 'description']);
+    }
+    if (certificates !== undefined) {
+      updateData.certificates = sanitizeArrayFields(certificates, ['name', 'issuer', 'date', 'url']);
+    }
+
+    // Include other fields if provided
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
     if (bio !== undefined) updateData.bio = bio;
     if (country !== undefined) updateData.country = country;
     if (profilePic !== undefined) updateData.profilePic = profilePic;
-    if (education !== undefined) updateData.education = education;
-    if (experience !== undefined) updateData.experience = experience;
-    if (certificates !== undefined) updateData.certificates = certificates;
     if (linkedin !== undefined) updateData.linkedin = linkedin;
     if (website !== undefined) updateData.website = website;
     if (github !== undefined) updateData.github = github;
@@ -299,11 +329,11 @@ router.put('/profile', requireAuth, async (req, res) => {
       { $set: updateData },
       { new: true, runValidators: true }
     ).select('-password -otp -otpExpires');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     console.log('Updated user profile (/profile):', { 
       _id: user._id,
       firstName: user.firstName,
@@ -312,7 +342,7 @@ router.put('/profile', requireAuth, async (req, res) => {
       bio: user.bio,
       skillsToTeach: user.skillsToTeach
     });
-    
+
     res.json({
       _id: user._id,
       firstName: user.firstName,
@@ -339,7 +369,7 @@ router.put('/profile', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Profile update error (/profile):', err);
-    res.status(500).json({ message: 'Failed to update profile' });
+    res.status(500).json({ message: 'Failed to update profile', error: err.message });
   }
 });
 
