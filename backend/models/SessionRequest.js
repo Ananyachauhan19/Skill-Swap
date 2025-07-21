@@ -29,7 +29,7 @@ const SessionRequestSchema = new mongoose.Schema({
   },
   status: { 
     type: String, 
-    enum: ['pending', 'approved', 'rejected'], 
+    enum: ['pending', 'approved', 'rejected', 'active', 'completed', 'cancelled'],
     default: 'pending' 
   },
   createdAt: { 

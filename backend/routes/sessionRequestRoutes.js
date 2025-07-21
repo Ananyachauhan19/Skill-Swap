@@ -186,13 +186,13 @@ router.get('/all', requireAuth, async (req, res) => {
 // Get active session for a user
 router.get('/active', requireAuth, async (req, res) => {
   try {
-    // Find approved session requests where the user is either tutor or requester
+    // Find active session requests where the user is either tutor or requester
     const activeSession = await SessionRequest.findOne({
       $or: [
         { tutor: req.user._id },
         { requester: req.user._id }
       ],
-      status: 'approved'
+      status: 'active' // Only sessions that are actually started
     })
     .populate('requester', 'firstName lastName profilePic username')
     .populate('tutor', 'firstName lastName profilePic username')
@@ -220,6 +220,90 @@ router.get('/active', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching active session:', error);
     res.status(500).json({ message: 'Failed to fetch active session' });
+  }
+});
+
+// Start a session (set status to 'active')
+router.post('/start/:requestId', requireAuth, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const tutorId = req.user._id;
+
+    // Only the tutor can start the session, and only if approved
+    const sessionRequest = await SessionRequest.findOne({
+      _id: requestId,
+      tutor: tutorId,
+      status: 'approved'
+    });
+
+    if (!sessionRequest) {
+      return res.status(404).json({ message: 'Session request not found or not approved' });
+    }
+
+    sessionRequest.status = 'active';
+    await sessionRequest.save();
+
+    // Populate user details for response
+    await sessionRequest.populate('requester', 'firstName lastName profilePic');
+    await sessionRequest.populate('tutor', 'firstName lastName profilePic');
+
+    res.json({
+      message: 'Session started',
+      sessionRequest
+    });
+  } catch (error) {
+    console.error('Error starting session:', error);
+    res.status(500).json({ message: 'Failed to start session' });
+  }
+});
+
+// Complete a session (set status to 'completed')
+router.post('/complete/:requestId', requireAuth, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    // Either tutor or requester can complete
+    const sessionRequest = await SessionRequest.findOne({
+      _id: requestId,
+      status: 'active'
+    });
+    if (!sessionRequest) {
+      return res.status(404).json({ message: 'Active session not found' });
+    }
+    // Only allow tutor or requester to complete
+    if (
+      sessionRequest.tutor.toString() !== req.user._id.toString() &&
+      sessionRequest.requester.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({ message: 'Not authorized to complete this session' });
+    }
+    sessionRequest.status = 'completed';
+    await sessionRequest.save();
+    res.json({ message: 'Session marked as completed' });
+  } catch (error) {
+    console.error('Error completing session:', error);
+    res.status(500).json({ message: 'Failed to complete session' });
+  }
+});
+
+// Cancel a session (set status to 'cancelled')
+router.post('/cancel/:requestId', requireAuth, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    // Only requester can cancel
+    const sessionRequest = await SessionRequest.findOne({
+      _id: requestId,
+      status: { $in: ['approved', 'active'] },
+      requester: req.user._id
+    });
+    if (!sessionRequest) {
+      return res.status(404).json({ message: 'Session not found or not authorized' });
+    }
+    sessionRequest.status = 'cancelled';
+    await sessionRequest.save();
+    res.json({ message: 'Session cancelled' });
+  } catch (error) {
+    console.error('Error cancelling session:', error);
+    res.status(500).json({ message: 'Failed to cancel session' });
   }
 });
 
