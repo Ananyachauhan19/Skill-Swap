@@ -135,7 +135,7 @@ const HomePage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-blue-50 pt-24 px-2 sm:px-4 md:px-8 lg:px-12 py-8">
+    <div className="bg-blue-50 pt-4 px-2 sm:px-4 md:px-8 lg:px-12 py-8">
       <Toaster position="top-center" />
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
         {/* Nav Tabs */}

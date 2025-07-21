@@ -1,22 +1,13 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import VideoCard from "./VideoCard";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiSearch } from "react-icons/fi";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 
-// Placeholder SearchBar component (replace with actual SearchBar implementation)
-const SearchBar = ({ searchQuery, setSearchQuery }) => {
-  return (
-    <input
-      type="text"
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      placeholder="Search watch history..."
-      className="w-full max-w-xs p-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-blue-500"
-    />
-  );
-};
+// Lazy load VideoCard component
+const VideoCard = lazy(() => import("./VideoCard"));
 
 // --- BACKEND READY: Uncomment and use these when backend is ready ---
 // import axios from 'axios';
@@ -46,8 +37,10 @@ const History = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [renderKey, setRenderKey] = useState(0); // Force re-render
   const menuRefs = useRef({});
+  const observer = useRef(null);
 
   // Static data for testing (remove when backend is ready)
   const staticHistoryData = [
@@ -109,6 +102,7 @@ const History = () => {
     },
   ];
 
+  // Load watch history
   useEffect(() => {
     async function loadHistory() {
       setLoading(true);
@@ -143,6 +137,26 @@ const History = () => {
     setFilteredVideos(filtered);
   }, [searchQuery, history]);
 
+  // Lazy loading observer
+  useEffect(() => {
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    const videoCards = document.querySelectorAll(".video-card");
+    videoCards.forEach((card) => observer.current.observe(card));
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
+  }, [filteredVideos]);
+
+  // Close menu on outside click
   useEffect(() => {
     function handleClickOutside(event) {
       if (
@@ -157,6 +171,7 @@ const History = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [openMenuId]);
 
+  // Handle remove action
   const handleRemove = (video) => {
     setHistory(prev =>
       prev.filter(item => !(item.videoId === video.videoId && item.watchDate === video.watchDate))
@@ -164,13 +179,16 @@ const History = () => {
     toast.info("Video removed from history (simulated)");
   };
 
+  // Handle report action
   const handleReport = (video) => {
     navigate('/report', { state: { video } });
   };
 
+  // Handle clear history
   const handleClearHistory = () => {
     if (window.confirm("Are you sure you want to clear all watch history?")) {
       setHistory([]);
+      setFilteredVideos([]);
       setRenderKey(prev => prev + 1); // Force re-render
       toast.info("Watch history cleared");
     }
@@ -189,64 +207,163 @@ const History = () => {
     return new Date(b) - new Date(a);
   });
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5, when: "beforeChildren", staggerChildren: 0.2 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+  };
+
+  const searchBarVariants = {
+    hidden: { width: 0, opacity: 0, x: -20 },
+    visible: { width: "auto", opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  };
+
   return (
-    <div className="p-4 max-w-3xl mx-auto min-h-[200px]" key={renderKey}>
-      <div className="flex justify-between items-center mb-6">
-        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        <h2 className="text-2xl font-bold">Watch History</h2>
-        <button
-          onClick={handleClearHistory}
-          className="bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700"
-        >
-          Clear History
-        </button>
-      </div>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="min-h-screen w-full px-3 sm:px-4 md:px-6 font-[Inter] overflow-hidden"
+      key={renderKey}
+    >
       <ToastContainer position="top-center" autoClose={2000} />
-      {loading && <div className="text-center py-8">Loading history...</div>}
-      {error && <div className="text-red-500 text-center py-8">{error}</div>}
-      {!loading && !error && filteredVideos.length === 0 && (
-        <div className="text-center text-gray-500">No watch history available.</div>
-      )}
-      {!loading && !error && filteredVideos.length > 0 && (
-        <div className="space-y-6">
-          {sortedDates.map((date, dateIdx) => (
-            <div key={dateIdx}>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{date}</h3>
-              <hr className="mb-4 border-gray-300" />
-              <div className="space-y-6">
-                {groupedHistory[date].map((item) => (
-                  <div key={item.videoId} className="w-full">
-                    <VideoCard
-                      video={{
-                        id: item.videoId,
-                        title: item.title,
-                        thumbnail: item.thumbnail,
-                        videoUrl: item.videoUrl,
-                        isLive: item.isLive,
-                        scheduledTime: item.scheduledTime,
-                        userId: item.userId,
-                        uploadDate: item.watchDate,
-                        views: item.views || 0,
-                        likes: item.likes || 0,
-                        dislikes: item.dislikes || 0,
-                        description: item.description || "",
-                      }}
-                      menuOptions={['remove', 'report']}
-                      onRemove={() => handleRemove(item)}
-                      onReport={() => handleReport(item)}
-                      openMenu={openMenuId === item.videoId}
-                      setOpenMenu={(open) => setOpenMenuId(open ? item.videoId : null)}
-                      menuRef={(el) => (menuRefs.current[item.videoId] = el)}
-                      userId={userId}
+      {loading ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-8 text-black opacity-70 font-medium"
+        >
+          Loading history...
+        </motion.div>
+      ) : error ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-red-500 text-center py-8 font-medium"
+        >
+          {error}
+        </motion.div>
+      ) : (
+        <>
+          <header className="py-3 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <motion.h2
+                variants={itemVariants}
+                className="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight"
+              >
+                Watch History
+              </motion.h2>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="text-blue-900 text-2xl"
+                onClick={() => setSearchOpen(!searchOpen)}
+              >
+                <FiSearch />
+              </motion.button>
+              <AnimatePresence>
+                {searchOpen && (
+                  <motion.div
+                    variants={searchBarVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="overflow-hidden"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent border-b-2 border-blue-900 text-blue-900 placeholder-blue-900 focus:outline-none px-2 py-1"
                     />
-                  </div>
-                ))}
-              </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          ))}
-        </div>
+            {filteredVideos.length > 0 && (
+              <motion.div variants={itemVariants} className="flex justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
+                  onClick={handleClearHistory}
+                >
+                  Clear History
+                </motion.button>
+              </motion.div>
+            )}
+          </header>
+          <Suspense
+            fallback={
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-8 text-black opacity-70 font-medium"
+              >
+                Loading history cards...
+              </motion.div>
+            }
+          >
+            {filteredVideos.length === 0 ? (
+              <motion.div
+                variants={itemVariants}
+                className="text-center text-black opacity-70 mt-12 text-lg font-medium"
+              >
+                No watch history available.
+              </motion.div>
+            ) : (
+              <section className="space-y-6">
+                {sortedDates.map((date, dateIdx) => (
+                  <motion.div key={dateIdx} variants={itemVariants}>
+                    <h3 className="text-lg font-semibold text-blue-900 mb-2">{date}</h3>
+                    <hr className="mb-4 border-blue-900" />
+                    <div className="space-y-6">
+                      {groupedHistory[date].map((item) => (
+                        <motion.article
+                          key={item.videoId}
+                          variants={itemVariants}
+                          className="video-card w-full"
+                        >
+                          <VideoCard
+                            video={{
+                              id: item.videoId,
+                              title: item.title,
+                              thumbnail: item.thumbnail,
+                              videoUrl: item.videoUrl,
+                              isLive: item.isLive,
+                              scheduledTime: item.scheduledTime,
+                              userId: item.userId,
+                              uploadDate: item.watchDate,
+                              views: item.views || 0,
+                              likes: item.likes || 0,
+                              dislikes: item.dislikes || 0,
+                              description: item.description || "",
+                            }}
+                            menuOptions={['remove', 'report']}
+                            onRemove={() => handleRemove(item)}
+                            onReport={() => handleReport(item)}
+                            openMenu={openMenuId === item.videoId}
+                            setOpenMenu={(open) => setOpenMenuId(open ? item.videoId : null)}
+                            menuRef={(el) => (menuRefs.current[item.videoId] = el)}
+                            userId={userId}
+                          />
+                        </motion.article>
+                      ))}
+                    </div>
+                  </motion.div>
+                ))}
+              </section>
+            )}
+          </Suspense>
+        </>
       )}
-    </div>
+    </motion.div>
   );
 };
 

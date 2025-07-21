@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, Suspense, lazy } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { BACKEND_URL } from '../../config.js';
 import LiveSetup from "./LiveSetup";
-import SearchBar from "./SearchBar";
 
 // Lazy load VideoCard component
 const VideoCard = lazy(() => import("./VideoCard"));
@@ -57,7 +57,6 @@ const Live = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openMenuIdx, setOpenMenuIdx] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showCalendar, setShowCalendar] = useState(false);
   const [streamBuffer, setStreamBuffer] = useState({});
   const menuRefs = useRef([]);
@@ -82,7 +81,7 @@ const Live = () => {
       const data = await res.json();
       return data.liveSessions || data || [];
     } catch (err) {
-      throw new Error(err.message);
+      return staticVideos; // Fallback to static data
     }
   };
 
@@ -180,7 +179,7 @@ const Live = () => {
         setFilteredVideos(sessionsData);
       } catch (err) {
         setError("Failed to load live sessions");
-        setVideos(staticVideos); // Fallback to static data
+        setVideos(staticVideos);
         setFilteredVideos(staticVideos);
       } finally {
         setLoading(false);
@@ -212,20 +211,6 @@ const Live = () => {
       }
     };
   }, [filteredVideos]);
-
-  // Filter videos based on search
-  useEffect(() => {
-    let filtered = videos;
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (video) =>
-          video.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (video.description &&
-            video.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }
-    setFilteredVideos(filtered);
-  }, [searchQuery, videos]);
 
   // Live updation of views, likes, dislikes
   useEffect(() => {
@@ -261,14 +246,6 @@ const Live = () => {
               dislikes: Math.max(0, filtered[idx].dislikes + Math.floor(Math.random() * 2 - 1)),
             };
           }
-          if (searchQuery) {
-            filtered = filtered.filter(
-              (v) =>
-                v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (v.description &&
-                  v.description.toLowerCase().includes(searchQuery.toLowerCase()))
-            );
-          }
           return filtered;
         });
       }, 10000);
@@ -276,7 +253,7 @@ const Live = () => {
     });
 
     return () => intervals.forEach(({ interval }) => clearInterval(interval));
-  }, [videos, searchQuery]);
+  }, [videos]);
 
   // Simulate stream buffering for live sessions
   useEffect(() => {
@@ -335,14 +312,6 @@ const Live = () => {
     setFilteredVideos((prev) => {
       let filtered = [...prev];
       filtered = filtered.map((v, i) => (i === idx ? processedVideo : v));
-      if (searchQuery) {
-        filtered = filtered.filter(
-          (v) =>
-            v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (v.description &&
-              v.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-      }
       return filtered;
     });
 
@@ -370,14 +339,6 @@ const Live = () => {
         filtered = filtered.map((v, i) =>
           i === editData.idx ? { ...video, id: prev[i].id } : v
         );
-        if (searchQuery) {
-          filtered = filtered.filter(
-            (v) =>
-              v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (v.description &&
-                v.description.toLowerCase().includes(searchQuery.toLowerCase()))
-          );
-        }
         return filtered;
       });
       setEditData(null);
@@ -394,14 +355,6 @@ const Live = () => {
       });
       setFilteredVideos((prev) => {
         let filtered = [newVideo, ...prev];
-        if (searchQuery) {
-          filtered = filtered.filter(
-            (v) =>
-              v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (v.description &&
-                v.description.toLowerCase().includes(searchQuery.toLowerCase()))
-          );
-        }
         return filtered;
       });
     }
@@ -420,14 +373,6 @@ const Live = () => {
     });
     setFilteredVideos((prev) => {
       let filtered = prev.filter((_, i) => i !== idx);
-      if (searchQuery) {
-        filtered = filtered.filter(
-          (v) =>
-            v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (v.description &&
-              v.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-      }
       return filtered;
     });
   };
@@ -445,14 +390,6 @@ const Live = () => {
     });
     setFilteredVideos((prev) => {
       let filtered = prev.filter((_, i) => i !== idx);
-      if (searchQuery) {
-        filtered = filtered.filter(
-          (v) =>
-            v.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (v.description &&
-              v.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-      }
       return filtered;
     });
     try {
@@ -534,6 +471,17 @@ const Live = () => {
     menuRefs.current = videos.map(() => null);
   }, [videos]);
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5, when: "beforeChildren", staggerChildren: 0.2 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+  };
+
   // Calendar view logic
   const getScheduledDates = () => {
     const dates = {};
@@ -549,148 +497,212 @@ const Live = () => {
 
   const scheduledDates = getScheduledDates();
 
-  if (loading)
-    return <div className="text-center py-8">Loading live sessions...</div>;
-  if (error)
-    return <div className="text-red-500 text-center py-8">{error}</div>;
-
   return (
-    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 md:px-8">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
-        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        <div className="flex gap-2">
-          <button
-            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 text-sm sm:text-base"
-            onClick={() => setShowCalendar(!showCalendar)}
-          >
-            {showCalendar ? "List View" : "Calendar View"}
-          </button>
-          <button
-            className="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 text-sm sm:text-base"
-            onClick={() => setShowSetup(true)}
-          >
-            + Go Live / Schedule Live Session
-          </button>
-        </div>
-      </div>
-      {showSetup && (
-        <LiveSetup
-          onSubmit={handleLiveSubmit}
-          editData={editData}
-          onClose={closeSetup}
-        />
-      )}
-      {!showSetup && (
-        <Suspense
-          fallback={
-            <div className="text-center py-8">Loading video cards...</div>
-          }
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="min-h-screen max-h-screen w-full px-3 sm:px-4 md:px-6 font-[Inter] overflow-hidden"
+    >
+      {loading ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-8 text-black opacity-70 font-medium"
         >
-          <div className="space-y-6">
-            {showCalendar ? (
-              <div className="calendar-view">
-                <h2 className="text-xl font-bold mb-4">Scheduled Sessions</h2>
-                {Object.keys(scheduledDates).length === 0 ? (
-                  <div className="text-center text-gray-500">
-                    No scheduled sessions.
-                  </div>
+          Loading live sessions...
+        </motion.div>
+      ) : error ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-red-500 text-center py-8 font-medium"
+        >
+          {error}
+        </motion.div>
+      ) : (
+        <>
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2"
+          >
+            <motion.h1
+              variants={itemVariants}
+              className="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight"
+            >
+              Live Sessions
+            </motion.h1>
+            <motion.div variants={itemVariants} className="flex gap-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-full sm:w-auto bg-blue-800 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
+                onClick={() => setShowCalendar(!showCalendar)}
+              >
+                {showCalendar ? "List View" : "Calendar View"}
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="w-full sm:w-auto bg-blue-800 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
+                onClick={() => setShowSetup(true)}
+              >
+                + Go Live / Schedule Live Session
+              </motion.button>
+            </motion.div>
+          </motion.div>
+          {showSetup && (
+            <LiveSetup
+              onSubmit={handleLiveSubmit}
+              editData={editData}
+              onClose={closeSetup}
+            />
+          )}
+          {!showSetup && (
+            <Suspense
+              fallback={
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-8 text-black opacity-70 font-medium"
+                >
+                  Loading video cards...
+                </motion.div>
+              }
+            >
+              <motion.div variants={containerVariants} className="space-y-6">
+                {showCalendar ? (
+                  <motion.div variants={itemVariants} className="calendar-view">
+                    <motion.h2
+                      variants={itemVariants}
+                      className="text-xl font-bold text-blue-900 mb-4"
+                    >
+                      Scheduled Sessions
+                    </motion.h2>
+                    {Object.keys(scheduledDates).length === 0 ? (
+                      <motion.div
+                        variants={itemVariants}
+                        className="text-center text-black opacity-70"
+                      >
+                        No scheduled sessions.
+                      </motion.div>
+                    ) : (
+                      Object.entries(scheduledDates).map(([date, sessions]) => (
+                        <motion.div key={date} variants={itemVariants} className="mb-6">
+                          <motion.h3
+                            variants={itemVariants}
+                            className="text-lg font-semibold text-blue-900"
+                          >
+                            {date}
+                          </motion.h3>
+                          <motion.div variants={itemVariants} className="space-y-4 mt-2">
+                            {sessions.map((video, idx) => (
+                              <motion.div
+                                key={video.id}
+                                variants={itemVariants}
+                                className="w-full video-card"
+                              >
+                                <VideoCard
+                                  video={video}
+                                  onEdit={() =>
+                                    handleEdit(
+                                      video,
+                                      videos.findIndex((v) => v.id === video.id)
+                                    )
+                                  }
+                                  onDelete={() =>
+                                    handleDelete(
+                                      videos.findIndex((v) => v.id === video.id)
+                                    )
+                                  }
+                                  onShare={() =>
+                                    handleShare(
+                                      videos.findIndex((v) => v.id === video.id)
+                                    )
+                                  }
+                                  menuOptions={["edit", "share", "delete"]}
+                                  openMenu={
+                                    openMenuIdx ===
+                                    videos.findIndex((v) => v.id === video.id)
+                                  }
+                                  setOpenMenu={(open) =>
+                                    setOpenMenuIdx(
+                                      open
+                                        ? videos.findIndex((v) => v.id === video.id)
+                                        : null
+                                    )
+                                  }
+                                  menuRef={(el) =>
+                                    (menuRefs.current[
+                                      videos.findIndex((v) => v.id === video.id)
+                                    ] = el)
+                                  }
+                                />
+                              </motion.div>
+                            ))}
+                          </motion.div>
+                        </motion.div>
+                      ))
+                    )}
+                  </motion.div>
                 ) : (
-                  Object.entries(scheduledDates).map(([date, sessions]) => (
-                    <div key={date} className="mb-6">
-                      <h3 className="text-lg font-semibold">{date}</h3>
-                      <div className="space-y-4 mt-2">
-                        {sessions.map((video, idx) => (
-                          <div key={video.id} className="w-full video-card">
-                            <VideoCard
-                              video={video}
-                              onEdit={() =>
-                                handleEdit(
-                                  video,
-                                  videos.findIndex((v) => v.id === video.id)
-                                )
-                              }
-                              onDelete={() =>
-                                handleDelete(
-                                  videos.findIndex((v) => v.id === video.id)
-                                )
-                              }
-                              onShare={() =>
-                                handleShare(
-                                  videos.findIndex((v) => v.id === video.id)
-                                )
-                              }
-                              menuOptions={["edit", "share", "delete"]}
-                              openMenu={
-                                openMenuIdx ===
-                                videos.findIndex((v) => v.id === video.id)
-                              }
-                              setOpenMenu={(open) =>
-                                setOpenMenuIdx(
-                                  open
-                                    ? videos.findIndex((v) => v.id === video.id)
-                                    : null
-                                )
-                              }
-                              menuRef={(el) =>
-                                (menuRefs.current[
-                                  videos.findIndex((v) => v.id === video.id)
-                                ] = el)
-                              }
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            ) : (
-              <>
-                {filteredVideos.length === 0 ? (
-                  <div className="text-center text-gray-500 mt-12">
-                    No live or scheduled sessions yet.
-                  </div>
-                ) : (
-                  filteredVideos.map((video, idx) => (
-                    <div key={video.id} className="w-full video-card">
-                      <VideoCard
-                        video={video}
-                        onEdit={() => handleEdit(video, idx)}
-                        onDelete={() => handleDelete(idx)}
-                        onArchive={() => handleArchive(idx)}
-                        onSave={() => handleSave(idx)}
-                        onShare={() => handleShare(idx)}
-                        onEndLive={() => endLive(idx)}
-                        menuOptions={
-                          video.scheduledTime && !video.isLive
-                            ? ["edit", "share", "delete"]
-                            : video.isLive
-                            ? ["share"]
-                            : ["edit", "archive", "save", "share", "delete"]
-                        }
-                        openMenu={openMenuIdx === idx}
-                        setOpenMenu={(open) =>
-                          setOpenMenuIdx(open ? idx : null)
-                        }
-                        menuRef={(el) => (menuRefs.current[idx] = el)}
-                      />
-                      {video.isLive && (
-                        <button
-                          className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                          onClick={() => endLive(idx)}
+                  <>
+                    {filteredVideos.length === 0 ? (
+                      <motion.div
+                        variants={itemVariants}
+                        className="text-center text-black opacity-70 mt-12"
+                      >
+                        No live or scheduled sessions yet.
+                      </motion.div>
+                    ) : (
+                      filteredVideos.map((video, idx) => (
+                        <motion.div
+                          key={video.id}
+                          variants={itemVariants}
+                          className="w-full video-card"
                         >
-                          End Live
-                        </button>
-                      )}
-                    </div>
-                  ))
+                          <VideoCard
+                            video={video}
+                            onEdit={() => handleEdit(video, idx)}
+                            onDelete={() => handleDelete(idx)}
+                            onArchive={() => handleArchive(idx)}
+                            onSave={() => handleSave(idx)}
+                            onShare={() => handleShare(idx)}
+                            onEndLive={() => endLive(idx)}
+                            menuOptions={
+                              video.scheduledTime && !video.isLive
+                                ? ["edit", "share", "delete"]
+                                : video.isLive
+                                ? ["share"]
+                                : ["edit", "archive", "save", "share", "delete"]
+                            }
+                            openMenu={openMenuIdx === idx}
+                            setOpenMenu={(open) =>
+                              setOpenMenuIdx(open ? idx : null)
+                            }
+                            menuRef={(el) => (menuRefs.current[idx] = el)}
+                          />
+                          {video.isLive && (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="mt-4 bg-blue-800 text-white px-4 py-2 rounded-md font-semibold hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
+                              onClick={() => endLive(idx)}
+                            >
+                              End Live
+                            </motion.button>
+                          )}
+                        </motion.div>
+                      ))
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </div>
-        </Suspense>
+              </motion.div>
+            </Suspense>
+          )}
+        </>
       )}
-    </div>
+    </motion.div>
   );
 };
 

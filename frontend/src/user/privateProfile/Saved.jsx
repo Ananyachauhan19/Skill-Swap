@@ -1,62 +1,22 @@
-import React, { useEffect, useState, useRef } from "react";
-import VideoCard from "./VideoCard";
-import SearchBar from "./SearchBar";
+import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { FiSearch } from "react-icons/fi";
+
+// Lazy load VideoCard component
+const VideoCard = lazy(() => import("./VideoCard"));
+
 const Saved = () => {
   const [saved, setSaved] = useState([]);
   const [filteredSaved, setFilteredSaved] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openMenuIdx, setOpenMenuIdx] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const menuRefs = useRef([]);
+  const observer = useRef(null);
   const navigate = useNavigate();
-
-  // Backend API functions (commented for future implementation)
-  /*
-  const fetchSaved = async () => {
-    try {
-      const res = await fetch("/api/saved", {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error("Failed to fetch saved videos");
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const removeSaved = async (videoId) => {
-    try {
-      const res = await fetch(`/api/saved/${videoId}`, {
-        method: "DELETE",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error("Failed to remove saved video");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const reportVideo = async (videoId) => {
-    try {
-      const res = await fetch("/api/report/video", {
-        method: "POST",
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ videoId, reason: 'User report' })
-      });
-      if (!res.ok) throw new Error("Failed to report video");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-  */
 
   // Load saved videos from localStorage or static data
   useEffect(() => {
@@ -121,6 +81,25 @@ const Saved = () => {
     setFilteredSaved(filtered);
   }, [searchQuery, saved]);
 
+  // Lazy loading observer
+  useEffect(() => {
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    const videoCards = document.querySelectorAll(".video-card");
+    videoCards.forEach((card) => observer.current.observe(card));
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
+  }, [filteredSaved]);
+
   // Close menu on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -140,24 +119,25 @@ const Saved = () => {
   const handleRemove = (idx) => {
     const updated = saved.filter((_, i) => i !== idx);
     setSaved(updated);
-    setFilteredSaved(searchQuery
-      ? updated.filter(
-          (video) =>
-            video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (video.description &&
-              video.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-      : updated
+    setFilteredSaved(
+      searchQuery
+        ? updated.filter(
+            (video) =>
+              video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (video.description &&
+                video.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          )
+        : updated
     );
     localStorage.setItem("savedVideos", JSON.stringify(updated));
   };
 
   const handleRemoveAll = () => {
-  if (saved.length === 0) return;
-  setSaved([]);
-  setFilteredSaved([]);
-  localStorage.setItem("savedVideos", JSON.stringify([]));
-};
+    if (saved.length === 0) return;
+    setSaved([]);
+    setFilteredSaved([]);
+    localStorage.setItem("savedVideos", JSON.stringify([]));
+  };
 
   const handleShare = (video) => {
     const baseUrl = window.location.origin;
@@ -167,51 +147,147 @@ const Saved = () => {
   };
 
   const handleReport = (video) => {
-    navigate('/report', { state: { video } });
+    navigate("/report", { state: { video } });
   };
 
-  if (loading) return <div className="text-center py-8">Loading saved videos...</div>;
-  if (error) return <div className="text-red-500 text-center py-8">{error}</div>;
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5, when: "beforeChildren", staggerChildren: 0.2 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+  };
+
+  const searchBarVariants = {
+    hidden: { width: 0, opacity: 0, x: -20 },
+    visible: { width: "auto", opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  };
 
   return (
-    <div className="w-full max-w-8xl mx-auto px-2 sm:px-4 md:px-8">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-2">
-        <h2 className="text-lg sm:text-xl font-bold">Saved Videos</h2>
-        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        {filteredSaved.length > 0 && (
-    <button
-      className="w-full sm:w-auto bg-red-600 text-white px-4 py-2 rounded text-sm shadow hover:bg-red-700"
-      onClick={handleRemoveAll}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="min-h-screen max-h-screen w-full px-3 sm:px-4 md:px-6 font-[Inter] overflow-hidden"
     >
-      Remove All
-    </button>
-  )}
-      </div>
-      <div className="space-y-6">
-        {filteredSaved.length === 0 ? (
-          <div className="text-center text-gray-500 mt-12">No saved videos.</div>
-        ) : (
-          filteredSaved.map((video, idx) => (
-            <div key={idx} className="w-full">
-              <VideoCard
-                video={{
-                  ...video,
-                  uploadDate: `Saved: ${video.uploadDate}`,
-                  lastEdited: `Last Edited: ${video.lastEdited}`,
-                }}
-                menuOptions={["report", "remove", "share"]}
-                onReport={(video) => handleReport(video)}
-                onRemove={() => handleRemove(idx)}
-                onShare={() => handleShare(video)}
-                openMenu={openMenuIdx === idx}
-                setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
-                menuRef={(el) => (menuRefs.current[idx] = el)}
-              />
+      {loading ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-8 text-black opacity-70 font-medium"
+        >
+          Loading saved videos...
+        </motion.div>
+      ) : error ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-red-500 text-center py-8 font-medium"
+        >
+          {error}
+        </motion.div>
+      ) : (
+        <>
+          <header className="py-3 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <motion.h1
+                variants={itemVariants}
+                className="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight"
+              >
+                Saved Videos
+              </motion.h1>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="text-blue-900 text-2xl"
+                onClick={() => setSearchOpen(!searchOpen)}
+              >
+                <FiSearch />
+              </motion.button>
+              <AnimatePresence>
+                {searchOpen && (
+                  <motion.div
+                    variants={searchBarVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="overflow-hidden"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent border-b-2 border-blue-900 text-blue-900 placeholder-blue-900 focus:outline-none px-2 py-1"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          ))
-        )}
-      </div>
-    </div>
+            {filteredSaved.length > 0 && (
+              <motion.div variants={itemVariants} className="flex justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
+                  onClick={handleRemoveAll}
+                >
+                  Remove All
+                </motion.button>
+              </motion.div>
+            )}
+          </header>
+          <Suspense
+            fallback={
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-8 text-black opacity-70 font-medium"
+              >
+                Loading video cards...
+              </motion.div>
+            }
+          >
+            {filteredSaved.length === 0 ? (
+              <motion.div
+                variants={itemVariants}
+                className="text-center text-black opacity-70 mt-10 text-lg font-medium"
+              >
+                No saved videos.
+              </motion.div>
+            ) : (
+              <section className="space-y-4 overflow-y-auto">
+                {filteredSaved.map((video, idx) => (
+                  <motion.article
+                    key={video.id || idx}
+                    variants={itemVariants}
+                    className="video-card"
+                  >
+                    <VideoCard
+                      video={{
+                        ...video,
+                        uploadDate: `Saved: ${video.uploadDate}`,
+                        lastEdited: `Last Edited: ${video.lastEdited}`,
+                      }}
+                      menuOptions={["report", "remove", "share"]}
+                      onReport={() => handleReport(video)}
+                      onRemove={() => handleRemove(idx)}
+                      onShare={() => handleShare(video)}
+                      openMenu={openMenuIdx === idx}
+                      setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
+                      menuRef={(el) => (menuRefs.current[idx] = el)}
+                    />
+                  </motion.article>
+                ))}
+              </section>
+            )}
+          </Suspense>
+        </>
+      )}
+    </motion.div>
   );
 };
 

@@ -1,8 +1,11 @@
-import React, { useEffect, useState, useRef } from "react";
-import VideoCard from "./VideoCard";
-import SearchBar from "./SearchBar";
-import DraftForm from "./DraftForm";
+import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { FiSearch } from "react-icons/fi";
+
+// Lazy load components
+const VideoCard = lazy(() => import("./VideoCard"));
+const DraftForm = lazy(() => import("./DraftForm"));
 
 const Draft = () => {
   const [drafts, setDrafts] = useState([]);
@@ -11,9 +14,11 @@ const Draft = () => {
   const [error, setError] = useState(null);
   const [showDraftForm, setShowDraftForm] = useState(false);
   const [editDraftIdx, setEditDraftIdx] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [openMenuIdx, setOpenMenuIdx] = useState(null); // Track open menu
-  const menuRefs = useRef([]); // Refs for menu elements
+  const [openMenuIdx, setOpenMenuIdx] = useState(null);
+  const menuRefs = useRef([]);
+  const observer = useRef(null);
   const navigate = useNavigate();
 
   // Backend API functions (commented for future implementation)
@@ -152,6 +157,25 @@ const Draft = () => {
     setFilteredDrafts(filtered);
   }, [searchQuery, drafts]);
 
+  // Lazy loading observer
+  useEffect(() => {
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    const videoCards = document.querySelectorAll(".video-card");
+    videoCards.forEach((card) => observer.current.observe(card));
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
+  }, [filteredDrafts]);
+
   // Close menu on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -171,27 +195,35 @@ const Draft = () => {
   const handleDraftSubmit = (draftData) => {
     let updatedDrafts;
     if (editDraftIdx !== null && drafts[editDraftIdx]) {
-      // Update existing draft
       updatedDrafts = [...drafts];
       updatedDrafts[editDraftIdx] = {
         ...drafts[editDraftIdx],
         ...draftData,
-        lastEdited: new Date().toLocaleString(), // Update last edited timestamp
+        lastEdited: new Date().toLocaleString(),
       };
     } else {
-      // New draft (not used here, but kept for completeness)
-      updatedDrafts = [{ ...draftData, draftId: Date.now().toString(), uploadDate: new Date().toLocaleString(), lastEdited: new Date().toLocaleString(), isDraft: true }, ...drafts];
+      updatedDrafts = [
+        {
+          ...draftData,
+          draftId: Date.now().toString(),
+          uploadDate: new Date().toLocaleString(),
+          lastEdited: new Date().toLocaleString(),
+          isDraft: true,
+        },
+        ...drafts,
+      ];
     }
     localStorage.setItem("videoDrafts", JSON.stringify(updatedDrafts));
     setDrafts(updatedDrafts);
-    setFilteredDrafts(searchQuery
-      ? updatedDrafts.filter(
-          (draft) =>
-            draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (draft.description &&
-              draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-      : updatedDrafts
+    setFilteredDrafts(
+      searchQuery
+        ? updatedDrafts.filter(
+            (draft) =>
+              draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (draft.description &&
+                draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          )
+        : updatedDrafts
     );
     setShowDraftForm(false);
     setEditDraftIdx(null);
@@ -202,14 +234,15 @@ const Draft = () => {
     const updatedDrafts = drafts.filter((_, i) => i !== idx);
     localStorage.setItem("videoDrafts", JSON.stringify(updatedDrafts));
     setDrafts(updatedDrafts);
-    setFilteredDrafts(searchQuery
-      ? updatedDrafts.filter(
-          (draft) =>
-            draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (draft.description &&
-              draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-      : updatedDrafts
+    setFilteredDrafts(
+      searchQuery
+        ? updatedDrafts.filter(
+            (draft) =>
+              draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (draft.description &&
+                draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          )
+        : updatedDrafts
     );
   };
 
@@ -225,7 +258,7 @@ const Draft = () => {
     const postedVideo = {
       ...draft,
       isDraft: false,
-      id: draft.draftId, // Use draftId as video id
+      id: draft.draftId,
       views: 0,
       likes: 0,
       dislikes: 0,
@@ -234,18 +267,20 @@ const Draft = () => {
     const updatedDrafts = drafts.filter((_, i) => i !== idx);
     localStorage.setItem("videoDrafts", JSON.stringify(updatedDrafts));
     setDrafts(updatedDrafts);
-    setFilteredDrafts(searchQuery
-      ? updatedDrafts.filter(
-          (draft) =>
-            draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (draft.description &&
-              draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
-        )
-      : updatedDrafts
+    setFilteredDrafts(
+      searchQuery
+        ? updatedDrafts.filter(
+            (draft) =>
+              draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (draft.description &&
+                draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          )
+        : updatedDrafts
     );
     const videos = JSON.parse(localStorage.getItem("uploadedVideos") || "[]");
     videos.unshift(postedVideo);
     localStorage.setItem("uploadedVideos", JSON.stringify(videos));
+    navigate("/profile/panel/videos");
   };
 
   // Close draft form
@@ -254,59 +289,165 @@ const Draft = () => {
     setEditDraftIdx(null);
   };
 
-  if (loading) return <div className="text-center py-8">Loading drafts...</div>;
-  if (error) return <div className="text-red-500 text-center py-8">{error}</div>;
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5, when: "beforeChildren", staggerChildren: 0.2 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+  };
+
+  const searchBarVariants = {
+    hidden: { width: 0, opacity: 0, x: -20 },
+    visible: { width: "auto", opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  };
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 md:px-8">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-2">
-        <h2 className="text-lg sm:text-xl font-bold">Draft Videos</h2>
-        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        {drafts.length > 0 && (
-          <button
-            className="w-full sm:w-auto bg-red-600 text-white px-4 py-2 rounded text-sm shadow hover:bg-red-700"
-            onClick={() => {
-              setDrafts([]);
-              setFilteredDrafts([]);
-              localStorage.removeItem("videoDrafts");
-            }}
-          >
-            Delete All
-          </button>
-        )}
-      </div>
-      {showDraftForm && (
-        <DraftForm
-          onSubmit={handleDraftSubmit}
-          editData={editDraftIdx !== null ? drafts[editDraftIdx] : null}
-          onClose={closeDraftForm}
-        />
-      )}
-      <div className="space-y-6">
-        {filteredDrafts.length === 0 ? (
-          <div className="text-center text-gray-500 mt-12">No drafts saved yet.</div>
-        ) : (
-          filteredDrafts.map((video, idx) => (
-            <div key={idx} className="w-full">
-              <VideoCard
-                video={{
-                  ...video,
-                  uploadDate: `Saved: ${video.uploadDate}`,
-                  lastEdited: `Last Edited: ${video.lastEdited}`,
-                }}
-                onEdit={() => handleEdit(video, idx)}
-                onDelete={() => handleDelete(idx)}
-                onPost={() => handlePost(idx)}
-                menuOptions={["edit", "post", "delete"]}
-                openMenu={openMenuIdx === idx}
-                setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
-                menuRef={(el) => (menuRefs.current[idx] = el)}
-              />
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="min-h-screen w-full px-3 sm:px-4 md:px-6 font-[Inter] overflow-hidden"
+    >
+      {loading ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-8 text-black opacity-70 font-medium"
+        >
+          Loading drafts...
+        </motion.div>
+      ) : error ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-red-500 text-center py-8 font-medium"
+        >
+          {error}
+        </motion.div>
+      ) : (
+        <>
+          <header className="py-3 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <motion.h2
+                variants={itemVariants}
+                className="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight"
+              >
+                Draft Videos
+              </motion.h2>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="text-blue-900 text-2xl"
+                onClick={() => setSearchOpen(!searchOpen)}
+              >
+                <FiSearch />
+              </motion.button>
+              <AnimatePresence>
+                {searchOpen && (
+                  <motion.div
+                    variants={searchBarVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="overflow-hidden"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent border-b-2 border-blue-900 text-blue-900 placeholder-blue-900 focus:outline-none px-2 py-1"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          ))
-        )}
-      </div>
-    </div>
+            {drafts.length > 0 && (
+              <motion.div variants={itemVariants} className="flex justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
+                  onClick={() => {
+                    setDrafts([]);
+                    setFilteredDrafts([]);
+                    localStorage.removeItem("videoDrafts");
+                  }}
+                >
+                  Delete All
+                </motion.button>
+              </motion.div>
+            )}
+          </header>
+          <Suspense
+            fallback={
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-8 text-black opacity-70 font-medium"
+              >
+                Loading draft cards...
+              </motion.div>
+            }
+          >
+            <AnimatePresence>
+              {showDraftForm && (
+                <motion.div
+                  variants={itemVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  className="w-full mb-4"
+                >
+                  <DraftForm
+                    onSubmit={handleDraftSubmit}
+                    editData={editDraftIdx !== null ? drafts[editDraftIdx] : null}
+                    onClose={closeDraftForm}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <section className="space-y-4 overflow-y-auto">
+              {filteredDrafts.length === 0 ? (
+                <motion.div
+                  variants={itemVariants}
+                  className="text-center text-black opacity-70 mt-12 text-lg font-medium"
+                >
+                  No drafts saved yet.
+                </motion.div>
+              ) : (
+                filteredDrafts.map((video, idx) => (
+                  <motion.article
+                    key={video.draftId || idx}
+                    variants={itemVariants}
+                    className="video-card"
+                  >
+                    <VideoCard
+                      video={{
+                        ...video,
+                        uploadDate: `Saved: ${video.uploadDate}`,
+                        lastEdited: `Last Edited: ${video.lastEdited}`,
+                      }}
+                      onEdit={() => handleEdit(video, idx)}
+                      onDelete={() => handleDelete(idx)}
+                      onPost={() => handlePost(idx)}
+                      menuOptions={["edit", "post", "delete"]}
+                      openMenu={openMenuIdx === idx}
+                      setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
+                      menuRef={(el) => (menuRefs.current[idx] = el)}
+                    />
+                  </motion.article>
+                ))
+              )}
+            </section>
+          </Suspense>
+        </>
+      )}
+    </motion.div>
   );
 };
 

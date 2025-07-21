@@ -1,58 +1,21 @@
-import React, { useEffect, useState, useRef } from "react";
-import VideoCard from "./VideoCard";
-import SearchBar from "./SearchBar";
+import React, { useEffect, useState, useRef, Suspense } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { lazy } from "react";
+import { FiSearch } from "react-icons/fi"; // Import search icon from react-icons
 
+// Lazy load VideoCard component
+const VideoCard = lazy(() => import("./VideoCard"));
 
 const Archive = () => {
   const [archived, setArchived] = useState([]);
   const [filteredArchived, setFilteredArchived] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [openMenuIdx, setOpenMenuIdx] = useState(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const menuRefs = useRef([]);
-
-  // Backend API functions (commented for future implementation)
-  /*
-  const fetchArchived = async () => {
-    try {
-      const res = await fetch("/api/archived", {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error("Failed to fetch archived videos");
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const unarchiveVideo = async (id) => {
-    try {
-      const res = await fetch(`/api/archived/${id}/unarchive`, {
-        method: "PUT",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error("Failed to unarchive video");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const deleteArchived = async (id) => {
-    try {
-      const res = await fetch(`/api/archived/${id}`, {
-        method: "DELETE",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-      });
-      if (!res.ok) throw new Error("Failed to delete archived video");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-  */
+  const observer = useRef(null);
 
   // Load archived videos from localStorage or static data
   useEffect(() => {
@@ -72,7 +35,7 @@ const Archive = () => {
                   thumbnail: "https://placehold.co/320x180?text=Archived+1",
                   videoUrl: "",
                   uploadDate: new Date().toLocaleString(),
-                  lastEdited: new Date().toLocaleString(), // Added for consistency
+                  lastEdited: new Date().toLocaleString(),
                   userId: "user123",
                   isArchived: true,
                 },
@@ -83,7 +46,7 @@ const Archive = () => {
                   thumbnail: "https://placehold.co/320x180?text=Archived+2",
                   videoUrl: "",
                   uploadDate: new Date().toLocaleString(),
-                  lastEdited: new Date().toLocaleString(), // Added for consistency
+                  lastEdited: new Date().toLocaleString(),
                   userId: "user456",
                   isArchived: true,
                 },
@@ -98,19 +61,34 @@ const Archive = () => {
     }, 0);
   }, []);
 
-  // Filter archived videos based on search query
+  // Filter videos based on search query
   useEffect(() => {
-    let filtered = archived;
-    if (searchQuery) {
-      filtered = archived.filter(
-        (video) =>
-          video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (video.description &&
-            video.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }
+    const filtered = archived.filter(
+      (video) =>
+        video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        video.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
     setFilteredArchived(filtered);
   }, [searchQuery, archived]);
+
+  // Lazy loading observer
+  useEffect(() => {
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("visible");
+          }
+        });
+      },
+      { threshold: 0.1 }
+    );
+    const videoCards = document.querySelectorAll(".video-card");
+    videoCards.forEach((card) => observer.current.observe(card));
+    return () => {
+      if (observer.current) observer.current.disconnect();
+    };
+  }, [filteredArchived]);
 
   // Close menu on outside click
   useEffect(() => {
@@ -133,25 +111,12 @@ const Archive = () => {
     const updatedVideo = {
       ...video,
       isArchived: false,
-      lastEdited: new Date().toLocaleString(), // Update lastEdited
+      lastEdited: new Date().toLocaleString(),
     };
-    // Remove from archive
     const updated = archived.filter((_, i) => i !== idx);
     setArchived(updated);
-    setFilteredArchived(
-      searchQuery
-        ? updated.filter(
-            (video) =>
-              video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (video.description &&
-                video.description
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()))
-          )
-        : updated
-    );
+    setFilteredArchived(updated);
     localStorage.setItem("archivedVideos", JSON.stringify(updated));
-    // Add to uploadedVideos
     const videos = JSON.parse(localStorage.getItem("uploadedVideos") || "[]");
     videos.unshift(updatedVideo);
     localStorage.setItem("uploadedVideos", JSON.stringify(videos));
@@ -161,18 +126,7 @@ const Archive = () => {
   const handleDelete = (idx) => {
     const updated = archived.filter((_, i) => i !== idx);
     setArchived(updated);
-    setFilteredArchived(
-      searchQuery
-        ? updated.filter(
-            (video) =>
-              video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (video.description &&
-                video.description
-                  .toLowerCase()
-                  .includes(searchQuery.toLowerCase()))
-          )
-        : updated
-    );
+    setFilteredArchived(updated);
     localStorage.setItem("archivedVideos", JSON.stringify(updated));
   };
 
@@ -182,13 +136,11 @@ const Archive = () => {
     const updatedVideos = archived.map((video) => ({
       ...video,
       isArchived: false,
-      lastEdited: new Date().toLocaleString(), // Update lastEdited
+      lastEdited: new Date().toLocaleString(),
     }));
-    // Clear archive
     setArchived([]);
     setFilteredArchived([]);
     localStorage.setItem("archivedVideos", JSON.stringify([]));
-    // Add to uploadedVideos
     const videos = JSON.parse(localStorage.getItem("uploadedVideos") || "[]");
     localStorage.setItem(
       "uploadedVideos",
@@ -196,51 +148,146 @@ const Archive = () => {
     );
   };
 
-  if (loading)
-    return <div className="text-center py-8">Loading archived videos...</div>;
-  if (error)
-    return <div className="text-red-500 text-center py-8">{error}</div>;
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0, x: -50 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.5, when: "beforeChildren", staggerChildren: 0.2 } },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+  };
+
+  const searchBarVariants = {
+    hidden: { width: 0, opacity: 0, x: -20 },
+    visible: { width: "auto", opacity: 1, x: 0, transition: { duration: 0.3, ease: "easeOut" } },
+  };
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-2 sm:px-4 md:px-8">
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-2">
-        <h2 className="text-lg sm:text-xl font-bold">Archived Videos</h2>
-        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        {filteredArchived.length > 0 && (
-          <button
-            className="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded text-sm shadow hover:bg-blue-700"
-            onClick={handleUnarchiveAll}
-          >
-            Unarchive All
-          </button>
-        )}
-      </div>
-      <div className="space-y-6">
-        {filteredArchived.length === 0 ? (
-          <div className="text-center text-gray-500 mt-12">
-            No archived videos.
-          </div>
-        ) : (
-          filteredArchived.map((video, idx) => (
-            <div key={idx} className="w-full">
-              <VideoCard
-                video={{
-                  ...video,
-                  uploadDate: `Archived: ${video.uploadDate}`,
-                  lastEdited: `Last Edited: ${video.lastEdited}`,
-                }}
-                onDelete={() => handleDelete(idx)}
-                onUnArchive={() => handleUnarchive(idx)}
-                menuOptions={["unarchive", "delete"]}
-                openMenu={openMenuIdx === idx}
-                setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
-                menuRef={(el) => (menuRefs.current[idx] = el)}
-              />
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="min-h-screen max-h-screen w-full px-3 sm:px-4 md:px-6 font-[Inter] overflow-hidden"
+    >
+      {loading ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-8 text-black opacity-70 font-medium"
+        >
+          Loading archived videos...
+        </motion.div>
+      ) : error ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-red-500 text-center py-8 font-medium"
+        >
+          {error}
+        </motion.div>
+      ) : (
+        <>
+          <header className="py-3 flex items-center justify-between">
+            <motion.h1
+              variants={itemVariants}
+              className="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight"
+            >
+              Archived Videos
+            </motion.h1>
+            <div className="flex items-center space-x-2">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="text-blue-900 text-2xl"
+                onClick={() => setSearchOpen(!searchOpen)}
+              >
+                <FiSearch />
+              </motion.button>
+              <AnimatePresence>
+                {searchOpen && (
+                  <motion.div
+                    variants={searchBarVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                    className="overflow-hidden"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-transparent border-b-2 border-blue-900 text-blue-900 placeholder-blue-900 focus:outline-none px-2 py-1"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          ))
-        )}
-      </div>
-    </div>
+            {filteredArchived.length > 0 && (
+              <motion.div
+                variants={itemVariants}
+                className="flex justify-end mt-2"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
+                  onClick={handleUnarchiveAll}
+                >
+                  Unarchive All
+                </motion.button>
+              </motion.div>
+            )}
+          </header>
+          <Suspense
+            fallback={
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-8 text-black opacity-70 font-medium"
+              >
+                Loading video cards...
+              </motion.div>
+            }
+          >
+            {filteredArchived.length === 0 ? (
+              <motion.div
+                variants={itemVariants}
+                className="text-center text-black opacity-70 mt-10 text-lg font-medium"
+              >
+                No archived videos.
+              </motion.div>
+            ) : (
+              <section className="space-y-4 overflow-y-auto">
+                {filteredArchived.map((video, idx) => (
+                  <motion.article
+                    key={video.id || idx}
+                    variants={itemVariants}
+                    className="video-card"
+                  >
+                    <VideoCard
+                      video={{
+                        ...video,
+                        uploadDate: `Archived: ${video.uploadDate}`,
+                        lastEdited: `Last Edited: ${video.lastEdited}`,
+                      }}
+                      onDelete={() => handleDelete(idx)}
+                      onUnArchive={() => handleUnarchive(idx)}
+                      menuOptions={["unarchive", "delete"]}
+                      openMenu={openMenuIdx === idx}
+                      setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}
+                      menuRef={(el) => (menuRefs.current[idx] = el)}
+                    />
+                  </motion.article>
+                ))}
+              </section>
+            )}
+          </Suspense>
+        </>
+      )}
+    </motion.div>
   );
 };
 
