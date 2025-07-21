@@ -24,24 +24,16 @@ const SessionRequests = () => {
     if (savedActiveSession) {
       try {
         const session = JSON.parse(savedActiveSession);
-        // Check if the session is still valid (not expired)
-        const sessionAge = Date.now() - session.timestamp;
-        const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
-        
-        if (sessionAge < SESSION_TIMEOUT) {
+        // Only restore if session is actually started (status 'active')
+        if (session.status === 'active' || (session.sessionRequest && session.sessionRequest.status === 'active')) {
           setActiveSession(session);
-          console.info('[DEBUG] SessionRequests: Restored active session from localStorage:', session);
         } else {
-          // Session expired, remove from localStorage
           localStorage.removeItem('activeSession');
-          console.info('[DEBUG] SessionRequests: Active session expired, removed from localStorage');
         }
       } catch (error) {
-        console.error('[DEBUG] SessionRequests: Error parsing saved session:', error);
         localStorage.removeItem('activeSession');
       }
     }
-    
     // Also check for active sessions from backend as fallback
     checkActiveSessionFromBackend();
   }, []);
@@ -52,17 +44,20 @@ const SessionRequests = () => {
       const response = await fetch(`${BACKEND_URL}/api/session-requests/active`, {
         credentials: 'include'
       });
-      
       if (response.ok) {
         const data = await response.json();
-        if (data.activeSession) {
-          console.info('[DEBUG] SessionRequests: Found active session from backend:', data.activeSession);
+        // Only set activeSession if status is 'active'
+        if (data.activeSession &&
+            ((data.activeSession.status && data.activeSession.status === 'active') ||
+             (data.activeSession.sessionRequest && data.activeSession.sessionRequest.status === 'active'))
+        ) {
           setActiveSession(data.activeSession);
+        } else {
+          setActiveSession(null);
+          localStorage.removeItem('activeSession');
         }
       }
-    } catch (error) {
-      console.error('[DEBUG] SessionRequests: Error checking active session from backend:', error);
-    }
+    } catch (error) {}
   };
 
   useEffect(() => {
@@ -213,27 +208,79 @@ const SessionRequests = () => {
     }
   };
 
-  const handleStartSession = () => {
+  const handleStartSession = async () => {
     if (readyToStartSession) {
-      console.info('[DEBUG] SessionRequests: Starting session:', readyToStartSession._id);
-      socket.emit('start-session', { sessionId: readyToStartSession._id });
-      setShowVideoModal(true);
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/session-requests/start/${readyToStartSession._id}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          // Set activeSession with the returned sessionRequest
+          setActiveSession({
+            sessionId: data.sessionRequest._id,
+            sessionRequest: data.sessionRequest,
+            role: 'tutor'
+          });
+          setShowVideoModal(true);
+        } else {
+          setError('Failed to start session');
+        }
+      } catch (error) {
+        setError('Failed to start session');
+      }
     }
   };
 
-  const handleCancelSession = () => {
+  const handleCancelSession = async () => {
     if (activeSession) {
-      socket.emit('cancel-session', { sessionId: activeSession.sessionId });
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/session-requests/cancel/${activeSession.sessionId}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (response.ok) {
+          setActiveSession(null);
+          setReadyToStartSession(null);
+          setShowVideoModal(false);
+          localStorage.removeItem('activeSession');
+        } else {
+          setError('Failed to cancel session');
+        }
+      } catch (error) {
+        setError('Failed to cancel session');
+      }
     }
   };
 
-  const handleEndCall = () => {
-    console.info('[DEBUG] SessionRequests: Call ended, clearing session state');
-    setShowVideoModal(false);
-    setActiveSession(null);
-    setReadyToStartSession(null);
-    // Clear from localStorage as well
-    localStorage.removeItem('activeSession');
+  const handleEndCall = async () => {
+    if (activeSession) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/session-requests/complete/${activeSession.sessionId}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (response.ok) {
+          setActiveSession(null);
+          setReadyToStartSession(null);
+          setShowVideoModal(false);
+          localStorage.removeItem('activeSession');
+        } else {
+          setError('Failed to complete session');
+        }
+      } catch (error) {
+        setError('Failed to complete session');
+      }
+    } else {
+      setShowVideoModal(false);
+      setActiveSession(null);
+      setReadyToStartSession(null);
+      localStorage.removeItem('activeSession');
+    }
   };
 
   const getStatusColor = (status) => {
