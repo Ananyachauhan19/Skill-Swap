@@ -512,7 +512,7 @@ const Sessions = () => {
       </section>
       <section>
           <TopPerformersSection />
-           <Blog />
+        
 
       </section>
     </div>
