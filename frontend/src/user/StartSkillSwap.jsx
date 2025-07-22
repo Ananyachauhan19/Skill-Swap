@@ -13,6 +13,8 @@ const StartSkillSwap = () => {
   const [courseValue, setCourseValue] = useState("");
   const [unitValue, setUnitValue] = useState("");
   const [topicValue, setTopicValue] = useState("");
+  const [questionValue, setQuestionValue] = useState("");
+  const [questionPhoto, setQuestionPhoto] = useState(null);
   const [tutors, setTutors] = useState([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,12 +27,10 @@ const StartSkillSwap = () => {
   const [showSessionButtons, setShowSessionButtons] = useState(false);
 
   useEffect(() => {
-    // Register user with socket when component mounts
     if (user && user._id) {
       socket.emit('register', user._id);
     }
 
-    // Listen for tutors found
     socket.on('tutors-found', (data) => {
       console.info('[DEBUG] StartSkillSwap: tutors-found event received:', data);
       setLoading(false);
@@ -44,7 +44,6 @@ const StartSkillSwap = () => {
       setSearched(true);
     });
 
-    // Listen for session request responses
     socket.on('session-request-sent', (data) => {
       setSuccessMessage(data.message);
       setTimeout(() => setSuccessMessage(""), 3000);
@@ -55,14 +54,12 @@ const StartSkillSwap = () => {
       setTimeout(() => setError(""), 5000);
     });
 
-    // Listen for session-started event
     socket.on('session-started', (data) => {
       setSessionStarted(true);
       setActiveSessionId(data.sessionId);
       setShowSessionButtons(true);
     });
 
-    // Listen for end-call and session-completed events
     socket.on('end-call', ({ sessionId }) => {
       if (sessionId === activeSessionId) {
         setShowSessionButtons(false);
@@ -99,7 +96,9 @@ const StartSkillSwap = () => {
     socket.emit('find-tutors', {
       subject: courseValue,
       topic: unitValue,
-      subtopic: topicValue
+      subtopic: topicValue,
+      question: questionValue,
+      questionPhoto: questionPhoto ? questionPhoto.name : null,
     });
   };
 
@@ -112,36 +111,75 @@ const StartSkillSwap = () => {
         subject: courseValue,
         topic: unitValue,
         subtopic: topicValue,
-        message: `I would like to learn ${courseValue} - ${unitValue} - ${topicValue}`
+        question: questionValue,
+        questionPhoto: questionPhoto ? questionPhoto.name : null,
+        message: `I would like to learn ${courseValue} - ${unitValue} - ${topicValue}${questionValue ? `: ${questionValue}` : ''}`,
       });
     } catch (error) {
       setError("Failed to send session request. Please try again.");
     }
   };
 
+  const handleFileChange = (e) => {
+    setQuestionPhoto(e.target.files[0]);
+  };
+
   return (
-    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen w-full bg-gradient-to-b from-blue-50 to-blue-100 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-7xl">
-        <h1 className="text-3xl sm:text-4xl font-bold text-blue-900 mb-8 text-center animate-fadeIn">
+        <h1 className="text-4xl font-extrabold text-blue-900 mb-8 text-center animate-fade-in">
           Find Tutors for Your Doubts
         </h1>
-        <p className="text-lg text-gray-700 max-w-2xl mx-auto mb-10 text-center animate-fadeIn">
-          Search for expert tutors by entering a topic/tutor related to your doubts. Connect with the perfect mentor to guide your learning journey.
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 text-center animate-fade-in">
+          Connect with expert tutors by entering your subject, topic, and specific question. Upload a photo if needed and start your learning journey.
         </p>
 
-        <SearchBar
-          courseValue={courseValue}
-          setCourseValue={setCourseValue}
-          unitValue={unitValue}
-          setUnitValue={setUnitValue}
-          topicValue={topicValue}
-          setTopicValue={setTopicValue}
-          onFindTutor={handleFindTutor}
-        />
-        
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-3xl mx-auto">
+          <SearchBar
+            courseValue={courseValue}
+            setCourseValue={setCourseValue}
+            unitValue={unitValue}
+            setUnitValue={setUnitValue}
+            topicValue={topicValue}
+            setTopicValue={setTopicValue}
+            onFindTutor={handleFindTutor}
+          />
+          <div className="mt-6">
+            <label htmlFor="question" className="block text-sm font-medium text-gray-700">
+              Your Question
+            </label>
+            <textarea
+              id="question"
+              value={questionValue}
+              onChange={(e) => setQuestionValue(e.target.value)}
+              placeholder="Describe your question or doubt in detail..."
+              className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 placeholder-gray-400"
+              rows="4"
+            />
+          </div>
+          <div className="mt-4">
+            <label htmlFor="questionPhoto" className="block text-sm font-medium text-gray-700">
+              Upload Question Photo (Optional)
+            </label>
+            <input
+              id="questionPhoto"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+          </div>
+          <button
+            onClick={handleFindTutor}
+            className="mt-6 w-full bg-blue-800 text-white px-6 py-3 rounded-md font-semibold text-lg shadow-md transition-all duration-300 hover:bg-blue-900 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Find Tutors
+          </button>
+        </div>
+
         {error && (
           <div className="mt-6 max-w-3xl mx-auto w-full">
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg shadow-md">
               {error}
             </div>
           </div>
@@ -149,7 +187,7 @@ const StartSkillSwap = () => {
 
         {successMessage && (
           <div className="mt-6 max-w-3xl mx-auto w-full">
-            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
+            <div className="bg-green-100 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded-lg shadow-md">
               {successMessage}
             </div>
           </div>
@@ -158,8 +196,8 @@ const StartSkillSwap = () => {
         {loading && (
           <div className="mt-10 max-w-3xl mx-auto w-full text-center">
             <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-blue-700 text-lg">Finding online tutors...</span>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-800"></div>
+              <span className="ml-3 text-blue-800 text-lg font-medium">Finding online tutors...</span>
             </div>
           </div>
         )}
@@ -167,12 +205,12 @@ const StartSkillSwap = () => {
         {searched && !loading && (
           <div className="mt-10 max-w-3xl mx-auto w-full flex flex-col gap-6">
             {tutors.length === 0 ? (
-              <div className="text-center text-blue-700 text-lg">
+              <div className="text-center text-blue-800 text-lg font-medium">
                 No online tutors found for your search criteria. Try different subjects or topics.
               </div>
             ) : (
               <>
-                <div className="text-center text-green-700 text-lg font-semibold">
+                <div className="text-center text-green-600 text-lg font-semibold">
                   Found {tutors.length} online tutor{tutors.length > 1 ? 's' : ''} for your search
                 </div>
                 {tutors.map((tutor, idx) => (
@@ -187,7 +225,7 @@ const StartSkillSwap = () => {
                       skills: [courseValue, unitValue, topicValue].filter(Boolean),
                       rating: tutor.rating || 4.5,
                       userId: tutor.userId,
-                      socketId: tutor.socketId
+                      socketId: tutor.socketId,
                     }}
                     onRequestSession={() => handleRequestSession(tutor)}
                   />
@@ -196,18 +234,17 @@ const StartSkillSwap = () => {
             )}
           </div>
         )}
-        
-        {/* Session Buttons */}
+
         {showSessionButtons && (
           <div className="mt-8 flex flex-col items-center gap-4">
             <button
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-semibold"
+              className="w-48 bg-blue-800 text-white px-6 py-2 rounded-md font-semibold shadow-md transition-all duration-300 hover:bg-blue-900 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               onClick={() => setShowVideoModal(true)}
             >
               Start Session
             </button>
             <button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-semibold"
+              className="w-48 bg-blue-800 text-white px-6 py-2 rounded-md font-semibold shadow-md transition-all duration-300 hover:bg-blue-900 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               onClick={() => setShowVideoModal(true)}
             >
               Join Session
@@ -217,7 +254,7 @@ const StartSkillSwap = () => {
 
         <div className="mt-12 text-center">
           <button
-            className="bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105"
+            className="bg-blue-800 text-white px-6 py-3 rounded-full font-semibold text-lg shadow-md transition-all duration-300 hover:bg-blue-900 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             onClick={() => navigate('/')}
           >
             Back to Home
