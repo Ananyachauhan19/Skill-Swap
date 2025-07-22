@@ -82,7 +82,12 @@ const Sidebar = () => {
 
   return (
     <div className="flex min-h-screen w-full bg-[#f5f8ff] font-sans">
-      <aside className="fixed bottom-0 left-0 w-full sm:w-16 sm:static flex sm:flex-col justify-around sm:justify-start items-center gap-1 sm:gap-2 py-2 sm:py-4 sm:min-h-[calc(100vh-4rem)] sm:max-h-[calc(100vh-4rem)] bg-transparent z-10 sm:z-auto">
+      <aside
+        className="hidden sm:sticky sm:top-0 sm:self-start sm:w-16 sm:flex sm:flex-col justify-start items-center gap-2 py-4 bg-white border-r border-blue-100 z-20"
+        style={{
+          maxHeight: 'calc(100vh - 70px)',
+        }}
+      >
         {[
           { path: "panel", icon: FaFileAlt, label: "Panel", title: "Go to Profile Panel" },
           { path: "drafts", icon: FaRegFileAlt, label: "Drafts", title: "View Drafts" },
