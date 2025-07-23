@@ -7,6 +7,8 @@ const session = require('express-session');
 const cors = require('cors');
 const socketIO = require('socket.io');
 const cookieParser = require('cookie-parser');
+const questionRoutes = require('./routes/questionRoutes');
+const path = require('path');
 
 dotenv.config();
 require('./config/passport');
@@ -44,10 +46,12 @@ app.use(passport.session());
 require('./socket')(io);
 app.set('io', io);
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/session-requests', sessionRequestRoutes);
 app.use('/api', privateProfileRoutes);
+app.use('/api/questions', questionRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
