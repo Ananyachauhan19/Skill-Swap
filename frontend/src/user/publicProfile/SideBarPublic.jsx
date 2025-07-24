@@ -63,6 +63,7 @@ const fetchUserProfile = async (username, userId) => {
 const SideBarPublic = ({ username, setNotFound }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { username: paramUsername } = useParams(); // Get username from URL params
   const activeTab = 'border-b-2 border-blue-600 text-dark-blue font-semibold';
   const normalTab = 'text-gray-600 hover:text-dark-blue';
 
@@ -75,17 +76,20 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const [showSearchBar, setShowSearchBar] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Load user profile data and handle updates
+  // Load user profile data based on username from URL params or prop
   useEffect(() => {
-    console.log('Username param:', username);
+    const targetUsername = paramUsername || username; // Prioritize URL param over prop
+    console.log('Target username:', targetUsername);
+    
     async function loadProfile() {
       setLoading(true);
       try {
         const userId = new URLSearchParams(window.location.search).get('userId');
-        const fetchUrl = username ? `${BACKEND_URL}/api/auth/user/public/${username}` : `${BACKEND_URL}/api/auth/user/profile?userId=${userId}`;
-        console.log('Fetching:', fetchUrl);
-        const data = await fetchUserProfile(username, userId);
-        setProfile(data);
+        const data = await fetchUserProfile(targetUsername, userId);
+        setProfile({
+          ...data,
+          fullName: `${data.firstName} ${data.lastName}`.trim(), // Combine first and last name
+        });
         setError(null);
         if (setNotFound) setNotFound(false);
       } catch (err) {
@@ -96,11 +100,14 @@ const SideBarPublic = ({ username, setNotFound }) => {
         setLoading(false);
       }
     }
-    loadProfile();
+    if (targetUsername || new URLSearchParams(window.location.search).get('userId')) {
+      loadProfile();
+    }
     window.addEventListener('profileUpdated', loadProfile);
     return () => window.removeEventListener('profileUpdated', loadProfile);
-  }, [username]);
+  }, [paramUsername, username]);
 
+  // Handle clicks outside dropdown to close it
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -275,12 +282,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
               <div className="flex items-center justify-center w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] mx-auto sm:mx-0">
                 <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
               </div>
-            ) : error && (
-              <div className="text-red-500 text-center mt-8 text-lg">
-                {error}
-              </div>
-            )}
-            {error && (
+            ) : error ? (
               <div className="flex flex-col items-center gap-2 mx-auto sm:mx-0">
                 <span className="text-red-500 text-sm transition-all duration-300 animate-fade-in">{error}</span>
                 <button
@@ -291,65 +293,68 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   Retry
                 </button>
               </div>
-            )}
-            {!error && (
-              <img
-                src={profile?.profilePicPreview || profile?.profilePic || 'https://placehold.co/100x100?text=User'}
-                alt={`${profile?.fullName || 'User'}'s profile picture`}
-                className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] rounded-full object-cover border-2 border-blue-200 transition-all duration-300 hover:scale-105 mx-auto sm:mx-0"
-              />
-            )}
-            <div className="mt-4 sm:mt-0 sm:ml-4 flex-1 flex flex-col items-center sm:items-start">
-              <h1 className="text-xl sm:text-4xl font-bold text-dark-blue transition-colors duration-300">
-                {profile?.fullName || 'Full Name'}
-              </h1>
-              <p className="text-sm text-gray-600 transition-colors duration-300">@{profile?.userId || 'username'}</p>
-              <p className="text-sm text-gray-600 mt-2 max-w-md transition-colors duration-300">
-                {profile?.bio || 'Your bio goes here, set it in Setup Profile.'}
-              </p>
-              <div className="mt-4">
-                <button
-                  className="border border-blue-200 text-dark-blue px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105"
-                  onClick={isSkillMate ? toggleDropdown : handleAddSkillMate}
-                  title={isSkillMate ? 'Manage SkillMate' : 'Add SkillMate'}
-                  aria-label={isSkillMate ? 'Manage SkillMate' : 'Add SkillMate'}
-                >
-                  <span>{isSkillMate ? 'SkillMate' : 'Add SkillMate'}</span>
-                  {isSkillMate && <FaChevronDown className="text-sm" />}
-                </button>
-                {showDropdown && (
-                  <div
-                    ref={dropdownRef}
-                    className="absolute z-50 mt-2 w-44 bg-blue-50 border border-blue-200 rounded-lg shadow-lg"
-                  >
+            ) : (
+              <>
+                <img
+                  src={profile?.profilePic || 'https://placehold.co/100x100?text=User'}
+                  alt={`${profile?.fullName || 'User'}'s profile picture`}
+                  className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] rounded-full object-cover border-2 border-blue-200 transition-all duration-300 hover:scale-105 mx-auto sm:mx-0"
+                />
+                <div className="mt-4 sm:mt-0 sm:ml-4 flex-1 flex flex-col items-center sm:items-start">
+                  <h1 className="text-xl sm:text-4xl font-bold text-dark-blue transition-colors duration-300">
+                    {profile?.fullName || 'Full Name'}
+                  </h1>
+                  <p className="text-sm text-gray-600 transition-colors duration-300">
+                    @{profile?.username || 'username'}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-2 max-w-md transition-colors duration-300">
+                    {profile?.bio || 'Your bio goes here, set it in Setup Profile.'}
+                  </p>
+                  <div className="mt-4">
                     <button
-                      className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
-                      onClick={() => {
-                        alert('Notifications turned ON');
-                        setShowDropdown(false);
-                      }}
+                      className="border border-blue-200 text-dark-blue px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105"
+                      onClick={isSkillMate ? toggleDropdown : handleAddSkillMate}
+                      title={isSkillMate ? 'Manage SkillMate' : 'Add SkillMate'}
+                      aria-label={isSkillMate ? 'Manage SkillMate' : 'Add SkillMate'}
                     >
-                      🔔 On Notification
+                      <span>{isSkillMate ? 'SkillMate' : 'Add SkillMate'}</span>
+                      {isSkillMate && <FaChevronDown className="text-sm" />}
                     </button>
-                    <button
-                      className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
-                      onClick={() => {
-                        alert('Notifications muted');
-                        setShowDropdown(false);
-                      }}
-                    >
-                      🔕 Mute Notification
-                    </button>
-                    <button
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-blue-100"
-                      onClick={handleRemoveSkillMate}
-                    >
-                      ❌ Remove SkillMate
-                    </button>
+                    {showDropdown && (
+                      <div
+                        ref={dropdownRef}
+                        className="absolute z-50 mt-2 w-44 bg-blue-50 border border-blue-200 rounded-lg shadow-lg"
+                      >
+                        <button
+                          className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
+                          onClick={() => {
+                            alert('Notifications turned ON');
+                            setShowDropdown(false);
+                          }}
+                        >
+                          🔔 On Notification
+                        </button>
+                        <button
+                          className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
+                          onClick={() => {
+                            alert('Notifications muted');
+                            setShowDropdown(false);
+                          }}
+                        >
+                          🔕 Mute Notification
+                        </button>
+                        <button
+                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-blue-100"
+                          onClick={handleRemoveSkillMate}
+                        >
+                          ❌ Remove SkillMate
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Contribution Calendar */}
