@@ -36,6 +36,7 @@ import TeachingHistory from './user/TeachingHistory';
 import CompleteProfile from './user/myprofile/CompleteProfile';
 import { useAuth } from './context/AuthContext';
 import Blog from "./user/company/Blog";
+import SearchPage from "./user/SearchPage";
 
 // Define all routes in a single array for useRoutes
 const appRoutes = [
@@ -60,6 +61,7 @@ const appRoutes = [
   { path: '/report', element: <ReportPage /> },
   { path: '/teaching-history', element: <TeachingHistory /> },
   { path: '/blog', element: <Blog /> }, // Added Blog route
+  { path: '/search', element: <SearchPage /> }, // Added Search route
   ...accountSettingsRoutes,
   {
     path: '/profile',

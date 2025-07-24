@@ -288,13 +288,21 @@ const Navbar = () => {
     };
   }, [showProfileMenu, showCoinsDropdown]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery("");
+ const handleSearch = (e) => {
+  e.preventDefault();
+  if (searchQuery.trim()) {
+    const username = searchQuery.trim();
+
+    if (location.pathname.startsWith("/profile/")) {
+      // Already on profile page, just change the route programmatically without full reload
+      navigate(`/profile/${username}`, { replace: true });
+    } else {
+      navigate(`/profile/${username}`);
     }
-  };
+
+    setSearchQuery("");
+  }
+};
 
   const handleLoginClick = () => {
     openLogin();

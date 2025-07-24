@@ -95,6 +95,27 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
   }
 });
 
+// Search users by username
+router.get('/search', async (req, res) => {
+  try {
+    const { username } = req.query;
+    
+    if (!username) {
+      return res.status(400).json({ message: 'Username query parameter is required' });
+    }
+    
+    // Search for users with usernames that contain the search query (case insensitive)
+    const users = await User.find({
+      username: { $regex: username, $options: 'i' }
+    }).select('_id username firstName lastName profilePic').limit(10);
+    
+    res.json({ users });
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ message: 'Server error while searching users' });
+  }
+});
+
 // Get user profile
 router.get('/user/profile', requireAuth, async (req, res) => {
   try {
