@@ -60,7 +60,7 @@ const fetchUserProfile = async (username, userId) => {
   }
 };
 
-const SideBarPublic = ({ username }) => {
+const SideBarPublic = ({ username, setNotFound }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const activeTab = 'border-b-2 border-blue-600 text-dark-blue font-semibold';
@@ -87,9 +87,11 @@ const SideBarPublic = ({ username }) => {
         const data = await fetchUserProfile(username, userId);
         setProfile(data);
         setError(null);
+        if (setNotFound) setNotFound(false);
       } catch (err) {
         setError('User not found');
         setProfile(null);
+        if (setNotFound) setNotFound(true);
       } finally {
         setLoading(false);
       }
