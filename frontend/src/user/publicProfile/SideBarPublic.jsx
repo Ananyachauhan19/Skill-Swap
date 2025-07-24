@@ -8,9 +8,10 @@ import {
   FaGlobe,
   FaSearch,
 } from 'react-icons/fa';
-import { useNavigate, useLocation, Outlet, NavLink } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet, NavLink, useParams } from 'react-router-dom';
 import ContributionCalendar from '../myprofile/ContributionCalendar';
 import SearchBar from '../privateProfile/SearchBar';
+import { BACKEND_URL } from '../../config.js';
 
 // Context to pass searchQuery to PublicHome
 export const ProfileContext = createContext();
@@ -39,12 +40,18 @@ const getContributionColor = (count) => {
 };
 
 // Fetch user profile data from backend
-const fetchUserProfile = async (userId) => {
+const fetchUserProfile = async (username, userId) => {
   try {
-    // Fetch by userId or username if available, fallback to current user
-    const res = await fetch(`/api/auth/user/profile?userId=${userId || ''}`, {
-      credentials: 'include',
-    });
+    let url = '';
+    if (username) {
+      url = `${BACKEND_URL}/api/auth/user/public/${username}`;
+    } else if (userId) {
+      url = `${BACKEND_URL}/api/auth/user/profile?userId=${userId}`;
+    } else {
+      url = `${BACKEND_URL}/api/auth/user/profile`;
+    }
+    console.log('Fetching:', url);
+    const res = await fetch(url, { credentials: 'include' });
     if (!res.ok) throw new Error('Failed to fetch user profile');
     const user = await res.json();
     return user;
@@ -53,7 +60,7 @@ const fetchUserProfile = async (userId) => {
   }
 };
 
-const SideBarPublic = () => {
+const SideBarPublic = ({ username }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const activeTab = 'border-b-2 border-blue-600 text-dark-blue font-semibold';
@@ -70,15 +77,19 @@ const SideBarPublic = () => {
 
   // Load user profile data and handle updates
   useEffect(() => {
+    console.log('Username param:', username);
     async function loadProfile() {
       setLoading(true);
       try {
-        // Optionally get userId from route params or location
         const userId = new URLSearchParams(window.location.search).get('userId');
-        const data = await fetchUserProfile(userId);
+        const fetchUrl = username ? `${BACKEND_URL}/api/auth/user/public/${username}` : `${BACKEND_URL}/api/auth/user/profile?userId=${userId}`;
+        console.log('Fetching:', fetchUrl);
+        const data = await fetchUserProfile(username, userId);
         setProfile(data);
+        setError(null);
       } catch (err) {
-        setError(err.message);
+        setError('User not found');
+        setProfile(null);
       } finally {
         setLoading(false);
       }
@@ -86,7 +97,7 @@ const SideBarPublic = () => {
     loadProfile();
     window.addEventListener('profileUpdated', loadProfile);
     return () => window.removeEventListener('profileUpdated', loadProfile);
-  }, []);
+  }, [username]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -262,7 +273,12 @@ const SideBarPublic = () => {
               <div className="flex items-center justify-center w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] mx-auto sm:mx-0">
                 <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
               </div>
-            ) : error ? (
+            ) : error && (
+              <div className="text-red-500 text-center mt-8 text-lg">
+                {error}
+              </div>
+            )}
+            {error && (
               <div className="flex flex-col items-center gap-2 mx-auto sm:mx-0">
                 <span className="text-red-500 text-sm transition-all duration-300 animate-fade-in">{error}</span>
                 <button
@@ -273,7 +289,8 @@ const SideBarPublic = () => {
                   Retry
                 </button>
               </div>
-            ) : (
+            )}
+            {!error && (
               <img
                 src={profile?.profilePicPreview || profile?.profilePic || 'https://placehold.co/100x100?text=User'}
                 alt={`${profile?.fullName || 'User'}'s profile picture`}

@@ -373,6 +373,17 @@ router.put('/profile', requireAuth, async (req, res) => {
   }
 });
 
+// Get user public profile
+router.get('/user/public/:username', async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username }).select('-password -otp -otpExpires -__v');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Coins endpoint
 router.get('/coins', requireAuth, async (req, res) => {
   try {

@@ -71,6 +71,10 @@ const appRoutes = [
     element: <PublicProfile />,
     children: publicProfileRoutes,
   },
+  {
+    path: '/profile/:username',
+    element: <PublicProfile />,
+  },
 ];
 
 function useRegisterSocket() {
