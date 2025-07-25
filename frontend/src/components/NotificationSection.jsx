@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+import socket from '../socket';
 import { BACKEND_URL } from '../config.js';
+import SessionRequestNotification from './SessionRequestNotification';
 
 // Helper: Remove notifications older than 12 hours or completed
 function filterNotifications(notifications) {
@@ -8,23 +10,92 @@ function filterNotifications(notifications) {
   const now = Date.now();
   return notifications.filter((n) => {
     if (n && n.completed) return false;
-    if (n.timestamp && now - n.timestamp > TWELVE_HOURS) return false;
+    if (n.timestamp && now - new Date(n.timestamp).getTime() > TWELVE_HOURS) return false;
     return true;
   });
 }
 
-const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
+const NotificationSection = ({ userId }) => {
+  const [notifications, setNotifications] = useState([]);
   const [show, setShow] = useState(false);
-  const [activeTab, setActiveTab] = useState("all");
-  const dropdownRef = useRef();
+  const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState({});
+  const dropdownRef = useRef();
   const location = useLocation();
 
-  // Debug: Log incoming notifications and route
+  // Fetch notifications on mount
   useEffect(() => {
-    // console.log("Notifications received:", notifications);
-    // console.log("Current route:", location.pathname);
-  }, [notifications, location.pathname]);
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/notifications`, {
+          credentials: 'include',
+        });
+        if (!response.ok) throw new Error('Failed to fetch notifications');
+        let data = await response.json();
+
+        // Fetch SessionRequest details for session-requested notifications
+        const sessionRequests = await Promise.all(
+          data
+            .filter((n) => n.type === 'session-requested' && n.sessionId)
+            .map(async (n) => {
+              const res = await fetch(`${BACKEND_URL}/api/session-requests/active`, {
+                credentials: 'include',
+              });
+              if (res.ok) {
+                const sessionRequest = await res.json();
+                return { ...n, sessionRequest: sessionRequest.activeSession?.sessionRequest };
+              }
+              return n;
+            })
+        );
+
+        // Fetch SkillMate request details for skillmate-requested notifications
+        const skillMateRequests = await Promise.all(
+          data
+            .filter((n) => n.type === 'skillmate-requested' && n.requestId)
+            .map(async (n) => {
+              const res = await fetch(`${BACKEND_URL}/api/skillmates/requests/received`, {
+                credentials: 'include',
+              });
+              if (res.ok) {
+                const skillMateRequests = await res.json();
+                const skillMateRequest = skillMateRequests.find((r) => r._id === n.requestId);
+                return { ...n, skillMateRequest };
+              }
+              return n;
+            })
+        );
+
+        // Merge session and skillmate request data back into notifications
+        data = data.map((n) => {
+          const matchingSession = sessionRequests.find((sr) => sr._id === n._id);
+          const matchingSkillMate = skillMateRequests.find((sm) => sm._id === n._id);
+          return {
+            ...n,
+            sessionRequest: matchingSession?.sessionRequest || n.sessionRequest,
+            skillMateRequest: matchingSkillMate?.skillMateRequest || n.skillMateRequest
+          };
+        });
+
+        setNotifications(data);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
+  // Join Socket.IO room and listen for notifications
+  useEffect(() => {
+    if (!userId) return;
+    socket.emit('join', userId);
+    socket.on('notification', (notification) => {
+      setNotifications((prev) => [notification, ...prev]);
+    });
+    return () => {
+      socket.off('notification');
+    };
+  }, [userId]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -34,75 +105,68 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
         setShow(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [show]);
 
   // Periodically clear old or completed notifications
   useEffect(() => {
     const interval = setInterval(() => {
-      if (onUpdate) {
-        const filtered = filterNotifications(notifications);
-        if (filtered.length !== notifications.length) {
-          // console.log("Filtered old/completed notifications:", filtered);
-          onUpdate(filtered);
-        }
+      const filtered = filterNotifications(notifications);
+      if (filtered.length !== notifications.length) {
+        setNotifications(filtered);
+        localStorage.setItem('notifications', JSON.stringify(filtered));
       }
     }, 60 * 1000);
     return () => clearInterval(interval);
-  }, [notifications, onUpdate]);
+  }, [notifications]);
 
   // Clear all notifications
-  const handleClear = () => {
-    // console.log("Clearing all notifications");
-    if (onClear) {
-      onClear();
+  const handleClear = async () => {
+    try {
+      await fetch(`${BACKEND_URL}/api/notifications/clear`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      setNotifications([]);
       localStorage.removeItem('notifications');
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
     }
   };
 
   // Mark notification as read
-  const handleNotificationRead = (index) => {
-    // console.log("Marking notification as read at index:", index);
-    const updatedNotifications = notifications.map((notification, i) => {
-      if (i === index) {
-        return { ...notification, read: true };
-      }
-      return notification;
-    });
-    if (onUpdate) {
-      onUpdate(updatedNotifications);
-      localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+  const handleNotificationRead = async (notificationId, index) => {
+    try {
+      await fetch(`${BACKEND_URL}/api/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        credentials: 'include',
+      });
+      setNotifications((prev) =>
+        prev.map((n, i) => (i === index ? { ...n, read: true } : n))
+      );
+      localStorage.setItem('notifications', JSON.stringify(notifications));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
     }
   };
 
   // Handle approve session request
   const handleApproveSession = async (sessionId, index) => {
-    // console.log("Approving session:", sessionId, "at index:", index);
     setLoading((prev) => ({ ...prev, [`approve-${index}`]: true }));
     try {
-      const response = await fetch(`${BACKEND_URL}/api/sessions/approve/${sessionId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${sessionId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to approve session');
-      }
-
-      // console.log('Session approved successfully');
-      const updatedNotifications = notifications.filter((_, i) => i !== index);
-      if (onUpdate) {
-        onUpdate(updatedNotifications);
-        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-      }
+      if (!response.ok) throw new Error('Failed to approve session');
+      setNotifications((prev) => prev.filter((_, i) => i !== index));
+      localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
     } catch (error) {
-      // console.error('Error approving session:', error);
+      console.error('Error approving session:', error);
       alert('Failed to approve session. Please try again.');
     } finally {
       setLoading((prev) => ({ ...prev, [`approve-${index}`]: false }));
@@ -111,29 +175,18 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
 
   // Handle reject session request
   const handleRejectSession = async (sessionId, index) => {
-    // console.log("Rejecting session:", sessionId, "at index:", index);
     setLoading((prev) => ({ ...prev, [`reject-${index}`]: true }));
     try {
-      const response = await fetch(`${BACKEND_URL}/api/sessions/reject/${sessionId}`, {
+      const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${sessionId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to reject session');
-      }
-
-      // console.log('Session rejected successfully');
-      const updatedNotifications = notifications.filter((_, i) => i !== index);
-      if (onUpdate) {
-        onUpdate(updatedNotifications);
-        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-      }
+      if (!response.ok) throw new Error('Failed to reject session');
+      setNotifications((prev) => prev.filter((_, i) => i !== index));
+      localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
     } catch (error) {
-      // console.error('Error rejecting session:', error);
+      console.error('Error rejecting session:', error);
       alert('Failed to reject session. Please try again.');
     } finally {
       setLoading((prev) => ({ ...prev, [`reject-${index}`]: false }));
@@ -142,30 +195,19 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
 
   // Handle approve skillmate request
   const handleApproveSkillMate = async (requestId, index) => {
-    // console.log("Approving skillmate request:", requestId, "at index:", index);
     setLoading((prev) => ({ ...prev, [`approve-${index}`]: true }));
     try {
       const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/approve/${requestId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to approve skillmate request');
-      }
-
-      // console.log('SkillMate request approved successfully');
-      const updatedNotifications = notifications.filter((_, i) => i !== index);
-      if (onUpdate) {
-        onUpdate(updatedNotifications);
-        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-      }
+      if (!response.ok) throw new Error('Failed to approve SkillMate request');
+      setNotifications((prev) => prev.filter((_, i) => i !== index));
+      localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
     } catch (error) {
-      // console.error('Error approving skillmate request:', error);
-      alert('Failed to approve skillmate request. Please try again.');
+      console.error('Error approving SkillMate request:', error);
+      alert('Failed to approve SkillMate request. Please try again.');
     } finally {
       setLoading((prev) => ({ ...prev, [`approve-${index}`]: false }));
     }
@@ -173,61 +215,28 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
 
   // Handle reject skillmate request
   const handleRejectSkillMate = async (requestId, index) => {
-    // console.log("Rejecting skillmate request:", requestId, "at index:", index);
     setLoading((prev) => ({ ...prev, [`reject-${index}`]: true }));
     try {
       const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/reject/${requestId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to reject skillmate request');
-      }
-
-      // console.log('SkillMate request rejected successfully');
-      const updatedNotifications = notifications.filter((_, i) => i !== index);
-      if (onUpdate) {
-        onUpdate(updatedNotifications);
-        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-      }
+      if (!response.ok) throw new Error('Failed to reject SkillMate request');
+      setNotifications((prev) => prev.filter((_, i) => i !== index));
+      localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
     } catch (error) {
-      // console.error('Error rejecting skillmate request:', error);
-      alert('Failed to reject skillmate request. Please try again.');
+      console.error('Error rejecting SkillMate request:', error);
+      alert('Failed to reject SkillMate request. Please try again.');
     } finally {
       setLoading((prev) => ({ ...prev, [`reject-${index}`]: false }));
     }
   };
 
-  // Filter notifications based on route and tab
+  // Filter notifications based on tab
   const getFilteredNotifications = () => {
-    const path = location.pathname.toLowerCase();
     let filtered = filterNotifications(notifications);
 
-    const sessionRoutes = ['/one-on-one', '/discuss', '/interview', '/session'];
-    const isSessionRoute = sessionRoutes.some((route) => path.includes(route));
-
-    // console.log("Active tab:", activeTab);
-    // console.log("Is session route:", isSessionRoute);
-
-    // Route-based filtering
-    if (isSessionRoute) {
-      filtered = filtered.filter(
-        (n) =>
-          n.type === 'session-started' ||
-          n.type === 'session-approved' ||
-          n.type === 'session-rejected' ||
-          n.type === 'session-cancelled' ||
-          n.type === 'session-requested'
-      );
-    } else if (path.includes('/profile') || path.includes('/skillmate')) {
-      filtered = filtered.filter((n) => n.type === 'skillmate');
-    }
-
-    // Tab-based filtering
     if (activeTab === 'session') {
       filtered = filtered.filter(
         (n) =>
@@ -238,53 +247,36 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
           n.type === 'session-requested'
       );
     } else if (activeTab === 'skillmate') {
-      filtered = filtered.filter((n) => n.type === 'skillmate');
+      filtered = filtered.filter(
+        (n) =>
+          n.type === 'skillmate-requested' ||
+          n.type === 'skillmate-approved' ||
+          n.type === 'skillmate-rejected' ||
+          n.type === 'skillmate-removed'
+      );
     }
 
-    // console.log("Filtered notifications for display:", filtered);
     return filtered;
-  };
-
-  // Get session-specific message based on route
-  const getSessionMessage = (notification, path) => {
-    if (notification.message) return notification.message;
-    if (path.includes('/one-on-one')) {
-      return notification.type === 'session-started' ? 'One-on-One session started.' :
-             notification.type === 'session-approved' ? 'Your One-on-One session request has been approved.' :
-             notification.type === 'session-rejected' ? 'Your One-on-One session request has been rejected.' :
-             notification.type === 'session-cancelled' ? 'Your One-on-One session has been cancelled.' :
-             notification.type === 'session-requested' ? 'A new One-on-One session has been requested.' :
-             'One-on-One session notification.';
-    } else if (path.includes('/discuss')) {
-      return notification.type === 'session-started' ? 'Group discussion session started.' :
-             notification.type === 'session-approved' ? 'Your group discussion session request has been approved.' :
-             notification.type === 'session-rejected' ? 'Your group discussion session request has been rejected.' :
-             notification.type === 'session-cancelled' ? 'Your group discussion session has been cancelled.' :
-             notification.type === 'session-requested' ? 'A new group discussion session has been requested.' :
-             'Group discussion session notification.';
-    } else if (path.includes('/interview')) {
-      return notification.type === 'session-started' ? 'Interview session started.' :
-             notification.type === 'session-approved' ? 'Your interview session request has been approved.' :
-             notification.type === 'session-rejected' ? 'Your interview session request has been rejected.' :
-             notification.type === 'session-cancelled' ? 'Your interview session has been cancelled.' :
-             notification.type === 'session-requested' ? 'A new interview session has been requested.' :
-             'Interview session notification.';
-    } else {
-      return notification.type === 'session-started' ? 'Session started.' :
-             notification.type === 'session-approved' ? 'Your session request has been approved.' :
-             notification.type === 'session-rejected' ? 'Your session request has been rejected.' :
-             notification.type === 'session-cancelled' ? 'Your session has been cancelled.' :
-             notification.type === 'session-requested' ? 'A new session has been requested.' :
-             'Session notification.';
-    }
   };
 
   // Calculate unread counts for each tab
   const getUnreadCounts = () => {
-    const sessionTypes = ['session-started', 'session-approved', 'session-rejected', 'session-cancelled', 'session-requested'];
+    const sessionTypes = [
+      'session-started',
+      'session-approved',
+      'session-rejected',
+      'session-cancelled',
+      'session-requested'
+    ];
+    const skillmateTypes = [
+      'skillmate-requested',
+      'skillmate-approved',
+      'skillmate-rejected',
+      'skillmate-removed'
+    ];
     const allUnread = notifications.filter((n) => n && !n.read).length;
     const sessionUnread = notifications.filter((n) => n && !n.read && sessionTypes.includes(n.type)).length;
-    const skillmateUnread = notifications.filter((n) => n && !n.read && n.type === 'skillmate').length;
+    const skillmateUnread = notifications.filter((n) => n && !n.read && skillmateTypes.includes(n.type)).length;
     return { all: allUnread, session: sessionUnread, skillmate: skillmateUnread };
   };
 
@@ -292,15 +284,15 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
   const filteredNotifications = getFilteredNotifications();
 
   return (
-    <div className="relative">
+    <div className="relative font-sans">
       <button
-        className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:text-blue-700 hover:shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-400"
+        className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 border-2 border-blue-300 hover:bg-blue-200 hover:text-blue-700 hover:shadow-xl hover:scale-105 transform transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
         onClick={() => setShow((v) => !v)}
         title="Notifications"
         aria-label="Notifications"
       >
         <svg
-          className="w-6 h-6"
+          className="w-6 h-6 mx-auto"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
@@ -313,7 +305,7 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
           />
         </svg>
         {unreadCounts.all > 0 && (
-          <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold animate-pulse">
+          <span className="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-1 shadow-md animate-pulse">
             {unreadCounts.all}
           </span>
         )}
@@ -321,97 +313,120 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
       {show && (
         <div
           ref={dropdownRef}
-          className="absolute right-0 mt-2 w-[25vw] h-[100vh] bg-white border border-blue-200 rounded-xl shadow-2xl z-[2000] overflow-hidden transform transition-transform duration-300"
+          className="absolute right-0 mt-3 w-[90vw] max-w-md bg-white border border-blue-200 rounded-2xl shadow-2xl z-[2000] overflow-hidden transform transition-all duration-300 ease-in-out"
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-blue-100 bg-blue-50">
-            <span className="font-semibold text-lg text-blue-900">Notifications</span>
+          <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border-b border-blue-100">
+            <span className="font-bold text-lg text-blue-900">Notifications</span>
             <button
-              className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+              className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200"
               onClick={handleClear}
             >
               Clear All
             </button>
           </div>
-          <div className="flex border-b border-blue-100 bg-blue-50">
+          <div className="flex bg-blue-50 border-b border-blue-100">
             <button
-              className={`flex-1 py-3 text-sm font-medium relative ${
-                activeTab === 'all' ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-500' : 'text-blue-600 hover:bg-blue-100'
-              } transition-colors`}
+              className={`flex-1 py-2.5 text-sm font-semibold relative transition-colors duration-200 ${
+                activeTab === 'all'
+                  ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-500'
+                  : 'text-blue-600 hover:bg-blue-100'
+              }`}
               onClick={() => setActiveTab('all')}
             >
               All
               {unreadCounts.all > 0 && (
-                <span className="absolute top-1 right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-bold animate-pulse">
+                <span className="absolute top-1 right-2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-sm animate-pulse">
                   {unreadCounts.all}
                 </span>
               )}
             </button>
             <button
-              className={`flex-1 py-3 text-sm font-medium relative ${
-                activeTab === 'session' ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-500' : 'text-blue-600 hover:bg-blue-100'
-              } transition-colors`}
+              className={`flex-1 py-2.5 text-sm font-semibold relative transition-colors duration-200 ${
+                activeTab === 'session'
+                  ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-500'
+                  : 'text-blue-600 hover:bg-blue-100'
+              }`}
               onClick={() => setActiveTab('session')}
             >
               Session
               {unreadCounts.session > 0 && (
-                <span className="absolute top-1 right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-bold animate-pulse">
+                <span className="absolute top-1 right-2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-sm animate-pulse">
                   {unreadCounts.session}
                 </span>
               )}
             </button>
             <button
-              className={`flex-1 py-3 text-sm font-medium relative ${
-                activeTab === 'skillmate' ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-500' : 'text-blue-600 hover:bg-blue-100'
-              } transition-colors`}
+              className={`flex-1 py-2.5 text-sm font-semibold relative transition-colors duration-200 ${
+                activeTab === 'skillmate'
+                  ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-500'
+                  : 'text-blue-600 hover:bg-blue-100'
+              }`}
               onClick={() => setActiveTab('skillmate')}
             >
-              Skillmate
+              SkillMate
               {unreadCounts.skillmate > 0 && (
-                <span className="absolute top-1 right-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-bold animate-pulse">
+                <span className="absolute top-1 right-2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-sm animate-pulse">
                   {unreadCounts.skillmate}
                 </span>
               )}
             </button>
           </div>
-          <ul className="h-[calc(100vh-120px)] overflow-y-auto divide-y divide-blue-50">
+          <ul className="max-h-[75vh] overflow-y-auto divide-y divide-blue-50">
             {filteredNotifications.length === 0 ? (
-              <li className="px-6 py-8 text-center text-gray-500 text-base">
+              <li className="px-4 py-6 text-center text-gray-600 text-base font-medium">
                 No {activeTab === 'all' ? '' : activeTab} notifications
               </li>
             ) : (
               filteredNotifications.map((n, idx) => (
                 <li
-                  key={idx}
-                  className="px-6 py-4 text-blue-800 text-sm hover:bg-blue-50 cursor-pointer transition-colors duration-200"
+                  key={n._id || idx}
+                  className="px-4 py-4 text-blue-800 text-sm hover:bg-blue-50 cursor-pointer transition-colors duration-200"
                 >
-                  {n.type === 'session-started' ? (
+                  {n.type === 'session-requested' && n.sessionRequest ? (
+                    <SessionRequestNotification
+                      sessionRequest={{
+                        _id: n.sessionRequest._id,
+                        subject: n.sessionRequest.subject || 'Unknown Subject',
+                        topic: n.sessionRequest.topic || 'Unknown Topic',
+                        subtopic: n.sessionRequest.subtopic || 'N/A',
+                        message: n.sessionRequest.message || '',
+                        createdAt: n.timestamp,
+                      }}
+                      requester={{
+                        _id: n.requesterId,
+                        firstName: n.requesterName ? n.requesterName.split(' ')[0] : 'Unknown',
+                        lastName: n.requesterName ? n.requesterName.split(' ')[1] || '' : '',
+                      }}
+                      onAccept={() => handleApproveSession(n.sessionId, idx)}
+                      onReject={() => handleRejectSession(n.sessionId, idx)}
+                      onClose={() => handleNotificationRead(n._id, idx)}
+                    />
+                  ) : n.type === 'session-started' ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <span className="font-semibold text-green-700">Session Started</span>
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span className="font-semibold text-blue-700">Session Started</span>
                         {!n.read && (
-                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+                          <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{getSessionMessage(n, location.pathname)}</p>
+                      <p className="text-gray-700">{n.message || 'Session started.'}</p>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => {
-                            // console.log('Join button clicked for session-started notification');
                             if (n.onJoin) n.onJoin();
-                            handleNotificationRead(idx);
+                            handleNotificationRead(n._id, idx);
                           }}
-                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors shadow-sm"
+                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Join
                         </button>
                         <button
                           onClick={() => {
-                            // console.log('Cancel button clicked for session-started notification');
                             if (n.onCancel) n.onCancel();
-                            handleNotificationRead(idx);
+                            handleNotificationRead(n._id, idx);
                           }}
-                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors shadow-sm"
+                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Cancel
                         </button>
@@ -420,14 +435,17 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
                   ) : n.type === 'session-approved' ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="font-semibold text-blue-700">Session Approved</span>
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="font-semibold text-green-700">Session Approved</span>
+                        {!n.read && (
+                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
+                        )}
                       </div>
-                      <p className="text-gray-700">{getSessionMessage(n, location.pathname)}</p>
+                      <p className="text-gray-700">{n.message || 'Your session request has been approved.'}</p>
                       <div className="flex gap-3 mt-3">
                         <button
-                          onClick={() => handleNotificationRead(idx)}
-                          className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Mark as Read
                         </button>
@@ -438,12 +456,15 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                         <span className="font-semibold text-red-700">Session Rejected</span>
+                        {!n.read && (
+                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
+                        )}
                       </div>
-                      <p className="text-gray-700">{getSessionMessage(n, location.pathname)}</p>
+                      <p className="text-gray-700">{n.message || 'Your session request has been rejected.'}</p>
                       <div className="flex gap-3 mt-3">
                         <button
-                          onClick={() => handleNotificationRead(idx)}
-                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors shadow-sm"
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Mark as Read
                         </button>
@@ -455,106 +476,119 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
                         <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
                         <span className="font-semibold text-orange-700">Session Cancelled</span>
                         {!n.read && (
-                          <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+                          <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{getSessionMessage(n, location.pathname)}</p>
+                      <p className="text-gray-700">{n.message || 'Your session has been cancelled.'}</p>
                       <div className="flex gap-3 mt-3">
                         <button
-                          onClick={() => handleNotificationRead(idx)}
-                          className="px-4 py-1.5 bg-orange-600 text-white text-sm rounded-md hover:bg-orange-700 transition-colors shadow-sm"
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Mark as Read
                         </button>
                       </div>
                     </div>
-                  ) : n.type === 'session-requested' ? (
+                  ) : n.type === 'skillmate-requested' && n.skillMateRequest ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                        <span className="font-semibold text-yellow-700">Session Request</span>
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span className="font-semibold text-blue-700">SkillMate Request</span>
                         {!n.read && (
-                          <span className="bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+                          <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">New</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{getSessionMessage(n, location.pathname)}</p>
-                      <div className="flex gap-3 mt-3">
-                        <button
-                          onClick={() => handleApproveSession(n.sessionId, idx)}
-                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors shadow-sm"
-                          disabled={loading[`approve-${idx}`]}
-                        >
-                          {loading[`approve-${idx}`] ? 'Approving...' : 'Accept'}
-                        </button>
-                        <button
-                          onClick={() => handleRejectSession(n.sessionId, idx)}
-                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors shadow-sm"
-                          disabled={loading[`reject-${idx}`]}
-                        >
-                          {loading[`reject-${idx}`] ? 'Rejecting...' : 'Reject'}
-                        </button>
-                      </div>
-                    </div>
-                  ) : n.type === 'skillmate' && n.subtype === 'request' ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                        <span className="font-semibold text-purple-700">SkillMate Request</span>
-                        {!n.read && (
-                          <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
-                        )}
-                      </div>
-                      <p className="text-gray-700">{n.message || `${n.requesterName} wants to be your SkillMate.`}</p>
+                      <p className="text-gray-700">
+                        {n.message || `${n.requesterName} has sent you a SkillMate request.`}
+                      </p>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleApproveSkillMate(n.requestId, idx)}
-                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors shadow-sm"
+                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={loading[`approve-${idx}`]}
                         >
-                          {loading[`approve-${idx}`] ? 'Approving...' : 'Accept'}
+                          {loading[`approve-${idx}`] ? 'Processing...' : 'Accept'}
                         </button>
                         <button
                           onClick={() => handleRejectSkillMate(n.requestId, idx)}
-                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors shadow-sm"
+                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                           disabled={loading[`reject-${idx}`]}
                         >
                           {loading[`reject-${idx}`] ? 'Rejecting...' : 'Reject'}
                         </button>
                       </div>
                     </div>
-                  ) : n.type === 'skillmate' ? (
+                  ) : n.type === 'skillmate-approved' ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                        <span className="font-semibold text-purple-700">SkillMate Update</span>
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="font-semibold text-green-700">SkillMate Approved</span>
                         {!n.read && (
-                          <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">OK</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'A new SkillMate update is available.'}</p>
+                      <p className="text-gray-700">{n.message || 'Your SkillMate request has been approved.'}</p>
                       <div className="flex gap-3 mt-3">
                         <button
-                          onClick={() => handleNotificationRead(idx)}
-                          className="px-4 py-1.5 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 transition-colors shadow-sm"
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
-                          Mark as Read
+                          Mark as read
+                        </button>
+                      </div>
+                    </div>
+                  ) : n.type === 'skillmate-rejected' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <span className="font-semibold text-red-700">SkillMate Rejected</span>
+                        {!n.read && (
+                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">Sorry</span>
+                        )}
+                      </div>
+                      <p className="text-gray-700">{n.message || 'Your SkillMate request has been rejected.'}</p>
+                      <div className="flex gap-3 mt-3">
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        >
+                          Mark as read
+                        </button>
+                      </div>
+                    </div>
+                  ) : n.type === 'skillmate-removed' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                        <span className="font-semibold text-orange-700">SkillMate Removed</span>
+                        {!n.read && (
+                          <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">OK</span>
+                        )}
+                      </div>
+                      <p className="text-gray-700">{n.message || 'You have been removed as a SkillMate.'}</p>
+                      <div className="flex gap-3 mt-3">
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors duration-200 shadow-md shadow-lg transform hover:-translate-y-0.5"
+                        >
+                          Mark as read
                         </button>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-gray-200 rounded-full"></div>
                         <span className="font-semibold text-gray-700">General Notification</span>
                         {!n.read && (
-                          <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+                          <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || n.content || 'General notification.'}</p>
+                      <p className="text-gray-600">{n.message || 'General notification.'}</p>
                       <div className="flex gap-3 mt-3">
                         <button
-                          onClick={() => handleNotificationRead(idx)}
-                          className="px-4 py-1.5 bg-gray-600 text-white text-sm rounded-md hover:bg-gray-700 transition-colors shadow-sm"
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Mark as Read
                         </button>

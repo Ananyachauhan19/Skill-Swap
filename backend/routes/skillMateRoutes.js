@@ -1,6 +1,7 @@
 const express = require('express');
 const SkillMate = require('../models/SkillMate');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const requireAuth = require('../middleware/requireAuth');
 const router = express.Router();
 
@@ -16,7 +17,7 @@ router.post('/request', requireAuth, async (req, res) => {
     }
 
     // Check if recipient exists
-    const recipient = await User.findById(recipientId);
+    const recipient = await User.findById(recipientId).select('firstName lastName username profilePic');
     if (!recipient) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -44,6 +45,43 @@ router.post('/request', requireAuth, async (req, res) => {
           await User.findByIdAndUpdate(requesterId, { $addToSet: { skillMates: recipientId } });
           await User.findByIdAndUpdate(recipientId, { $addToSet: { skillMates: requesterId } });
 
+          // Populate user details for response and notification
+          await existingRequest.populate('requester', 'firstName lastName username profilePic');
+          await existingRequest.populate('recipient', 'firstName lastName username profilePic');
+
+          // Create notification for the requester (recipient of the original request)
+          const requesterName = `${existingRequest.recipient.firstName} ${existingRequest.recipient.lastName}`;
+          const notification = await Notification.create({
+            userId: existingRequest.requester._id,
+            type: 'skillmate-approved',
+            message: `Your SkillMate request has been approved by ${requesterName}.`,
+            requestId: existingRequest._id,
+            requesterId: recipientId,
+            requesterName,
+            timestamp: new Date(),
+            read: false
+          });
+
+          // Emit real-time notification to the requester
+          const io = req.app.get('io');
+          io.to(existingRequest.requester._id.toString()).emit('notification', {
+            _id: notification._id,
+            userId: existingRequest.requester._id,
+            type: 'skillmate-approved',
+            message: `Your SkillMate request has been approved by ${requesterName}.`,
+            requestId: existingRequest._id,
+            requesterId: recipientId,
+            requesterName,
+            timestamp: notification.timestamp,
+            read: false
+          });
+
+          // Emit real-time approval event (consistent with socket.js)
+          io.to(existingRequest.requester._id.toString()).emit('skillmate-request-approved', {
+            message: 'Your SkillMate request has been approved',
+            skillMate: existingRequest
+          });
+
           return res.status(200).json({ 
             message: 'SkillMate request approved automatically as the user had already sent you a request',
             skillMate: existingRequest
@@ -53,6 +91,49 @@ router.post('/request', requireAuth, async (req, res) => {
         // If previously rejected, update to pending
         existingRequest.status = 'pending';
         await existingRequest.save();
+
+        // Populate user details for response and notification
+        await existingRequest.populate('requester', 'firstName lastName username profilePic');
+        await existingRequest.populate('recipient', 'firstName lastName username profilePic');
+
+        // Create notification for the recipient
+        const requesterName = `${existingRequest.requester.firstName} ${existingRequest.requester.lastName}`;
+        const notification = await Notification.create({
+          userId: recipientId,
+          type: 'skillmate-requested',
+          message: `${requesterName} has sent you a SkillMate request.`,
+          requestId: existingRequest._id,
+          requesterId: requesterId,
+          requesterName,
+          timestamp: new Date(),
+          read: false
+        });
+
+        // Emit real-time notification to the recipient
+        const io = req.app.get('io');
+        io.to(recipientId.toString()).emit('notification', {
+          _id: notification._id,
+          userId: recipientId,
+          type: 'skillmate-requested',
+          message: `${requesterName} has sent you a SkillMate request.`,
+          requestId: existingRequest._id,
+          requesterId: requesterId,
+          requesterName,
+          timestamp: notification.timestamp,
+          read: false
+        });
+
+        // Emit real-time request event (consistent with socket.js)
+        io.to(recipientId.toString()).emit('skillmate-request-received', {
+          skillMate: existingRequest,
+          requester: {
+            userId: existingRequest.requester._id,
+            firstName: existingRequest.requester.firstName,
+            lastName: existingRequest.requester.lastName,
+            profilePic: existingRequest.requester.profilePic
+          }
+        });
+
         return res.status(200).json({ 
           message: 'SkillMate request sent successfully',
           skillMate: existingRequest
@@ -68,13 +149,51 @@ router.post('/request', requireAuth, async (req, res) => {
 
     await skillMateRequest.save();
 
-    // Populate user details for response
+    // Populate user details for response and notification
     await skillMateRequest.populate('requester', 'firstName lastName username profilePic');
     await skillMateRequest.populate('recipient', 'firstName lastName username profilePic');
 
+    // Create notification for the recipient
+    const requesterName = `${skillMateRequest.requester.firstName} ${skillMateRequest.requester.lastName}`;
+    const notification = await Notification.create({
+      userId: recipientId,
+      type: 'skillmate-requested',
+      message: `${requesterName} has sent you a SkillMate request.`,
+      requestId: skillMateRequest._id,
+      requesterId: requesterId,
+      requesterName,
+      timestamp: new Date(),
+      read: false
+    });
+
+    // Emit real-time notification to the recipient
+    const io = req.app.get('io');
+    io.to(recipientId.toString()).emit('notification', {
+      _id: notification._id,
+      userId: recipientId,
+      type: 'skillmate-requested',
+      message: `${requesterName} has sent you a SkillMate request.`,
+      requestId: skillMateRequest._id,
+      requesterId: requesterId,
+      requesterName,
+      timestamp: notification.timestamp,
+      read: false
+    });
+
+    // Emit real-time request event (consistent with socket.js)
+    io.to(recipientId.toString()).emit('skillmate-request-received', {
+      skillMate: skillMateRequest,
+      requester: {
+        userId: skillMateRequest.requester._id,
+        firstName: skillMateRequest.requester.firstName,
+        lastName: skillMateRequest.requester.lastName,
+        profilePic: skillMateRequest.requester.profilePic
+      }
+    });
+
     res.status(201).json({
       message: 'SkillMate request sent successfully',
-      skillMate: skillMateRequest
+      sessionRequest: skillMateRequest
     });
   } catch (error) {
     console.error('Error creating SkillMate request:', error);
@@ -146,9 +265,42 @@ router.post('/requests/approve/:requestId', requireAuth, async (req, res) => {
       $addToSet: { skillMates: skillMateRequest.requester } 
     });
 
-    // Populate user details for response
+    // Populate user details for response and notification
     await skillMateRequest.populate('requester', 'firstName lastName username profilePic');
     await skillMateRequest.populate('recipient', 'firstName lastName username profilePic');
+
+    // Create notification for the requester
+    const recipientName = `${skillMateRequest.recipient.firstName} ${skillMateRequest.recipient.lastName}`;
+    const notification = await Notification.create({
+      userId: skillMateRequest.requester._id,
+      type: 'skillmate-approved',
+      message: `Your SkillMate request has been approved by ${recipientName}.`,
+      requestId: skillMateRequest._id,
+      requesterId: userId,
+      requesterName: recipientName,
+      timestamp: new Date(),
+      read: false
+    });
+
+    // Emit real-time notification to the requester
+    const io = req.app.get('io');
+    io.to(skillMateRequest.requester._id.toString()).emit('notification', {
+      _id: notification._id,
+      userId: skillMateRequest.requester._id,
+      type: 'skillmate-approved',
+      message: `Your SkillMate request has been approved by ${recipientName}.`,
+      requestId: skillMateRequest._id,
+      requesterId: userId,
+      requesterName: recipientName,
+      timestamp: notification.timestamp,
+      read: false
+    });
+
+    // Emit real-time approval event (consistent with socket.js)
+    io.to(skillMateRequest.requester._id.toString()).emit('skillmate-request-approved', {
+      message: 'Your SkillMate request has been approved',
+      skillMate: skillMateRequest
+    });
 
     res.json({
       message: 'SkillMate request approved successfully',
@@ -180,9 +332,42 @@ router.post('/requests/reject/:requestId', requireAuth, async (req, res) => {
     skillMateRequest.status = 'rejected';
     await skillMateRequest.save();
 
-    // Populate user details for response
+    // Populate user details for response and notification
     await skillMateRequest.populate('requester', 'firstName lastName username profilePic');
     await skillMateRequest.populate('recipient', 'firstName lastName username profilePic');
+
+    // Create notification for the requester
+    const recipientName = `${skillMateRequest.recipient.firstName} ${skillMateRequest.recipient.lastName}`;
+    const notification = await Notification.create({
+      userId: skillMateRequest.requester._id,
+      type: 'skillmate-rejected',
+      message: `Your SkillMate request has been rejected by ${recipientName}.`,
+      requestId: skillMateRequest._id,
+      requesterId: userId,
+      requesterName: recipientName,
+      timestamp: new Date(),
+      read: false
+    });
+
+    // Emit real-time notification to the requester
+    const io = req.app.get('io');
+    io.to(skillMateRequest.requester._id.toString()).emit('notification', {
+      _id: notification._id,
+      userId: skillMateRequest.requester._id,
+      type: 'skillmate-rejected',
+      message: `Your SkillMate request has been rejected by ${recipientName}.`,
+      requestId: skillMateRequest._id,
+      requesterId: userId,
+      requesterName: recipientName,
+      timestamp: notification.timestamp,
+      read: false
+    });
+
+    // Emit real-time rejection event (consistent with socket.js)
+    io.to(skillMateRequest.requester._id.toString()).emit('skillmate-request-rejected', {
+      message: 'Your SkillMate request has been rejected',
+      skillMate: skillMateRequest
+    });
 
     res.json({
       message: 'SkillMate request rejected successfully',
@@ -200,6 +385,23 @@ router.post('/remove/:skillMateId', requireAuth, async (req, res) => {
     const { skillMateId } = req.params;
     const userId = req.user._id;
 
+    // Find the SkillMate relationship
+    const skillMateRelationship = await SkillMate.findOne({
+      $or: [
+        { requester: userId, recipient: skillMateId },
+        { requester: skillMateId, recipient: userId }
+      ],
+      status: 'approved'
+    });
+
+    if (!skillMateRelationship) {
+      return res.status(404).json({ message: 'SkillMate relationship not found' });
+    }
+
+    // Get user details for notification
+    const otherUser = await User.findById(skillMateId).select('firstName lastName username profilePic');
+    const currentUser = await User.findById(userId).select('firstName lastName username profilePic');
+
     // Remove from both users' skillMates arrays
     await User.findByIdAndUpdate(userId, { 
       $pull: { skillMates: skillMateId } 
@@ -208,13 +410,38 @@ router.post('/remove/:skillMateId', requireAuth, async (req, res) => {
       $pull: { skillMates: userId } 
     });
 
-    // Find and delete any existing SkillMate document
+    // Delete the SkillMate document
     await SkillMate.deleteOne({
       $or: [
         { requester: userId, recipient: skillMateId },
         { requester: skillMateId, recipient: userId }
       ],
       status: 'approved'
+    });
+
+    // Create notification for the other user
+    const currentUserName = `${currentUser.firstName} ${currentUser.lastName}`;
+    const notification = await Notification.create({
+      userId: skillMateId,
+      type: 'skillmate-removed',
+      message: `${currentUserName} has removed you as a SkillMate.`,
+      requesterId: userId,
+      requesterName: currentUserName,
+      timestamp: new Date(),
+      read: false
+    });
+
+    // Emit real-time notification to the other user
+    const io = req.app.get('io');
+    io.to(skillMateId.toString()).emit('notification', {
+      _id: notification._id,
+      userId: skillMateId,
+      type: 'skillmate-removed',
+      message: `${currentUserName} has removed you as a SkillMate.`,
+      requesterId: userId,
+      requesterName: currentUserName,
+      timestamp: notification.timestamp,
+      read: false
     });
 
     res.json({ message: 'SkillMate removed successfully' });

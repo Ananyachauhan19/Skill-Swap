@@ -2,6 +2,7 @@ const User = require('./models/User');
 const SessionRequest = require('./models/SessionRequest');
 const Session = require('./models/Session');
 const SkillMate = require('./models/SkillMate');
+const Notification = require('./models/Notification');
 const ChatMessage = require('./models/Chat');
 
 module.exports = (io) => {
@@ -12,7 +13,57 @@ module.exports = (io) => {
   // Store active session timers
   const sessionTimers = new Map();
 
+  // Helper function to send notifications
+  const sendNotification = async (io, userId, type, message, sessionId, requestId, requesterId, requesterName, subject, topic, subtopic) => {
+    try {
+      const notification = await Notification.create({
+        userId,
+        type,
+        message,
+        sessionId,
+        requestId,
+        requesterId,
+        requesterName,
+        subject,
+        topic,
+        subtopic,
+        timestamp: Date.now(),
+        read: false
+      });
+
+      console.log(`Notification created for user ${userId}:`, notification);
+
+      io.to(userId.toString()).emit('notification', {
+        _id: notification._id,
+        userId,
+        type,
+        message,
+        sessionId,
+        requestId,
+        requesterId,
+        requesterName,
+        subject,
+        topic,
+        subtopic,
+        timestamp: notification.timestamp,
+        read: false
+      });
+
+      console.log(`Emitted notification to room ${userId.toString()}`);
+    } catch (error) {
+      console.error('Error in sendNotification:', error);
+    }
+  };
+
   io.on('connection', (socket) => {
+    console.log('New client connected:', socket.id);
+
+    // Join user to their own room based on userId
+    socket.on('join', (userId) => {
+      socket.join(userId);
+      console.log(`User ${userId} joined their room`);
+    });
+
     // Register user with their socket ID
     socket.on('register', async (userId) => {
       if (userId) {
@@ -101,6 +152,18 @@ module.exports = (io) => {
               await existingRequest.populate('requester', 'firstName lastName profilePic');
               await existingRequest.populate('recipient', 'firstName lastName profilePic');
 
+              const requesterName = `${existingRequest.recipient.firstName} ${existingRequest.recipient.lastName}`;
+              await sendNotification(
+                io,
+                existingRequest.requester._id,
+                'skillmate-approved',
+                `Your SkillMate request has been approved by ${requesterName}.`,
+                null,
+                existingRequest._id,
+                recipientId,
+                requesterName
+              );
+
               if (recipientSocketId) {
                 io.to(recipientSocketId).emit('skillmate-request-approved', {
                   message: 'SkillMate request approved automatically',
@@ -122,6 +185,18 @@ module.exports = (io) => {
 
             await existingRequest.populate('requester', 'firstName lastName profilePic');
             await existingRequest.populate('recipient', 'firstName lastName profilePic');
+
+            const requesterName = `${existingRequest.requester.firstName} ${existingRequest.requester.lastName}`;
+            await sendNotification(
+              io,
+              recipientId,
+              'skillmate-requested',
+              `${requesterName} has sent you a SkillMate request.`,
+              null,
+              existingRequest._id,
+              requesterId,
+              requesterName
+            );
 
             if (recipientSocketId) {
               io.to(recipientSocketId).emit('skillmate-request-received', {
@@ -149,6 +224,18 @@ module.exports = (io) => {
 
         await skillMateRequest.populate('requester', 'firstName lastName profilePic');
         await skillMateRequest.populate('recipient', 'firstName lastName profilePic');
+
+        const requesterName = `${skillMateRequest.requester.firstName} ${skillMateRequest.requester.lastName}`;
+        await sendNotification(
+          io,
+          recipientId,
+          'skillmate-requested',
+          `${requesterName} has sent you a SkillMate request.`,
+          null,
+          skillMateRequest._id,
+          requesterId,
+          requesterName
+        );
 
         if (recipientSocketId) {
           io.to(recipientSocketId).emit('skillmate-request-received', {
@@ -201,6 +288,18 @@ module.exports = (io) => {
 
         await skillMateRequest.populate('requester', 'firstName lastName profilePic');
         await skillMateRequest.populate('recipient', 'firstName lastName profilePic');
+
+        const recipientName = `${skillMateRequest.recipient.firstName} ${skillMateRequest.recipient.lastName}`;
+        await sendNotification(
+          io,
+          skillMateRequest.requester._id,
+          'skillmate-approved',
+          `Your SkillMate request has been approved by ${recipientName}.`,
+          null,
+          skillMateRequest._id,
+          userId,
+          recipientName
+        );
 
         // Find requester's socket ID
         let requesterSocketId = null;
@@ -255,6 +354,18 @@ module.exports = (io) => {
         await skillMateRequest.populate('requester', 'firstName lastName profilePic');
         await skillMateRequest.populate('recipient', 'firstName lastName profilePic');
 
+        const recipientName = `${skillMateRequest.recipient.firstName} ${skillMateRequest.recipient.lastName}`;
+        await sendNotification(
+          io,
+          skillMateRequest.requester._id,
+          'skillmate-rejected',
+          `Your SkillMate request has been rejected by ${recipientName}.`,
+          null,
+          skillMateRequest._id,
+          userId,
+          recipientName
+        );
+
         // Find requester's socket ID
         let requesterSocketId = null;
         for (const [socketId, userData] of onlineUsers.entries()) {
@@ -284,6 +395,84 @@ module.exports = (io) => {
       }
     });
 
+    // Handle SkillMate removal
+    socket.on('remove-skillmate', async (data) => {
+      try {
+        const { skillMateId } = data;
+        const userId = socket.userId;
+
+        const skillMateRelationship = await SkillMate.findOne({
+          $or: [
+            { requester: userId, recipient: skillMateId },
+            { requester: skillMateId, recipient: userId }
+          ],
+          status: 'approved'
+        });
+
+        if (!skillMateRelationship) {
+          socket.emit('skillmate-request-error', { message: 'SkillMate relationship not found' });
+          return;
+        }
+
+        // Remove from both users' skillMates arrays
+        await User.findByIdAndUpdate(userId, { 
+          $pull: { skillMates: skillMateId } 
+        });
+        await User.findByIdAndUpdate(skillMateId, { 
+          $pull: { skillMates: userId } 
+        });
+
+        // Delete the SkillMate document
+        await SkillMate.deleteOne({
+          $or: [
+            { requester: userId, recipient: skillMateId },
+            { requester: skillMateId, recipient: userId }
+          ],
+          status: 'approved'
+        });
+
+        const currentUser = await User.findById(userId).select('firstName lastName profilePic');
+        const currentUserName = `${currentUser.firstName} ${currentUser.lastName}`;
+        await sendNotification(
+          io,
+          skillMateId,
+          'skillmate-removed',
+          `${currentUserName} has removed you as a SkillMate.`,
+          null,
+          null,
+          userId,
+          currentUserName
+        );
+
+        // Find the other user's socket ID
+        let otherUserSocketId = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === skillMateId.toString()) {
+            otherUserSocketId = socketId;
+            break;
+          }
+        }
+
+        if (otherUserSocketId) {
+          io.to(otherUserSocketId).emit('skillmate-removed', {
+            message: 'You have been removed as a SkillMate',
+            userId: userId
+          });
+        }
+
+        socket.emit('skillmate-removed', {
+          message: 'SkillMate removed successfully',
+          userId: skillMateId
+        });
+
+        console.log(`[SkillMate Removal] User ${userId} removed SkillMate ${skillMateId}`);
+
+      } catch (error) {
+        console.error('[SkillMate Removal] Error:', error);
+        socket.emit('skillmate-request-error', { message: 'Failed to remove SkillMate' });
+      }
+    });
+
     // Handle session request
     socket.on('send-session-request', async (data) => {
       try {
@@ -303,6 +492,58 @@ module.exports = (io) => {
           return;
         }
 
+        // Check if tutor exists
+        const tutor = await User.findById(tutorId).select('firstName lastName profilePic');
+        if (!tutor) {
+          socket.emit('session-request-error', { message: 'Tutor not found' });
+          return;
+        }
+
+        // Check for existing pending request
+        const existingRequest = await SessionRequest.findOne({
+          requester: requesterId,
+          tutor: tutorId,
+          status: 'pending',
+        });
+        if (existingRequest) {
+          socket.emit('session-request-error', { message: 'You already have a pending request with this tutor' });
+          return;
+        }
+
+        // Create new session request
+        const sessionRequest = new SessionRequest({
+          requester: requesterId,
+          tutor: tutorId,
+          subject,
+          topic,
+          subtopic: subtopic || '',
+          message: message || '',
+          status: 'pending',
+        });
+
+        await sessionRequest.save();
+
+        await sessionRequest.populate('requester', 'firstName lastName profilePic');
+        await sessionRequest.populate('tutor', 'firstName lastName profilePic');
+
+        // Send notification to tutor
+        const requesterName = `${requesterData.firstName} ${requesterData.lastName}`;
+        const notificationMessage = `${requesterName} has requested a session on ${subject}${subtopic ? ` (${subtopic})` : ''}. Please approve or reject.`;
+        await sendNotification(
+          io,
+          tutorId,
+          'session-requested',
+          notificationMessage,
+          null,
+          sessionRequest._id,
+          requesterId,
+          requesterName,
+          subject,
+          topic,
+          subtopic
+        );
+
+        // Emit real-time event if tutor is online
         let tutorSocketId = null;
         for (const [socketId, userData] of onlineUsers.entries()) {
           if (userData.userId.toString() === tutorId) {
@@ -311,29 +552,12 @@ module.exports = (io) => {
           }
         }
 
-        if (!tutorSocketId) {
-          socket.emit('session-request-error', { message: 'Tutor is not online' });
-          return;
+        if (tutorSocketId) {
+          io.to(tutorSocketId).emit('session-request-received', {
+            sessionRequest,
+            requester: requesterData
+          });
         }
-
-        const sessionRequest = new SessionRequest({
-          requester: requesterId,
-          tutor: tutorId,
-          subject,
-          topic,
-          subtopic,
-          message: message || ''
-        });
-
-        await sessionRequest.save();
-
-        await sessionRequest.populate('requester', 'firstName lastName profilePic');
-        await sessionRequest.populate('tutor', 'firstName lastName profilePic');
-
-        io.to(tutorSocketId).emit('session-request-received', {
-          sessionRequest,
-          requester: requesterData
-        });
 
         socket.emit('session-request-sent', {
           message: 'Session request sent successfully',
@@ -370,6 +594,23 @@ module.exports = (io) => {
 
         await sessionRequest.populate('requester', 'firstName lastName profilePic socketId');
         await sessionRequest.populate('tutor', 'firstName lastName profilePic socketId');
+
+        // Send notification to requester
+        const tutorName = `${sessionRequest.tutor.firstName} ${sessionRequest.tutor.lastName}`;
+        const notificationMessage = `${tutorName} has ${action}d your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+        await sendNotification(
+          io,
+          sessionRequest.requester._id,
+          `session-${action}d`,
+          notificationMessage,
+          null,
+          sessionRequest._id,
+          tutorId,
+          tutorName,
+          sessionRequest.subject,
+          sessionRequest.topic,
+          sessionRequest.subtopic
+        );
 
         let requesterSocketId = null;
         for (const [socketId, userData] of onlineUsers.entries()) {
@@ -649,6 +890,21 @@ module.exports = (io) => {
         sessionRequest.status = 'cancelled';
         await sessionRequest.save();
 
+        const requesterName = `${sessionRequest.requester.firstName} ${sessionRequest.requester.lastName}`;
+        await sendNotification(
+          io,
+          sessionRequest.tutor._id,
+          'session-cancelled',
+          `${requesterName} has cancelled the session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`,
+          sessionRequest._id,
+          null,
+          sessionRequest.requester._id,
+          requesterName,
+          sessionRequest.subject,
+          sessionRequest.topic,
+          sessionRequest.subtopic
+        );
+
         const payload = {
           sessionId: sessionRequest._id.toString(),
           sessionRequest,
@@ -672,27 +928,6 @@ module.exports = (io) => {
         await session.save();
         io.to(sessionId).emit('session-completed', { sessionId });
         console.log(`[Session] Marked as completed: ${sessionId}`);
-      }
-    });
-
-    socket.on('disconnect', () => {
-      const userData = onlineUsers.get(socket.id);
-      if (userData) {
-        console.log(`[Socket Disconnect] User ${userData.firstName} went offline`);
-        onlineUsers.delete(socket.id);
-      }
-      
-      for (const [sessionId, sockets] of sessionRooms.entries()) {
-        if (sockets.has(socket.id)) {
-          sockets.delete(socket.id);
-          if (sockets.size === 0) {
-            sessionRooms.delete(sessionId);
-            stopSessionTimer(sessionId);
-          } else {
-            socket.to(sessionId).emit('user-left', { sessionId });
-            stopSessionTimer(sessionId);
-          }
-        }
       }
     });
 
@@ -762,6 +997,28 @@ module.exports = (io) => {
         console.error('[Chat] Error sending message:', error);
         socket.emit('chat-error', { message: 'Failed to send message' });
       }
+    });
+
+    socket.on('disconnect', () => {
+      const userData = onlineUsers.get(socket.id);
+      if (userData) {
+        console.log(`[Socket Disconnect] User ${userData.firstName} went offline`);
+        onlineUsers.delete(socket.id);
+      }
+      
+      for (const [sessionId, sockets] of sessionRooms.entries()) {
+        if (sockets.has(socket.id)) {
+          sockets.delete(socket.id);
+          if (sockets.size === 0) {
+            sessionRooms.delete(sessionId);
+            stopSessionTimer(sessionId);
+          } else {
+            socket.to(sessionId).emit('user-left', { sessionId });
+            stopSessionTimer(sessionId);
+          }
+        }
+      }
+      console.log('Client disconnected:', socket.id);
     });
   });
 };

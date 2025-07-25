@@ -8,6 +8,8 @@ const cors = require('cors');
 const socketIO = require('socket.io');
 const cookieParser = require('cookie-parser');
 const questionRoutes = require('./routes/questionRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 const path = require('path');
 
 dotenv.config();
@@ -18,7 +20,6 @@ const sessionRoutes = require('./routes/sessionRoutes');
 const sessionRequestRoutes = require('./routes/sessionRequestRoutes');
 const privateProfileRoutes = require('./routes/privateProfileRoutes');
 const skillMateRoutes = require('./routes/skillMateRoutes');
-const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -48,13 +49,14 @@ app.use(passport.session());
 require('./socket')(io);
 app.set('io', io);
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/session-requests', sessionRequestRoutes);
 app.use('/api/skillmates', skillMateRoutes);
 app.use('/api', privateProfileRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
