@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, createContext } from 'react';
+import React, { useEffect, useRef, useState, createContext, useContext } from 'react';
 import {
   FaRegFileAlt,
   FaChevronDown,
@@ -72,6 +72,8 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSkillMate, setIsSkillMate] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState(null);
+  const [requestLoading, setRequestLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
   const dropdownRef = useRef(null);
@@ -92,6 +94,11 @@ const SideBarPublic = ({ username, setNotFound }) => {
         });
         setError(null);
         if (setNotFound) setNotFound(false);
+        
+        // Check SkillMate status if profile loaded successfully
+        if (data._id) {
+          checkSkillMateStatus(data._id);
+        }
       } catch (err) {
         setError('User not found');
         setProfile(null);
@@ -106,6 +113,29 @@ const SideBarPublic = ({ username, setNotFound }) => {
     window.addEventListener('profileUpdated', loadProfile);
     return () => window.removeEventListener('profileUpdated', loadProfile);
   }, [paramUsername, username]);
+  
+  // Check if users are SkillMates or have pending requests
+  const checkSkillMateStatus = async (userId) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/skillmates/check/${userId}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to check SkillMate status');
+      }
+      
+      const data = await response.json();
+      setIsSkillMate(data.isSkillMate);
+      setPendingRequest(data.pendingRequest);
+    } catch (error) {
+      console.error('Error checking SkillMate status:', error);
+    }
+  };
 
   // Handle clicks outside dropdown to close it
   useEffect(() => {
@@ -118,15 +148,124 @@ const SideBarPublic = ({ username, setNotFound }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleAddSkillMate = () => {
-    setIsSkillMate(true);
+  // Send a SkillMate request to another user
+  const sendSkillMateRequest = async (recipientId) => {
+    const response = await fetch(`${BACKEND_URL}/api/skillmates/request`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ recipientId }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to send SkillMate request');
+    }
+    
+    return await response.json();
+  };
+  
+  const handleAddSkillMate = async () => {
+    if (!profile || !profile._id) return;
+    
+    setRequestLoading(true);
+    try {
+      // Send SkillMate request
+      await sendSkillMateRequest(profile._id);
+      
+      // Update UI to show pending request
+      setPendingRequest({ isRequester: true });
+      
+      // Show success message
+      alert('SkillMate request sent successfully!');
+    } catch (error) {
+      alert(error.message || 'Failed to send SkillMate request');
+    } finally {
+      setRequestLoading(false);
+    }
   };
 
-  const handleRemoveSkillMate = () => {
-    setIsSkillMate(false);
-    setShowDropdown(false);
+  // Remove a SkillMate
+  const removeSkillMate = async (skillMateId) => {
+    const response = await fetch(`${BACKEND_URL}/api/skillmates/remove/${skillMateId}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to remove SkillMate');
+    }
+    
+    return await response.json();
+  };
+  
+  const handleRemoveSkillMate = async () => {
+    if (!profile || !profile._id) return;
+    
+    setRequestLoading(true);
+    try {
+      // Remove SkillMate
+      await removeSkillMate(profile._id);
+      
+      // Update UI
+      setIsSkillMate(false);
+      setPendingRequest(null);
+      setShowDropdown(false);
+      
+      // Show success message
+      alert('SkillMate removed successfully!');
+    } catch (error) {
+      alert(error.message || 'Failed to remove SkillMate');
+    } finally {
+      setRequestLoading(false);
+    }
   };
 
+  // Approve a SkillMate request
+  const approveSkillMateRequest = async (requestId) => {
+    const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/approve/${requestId}`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to approve SkillMate request');
+    }
+    
+    return await response.json();
+  };
+  
+  const handleApproveRequest = async () => {
+    if (!pendingRequest || !pendingRequest.id) return;
+    
+    setRequestLoading(true);
+    try {
+      // Approve SkillMate request
+      await approveSkillMateRequest(pendingRequest.id);
+      
+      // Update UI
+      setIsSkillMate(true);
+      setPendingRequest(null);
+      
+      // Show success message
+      alert('SkillMate request approved successfully!');
+    } catch (error) {
+      alert(error.message || 'Failed to approve SkillMate request');
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+  
   const toggleDropdown = () => setShowDropdown((prev) => !prev);
 
   const toggleSearchBar = () => setShowSearchBar((prev) => !prev);
@@ -312,12 +451,27 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   </p>
                   <div className="mt-4">
                     <button
-                      className="border border-blue-200 text-dark-blue px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105"
-                      onClick={isSkillMate ? toggleDropdown : handleAddSkillMate}
-                      title={isSkillMate ? 'Manage SkillMate' : 'Add SkillMate'}
-                      aria-label={isSkillMate ? 'Manage SkillMate' : 'Add SkillMate'}
+                      className={`border border-blue-200 text-dark-blue px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105 ${isSkillMate ? 'bg-green-50 border-green-200' : pendingRequest ? 'bg-yellow-50 border-yellow-200' : ''}`}
+                      onClick={isSkillMate ? toggleDropdown : pendingRequest ? (pendingRequest.isRequester ? null : handleApproveRequest) : handleAddSkillMate}
+                      disabled={requestLoading || (pendingRequest && pendingRequest.isRequester)}
+                      title={isSkillMate ? 'Manage SkillMate' : pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 'Add SkillMate'}
+                      aria-label={isSkillMate ? 'Manage SkillMate' : pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 'Add SkillMate'}
                     >
-                      <span>{isSkillMate ? 'SkillMate' : 'Add SkillMate'}</span>
+                      {requestLoading ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Processing...
+                        </span>
+                      ) : (
+                        <span>
+                          {isSkillMate ? 'SkillMate' : 
+                           pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 
+                           'Add SkillMate'}
+                        </span>
+                      )}
                       {isSkillMate && <FaChevronDown className="text-sm" />}
                     </button>
                     {showDropdown && (

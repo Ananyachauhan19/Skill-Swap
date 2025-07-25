@@ -1,6 +1,7 @@
 const User = require('./models/User');
 const SessionRequest = require('./models/SessionRequest');
 const Session = require('./models/Session');
+const SkillMate = require('./models/SkillMate');
 
 module.exports = (io) => {
   // Store session rooms
@@ -35,6 +36,250 @@ module.exports = (io) => {
         } else {
           console.log(`[Socket Register] No user found for userId: ${userId}`);
         }
+      }
+    });
+
+    // Handle SkillMate request
+    socket.on('send-skillmate-request', async (data) => {
+      try {
+        const { recipientId } = data;
+        const requesterId = socket.userId;
+
+        // Prevent self-requests
+        if (requesterId === recipientId) {
+          socket.emit('skillmate-request-error', { message: 'You cannot send a SkillMate request to yourself' });
+          return;
+        }
+
+        let requesterData = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === requesterId) {
+            requesterData = userData;
+            break;
+          }
+        }
+
+        if (!requesterData) {
+          socket.emit('skillmate-request-error', { message: 'User not found' });
+          return;
+        }
+
+        let recipientSocketId = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === recipientId) {
+            recipientSocketId = socketId;
+            break;
+          }
+        }
+
+        // Check if there's already a request or relationship
+        const existingRequest = await SkillMate.findOne({
+          $or: [
+            { requester: requesterId, recipient: recipientId },
+            { requester: recipientId, recipient: requesterId }
+          ]
+        });
+
+        if (existingRequest) {
+          if (existingRequest.status === 'approved') {
+            socket.emit('skillmate-request-error', { message: 'You are already SkillMates with this user' });
+            return;
+          } else if (existingRequest.status === 'pending') {
+            if (existingRequest.requester.toString() === requesterId) {
+              socket.emit('skillmate-request-error', { message: 'You already have a pending request with this user' });
+              return;
+            } else {
+              // If the recipient has already sent a request to the requester, approve it
+              existingRequest.status = 'approved';
+              await existingRequest.save();
+
+              // Add each user to the other's skillMates array
+              await User.findByIdAndUpdate(requesterId, { $addToSet: { skillMates: recipientId } });
+              await User.findByIdAndUpdate(recipientId, { $addToSet: { skillMates: requesterId } });
+
+              await existingRequest.populate('requester', 'firstName lastName profilePic');
+              await existingRequest.populate('recipient', 'firstName lastName profilePic');
+
+              if (recipientSocketId) {
+                io.to(recipientSocketId).emit('skillmate-request-approved', {
+                  message: 'SkillMate request approved automatically',
+                  skillMate: existingRequest
+                });
+              }
+
+              socket.emit('skillmate-request-approved', {
+                message: 'SkillMate request approved automatically as the user had already sent you a request',
+                skillMate: existingRequest
+              });
+
+              return;
+            }
+          } else if (existingRequest.status === 'rejected') {
+            // If previously rejected, update to pending
+            existingRequest.status = 'pending';
+            await existingRequest.save();
+
+            await existingRequest.populate('requester', 'firstName lastName profilePic');
+            await existingRequest.populate('recipient', 'firstName lastName profilePic');
+
+            if (recipientSocketId) {
+              io.to(recipientSocketId).emit('skillmate-request-received', {
+                skillMate: existingRequest,
+                requester: requesterData
+              });
+            }
+
+            socket.emit('skillmate-request-sent', {
+              message: 'SkillMate request sent successfully',
+              skillMate: existingRequest
+            });
+
+            return;
+          }
+        }
+
+        // Create new SkillMate request
+        const skillMateRequest = new SkillMate({
+          requester: requesterId,
+          recipient: recipientId
+        });
+
+        await skillMateRequest.save();
+
+        await skillMateRequest.populate('requester', 'firstName lastName profilePic');
+        await skillMateRequest.populate('recipient', 'firstName lastName profilePic');
+
+        if (recipientSocketId) {
+          io.to(recipientSocketId).emit('skillmate-request-received', {
+            skillMate: skillMateRequest,
+            requester: requesterData
+          });
+        }
+
+        socket.emit('skillmate-request-sent', {
+          message: 'SkillMate request sent successfully',
+          skillMate: skillMateRequest
+        });
+
+        console.log(`[SkillMate Request] Request sent from ${requesterData.firstName} to recipient ${recipientId}`);
+
+      } catch (error) {
+        console.error('[SkillMate Request] Error:', error);
+        socket.emit('skillmate-request-error', { message: 'Failed to send SkillMate request' });
+      }
+    });
+
+    // Handle SkillMate request approval
+    socket.on('approve-skillmate-request', async (data) => {
+      try {
+        const { requestId } = data;
+        const userId = socket.userId;
+
+        const skillMateRequest = await SkillMate.findOne({
+          _id: requestId,
+          recipient: userId,
+          status: 'pending'
+        });
+
+        if (!skillMateRequest) {
+          socket.emit('skillmate-request-error', { message: 'SkillMate request not found or already processed' });
+          return;
+        }
+
+        // Update request status
+        skillMateRequest.status = 'approved';
+        await skillMateRequest.save();
+
+        // Add each user to the other's skillMates array
+        await User.findByIdAndUpdate(skillMateRequest.requester, { 
+          $addToSet: { skillMates: skillMateRequest.recipient } 
+        });
+        await User.findByIdAndUpdate(skillMateRequest.recipient, { 
+          $addToSet: { skillMates: skillMateRequest.requester } 
+        });
+
+        await skillMateRequest.populate('requester', 'firstName lastName profilePic');
+        await skillMateRequest.populate('recipient', 'firstName lastName profilePic');
+
+        // Find requester's socket ID
+        let requesterSocketId = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === skillMateRequest.requester.toString()) {
+            requesterSocketId = socketId;
+            break;
+          }
+        }
+
+        if (requesterSocketId) {
+          io.to(requesterSocketId).emit('skillmate-request-approved', {
+            message: 'Your SkillMate request has been approved',
+            skillMate: skillMateRequest
+          });
+        }
+
+        socket.emit('skillmate-request-approved', {
+          message: 'SkillMate request approved successfully',
+          skillMate: skillMateRequest
+        });
+
+        console.log(`[SkillMate Request] Request approved by ${userId} for requester ${skillMateRequest.requester}`);
+
+      } catch (error) {
+        console.error('[SkillMate Request] Error approving request:', error);
+        socket.emit('skillmate-request-error', { message: 'Failed to approve SkillMate request' });
+      }
+    });
+
+    // Handle SkillMate request rejection
+    socket.on('reject-skillmate-request', async (data) => {
+      try {
+        const { requestId } = data;
+        const userId = socket.userId;
+
+        const skillMateRequest = await SkillMate.findOne({
+          _id: requestId,
+          recipient: userId,
+          status: 'pending'
+        });
+
+        if (!skillMateRequest) {
+          socket.emit('skillmate-request-error', { message: 'SkillMate request not found or already processed' });
+          return;
+        }
+
+        // Update request status
+        skillMateRequest.status = 'rejected';
+        await skillMateRequest.save();
+
+        await skillMateRequest.populate('requester', 'firstName lastName profilePic');
+        await skillMateRequest.populate('recipient', 'firstName lastName profilePic');
+
+        // Find requester's socket ID
+        let requesterSocketId = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === skillMateRequest.requester.toString()) {
+            requesterSocketId = socketId;
+            break;
+          }
+        }
+
+        if (requesterSocketId) {
+          io.to(requesterSocketId).emit('skillmate-request-rejected', {
+            message: 'Your SkillMate request has been rejected',
+            skillMate: skillMateRequest
+          });
+        }
+
+        socket.emit('skillmate-request-rejected', {
+          message: 'SkillMate request rejected successfully',
+          skillMate: skillMateRequest
+        });
+
+        console.log(`[SkillMate Request] Request rejected by ${userId} for requester ${skillMateRequest.requester}`);
+
+      } catch (error) {
+        console.error('[SkillMate Request] Error rejecting request:', error);
+        socket.emit('skillmate-request-error', { message: 'Failed to reject SkillMate request' });
       }
     });
 

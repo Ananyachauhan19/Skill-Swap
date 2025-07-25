@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaCheck, FaTimes, FaClock, FaUser, FaBook, FaPlay, FaVideo } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaClock, FaUser, FaBook, FaPlay, FaVideo, FaUserFriends, FaHandshake } from 'react-icons/fa';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket';
 import { useAuth } from '../context/AuthContext';
@@ -10,9 +10,11 @@ const SessionRequests = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [requests, setRequests] = useState({ received: [], sent: [] });
+  const [skillMateRequests, setSkillMateRequests] = useState({ received: [], sent: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('received');
+  const [requestType, setRequestType] = useState('session'); // 'session' or 'skillmate'
   const [readyToStartSession, setReadyToStartSession] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -62,6 +64,7 @@ const SessionRequests = () => {
 
   useEffect(() => {
     fetchSessionRequests();
+    fetchSkillMateRequests();
   }, []);
 
   // Save active session to localStorage whenever it changes
@@ -89,6 +92,22 @@ const SessionRequests = () => {
     socket.on('session-request-received', (data) => {
       console.info('[DEBUG] SessionRequests: New request received:', data);
       fetchSessionRequests(); // Refresh the list
+    });
+    
+    // Listen for SkillMate events
+    socket.on('skillmate-request-received', (data) => {
+      console.info('[DEBUG] SessionRequests: New SkillMate request received:', data);
+      fetchSkillMateRequests(); // Refresh the list
+    });
+    
+    socket.on('skillmate-request-approved', (data) => {
+      console.info('[DEBUG] SessionRequests: SkillMate request approved:', data);
+      fetchSkillMateRequests(); // Refresh the list
+    });
+    
+    socket.on('skillmate-request-rejected', (data) => {
+      console.info('[DEBUG] SessionRequests: SkillMate request rejected:', data);
+      fetchSkillMateRequests(); // Refresh the list
     });
 
     // Listen for session-started events
@@ -144,12 +163,14 @@ const SessionRequests = () => {
       socket.off('session-cancelled');
       socket.off('end-call');
       socket.off('session-completed');
+      socket.off('skillmate-request-received');
+      socket.off('skillmate-request-approved');
+      socket.off('skillmate-request-rejected');
     };
   }, [user, activeSession]);
 
   const fetchSessionRequests = async () => {
     try {
-      setLoading(true);
       const response = await fetch(`${BACKEND_URL}/api/session-requests/all`, {
         credentials: 'include'
       });
@@ -166,45 +187,89 @@ const SessionRequests = () => {
       setLoading(false);
     }
   };
-
-  const handleApprove = async (requestId) => {
+  
+  const fetchSkillMateRequests = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${requestId}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
+      // Fetch received SkillMate requests
+      const receivedResponse = await fetch(`${BACKEND_URL}/api/skillmates/requests/received`, {
+        credentials: 'include'
       });
       
-      if (response.ok) {
-        // Find the approved request
-        const approvedRequest = requests.received.find(req => req._id === requestId);
-        if (approvedRequest) {
-          setReadyToStartSession(approvedRequest);
-        }
-        fetchSessionRequests();
+      // Fetch sent SkillMate requests
+      const sentResponse = await fetch(`${BACKEND_URL}/api/skillmates/requests/sent`, {
+        credentials: 'include'
+      });
+      
+      if (receivedResponse.ok && sentResponse.ok) {
+        const receivedData = await receivedResponse.json();
+        const sentData = await sentResponse.json();
+        
+        setSkillMateRequests({
+          received: receivedData,
+          sent: sentData
+        });
       } else {
-        setError('Failed to approve request');
+        console.error('Failed to fetch SkillMate requests');
       }
     } catch (error) {
-      setError('Failed to approve request');
+      console.error('Error fetching SkillMate requests:', error);
     }
   };
 
-  const handleReject = async (requestId) => {
+  const handleApprove = async (requestId, type = 'session') => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${requestId}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      if (response.ok) {
-        fetchSessionRequests();
-      } else {
-        setError('Failed to reject request');
+      if (type === 'session') {
+        const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${requestId}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          // Find the approved request
+          const approvedRequest = requests.received.find(req => req._id === requestId);
+          if (approvedRequest) {
+            setReadyToStartSession(approvedRequest);
+          }
+          fetchSessionRequests();
+        } else {
+          setError('Failed to approve session request');
+        }
+      } else if (type === 'skillmate') {
+        // Emit socket event to approve SkillMate request
+        socket.emit('approve-skillmate-request', { requestId });
+        
+        // Optimistically update UI
+        fetchSkillMateRequests();
       }
     } catch (error) {
-      setError('Failed to reject request');
+      setError(`Failed to approve ${type} request`);
+    }
+  };
+
+  const handleReject = async (requestId, type = 'session') => {
+    try {
+      if (type === 'session') {
+        const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${requestId}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          fetchSessionRequests();
+        } else {
+          setError('Failed to reject session request');
+        }
+      } else if (type === 'skillmate') {
+        // Emit socket event to reject SkillMate request
+        socket.emit('reject-skillmate-request', { requestId });
+        
+        // Optimistically update UI
+        fetchSkillMateRequests();
+      }
+    } catch (error) {
+      setError(`Failed to reject ${type} request`);
     }
   };
 
@@ -296,7 +361,8 @@ const SessionRequests = () => {
     return new Date(dateString).toLocaleString();
   };
 
-  const RequestCard = ({ request, isReceived }) => (
+  // Session Request Card Component
+  const SessionRequestCard = ({ request, isReceived }) => (
     <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -383,12 +449,65 @@ const SessionRequests = () => {
     );
   }
 
+  // SkillMate Request Card Component
+  const SkillMateRequestCard = ({ request, isReceived }) => (
+    <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+            <FaUserFriends className="text-blue-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800">
+              {isReceived 
+                ? `${request.requester.firstName || ''} ${request.requester.lastName || ''}`
+                : `${request.recipient.firstName || ''} ${request.recipient.lastName || ''}`
+              }
+            </h3>
+            <p className="text-sm text-gray-500">
+              {isReceived ? 'Wants to be your SkillMate' : 'SkillMate request sent'}
+            </p>
+          </div>
+        </div>
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2 text-sm text-gray-500">
+          <FaClock className="text-gray-400" />
+          <span>{formatDate(request.createdAt)}</span>
+        </div>
+        
+        {isReceived && request.status === 'pending' && (
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handleApprove(request._id, 'skillmate')}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center space-x-1 transition-colors"
+            >
+              <FaCheck className="text-xs" />
+              <span>Approve</span>
+            </button>
+            <button
+              onClick={() => handleReject(request._id, 'skillmate')}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center space-x-1 transition-colors"
+            >
+              <FaTimes className="text-xs" />
+              <span>Reject</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Session Requests</h1>
-          <p className="text-gray-600">Manage your session requests and responses</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Requests</h1>
+          <p className="text-gray-600">Manage your session and SkillMate requests</p>
         </div>
 
         {error && (
@@ -456,7 +575,41 @@ const SessionRequests = () => {
           </div>
         )}
 
-        {/* Tab Navigation */}
+        {/* Request Type Tabs */}
+        <div className="mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setRequestType('session')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  requestType === 'session'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <FaVideo className="text-xs" />
+                  <span>Session Requests</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setRequestType('skillmate')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  requestType === 'skillmate'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <FaHandshake className="text-xs" />
+                  <span>SkillMate Requests</span>
+                </div>
+              </button>
+            </nav>
+          </div>
+        </div>
+        
+        {/* Received/Sent Tabs */}
         <div className="mb-6">
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
@@ -468,7 +621,7 @@ const SessionRequests = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Received ({requests.received.length})
+                Received ({requestType === 'session' ? requests.received.length : skillMateRequests.received.length})
               </button>
               <button
                 onClick={() => setActiveTab('sent')}
@@ -478,7 +631,7 @@ const SessionRequests = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Sent ({requests.sent.length})
+                Sent ({requestType === 'session' ? requests.sent.length : skillMateRequests.sent.length})
               </button>
             </nav>
           </div>
@@ -486,33 +639,67 @@ const SessionRequests = () => {
 
         {/* Content */}
         <div className="space-y-6">
-          {activeTab === 'received' ? (
-            requests.received.length === 0 ? (
-              <div className="text-center py-12">
-                <FaClock className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No received requests</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  You haven't received any session requests yet.
-                </p>
-              </div>
+          {requestType === 'session' ? (
+            // Session Requests Content
+            activeTab === 'received' ? (
+              requests.received.length === 0 ? (
+                <div className="text-center py-12">
+                  <FaClock className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No received session requests</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    You haven't received any session requests yet.
+                  </p>
+                </div>
+              ) : (
+                requests.received.map((request) => (
+                  <SessionRequestCard key={request._id} request={request} isReceived={true} />
+                ))
+              )
             ) : (
-              requests.received.map((request) => (
-                <RequestCard key={request._id} request={request} isReceived={true} />
-              ))
+              requests.sent.length === 0 ? (
+                <div className="text-center py-12">
+                  <FaClock className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No sent session requests</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    You haven't sent any session requests yet.
+                  </p>
+                </div>
+              ) : (
+                requests.sent.map((request) => (
+                  <SessionRequestCard key={request._id} request={request} isReceived={false} />
+                ))
+              )
             )
           ) : (
-            requests.sent.length === 0 ? (
-              <div className="text-center py-12">
-                <FaClock className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No sent requests</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  You haven't sent any session requests yet.
-                </p>
-              </div>
+            // SkillMate Requests Content
+            activeTab === 'received' ? (
+              skillMateRequests.received.length === 0 ? (
+                <div className="text-center py-12">
+                  <FaUserFriends className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No received SkillMate requests</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    You haven't received any SkillMate requests yet.
+                  </p>
+                </div>
+              ) : (
+                skillMateRequests.received.map((request) => (
+                  <SkillMateRequestCard key={request._id} request={request} isReceived={true} />
+                ))
+              )
             ) : (
-              requests.sent.map((request) => (
-                <RequestCard key={request._id} request={request} isReceived={false} />
-              ))
+              skillMateRequests.sent.length === 0 ? (
+                <div className="text-center py-12">
+                  <FaUserFriends className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No sent SkillMate requests</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    You haven't sent any SkillMate requests yet.
+                  </p>
+                </div>
+              ) : (
+                skillMateRequests.sent.map((request) => (
+                  <SkillMateRequestCard key={request._id} request={request} isReceived={false} />
+                ))
+              )
             )
           )}
         </div>
@@ -531,4 +718,4 @@ const SessionRequests = () => {
   );
 };
 
-export default SessionRequests; 
+export default SessionRequests;

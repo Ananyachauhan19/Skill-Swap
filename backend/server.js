@@ -17,6 +17,7 @@ const authRoutes = require('./routes/authRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const sessionRequestRoutes = require('./routes/sessionRequestRoutes');
 const privateProfileRoutes = require('./routes/privateProfileRoutes');
+const skillMateRoutes = require('./routes/skillMateRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -50,6 +51,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/session-requests', sessionRequestRoutes);
+app.use('/api/skillmates', skillMateRoutes);
 app.use('/api', privateProfileRoutes);
 app.use('/api/questions', questionRoutes);
 

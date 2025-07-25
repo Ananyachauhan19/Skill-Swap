@@ -140,6 +140,68 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
     }
   };
 
+  // Handle approve skillmate request
+  const handleApproveSkillMate = async (requestId, index) => {
+    // console.log("Approving skillmate request:", requestId, "at index:", index);
+    setLoading((prev) => ({ ...prev, [`approve-${index}`]: true }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/approve/${requestId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to approve skillmate request');
+      }
+
+      // console.log('SkillMate request approved successfully');
+      const updatedNotifications = notifications.filter((_, i) => i !== index);
+      if (onUpdate) {
+        onUpdate(updatedNotifications);
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      }
+    } catch (error) {
+      // console.error('Error approving skillmate request:', error);
+      alert('Failed to approve skillmate request. Please try again.');
+    } finally {
+      setLoading((prev) => ({ ...prev, [`approve-${index}`]: false }));
+    }
+  };
+
+  // Handle reject skillmate request
+  const handleRejectSkillMate = async (requestId, index) => {
+    // console.log("Rejecting skillmate request:", requestId, "at index:", index);
+    setLoading((prev) => ({ ...prev, [`reject-${index}`]: true }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/reject/${requestId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reject skillmate request');
+      }
+
+      // console.log('SkillMate request rejected successfully');
+      const updatedNotifications = notifications.filter((_, i) => i !== index);
+      if (onUpdate) {
+        onUpdate(updatedNotifications);
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+      }
+    } catch (error) {
+      // console.error('Error rejecting skillmate request:', error);
+      alert('Failed to reject skillmate request. Please try again.');
+    } finally {
+      setLoading((prev) => ({ ...prev, [`reject-${index}`]: false }));
+    }
+  };
+
   // Filter notifications based on route and tab
   const getFilteredNotifications = () => {
     const path = location.pathname.toLowerCase();
@@ -433,16 +495,43 @@ const NotificationSection = ({ notifications = [], onClear, onUpdate }) => {
                         </button>
                       </div>
                     </div>
-                  ) : n.type === 'skillmate' ? (
+                  ) : n.type === 'skillmate' && n.subtype === 'request' ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                        <span className="font-semibold text-purple-700">Skillmate Update</span>
+                        <span className="font-semibold text-purple-700">SkillMate Request</span>
                         {!n.read && (
                           <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'A new Skillmate update is available.'}</p>
+                      <p className="text-gray-700">{n.message || `${n.requesterName} wants to be your SkillMate.`}</p>
+                      <div className="flex gap-3 mt-3">
+                        <button
+                          onClick={() => handleApproveSkillMate(n.requestId, idx)}
+                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors shadow-sm"
+                          disabled={loading[`approve-${idx}`]}
+                        >
+                          {loading[`approve-${idx}`] ? 'Approving...' : 'Accept'}
+                        </button>
+                        <button
+                          onClick={() => handleRejectSkillMate(n.requestId, idx)}
+                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors shadow-sm"
+                          disabled={loading[`reject-${idx}`]}
+                        >
+                          {loading[`reject-${idx}`] ? 'Rejecting...' : 'Reject'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : n.type === 'skillmate' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                        <span className="font-semibold text-purple-700">SkillMate Update</span>
+                        {!n.read && (
+                          <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full">NEW</span>
+                        )}
+                      </div>
+                      <p className="text-gray-700">{n.message || 'A new SkillMate update is available.'}</p>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(idx)}

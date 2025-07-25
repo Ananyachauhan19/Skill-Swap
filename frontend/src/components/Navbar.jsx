@@ -181,6 +181,88 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
+    // Listen for skillmate-request-received (for recipients)
+    socket.on('skillmate-request-received', (data) => {
+      const { skillMateRequest, requester } = data;
+      setNotifications((prev) => [
+        {
+          type: 'skillmate',
+          subtype: 'request',
+          requestId: skillMateRequest._id,
+          requesterName: `${requester.firstName} ${requester.lastName}`,
+          requesterUsername: requester.username,
+          message: `${requester.firstName} ${requester.lastName} wants to be your SkillMate.`,
+          timestamp: Date.now(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    });
+
+    // Listen for skillmate-request-sent (for requesters)
+    socket.on('skillmate-request-sent', (data) => {
+      const { skillMateRequest, recipient } = data;
+      setNotifications((prev) => [
+        {
+          type: 'skillmate',
+          subtype: 'sent',
+          requestId: skillMateRequest._id,
+          recipientName: `${recipient.firstName} ${recipient.lastName}`,
+          recipientUsername: recipient.username,
+          message: `You sent a SkillMate request to ${recipient.firstName} ${recipient.lastName}.`,
+          timestamp: Date.now(),
+          read: false,
+        },
+        ...prev,
+      ]);
+    });
+
+    // Listen for skillmate-request-approved (for both users)
+    socket.on('skillmate-request-approved', (data) => {
+      const { skillMateRequest, approver, requester } = data;
+      const isRequester = user && user._id === requester._id;
+      const otherUser = isRequester ? approver : requester;
+      
+      setNotifications((prev) => [
+        {
+          type: 'skillmate',
+          subtype: 'approved',
+          requestId: skillMateRequest._id,
+          otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
+          otherUserUsername: otherUser.username,
+          message: isRequester 
+            ? `${approver.firstName} ${approver.lastName} accepted your SkillMate request.` 
+            : `You accepted the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
+          timestamp: Date.now(),
+          read: false,
+        },
+        ...prev.filter(n => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
+      ]);
+    });
+
+    // Listen for skillmate-request-rejected (for both users)
+    socket.on('skillmate-request-rejected', (data) => {
+      const { skillMateRequest, rejecter, requester } = data;
+      const isRequester = user && user._id === requester._id;
+      const otherUser = isRequester ? rejecter : requester;
+      
+      setNotifications((prev) => [
+        {
+          type: 'skillmate',
+          subtype: 'rejected',
+          requestId: skillMateRequest._id,
+          otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
+          otherUserUsername: otherUser.username,
+          message: isRequester 
+            ? `${rejecter.firstName} ${rejecter.lastName} declined your SkillMate request.` 
+            : `You declined the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
+          timestamp: Date.now(),
+          read: false,
+        },
+        ...prev.filter(n => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
+      ]);
+    });
+
     // Cleanup listeners on unmount
     return () => {
       socket.off('session-request-received');
@@ -190,6 +272,10 @@ function useSessionSocketNotifications(setNotifications) {
       socket.off('session-rejected');
       socket.off('session-started');
       socket.off('session-cancelled');
+      socket.off('skillmate-request-received');
+      socket.off('skillmate-request-sent');
+      socket.off('skillmate-request-approved');
+      socket.off('skillmate-request-rejected');
     };
   }, [setNotifications]);
 }
