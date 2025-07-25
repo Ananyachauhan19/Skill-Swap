@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BACKEND_URL } from "../../config.js";
+import Chat from "../../components/Chat";
+import { FaComments } from "react-icons/fa";
 
 const SkillMate = () => {
   const [skillMates, setSkillMates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeChatId, setActiveChatId] = useState(null);
   const navigate = useNavigate();
 
   // Fetch skillmates from backend
@@ -92,12 +95,20 @@ const SkillMate = () => {
               </div>
               
               <div className="bg-gray-50 p-3 border-t border-gray-100 flex justify-between items-center">
-                <button
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                  onClick={() => navigateToProfile(mate.username)}
-                >
-                  View Profile
-                </button>
+                <div className="flex space-x-2">
+                  <button
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                    onClick={() => navigateToProfile(mate.username)}
+                  >
+                    View Profile
+                  </button>
+                  <button
+                    className="text-green-600 hover:text-green-800 text-sm font-medium flex items-center"
+                    onClick={() => setActiveChatId(mate._id)}
+                  >
+                    <FaComments className="mr-1" /> Chat
+                  </button>
+                </div>
                 <button
                   className="bg-red-100 text-red-600 px-3 py-1 rounded-md hover:bg-red-200 text-sm font-medium transition-colors"
                   onClick={() => handleRemove(mate._id)}
@@ -115,6 +126,14 @@ const SkillMate = () => {
             </div>
           )}
         </div>
+      )}
+      
+      {/* Chat Modal */}
+      {activeChatId && (
+        <Chat 
+          skillMateId={activeChatId} 
+          onClose={() => setActiveChatId(null)} 
+        />
       )}
     </div>
   );

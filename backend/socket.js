@@ -2,6 +2,7 @@ const User = require('./models/User');
 const SessionRequest = require('./models/SessionRequest');
 const Session = require('./models/Session');
 const SkillMate = require('./models/SkillMate');
+const ChatMessage = require('./models/Chat');
 
 module.exports = (io) => {
   // Store session rooms
@@ -697,6 +698,70 @@ module.exports = (io) => {
 
     socket.on('start-call', ({ to }) => {
       io.to(to).emit('call-started');
+    });
+
+    // Handle chat messages between SkillMates
+    socket.on('send-chat-message', async (data) => {
+      try {
+        const { recipientId, content } = data;
+        const senderId = socket.userId;
+
+        if (!senderId || !recipientId || !content) {
+          socket.emit('chat-error', { message: 'Invalid message data' });
+          return;
+        }
+
+        // Verify that the users are skillmates
+        const skillMateRelationship = await SkillMate.findOne({
+          status: 'approved',
+          $or: [
+            { requester: senderId, recipient: recipientId },
+            { requester: recipientId, recipient: senderId }
+          ]
+        });
+
+        if (!skillMateRelationship) {
+          socket.emit('chat-error', { message: 'You can only chat with your SkillMates' });
+          return;
+        }
+
+        // Create and save the message
+        const chatMessage = new ChatMessage({
+          senderId,
+          recipientId,
+          content
+        });
+
+        await chatMessage.save();
+
+        // Find recipient's socket ID
+        let recipientSocketId = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === recipientId) {
+            recipientSocketId = socketId;
+            break;
+          }
+        }
+
+        // Send message to recipient if online
+        if (recipientSocketId) {
+          io.to(recipientSocketId).emit('chat-message-received', {
+            message: chatMessage,
+            senderId
+          });
+        }
+
+        // Send confirmation to sender
+        socket.emit('chat-message-sent', {
+          message: chatMessage
+        });
+
+        console.log(`[Chat] Message sent from ${senderId} to ${recipientId}`);
+
+      } catch (error) {
+        console.error('[Chat] Error sending message:', error);
+        socket.emit('chat-error', { message: 'Failed to send message' });
+      }
     });
   });
 };
