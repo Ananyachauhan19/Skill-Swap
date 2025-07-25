@@ -14,12 +14,14 @@ const notificationSchema = new mongoose.Schema({
       'session-rejected',
       'session-cancelled',
       'session-requested',
-      'skillmate-requested',
-      'skillmate-approved',
-      'skillmate-rejected',
-      'skillmate-removed'
+      'skillmate',
     ],
     required: true,
+  },
+  subtype: {
+    type: String,
+    enum: ['request', 'update'],
+    default: null,
   },
   message: {
     type: String,
@@ -32,6 +34,7 @@ const notificationSchema = new mongoose.Schema({
   },
   requestId: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: 'SessionRequest',
     default: null,
   },
   requesterId: {
@@ -40,18 +43,6 @@ const notificationSchema = new mongoose.Schema({
     default: null,
   },
   requesterName: {
-    type: String,
-    default: null,
-  },
-  subject: {
-    type: String,
-    default: null,
-  },
-  topic: {
-    type: String,
-    default: null,
-  },
-  subtopic: {
     type: String,
     default: null,
   },

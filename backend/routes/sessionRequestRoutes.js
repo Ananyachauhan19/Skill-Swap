@@ -1,31 +1,91 @@
 const express = require('express');
+const { body, param, validationResult } = require('express-validator');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const SessionRequest = require('../models/SessionRequest');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const requireAuth = require('../middleware/requireAuth');
 
-// Create a new session request
-router.post('/create', requireAuth, async (req, res) => {
+// Rate limiter for sensitive endpoints
+const requestLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit to 100 requests per window
+  message: 'Too many requests, please try again later.',
+});
+
+// Validation middleware for creating session request
+const validateSessionRequest = [
+  body('tutorId').isMongoId().withMessage('Invalid tutor ID'),
+  body('subject').trim().notEmpty().withMessage('Subject is required'),
+  body('topic').trim().notEmpty().withMessage('Topic is required'),
+  body('subtopic').trim().optional(),
+  body('message').trim().optional(),
+];
+
+// Validation middleware for request ID
+const validateRequestId = [
+  param('requestId').isMongoId().withMessage('Invalid request ID'),
+];
+
+// Helper function to send notifications
+const sendNotification = async (io, userId, type, message, sessionId, requesterId, requesterName) => {
+  const notification = await Notification.create({
+    userId,
+    type,
+    message,
+    sessionId,
+    requesterId,
+    requesterName,
+    timestamp: Date.now(),
+  });
+
+  io.to(userId.toString()).emit('notification', {
+    _id: notification._id,
+    userId,
+    type,
+    message,
+    sessionId,
+    requesterId,
+    requesterName,
+    timestamp: Date.now(),
+  });
+};
+
+// Error handling middleware
+const handleErrors = (res, status, message) => {
+  return res.status(status).json({ message });
+};
+
+/**
+ * @route POST /api/session-requests/create
+ * @desc Create a new session request
+ * @access Private
+ */
+router.post('/create', requireAuth, requestLimiter, validateSessionRequest, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
   try {
     const { tutorId, subject, topic, subtopic, message } = req.body;
     const requesterId = req.user._id;
 
     // Check if tutor exists
-    const tutor = await User.findById(tutorId).select('firstName lastName profilePic username');
+    const tutor = await User.findById(tutorId).select('firstName lastName profilePic');
     if (!tutor) {
-      return res.status(404).json({ message: 'Tutor not found' });
+      return handleErrors(res, 404, 'Tutor not found');
     }
 
-    // Check if there's already a pending request
+    // Check for existing pending request
     const existingRequest = await SessionRequest.findOne({
       requester: requesterId,
       tutor: tutorId,
-      status: 'pending'
+      status: 'pending',
     });
-
     if (existingRequest) {
-      return res.status(400).json({ message: 'You already have a pending request with this tutor' });
+      return handleErrors(res, 400, 'You already have a pending request with this tutor');
     }
 
     // Create new session request
@@ -37,173 +97,146 @@ router.post('/create', requireAuth, async (req, res) => {
       subtopic: subtopic || '',
       message: message || '',
       status: 'pending',
-      createdAt: new Date()
     });
 
     await sessionRequest.save();
 
-    // Populate user details for response and notification
+    // Populate user details
     await sessionRequest.populate('requester', 'firstName lastName profilePic username');
     await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
 
-    // Create notification for the tutor
-    const requesterName = `${sessionRequest.requester.firstName} ${sessionRequest.requester.lastName}`;
-    const notification = await Notification.create({
-      userId: tutorId,
-      type: 'session-requested',
-      message: `${requesterName} has requested a session on ${subject}${subtopic ? ` (${subtopic})` : ''}.`,
-      sessionId: sessionRequest._id,
-      requesterId: requesterId,
-      requesterName,
-      subject,
-      topic,
-      subtopic,
-      timestamp: new Date(),
-      read: false
-    });
-
-    // Emit real-time notification to the tutor
+    // Send notification to tutor
     const io = req.app.get('io');
-    io.to(tutorId.toString()).emit('notification', {
-      _id: notification._id,
-      userId: tutorId,
-      type: 'session-requested',
-      message: `${requesterName} has requested a session on ${subject}${subtopic ? ` (${subtopic})` : ''}.`,
-      sessionId: sessionRequest._id,
-      requesterId: requesterId,
-      requesterName,
-      subject,
-      topic,
-      subtopic,
-      timestamp: notification.timestamp,
-      read: false
-    });
-
-    // Emit real-time event to tutor if online (consistent with socket.js)
-    io.to(tutorId.toString()).emit('session-request-received', {
-      sessionRequest,
-      requester: {
-        userId: sessionRequest.requester._id,
-        firstName: sessionRequest.requester.firstName,
-        lastName: sessionRequest.requester.lastName,
-        profilePic: sessionRequest.requester.profilePic
-      }
-    });
+    const requesterName = `${req.user.firstName} ${req.user.lastName}`;
+    const notificationMessage = `${requesterName} has requested a session on ${subject}${subtopic ? ` (${subtopic})` : ''}.`;
+    await sendNotification(
+      io,
+      tutor._id,
+      'session-requested',
+      notificationMessage,
+      sessionRequest._id,
+      requesterId,
+      requesterName
+    );
 
     res.status(201).json({
       message: 'Session request sent successfully',
-      sessionRequest
+      sessionRequest,
     });
   } catch (error) {
     console.error('Error creating session request:', error);
-    res.status(500).json({ message: 'Failed to create session request' });
+    handleErrors(res, 500, 'Failed to create session request');
   }
 });
 
-// Get session requests for a user (as tutor)
+/**
+ * @route GET /api/session-request doubted-requests/received
+ * @desc Get received session requests (as tutor)
+ * @access Private
+ */
 router.get('/received', requireAuth, async (req, res) => {
   try {
-    const requests = await SessionRequest.find({ 
-      tutor: req.user._id,
-      status: 'pending'
-    })
-    .populate('requester', 'firstName lastName profilePic username')
-    .populate('tutor', 'firstName lastName profilePic username')
-    .sort({ createdAt: -1 });
+    const requests = await SessionRequest.find({ tutor: req.user._id, status: 'pending' })
+      .populate('requester', 'firstName lastName profilePic username')
+      .populate('tutor', 'firstName lastName profilePic username')
+      .sort({ createdAt: -1 });
 
     res.json(requests);
   } catch (error) {
     console.error('Error fetching received requests:', error);
-    res.status(500).json({ message: 'Failed to fetch session requests' });
+    handleErrors(res, 500, 'Failed to fetch session requests');
   }
 });
 
-// Get session requests sent by a user (as requester)
+/**
+ * @route GET /api/session-requests/sent
+ * @desc Get sent session requests (as requester)
+ * @access Private
+ */
 router.get('/sent', requireAuth, async (req, res) => {
   try {
-    const requests = await SessionRequest.find({ 
-      requester: req.user._id 
-    })
-    .populate('requester', 'firstName lastName profilePic username')
-    .populate('tutor', 'firstName lastName profilePic username')
-    .sort({ createdAt: -1 });
+    const requests = await SessionRequest.find({ requester: req.user._id })
+      .populate('requester', 'firstName lastName profilePic username')
+      .populate('tutor', 'firstName lastName profilePic username')
+      .sort({ createdAt: -1 });
 
     res.json(requests);
   } catch (error) {
     console.error('Error fetching sent requests:', error);
-    res.status(500).json({ message: 'Failed to fetch sent requests' });
+    handleErrors(res, 500, 'Failed to fetch sent requests');
   }
 });
 
-// Get all session requests for a user (both sent and received)
+/**
+ * @route GET /api/session-requests/all
+ * @desc Get all session requests (sent and received)
+ * @access Private
+ */
 router.get('/all', requireAuth, async (req, res) => {
   try {
     const [received, sent] = await Promise.all([
-      SessionRequest.find({ 
-        tutor: req.user._id 
-      })
-      .populate('requester', 'firstName lastName profilePic username')
-      .populate('tutor', 'firstName lastName profilePic username')
-      .sort({ createdAt: -1 }),
-      
-      SessionRequest.find({ 
-        requester: req.user._id 
-      })
-      .populate('requester', 'firstName lastName profilePic username')
-      .populate('tutor', 'firstName lastName profilePic username')
-      .sort({ createdAt: -1 })
+      SessionRequest.find({ tutor: req.user._id })
+        .populate('requester', 'firstName lastName profilePic username')
+        .populate('tutor', 'firstName lastName profilePic username')
+        .sort({ createdAt: -1 }),
+      SessionRequest.find({ requester: req.user._id })
+        .populate('requester', 'firstName lastName profilePic username')
+        .populate('tutor', 'firstName lastName profilePic username')
+        .sort({ createdAt: -1 }),
     ]);
 
-    res.json({
-      received,
-      sent
-    });
+    res.json({ received, sent });
   } catch (error) {
     console.error('Error fetching all requests:', error);
-    res.status(500).json({ message: 'Failed to fetch requests' });
+    handleErrors(res, 500, 'Failed to fetch requests');
   }
 });
 
-// Get active session for a user
+/**
+ * @route GET /api/session-requests/active
+ * @desc Get active session for the user
+ * @access Private
+ */
 router.get('/active', requireAuth, async (req, res) => {
   try {
     const activeSession = await SessionRequest.findOne({
-      $or: [
-        { tutor: req.user._id },
-        { requester: req.user._id }
-      ],
-      status: 'active'
+      $or: [{ tutor: req.user._id }, { requester: req.user._id }],
+      status: 'active',
     })
-    .populate('requester', 'firstName lastName profilePic username')
-    .populate('tutor', 'firstName lastName profilePic username')
-    .sort({ updatedAt: -1 });
+      .populate('requester', 'firstName lastName profilePic username')
+      .populate('tutor', 'firstName lastName profilePic username')
+      .sort({ updatedAt: -1 });
 
     if (!activeSession) {
       return res.json({ activeSession: null });
     }
 
-    let role = null;
-    if (activeSession.tutor._id.toString() === req.user._id.toString()) {
-      role = 'tutor';
-    } else if (activeSession.requester._id.toString() === req.user._id.toString()) {
-      role = 'requester';
-    }
+    const role = activeSession.tutor._id.toString() === req.user._id.toString() ? 'tutor' : 'requester';
 
     res.json({
       activeSession: {
         sessionId: activeSession._id.toString(),
         sessionRequest: activeSession,
-        role
-      }
+        role,
+      },
     });
   } catch (error) {
     console.error('Error fetching active session:', error);
-    res.status(500).json({ message: 'Failed to fetch active session' });
+    handleErrors(res, 500, 'Failed to fetch active session');
   }
 });
 
-// Approve a session request
-router.post('/approve/:requestId', requireAuth, async (req, res) => {
+/**
+ * @route POST /api/session-requests/approve/:requestId
+ * @desc Approve a session request
+ * @access Private
+ */
+router.post('/approve/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
   try {
     const { requestId } = req.params;
     const tutorId = req.user._id;
@@ -211,75 +244,55 @@ router.post('/approve/:requestId', requireAuth, async (req, res) => {
     const sessionRequest = await SessionRequest.findOne({
       _id: requestId,
       tutor: tutorId,
-      status: 'pending'
+      status: 'pending',
     });
 
     if (!sessionRequest) {
-      return res.status(404).json({ message: 'Session request not found' });
+      return handleErrors(res, 404, 'Session request not found or not pending');
     }
 
     sessionRequest.status = 'approved';
     await sessionRequest.save();
 
-    // Populate user details for response and notification
+    // Populate user details
     await sessionRequest.populate('requester', 'firstName lastName profilePic username');
     await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
 
-    // Create notification for the requester
-    const tutorName = `${sessionRequest.tutor.firstName} ${sessionRequest.tutor.lastName}`;
-    const notification = await Notification.create({
-      userId: sessionRequest.requester._id,
-      type: 'session-approved',
-      message: `Your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''} has been approved by ${tutorName}.`,
-      sessionId: sessionRequest._id,
-      requesterId: tutorId,
-      requesterName: tutorName,
-      timestamp: new Date(),
-      read: false
-    });
-
-    // Emit real-time notification to the requester
+    // Send notification to requester
     const io = req.app.get('io');
-    io.to(sessionRequest.requester._id.toString()).emit('notification', {
-      _id: notification._id,
-      userId: sessionRequest.requester._id,
-      type: 'session-approved',
-      message: `Your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''} has been approved by ${tutorName}.`,
-      sessionId: sessionRequest._id,
-      requesterId: tutorId,
-      requesterName: tutorName,
-      timestamp: notification.timestamp,
-      read: false
-    });
-
-    // Emit real-time event to requester (consistent with socket.js)
-    io.to(sessionRequest.requester._id.toString()).emit('session-request-updated', {
-      sessionRequest,
-      action: 'approve'
-    });
-
-    // Emit session started event (consistent with socket.js)
-    const sessionStartedPayload = {
-      sessionId: sessionRequest._id.toString(),
-      sessionRequest,
-      tutor: sessionRequest.tutor,
-      requester: sessionRequest.requester
-    };
-    io.to(tutorId.toString()).emit('session-started', sessionStartedPayload);
-    io.to(sessionRequest.requester._id.toString()).emit('session-started', sessionStartedPayload);
+    const tutorName = `${req.user.firstName} ${req.user.lastName}`;
+    const notificationMessage = `${tutorName} has approved your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    await sendNotification(
+      io,
+      sessionRequest.requester._id,
+      'session-approved',
+      notificationMessage,
+      sessionRequest._id,
+      tutorId,
+      tutorName
+    );
 
     res.json({
       message: 'Session request approved',
-      sessionRequest
+      sessionRequest,
     });
   } catch (error) {
     console.error('Error approving session request:', error);
-    res.status(500).json({ message: 'Failed to approve session request' });
+    handleErrors(res, 500, 'Failed to approve session request');
   }
 });
 
-// Reject a session request
-router.post('/reject/:requestId', requireAuth, async (req, res) => {
+/**
+ * @route POST /api/session-requests/reject/:requestId
+ * @desc Reject a session request
+ * @access Private
+ */
+router.post('/reject/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
   try {
     const { requestId } = req.params;
     const tutorId = req.user._id;
@@ -287,65 +300,55 @@ router.post('/reject/:requestId', requireAuth, async (req, res) => {
     const sessionRequest = await SessionRequest.findOne({
       _id: requestId,
       tutor: tutorId,
-      status: 'pending'
+      status: 'pending',
     });
 
     if (!sessionRequest) {
-      return res.status(404).json({ message: 'Session request not found' });
+      return handleErrors(res, 404, 'Session request not found or not pending');
     }
 
     sessionRequest.status = 'rejected';
     await sessionRequest.save();
 
-    // Populate user details for response and notification
+    // Populate user details
     await sessionRequest.populate('requester', 'firstName lastName profilePic username');
     await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
 
-    // Create notification for the requester
-    const tutorName = `${sessionRequest.tutor.firstName} ${sessionRequest.tutor.lastName}`;
-    const notification = await Notification.create({
-      userId: sessionRequest.requester._id,
-      type: 'session-rejected',
-      message: `Your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''} has been rejected by ${tutorName}.`,
-      sessionId: sessionRequest._id,
-      requesterId: tutorId,
-      requesterName: tutorName,
-      timestamp: new Date(),
-      read: false
-    });
-
-    // Emit real-time notification to the requester
+    // Send notification to requester
     const io = req.app.get('io');
-    io.to(sessionRequest.requester._id.toString()).emit('notification', {
-      _id: notification._id,
-      userId: sessionRequest.requester._id,
-      type: 'session-rejected',
-      message: `Your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''} has been rejected by ${tutorName}.`,
-      sessionId: sessionRequest._id,
-      requesterId: tutorId,
-      requesterName: tutorName,
-      timestamp: notification.timestamp,
-      read: false
-    });
-
-    // Emit real-time event to requester (consistent with socket.js)
-    io.to(sessionRequest.requester._id.toString()).emit('session-request-updated', {
-      sessionRequest,
-      action: 'reject'
-    });
+    const tutorName = `${req.user.firstName} ${req.user.lastName}`;
+    const notificationMessage = `${tutorName} has rejected your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    await sendNotification(
+      io,
+      sessionRequest.requester._id,
+      'session-rejected',
+      notificationMessage,
+      sessionRequest._id,
+      tutorId,
+      tutorName
+    );
 
     res.json({
       message: 'Session request rejected',
-      sessionRequest
+      sessionRequest,
     });
   } catch (error) {
     console.error('Error rejecting session request:', error);
-    res.status(500).json({ message: 'Failed to reject session request' });
+    handleErrors(res, 500, 'Failed to reject session request');
   }
 });
 
-// Start a session (set status to 'active')
-router.post('/start/:requestId', requireAuth, async (req, res) => {
+/**
+ * @route POST /api/session-requests/start/:requestId
+ * @desc Start an approved session
+ * @access Private
+ */
+router.post('/start/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
   try {
     const { requestId } = req.params;
     const tutorId = req.user._id;
@@ -353,136 +356,162 @@ router.post('/start/:requestId', requireAuth, async (req, res) => {
     const sessionRequest = await SessionRequest.findOne({
       _id: requestId,
       tutor: tutorId,
-      status: 'approved'
+      status: 'approved',
     });
 
     if (!sessionRequest) {
-      return res.status(404).json({ message: 'Session request not found or not approved' });
+      return handleErrors(res, 404, 'Session request not found or not approved');
     }
 
     sessionRequest.status = 'active';
     await sessionRequest.save();
 
-    // Populate user details for response
+    // Populate user details
     await sessionRequest.populate('requester', 'firstName lastName profilePic username');
     await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
 
-    // Emit session started event (consistent with socket.js)
+    // Send notification to requester
     const io = req.app.get('io');
-    const sessionStartedPayload = {
-      sessionId: sessionRequest._id.toString(),
-      sessionRequest,
-      tutor: sessionRequest.tutor,
-      requester: sessionRequest.requester
-    };
-    io.to(tutorId.toString()).emit('session-started', sessionStartedPayload);
-    io.to(sessionRequest.requester._id.toString()).emit('session-started', sessionStartedPayload);
+    const tutorName = `${req.user.firstName} ${req.user.lastName}`;
+    const notificationMessage = `${tutorName} has started your session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    await sendNotification(
+      io,
+      sessionRequest.requester._id,
+      'session-started',
+      notificationMessage,
+      sessionRequest._id,
+      tutorId,
+      tutorName
+    );
 
     res.json({
       message: 'Session started',
-      sessionRequest
+      sessionRequest,
     });
   } catch (error) {
     console.error('Error starting session:', error);
-    res.status(500).json({ message: 'Failed to start session' });
+    handleErrors(res, 500, 'Failed to start session');
   }
 });
 
-// Complete a session (set status to 'completed')
-router.post('/complete/:requestId', requireAuth, async (req, res) => {
+/**
+ * @route POST /api/session-requests/complete/:requestId
+ * @desc Complete an active session
+ * @access Private
+ */
+router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
   try {
     const { requestId } = req.params;
     const sessionRequest = await SessionRequest.findOne({
       _id: requestId,
-      status: 'active'
+      status: 'active',
     });
 
     if (!sessionRequest) {
-      return res.status(404).json({ message: 'Active session not found' });
+      return handleErrors(res, 404, 'Active session not found');
     }
 
     if (
       sessionRequest.tutor.toString() !== req.user._id.toString() &&
       sessionRequest.requester.toString() !== req.user._id.toString()
     ) {
-      return res.status(403).json({ message: 'Not authorized to complete this session' });
+      return handleErrors(res, 403, 'Not authorized to complete this session');
     }
 
     sessionRequest.status = 'completed';
     await sessionRequest.save();
 
-    // Emit session completed event (consistent with socket.js)
-    const io = req.app.get('io');
-    io.to(sessionRequest._id.toString()).emit('session-completed', { sessionId: sessionRequest._id.toString() });
+    // Populate user details
+    await sessionRequest.populate('requester', 'firstName lastName profilePic username');
+    await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
 
-    res.json({ message: 'Session marked as completed' });
+    // Determine completer and recipient
+    const completer = sessionRequest.tutor._id.toString() === req.user._id.toString()
+      ? sessionRequest.tutor
+      : sessionRequest.requester;
+    const recipient = sessionRequest.tutor._id.toString() === req.user._id.toString()
+      ? sessionRequest.requester
+      : sessionRequest.tutor;
+
+    // Send notification to recipient
+    const io = req.app.get('io');
+    const notificationMessage = `${completer.firstName} ${completer.lastName} has completed the session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    await sendNotification(
+      io,
+      recipient._id,
+      'session-completed',
+      notificationMessage,
+      sessionRequest._id,
+      req.user._id,
+      `${completer.firstName} ${completer.lastName}`
+    );
+
+    res.json({
+      message: 'Session marked as completed',
+      sessionRequest,
+    });
   } catch (error) {
     console.error('Error completing session:', error);
-    res.status(500).json({ message: 'Failed to complete session' });
+    handleErrors(res, 500, 'Failed to complete session');
   }
 });
 
-// Cancel a session (set status to 'cancelled')
-router.post('/cancel/:requestId', requireAuth, async (req, res) => {
+/**
+ * @route POST /api/session-requests/cancel/:requestId
+ * @desc Cancel an approved or active session
+ * @access Private
+ */
+router.post('/cancel/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
   try {
     const { requestId } = req.params;
     const sessionRequest = await SessionRequest.findOne({
       _id: requestId,
       status: { $in: ['approved', 'active'] },
-      requester: req.user._id
+      requester: req.user._id,
     });
 
     if (!sessionRequest) {
-      return res.status(404).json({ message: 'Session not found or not authorized' });
+      return handleErrors(res, 404, 'Session not found or not authorized');
     }
 
     sessionRequest.status = 'cancelled';
     await sessionRequest.save();
 
-    // Populate user details for notification
-    await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
+    // Populate user details
     await sessionRequest.populate('requester', 'firstName lastName profilePic username');
+    await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
 
-    // Create notification for the tutor
-    const requesterName = `${sessionRequest.requester.firstName} ${sessionRequest.requester.lastName}`;
-    const notification = await Notification.create({
-      userId: sessionRequest.tutor._id,
-      type: 'session-cancelled',
-      message: `${requesterName} has cancelled the session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`,
-      sessionId: sessionRequest._id,
-      requesterId: req.user._id,
-      requesterName,
-      timestamp: new Date(),
-      read: false
-    });
-
-    // Emit real-time notification to the tutor
+    // Send notification to tutor
     const io = req.app.get('io');
-    io.to(sessionRequest.tutor._id.toString()).emit('notification', {
-      _id: notification._id,
-      userId: sessionRequest.tutor._id,
-      type: 'session-cancelled',
-      message: `${requesterName} has cancelled the session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`,
-      sessionId: sessionRequest._id,
-      requesterId: req.user._id,
-      requesterName,
-      timestamp: notification.timestamp,
-      read: false
-    });
+    const requesterName = `${req.user.firstName} ${req.user.lastName}`;
+    const notificationMessage = `${requesterName} has cancelled the session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    await sendNotification(
+      io,
+      sessionRequest.tutor._id,
+      'session-cancelled',
+      notificationMessage,
+      sessionRequest._id,
+      req.user._id,
+      requesterName
+    );
 
-    // Emit session cancelled event (consistent with socket.js)
-    const payload = {
-      sessionId: sessionRequest._id.toString(),
+    res.json({
+      message: 'Session cancelled',
       sessionRequest,
-      message: 'Session was cancelled by the requester.'
-    };
-    io.to(sessionRequest.tutor._id.toString()).emit('session-cancelled', payload);
-    io.to(req.user._id.toString()).emit('session-cancelled', payload);
-
-    res.json({ message: 'Session cancelled' });
+    });
   } catch (error) {
     console.error('Error cancelling session:', error);
-    res.status(500).json({ message: 'Failed to cancel session' });
+    handleErrors(res, 500, 'Failed to cancel session');
   }
 });
 

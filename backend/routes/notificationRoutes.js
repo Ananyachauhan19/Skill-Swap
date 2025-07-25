@@ -1,41 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const Notification = require('../models/Notification');
-const SessionRequest = require('../models/SessionRequest');
-const SkillMate = require('../models/SkillMate');
 const auth = require('../middleware/requireAuth');
 
 // Get notifications for the authenticated user
 router.get('/', auth, async (req, res) => {
   try {
-    // Fetch notifications and populate requesterId
-    let notifications = await Notification.find({ userId: req.user.id })
+    const notifications = await Notification.find({ userId: req.user.id })
       .sort({ timestamp: -1 })
       .populate('requesterId', 'firstName lastName');
-
-    // Populate requestId based on notification type
-    notifications = await Promise.all(notifications.map(async (notification) => {
-      let populatedNotification = notification.toObject();
-      if (notification.requestId) {
-        if (notification.type.startsWith('session')) {
-          const sessionRequest = await SessionRequest.findById(notification.requestId)
-            .populate('requester', 'firstName lastName profilePic')
-            .populate('tutor', 'firstName lastName profilePic');
-          populatedNotification.sessionRequest = sessionRequest;
-        } else if (notification.type.startsWith('skillmate')) {
-          const skillMateRequest = await SkillMate.findById(notification.requestId)
-            .populate('requester', 'firstName lastName profilePic')
-            .populate('recipient', 'firstName lastName profilePic');
-          populatedNotification.skillMateRequest = skillMateRequest;
-        }
-      }
-      return populatedNotification;
-    }));
-
-    // Filter out notifications older than 12 hours
-    const TWELVE_HOURS = 12 * 60 * 60 * 1000;
-    notifications = notifications.filter(n => Date.now() - new Date(n.timestamp).getTime() <= TWELVE_HOURS);
-
     res.json(notifications);
   } catch (error) {
     console.error('Error fetching notifications:', error);

@@ -1,0 +1,429 @@
+[1mdiff --git a/backend/models/Notification.js b/backend/models/Notification.js[m
+[1mnew file mode 100644[m
+[1mindex 0000000..b7afe3c[m
+[1m--- /dev/null[m
+[1m+++ b/backend/models/Notification.js[m
+[36m@@ -0,0 +1,59 @@[m
+[32m+[m[32mconst mongoose = require('mongoose');[m
+[32m+[m
+[32m+[m[32mconst notificationSchema = new mongoose.Schema({[m
+[32m+[m[32m  userId: {[m
+[32m+[m[32m    type: mongoose.Schema.Types.ObjectId,[m
+[32m+[m[32m    ref: 'User',[m
+[32m+[m[32m    required: true,[m
+[32m+[m[32m  },[m
+[32m+[m[32m  type: {[m
+[32m+[m[32m    type: String,[m
+[32m+[m[32m    enum: [[m
+[32m+[m[32m      'session-started',[m
+[32m+[m[32m      'session-approved',[m
+[32m+[m[32m      'session-rejected',[m
+[32m+[m[32m      'session-cancelled',[m
+[32m+[m[32m      'session-requested',[m
+[32m+[m[32m      'skillmate',[m
+[32m+[m[32m    ],[m
+[32m+[m[32m    required: true,[m
+[32m+[m[32m  },[m
+[32m+[m[32m  subtype: {[m
+[32m+[m[32m    type: String,[m
+[32m+[m[32m    enum: ['request', 'update'],[m
+[32m+[m[32m    default: null,[m
+[32m+[m[32m  },[m
+[32m+[m[32m  message: {[m
+[32m+[m[32m    type: String,[m
+[32m+[m[32m    required: true,[m
+[32m+[m[32m  },[m
+[32m+[m[32m  sessionId: {[m
+[32m+[m[32m    type: mongoose.Schema.Types.ObjectId,[m
+[32m+[m[32m    ref: 'Session',[m
+[32m+[m[32m    default: null,[m
+[32m+[m[32m  },[m
+[32m+[m[32m  requestId: {[m
+[32m+[m[32m    type: mongoose.Schema.Types.ObjectId,[m
+[32m+[m[32m    ref: 'SessionRequest',[m
+[32m+[m[32m    default: null,[m
+[32m+[m[32m  },[m
+[32m+[m[32m  requesterId: {[m
+[32m+[m[32m    type: mongoose.Schema.Types.ObjectId,[m
+[32m+[m[32m    ref: 'User',[m
+[32m+[m[32m    default: null,[m
+[32m+[m[32m  },[m
+[32m+[m[32m  requesterName: {[m
+[32m+[m[32m    type: String,[m
+[32m+[m[32m    default: null,[m
+[32m+[m[32m  },[m
+[32m+[m[32m  read: {[m
+[32m+[m[32m    type: Boolean,[m
+[32m+[m[32m    default: false,[m
+[32m+[m[32m  },[m
+[32m+[m[32m  timestamp: {[m
+[32m+[m[32m    type: Date,[m
+[32m+[m[32m    default: Date.now,[m
+[32m+[m[32m  },[m
+[32m+[m[32m});[m
+[32m+[m
+[32m+[m[32mmodule.exports = mongoose.model('Notification', notificationSchema);[m
+\ No newline at end of file[m
+[1mdiff --git a/backend/node_modules/.package-lock.json b/backend/node_modules/.package-lock.json[m
+[1mindex 4ae15bb..db7abdd 100644[m
+[1m--- a/backend/node_modules/.package-lock.json[m
+[1m+++ b/backend/node_modules/.package-lock.json[m
+[36m@@ -1225,6 +1225,24 @@[m
+         "url": "https://opencollective.com/express"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/express-rate-limit": {[m
+[32m+[m[32m      "version": "8.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/express-rate-limit/-/express-rate-limit-8.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-aZVCnybn7TVmxO4BtlmnvX+nuz8qHW124KKJ8dumsBsmv5ZLxE0pYu7S2nwyRBGHHCAzdmnGyrc5U/rksSPO7Q==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "ip-address": "10.0.1"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">= 16"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "funding": {[m
+[32m+[m[32m        "url": "https://github.com/sponsors/express-rate-limit"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "peerDependencies": {[m
+[32m+[m[32m        "express": ">= 4.11"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/express-session": {[m
+       "version": "1.18.1",[m
+       "resolved": "https://registry.npmjs.org/express-session/-/express-session-1.18.1.tgz",[m
+[36m@@ -1265,6 +1283,19 @@[m
+       "integrity": "sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==",[m
+       "license": "MIT"[m
+     },[m
+[32m+[m[32m    "node_modules/express-validator": {[m
+[32m+[m[32m      "version": "7.2.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/express-validator/-/express-validator-7.2.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-CjNE6aakfpuwGaHQZ3m8ltCG2Qvivd7RHtVMS/6nVxOM7xVGqr4bhflsm4+N5FP5zI7Zxp+Hae+9RE+o8e3ZOQ==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "dependencies": {[m
+[32m+[m[32m        "lodash": "^4.17.21",[m
+[32m+[m[32m        "validator": "~13.12.0"[m
+[32m+[m[32m      },[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">= 8.0.0"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/extend": {[m
+       "version": "3.0.2",[m
+       "resolved": "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz",[m
+[36m@@ -1863,6 +1894,15 @@[m
+       "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==",[m
+       "license": "ISC"[m
+     },[m
+[32m+[m[32m    "node_modules/ip-address": {[m
+[32m+[m[32m      "version": "10.0.1",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/ip-address/-/ip-address-10.0.1.tgz",[m
+[32m+[m[32m      "integrity": "sha512-NWv9YLW4PoW2B7xtzaS3NCot75m6nK7Icdv0o3lfMceJVRfSoQwqD4wEH5rLwoKJwUiZ/rfpiVBhnaF0FK4HoA==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">= 12"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/ipaddr.js": {[m
+       "version": "1.9.1",[m
+       "resolved": "https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz",[m
+[36m@@ -1992,6 +2032,12 @@[m
+       "resolved": "https://registry.npmjs.org/limiter/-/limiter-1.1.5.tgz",[m
+       "integrity": "sha512-FWWMIEOxz3GwUI4Ts/IvgVy6LPvoMPgjMdQ185nN6psJyBJ4yOpzqm695/h5umdLJg2vW3GR5iG11MAkR2AzJA=="[m
+     },[m
+[32m+[m[32m    "node_modules/lodash": {[m
+[32m+[m[32m      "version": "4.17.21",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz",[m
+[32m+[m[32m      "integrity": "sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==",[m
+[32m+[m[32m      "license": "MIT"[m
+[32m+[m[32m    },[m
+     "node_modules/lodash.camelcase": {[m
+       "version": "4.3.0",[m
+       "resolved": "https://registry.npmjs.org/lodash.camelcase/-/lodash.camelcase-4.3.0.tgz",[m
+[36m@@ -3317,6 +3363,15 @@[m
+         "uuid": "dist/esm/bin/uuid"[m
+       }[m
+     },[m
+[32m+[m[32m    "node_modules/validator": {[m
+[32m+[m[32m      "version": "13.12.0",[m
+[32m+[m[32m      "resolved": "https://registry.npmjs.org/validator/-/validator-13.12.0.tgz",[m
+[32m+[m[32m      "integrity": "sha512-c1Q0mCiPlgdTVVVIJIrBuxNicYE+t/7oKeI9MWLj3fh/uq2Pxh/3eeWbVZ4OcGW1TUf53At0njHw5SMdA3tmMg==",[m
+[32m+[m[32m      "license": "MIT",[m
+[32m+[m[32m      "engines": {[m
+[32m+[m[32m        "node": ">= 0.10"[m
+[32m+[m[32m      }[m
+[32m+[m[32m    },[m
+     "node_modules/vary": {[m
+       "version": "1.1.2",[m
+       "resolved": "https://registry.npmjs.org/vary/-/vary-1.1.2.tgz",[m
+[1mdiff --git a/backend/node_modules/express-rate-limit/dist/index.cjs b/backend/node_modules/express-rate-limit/dist/index.cjs[m
+[1mnew file mode 100644[m
+[1mindex 0000000..01d55ca[m
+[1m--- /dev/null[m
+[1m+++ b/backend/node_modules/express-rate-limit/dist/index.cjs[m
+[36m@@ -0,0 +1,881 @@[m
+[32m+[m[32m"use strict";[m
+[32m+[m[32mvar __defProp = Object.defineProperty;[m
+[32m+[m[32mvar __getOwnPropDesc = Object.getOwnPropertyDescriptor;[m
+[32m+[m[32mvar __getOwnPropNames = Object.getOwnPropertyNames;[m
+[32m+[m[32mvar __hasOwnProp = Object.prototype.hasOwnProperty;[m
+[32m+[m[32mvar __export = (target, all) => {[m
+[32m+[m[32m  for (var name in all)[m
+[32m+[m[32m    __defProp(target, name, { get: all[name], enumerable: true });[m
+[32m+[m[32m};[m
+[32m+[m[32mvar __copyProps = (to, from, except, desc) => {[m
+[32m+[m[32m  if (from && typeof from === "object" || typeof from === "function") {[m
+[32m+[m[32m    for (let key of __getOwnPropNames(from))[m
+[32m+[m[32m      if (!__hasOwnProp.call(to, key) && key !== except)[m
+[32m+[m[32m        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return to;[m
+[32m+[m[32m};[m
+[32m+[m[32mvar __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);[m
+[32m+[m
+[32m+[m[32m// source/index.ts[m
+[32m+[m[32mvar index_exports = {};[m
+[32m+[m[32m__export(index_exports, {[m
+[32m+[m[32m  MemoryStore: () => MemoryStore,[m
+[32m+[m[32m  default: () => rate_limit_default,[m
+[32m+[m[32m  ipKeyGenerator: () => ipKeyGenerator,[m
+[32m+[m[32m  rateLimit: () => rate_limit_default[m
+[32m+[m[32m});[m
+[32m+[m[32mmodule.exports = __toCommonJS(index_exports);[m
+[32m+[m
+[32m+[m[32m// source/ip-key-generator.ts[m
+[32m+[m[32mvar import_node_net = require("node:net");[m
+[32m+[m[32mvar import_ip_address = require("ip-address");[m
+[32m+[m[32mfunction ipKeyGenerator(ip, ipv6Subnet = 56) {[m
+[32m+[m[32m  if (ipv6Subnet && (0, import_node_net.isIPv6)(ip)) {[m
+[32m+[m[32m    return `${new import_ip_address.Address6(`${ip}/${ipv6Subnet}`).startAddress().correctForm()}/${ipv6Subnet}`;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return ip;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m// source/memory-store.ts[m
+[32m+[m[32mvar MemoryStore = class {[m
+[32m+[m[32m  constructor() {[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * These two maps store usage (requests) and reset time by key (for example, IP[m
+[32m+[m[32m     * addresses or API keys).[m
+[32m+[m[32m     *[m
+[32m+[m[32m     * They are split into two to avoid having to iterate through the entire set to[m
+[32m+[m[32m     * determine which ones need reset. Instead, `Client`s are moved from `previous`[m
+[32m+[m[32m     * to `current` as they hit the endpoint. Once `windowMs` has elapsed, all clients[m
+[32m+[m[32m     * left in `previous`, i.e., those that have not made any recent requests, are[m
+[32m+[m[32m     * known to be expired and can be deleted in bulk.[m
+[32m+[m[32m     */[m
+[32m+[m[32m    this.previous = /* @__PURE__ */ new Map();[m
+[32m+[m[32m    this.current = /* @__PURE__ */ new Map();[m
+[32m+[m[32m    /**[m
+[32m+[m[32m     * Confirmation that the keys incremented in once instance of MemoryStore[m
+[32m+[m[32m     * cannot affect other instances.[m
+[32m+[m[32m     */[m
+[32m+[m[32m    this.localKeys = true;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Method that initializes the store.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @param options {Options} - The options used to setup the middleware.[m
+[32m+[m[32m   */[m
+[32m+[m[32m  init(options) {[m
+[32m+[m[32m    this.windowMs = options.windowMs;[m
+[32m+[m[32m    if (this.interval) clearInterval(this.interval);[m
+[32m+[m[32m    this.interval = setInterval(() => {[m
+[32m+[m[32m      this.clearExpired();[m
+[32m+[m[32m    }, this.windowMs);[m
+[32m+[m[32m    this.interval.unref?.();[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Method to fetch a client's hit count and reset time.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @param key {string} - The identifier for a client.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @returns {ClientRateLimitInfo | undefined} - The number of hits and reset time for that client.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @public[m
+[32m+[m[32m   */[m
+[32m+[m[32m  async get(key) {[m
+[32m+[m[32m    return this.current.get(key) ?? this.previous.get(key);[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Method to increment a client's hit counter.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @param key {string} - The identifier for a client.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @returns {ClientRateLimitInfo} - The number of hits and reset time for that client.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @public[m
+[32m+[m[32m   */[m
+[32m+[m[32m  async increment(key) {[m
+[32m+[m[32m    const client = this.getClient(key);[m
+[32m+[m[32m    const now = Date.now();[m
+[32m+[m[32m    if (client.resetTime.getTime() <= now) {[m
+[32m+[m[32m      this.resetClient(client, now);[m
+[32m+[m[32m    }[m
+[32m+[m[32m    client.totalHits++;[m
+[32m+[m[32m    return client;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Method to decrement a client's hit counter.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @param key {string} - The identifier for a client.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @public[m
+[32m+[m[32m   */[m
+[32m+[m[32m  async decrement(key) {[m
+[32m+[m[32m    const client = this.getClient(key);[m
+[32m+[m[32m    if (client.totalHits > 0) client.totalHits--;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Method to reset a client's hit counter.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @param key {string} - The identifier for a client.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @public[m
+[32m+[m[32m   */[m
+[32m+[m[32m  async resetKey(key) {[m
+[32m+[m[32m    this.current.delete(key);[m
+[32m+[m[32m    this.previous.delete(key);[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Method to reset everyone's hit counter.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @public[m
+[32m+[m[32m   */[m
+[32m+[m[32m  async resetAll() {[m
+[32m+[m[32m    this.current.clear();[m
+[32m+[m[32m    this.previous.clear();[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Method to stop the timer (if currently running) and prevent any memory[m
+[32m+[m[32m   * leaks.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @public[m
+[32m+[m[32m   */[m
+[32m+[m[32m  shutdown() {[m
+[32m+[m[32m    clearInterval(this.interval);[m
+[32m+[m[32m    void this.resetAll();[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Recycles a client by setting its hit count to zero, and reset time to[m
+[32m+[m[32m   * `windowMs` milliseconds from now.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * NOT to be confused with `#resetKey()`, which removes a client from both the[m
+[32m+[m[32m   * `current` and `previous` maps.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @param client {Client} - The client to recycle.[m
+[32m+[m[32m   * @param now {number} - The current time, to which the `windowMs` is added to get the `resetTime` for the client.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @return {Client} - The modified client that was passed in, to allow for chaining.[m
+[32m+[m[32m   */[m
+[32m+[m[32m  resetClient(client, now = Date.now()) {[m
+[32m+[m[32m    client.totalHits = 0;[m
+[32m+[m[32m    client.resetTime.setTime(now + this.windowMs);[m
+[32m+[m[32m    return client;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Retrieves or creates a client, given a key. Also ensures that the client being[m
+[32m+[m[32m   * returned is in the `current` map.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @param key {string} - The key under which the client is (or is to be) stored.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * @returns {Client} - The requested client.[m
+[32m+[m[32m   */[m
+[32m+[m[32m  getClient(key) {[m
+[32m+[m[32m    if (this.current.has(key)) return this.current.get(key);[m
+[32m+[m[32m    let client;[m
+[32m+[m[32m    if (this.previous.has(key)) {[m
+[32m+[m[32m      client = this.previous.get(key);[m
+[32m+[m[32m      this.previous.delete(key);[m
+[32m+[m[32m    } else {[m
+[32m+[m[32m      client = { totalHits: 0, resetTime: /* @__PURE__ */ new Date() };[m
+[32m+[m[32m      this.resetClient(client);[m
+[32m+[m[32m    }[m
+[32m+[m[32m    this.current.set(key, client);[m
+[32m+[m[32m    return client;[m
+[32m+[m[32m  }[m
+[32m+[m[32m  /**[m
+[32m+[m[32m   * Move current clients to previous, create a new map for current.[m
+[32m+[m[32m   *[m
+[32m+[m[32m   * This function is called every `windowMs`.[m
+[32m+[m[32m   */[m
+[32m+[m[32m  clearExpired() {[m
+[32m+[m[32m    this.previous = this.current;[m
+[32m+[m[32m    this.current = /* @__PURE__ */ new Map();[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m
+[32m+[m[32m// source/rate-limit.ts[m
+[32m+[m[32mvar import_node_net3 = require("node:net");[m
+[32m+[m
+[32m+[m[32m// source/headers.ts[m
+[32m+[m[32mvar import_node_buffer = require("node:buffer");[m
+[32m+[m[32mvar import_node_crypto = require("node:crypto");[m
+[32m+[m[32mvar SUPPORTED_DRAFT_VERSIONS = [[m
+[32m+[m[32m  "draft-6",[m
+[32m+[m[32m  "draft-7",[m
+[32m+[m[32m  "draft-8"[m
+[32m+[m[32m];[m
+[32m+[m[32mvar getResetSeconds = (windowMs, resetTime) => {[m
+[32m+[m[32m  let resetSeconds;[m
+[32m+[m[32m  if (resetTime) {[m
+[32m+[m[32m    const deltaSeconds = Math.ceil((resetTime.getTime() - Date.now()) / 1e3);[m
+[32m+[m[32m    resetSeconds = Math.max(0, deltaSeconds);[m
+[32m+[m[32m  } else {[m
+[32m+[m[32m    resetSeconds = Math.ceil(windowMs / 1e3);[m
+[32m+[m[32m  }[m
+[32m+[m[32m  return resetSeconds;[m
+[32m+[m[32m};[m
+[32m+[m[32mvar getPartitionKey = (key) => {[m
+[32m+[m[32m  const hash = (0, import_node_crypto.createHash)("sha256");[m
+[32m+[m[32m  hash.update(key);[m
+[32m+[m[32m  const partitionKey = hash.digest("hex").slice(0, 12);[m
+[32m+[m[32m  return import_node_buffer.Buffer.from(partitionKey).toString("base64");[m
+[32m+[m[32m};[m
+[32m+[m[32mvar setLegacyHeaders = (response, info) => {[m
+[32m+[m[32m  if (response.headersSent) return;[m
+[32m+[m[32m  response.setHeader("X-RateLimit-Limit", info.limit.toString());[m
+[32m+[m[32m  response.setHeader("X-RateLimit-Remaining", info.remaining.toString());[m
+[32m+[m[32m  if (info.resetTime instanceof Date) {[m
+[32m+[m[32m    response.setHeader("Date", (/* @__PURE__ */ new Date()).toUTCString());[m
+[32m+[m[32m    response.setHeader([m
+[32m+[m[32m      "X-RateLimit-Reset",[m
+[32m+[m[32m      Math.ceil(info.resetTime.getTime() / 1e3).toString()[m
+[32m+[m[32m    );[m
+[32m+[m[32m  }[m
+[32m+[m[32m};[m
+[32m+[m[32mvar setDraft6Headers = (response, info, windowMs) => {[m
+[32m+[m[32m  if (response.headersSent) return;[m
+[32m+[m[32m  const windowSeconds = Math.ceil(windowMs / 1e3);[m
+[32m+[m[32m  const resetSeconds = getResetSeconds(windowMs, info.resetTime);[m
+[32m+[m[32m  response.setHeader("RateLimit-Policy", `${info.limit};w=${windowSeconds}`);[m
+[32m+[m[32m  response.setHeader("RateLimit-Limit", info.limit.toString());[m
+[32m+[m[32m  response.setHeader("RateLimit-Remaining", info.remaining.toString());[m
+[32m+[m[32m  if (resetSeconds)[m
+[32m+[m[32m    response.setHeader("RateLimit-Reset", resetSeconds.toString());[m
+[32m+[m[32m};[m
+[32m+[m[32mvar setDraft7Headers = (response, info, windowMs) => {[m
+[32m+[m[32m  if (response.headersSent) return;[m
+[32m+[m[32m  const windowSeconds = Math.ceil(windowMs / 1e3);[m
+[32m+[m[32m  const resetSeconds = getResetSeconds(windowMs, info.resetTime);[m
+[32m+[m[32m  response.setHeader("RateLimit-Policy", `${info.limit};w=${windowSeconds}`);[m
+[32m+[m[32m  response.setHeader([m
+[32m+[m[32m    "RateLimit",[m
+[32m+[m[32m    `limit=${info.limit}, remaining=${info.remaining}, reset=${resetSeconds}`[m
+[32m+[m[32m  );[m
+[32m+[m[32m};[m
+[32m+[m[32mvar setDraft8Headers = (response, info, windowMs, name, key) => {[m
+[32m+[m[32m  if (response.headersSent) return;[m
+[32m+[m[32m  const windowSeconds = Math.ceil(windowMs / 1e3);[m
+[32m+[m[32m  const resetSeconds = getResetSeconds(windowMs, info.resetTime);[m
+[32m+[m[32m  const partitionKey = getPartitionKey(key);[m
+[32m+[m[32m  const header = `r=${info.remaining}; t=${resetSeconds}`;[m
+[32m+[m[32m  const policy = `q=${info.limit}; w=${windowSeconds}; pk=:${partitionKey}:`;[m
+[32m+[m[32m  response.append("RateLimit", `"${name}"; ${header}`);[m
+[32m+[m[32m  response.append("RateLimit-Policy", `"${name}"; ${policy}`);[m
+[32m+[m[32m};[m
+[32m+[m[32mvar setRetryAfterHeader = (response, info, windo
