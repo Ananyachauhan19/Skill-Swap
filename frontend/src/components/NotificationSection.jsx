@@ -36,25 +36,45 @@ const NotificationSection = ({ userId }) => {
         // Fetch SessionRequest details for session-requested notifications
         const sessionRequests = await Promise.all(
           data
-            .filter((n) => n.type === 'session-requested' && n.requestId)
+            .filter((n) => n.type === 'session-requested' && n.sessionId)
             .map(async (n) => {
-              const res = await fetch(`${BACKEND_URL}/api/session-requests/${n.requestId}`, {
+              const res = await fetch(`${BACKEND_URL}/api/session-requests/active`, {
                 credentials: 'include',
               });
               if (res.ok) {
                 const sessionRequest = await res.json();
-                return { ...n, sessionRequest };
+                return { ...n, sessionRequest: sessionRequest.activeSession?.sessionRequest };
               }
               return n;
             })
         );
 
-        // Merge session request data back into notifications
+        // Fetch SkillMate request details for skillmate-requested notifications
+        const skillMateRequests = await Promise.all(
+          data
+            .filter((n) => n.type === 'skillmate-requested' && n.requestId)
+            .map(async (n) => {
+              const res = await fetch(`${BACKEND_URL}/api/skillmates/requests/received`, {
+                credentials: 'include',
+              });
+              if (res.ok) {
+                const skillMateRequests = await res.json();
+                const skillMateRequest = skillMateRequests.find((r) => r._id === n.requestId);
+                return { ...n, skillMateRequest };
+              }
+              return n;
+            })
+        );
+
+        // Merge session and skillmate request data back into notifications
         data = data.map((n) => {
           const matchingSession = sessionRequests.find((sr) => sr._id === n._id);
-          return matchingSession && matchingSession.sessionRequest
-            ? { ...n, sessionRequest: matchingSession.sessionRequest }
-            : n;
+          const matchingSkillMate = skillMateRequests.find((sm) => sm._id === n._id);
+          return {
+            ...n,
+            sessionRequest: matchingSession?.sessionRequest || n.sessionRequest,
+            skillMateRequest: matchingSkillMate?.skillMateRequest || n.skillMateRequest
+          };
         });
 
         setNotifications(data);
@@ -147,7 +167,7 @@ const NotificationSection = ({ userId }) => {
       localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
     } catch (error) {
       console.error('Error approving session:', error);
-      console.error('Failed to approve session. Please try again.');
+      alert('Failed to approve session. Please try again.');
     } finally {
       setLoading((prev) => ({ ...prev, [`approve-${index}`]: false }));
     }
@@ -167,47 +187,7 @@ const NotificationSection = ({ userId }) => {
       localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
     } catch (error) {
       console.error('Error rejecting session:', error);
-      console.error('Failed to reject session. Please try again.');
-    } finally {
-      setLoading((prev) => ({ ...prev, [`reject-${index}`]: false }));
-    }
-  };
-
-  // Handle approve skillmate request
-  const handleApproveSkillMate = async (requestId, index) => {
-    setLoading((prev) => ({ ...prev, [`approve-${index}`]: true }));
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/approve/${requestId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to approve skillmate request');
-      setNotifications((prev) => prev.filter((_, i) => i !== index));
-      localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
-    } catch (error) {
-      console.error('Error approving skillmate request:', error);
-      console.error('Failed to approve skillmate request. Please try again.');
-    } finally {
-      setLoading((prev) => ({ ...prev, [`approve-${index}`]: false }));
-    }
-  };
-
-  // Handle reject skillmate request
-  const handleRejectSkillMate = async (requestId, index) => {
-    setLoading((prev) => ({ ...prev, [`reject-${index}`]: true }));
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/reject/${requestId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to reject skillmate request');
-      setNotifications((prev) => prev.filter((_, i) => i !== index));
-      localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
-    } catch (error) {
-      console.error('Error rejecting skillmate request:', error);
-      console.error('Failed to reject skillmate request. Please try again.');
+      alert('Failed to reject session. Please try again.');
     } finally {
       setLoading((prev) => ({ ...prev, [`reject-${index}`]: false }));
     }
@@ -227,7 +207,13 @@ const NotificationSection = ({ userId }) => {
           n.type === 'session-requested'
       );
     } else if (activeTab === 'skillmate') {
-      filtered = filtered.filter((n) => n.type === 'skillmate');
+      filtered = filtered.filter(
+        (n) =>
+          n.type === 'skillmate-requested' ||
+          n.type === 'skillmate-approved' ||
+          n.type === 'skillmate-rejected' ||
+          n.type === 'skillmate-removed'
+      );
     }
 
     return filtered;
@@ -235,10 +221,22 @@ const NotificationSection = ({ userId }) => {
 
   // Calculate unread counts for each tab
   const getUnreadCounts = () => {
-    const sessionTypes = ['session-started', 'session-approved', 'session-rejected', 'session-cancelled', 'session-requested'];
+    const sessionTypes = [
+      'session-started',
+      'session-approved',
+      'session-rejected',
+      'session-cancelled',
+      'session-requested'
+    ];
+    const skillmateTypes = [
+      'skillmate-requested',
+      'skillmate-approved',
+      'skillmate-rejected',
+      'skillmate-removed'
+    ];
     const allUnread = notifications.filter((n) => n && !n.read).length;
     const sessionUnread = notifications.filter((n) => n && !n.read && sessionTypes.includes(n.type)).length;
-    const skillmateUnread = notifications.filter((n) => n && !n.read && n.type === 'skillmate').length;
+    const skillmateUnread = notifications.filter((n) => n && !n.read && skillmateTypes.includes(n.type)).length;
     return { all: allUnread, session: sessionUnread, skillmate: skillmateUnread };
   };
 
@@ -264,7 +262,7 @@ const NotificationSection = ({ userId }) => {
             strokeLinecap="round"
             strokeLinejoin="round"
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-          />
+        />
         </svg>
         {unreadCounts.all > 0 && (
           <span className="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-1 shadow-md animate-pulse">
@@ -325,7 +323,7 @@ const NotificationSection = ({ userId }) => {
               }`}
               onClick={() => setActiveTab('skillmate')}
             >
-              Skillmate
+              SkillMate
               {unreadCounts.skillmate > 0 && (
                 <span className="absolute top-1 right-2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-0.5 shadow-sm animate-pulse">
                   {unreadCounts.skillmate}
@@ -359,8 +357,6 @@ const NotificationSection = ({ userId }) => {
                         firstName: n.requesterName ? n.requesterName.split(' ')[0] : 'Unknown',
                         lastName: n.requesterName ? n.requesterName.split(' ')[1] || '' : '',
                       }}
-                      onAccept={() => handleApproveSession(n.sessionRequest._id, idx)}
-                      onReject={() => handleRejectSession(n.sessionRequest._id, idx)}
                       onClose={() => handleNotificationRead(n._id, idx)}
                     />
                   ) : n.type === 'session-started' ? (
@@ -451,62 +447,85 @@ const NotificationSection = ({ userId }) => {
                         </button>
                       </div>
                     </div>
-                  ) : n.type === 'skillmate' && n.subtype === 'request' ? (
-                    <div className="space-y-3">
+                  ) : n.type === 'skillmate-requested' && n.skillMateRequest ? (
+                    <div className="space-y-2">
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                         <span className="font-semibold text-blue-700">SkillMate Request</span>
                         {!n.read && (
-                          <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
+                          <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">New</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || `${n.requesterName} wants to be your SkillMate.`}</p>
-                      <div className="flex gap-3 mt-3">
-                        <button
-                          onClick={() => handleApproveSkillMate(n.requestId, idx)}
-                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={loading[`approve-${idx}`]}
-                        >
-                          {loading[`approve-${idx}`] ? 'Approving...' : 'Accept'}
-                        </button>
-                        <button
-                          onClick={() => handleRejectSkillMate(n.requestId, idx)}
-                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={loading[`reject-${idx}`]}
-                        >
-                          {loading[`reject-${idx}`] ? 'Rejecting...' : 'Reject'}
-                        </button>
-                      </div>
+                      <p className="text-gray-700">{n.message || `${n.requesterName} has sent you a SkillMate request.`}</p>
+                      <p className="text-xs text-gray-500">Check the request section to approve or reject.</p>
                     </div>
-                  ) : n.type === 'skillmate' ? (
+                  ) : n.type === 'skillmate-approved' ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                        <span className="font-semibold text-blue-700">SkillMate Update</span>
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                        <span className="font-semibold text-green-700">SkillMate Approved</span>
                         {!n.read && (
-                          <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
+                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">OK</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'A new SkillMate update is available.'}</p>
+                      <p className="text-gray-700">{n.message || 'Your SkillMate request has been approved.'}</p>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
-                          Mark as Read
+                          Mark as read
+                        </button>
+                      </div>
+                    </div>
+                  ) : n.type === 'skillmate-rejected' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <span className="font-semibold text-red-700">SkillMate Rejected</span>
+                        {!n.read && (
+                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">Sorry</span>
+                        )}
+                      </div>
+                      <p className="text-gray-700">{n.message || 'Your SkillMate request has been rejected.'}</p>
+                      <div className="flex gap-3 mt-3">
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        >
+                          Mark as read
+                        </button>
+                      </div>
+                    </div>
+                  ) : n.type === 'skillmate-removed' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                        <span className="font-semibold text-orange-700">SkillMate Removed</span>
+                        {!n.read && (
+                          <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">OK</span>
+                        )}
+                      </div>
+                      <p className="text-gray-700">{n.message || 'You have been removed as a SkillMate.'}</p>
+                      <div className="flex gap-3 mt-3">
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        >
+                          Mark as read
                         </button>
                       </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-gray-200 rounded-full"></div>
                         <span className="font-semibold text-gray-700">General Notification</span>
                         {!n.read && (
                           <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'General notification.'}</p>
+                      <p className="text-gray-600">{n.message || 'General notification.'}</p>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
