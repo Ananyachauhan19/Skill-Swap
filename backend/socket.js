@@ -14,7 +14,7 @@ module.exports = (io) => {
   const sessionTimers = new Map();
 
   // Helper function to send notifications
-  const sendNotification = async (io, userId, type, message, sessionId, requestId, requesterId, requesterName, subject, topic, subtopic) => {
+  const sendNotification = async (io, userId, type, message, sessionId, requestId, requesterId, requesterName, subject, topic, subtopic, messageId) => {
     try {
       const notification = await Notification.create({
         userId,
@@ -27,6 +27,7 @@ module.exports = (io) => {
         subject,
         topic,
         subtopic,
+        messageId,
         timestamp: Date.now(),
         read: false
       });
@@ -45,6 +46,7 @@ module.exports = (io) => {
         subject,
         topic,
         subtopic,
+        messageId,
         timestamp: notification.timestamp,
         read: false
       });
@@ -960,14 +962,42 @@ module.exports = (io) => {
           return;
         }
 
+        // Get sender's information
+        const sender = await User.findById(senderId).select('firstName lastName');
+        if (!sender) {
+          socket.emit('chat-error', { message: 'Sender not found' });
+          return;
+        }
+
         // Create and save the message
         const chatMessage = new ChatMessage({
           senderId,
           recipientId,
-          content
+          content,
+          sender: {
+            firstName: sender.firstName,
+            lastName: sender.lastName
+          }
         });
 
         await chatMessage.save();
+
+        // Send notification to recipient
+        const senderName = `${sender.firstName} ${sender.lastName}`;
+        await sendNotification(
+          io,
+          recipientId,
+          'chat-message',
+          `${senderName}: ${content.length > 50 ? content.substring(0, 50) + '...' : content}`,
+          null,
+          null,
+          senderId,
+          senderName,
+          null,
+          null,
+          null,
+          chatMessage._id
+        );
 
         // Find recipient's socket ID
         let recipientSocketId = null;

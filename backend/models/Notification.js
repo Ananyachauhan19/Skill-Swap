@@ -17,7 +17,8 @@ const notificationSchema = new mongoose.Schema({
       'skillmate-requested',
       'skillmate-approved',
       'skillmate-rejected',
-      'skillmate-removed'
+      'skillmate-removed',
+      'chat-message'
     ],
     required: true,
   },
@@ -53,6 +54,11 @@ const notificationSchema = new mongoose.Schema({
   },
   subtopic: {
     type: String,
+    default: null,
+  },
+  messageId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Chat',
     default: null,
   },
   read: {

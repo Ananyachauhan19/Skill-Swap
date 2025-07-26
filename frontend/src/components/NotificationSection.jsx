@@ -66,14 +66,32 @@ const NotificationSection = ({ userId }) => {
             })
         );
 
-        // Merge session and skillmate request data back into notifications
+        // Fetch chat message details for chat-message notifications
+        const chatMessages = await Promise.all(
+          data
+            .filter((n) => n.type === 'chat-message' && n.messageId)
+            .map(async (n) => {
+              const res = await fetch(`${BACKEND_URL}/api/chat/history/${n.senderId}`, {
+                credentials: 'include',
+              });
+              if (res.ok) {
+                const chatData = await res.json();
+                return { ...n, chatMessage: chatData.messages.find((m) => m._id === n.messageId) };
+              }
+              return n;
+            })
+        );
+
+        // Merge session, skillmate, and chat message data back into notifications
         data = data.map((n) => {
           const matchingSession = sessionRequests.find((sr) => sr._id === n._id);
           const matchingSkillMate = skillMateRequests.find((sm) => sm._id === n._id);
+          const matchingChat = chatMessages.find((cm) => cm._id === n._id);
           return {
             ...n,
             sessionRequest: matchingSession?.sessionRequest || n.sessionRequest,
             skillMateRequest: matchingSkillMate?.skillMateRequest || n.skillMateRequest,
+            chatMessage: matchingChat?.chatMessage || n.chatMessage,
           };
         });
 
@@ -212,7 +230,8 @@ const NotificationSection = ({ userId }) => {
           n.type === 'skillmate-requested' ||
           n.type === 'skillmate-approved' ||
           n.type === 'skillmate-rejected' ||
-          n.type === 'skillmate-removed'
+          n.type === 'skillmate-removed' ||
+          n.type === 'chat-message'
       );
     }
 
@@ -233,6 +252,7 @@ const NotificationSection = ({ userId }) => {
       'skillmate-approved',
       'skillmate-rejected',
       'skillmate-removed',
+      'chat-message',
     ];
     const allUnread = notifications.filter((n) => n && !n.read).length;
     const sessionUnread = notifications.filter((n) => n && !n.read && sessionTypes.includes(n.type)).length;
@@ -526,9 +546,12 @@ const NotificationSection = ({ userId }) => {
                           <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
-                        {n.message || `${n.requesterName} has sent you a SkillMate request.`}
-                      </p>
+                      <div className="relative bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm">
+                        <p className="text-sm font-medium text-blue-800">
+                          {n.skillMateRequest.requester?.firstName} {n.skillMateRequest.requester?.lastName} has sent you a SkillMate request.
+                        </p>
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-t-lg"></div>
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-blue-500 font-medium">
                           {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
@@ -633,6 +656,41 @@ const NotificationSection = ({ userId }) => {
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
                           className="px-4 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm rounded-lg hover:from-orange-600 hover:to-orange-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        >
+                          Mark as Read
+                        </button>
+                      </div>
+                    </div>
+                  ) : n.type === 'chat-message' && n.chatMessage ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                        <span className="font-semibold text-purple-700">New Chat Message</span>
+                        {!n.read && (
+                          <span className="bg-purple-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
+                        )}
+                      </div>
+                      <div className="relative bg-blue-50 border border-blue-200 rounded-lg p-3 shadow-sm">
+                        <p className="text-sm font-medium text-blue-800">
+                          {n.chatMessage.sender?.firstName} {n.chatMessage.sender?.lastName}: {n.chatMessage.content}
+                        </p>
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-purple-600 rounded-t-lg"></div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
+                      <div className="flex gap-3 mt-3">
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-1.5 bg-gradient-to-r from-purple-500 to-purple-600 text-white text-sm rounded-lg hover:from-purple-600 hover:to-purple-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Mark as Read
                         </button>

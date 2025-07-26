@@ -3,6 +3,7 @@ const router = express.Router();
 const Notification = require('../models/Notification');
 const SessionRequest = require('../models/SessionRequest');
 const SkillMate = require('../models/SkillMate');
+const ChatMessage = require('../models/Chat');
 const auth = require('../middleware/requireAuth');
 
 // Get notifications for the authenticated user
@@ -13,7 +14,7 @@ router.get('/', auth, async (req, res) => {
       .sort({ timestamp: -1 })
       .populate('requesterId', 'firstName lastName');
 
-    // Populate requestId based on notification type
+    // Populate requestId or messageId based on notification type
     notifications = await Promise.all(notifications.map(async (notification) => {
       let populatedNotification = notification.toObject();
       if (notification.requestId) {
@@ -28,6 +29,10 @@ router.get('/', auth, async (req, res) => {
             .populate('recipient', 'firstName lastName profilePic');
           populatedNotification.skillMateRequest = skillMateRequest;
         }
+      } else if (notification.messageId && notification.type === 'chat-message') {
+        const chatMessage = await ChatMessage.findById(notification.messageId)
+          .populate('senderId', 'firstName lastName profilePic');
+        populatedNotification.chatMessage = chatMessage;
       }
       return populatedNotification;
     }));
