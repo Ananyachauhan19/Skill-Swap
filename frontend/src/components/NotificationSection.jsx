@@ -73,7 +73,7 @@ const NotificationSection = ({ userId }) => {
           return {
             ...n,
             sessionRequest: matchingSession?.sessionRequest || n.sessionRequest,
-            skillMateRequest: matchingSkillMate?.skillMateRequest || n.skillMateRequest
+            skillMateRequest: matchingSkillMate?.skillMateRequest || n.skillMateRequest,
           };
         });
 
@@ -226,13 +226,13 @@ const NotificationSection = ({ userId }) => {
       'session-approved',
       'session-rejected',
       'session-cancelled',
-      'session-requested'
+      'session-requested',
     ];
     const skillmateTypes = [
       'skillmate-requested',
       'skillmate-approved',
       'skillmate-rejected',
-      'skillmate-removed'
+      'skillmate-removed',
     ];
     const allUnread = notifications.filter((n) => n && !n.read).length;
     const sessionUnread = notifications.filter((n) => n && !n.read && sessionTypes.includes(n.type)).length;
@@ -246,7 +246,7 @@ const NotificationSection = ({ userId }) => {
   return (
     <div className="relative font-sans">
       <button
-        className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 border-2 border-blue-300 hover:bg-blue-200 hover:text-blue-700 hover:shadow-xl hover:scale-105 transform transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+        className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white border-2 border-blue-300 hover:from-blue-600 hover:to-blue-700 hover:shadow-xl hover:scale-105 transform transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
         onClick={() => setShow((v) => !v)}
         title="Notifications"
         aria-label="Notifications"
@@ -262,7 +262,7 @@ const NotificationSection = ({ userId }) => {
             strokeLinecap="round"
             strokeLinejoin="round"
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-        />
+          />
         </svg>
         {unreadCounts.all > 0 && (
           <span className="absolute top-0 right-0 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-1 shadow-md animate-pulse">
@@ -273,9 +273,9 @@ const NotificationSection = ({ userId }) => {
       {show && (
         <div
           ref={dropdownRef}
-          className="absolute right-0 mt-3 w-[90vw] max-w-md bg-white border border-blue-200 rounded-2xl shadow-2xl z-[2000] overflow-hidden transform transition-all duration-300 ease-in-out"
+          className="notification-dropdown absolute right-0 mt-3 w-[90vw] max-w-md bg-white border border-blue-200 rounded-2xl shadow-2xl z-[2000] overflow-hidden backdrop-blur-sm bg-opacity-95 transition-all duration-300 ease-in-out hover:shadow-3xl"
         >
-          <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border-b border-blue-100">
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
             <span className="font-bold text-lg text-blue-900">Notifications</span>
             <button
               className="text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200"
@@ -284,7 +284,7 @@ const NotificationSection = ({ userId }) => {
               Clear All
             </button>
           </div>
-          <div className="flex bg-blue-50 border-b border-blue-100">
+          <div className="flex bg-blue-50 border-b border-blue-200">
             <button
               className={`flex-1 py-2.5 text-sm font-semibold relative transition-colors duration-200 ${
                 activeTab === 'all'
@@ -331,7 +331,7 @@ const NotificationSection = ({ userId }) => {
               )}
             </button>
           </div>
-          <ul className="max-h-[75vh] overflow-y-auto divide-y divide-blue-50">
+          <ul className="max-h-[75vh] overflow-y-auto divide-y divide-blue-100">
             {filteredNotifications.length === 0 ? (
               <li className="px-4 py-6 text-center text-gray-600 text-base font-medium">
                 No {activeTab === 'all' ? '' : activeTab} notifications
@@ -340,7 +340,7 @@ const NotificationSection = ({ userId }) => {
               filteredNotifications.map((n, idx) => (
                 <li
                   key={n._id || idx}
-                  className="px-4 py-4 text-blue-800 text-sm hover:bg-blue-50 cursor-pointer transition-colors duration-200"
+                  className="notification-item px-4 py-4 text-blue-800 text-sm hover:bg-blue-50 cursor-pointer transition-colors duration-200"
                 >
                   {n.type === 'session-requested' && n.sessionRequest ? (
                     <SessionRequestNotification
@@ -357,6 +357,8 @@ const NotificationSection = ({ userId }) => {
                         firstName: n.requesterName ? n.requesterName.split(' ')[0] : 'Unknown',
                         lastName: n.requesterName ? n.requesterName.split(' ')[1] || '' : '',
                       }}
+                      onAccept={() => handleApproveSession(n.sessionId, idx)}
+                      onReject={() => handleRejectSession(n.sessionId, idx)}
                       onClose={() => handleNotificationRead(n._id, idx)}
                     />
                   ) : n.type === 'session-started' ? (
@@ -368,25 +370,54 @@ const NotificationSection = ({ userId }) => {
                           <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'Session started.'}</p>
+                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                        {n.message || 'Session started.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => {
                             if (n.onJoin) n.onJoin();
                             handleNotificationRead(n._id, idx);
                           }}
-                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm rounded-lg hover:from-green-600 hover:to-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          disabled={loading[`approve-${idx}`]}
                         >
-                          Join
+                          {loading[`approve-${idx}`] ? (
+                            <span className="flex items-center">
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                              Joining...
+                            </span>
+                          ) : (
+                            'Join'
+                          )}
                         </button>
                         <button
                           onClick={() => {
                             if (n.onCancel) n.onCancel();
                             handleNotificationRead(n._id, idx);
                           }}
-                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm rounded-lg hover:from-red-600 hover:to-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          disabled={loading[`reject-${idx}`]}
                         >
-                          Cancel
+                          {loading[`reject-${idx}`] ? (
+                            <span className="flex items-center">
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                              Cancelling...
+                            </span>
+                          ) : (
+                            'Cancel'
+                          )}
                         </button>
                       </div>
                     </div>
@@ -399,11 +430,24 @@ const NotificationSection = ({ userId }) => {
                           <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'Your session request has been approved.'}</p>
+                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                        {n.message || 'Your session request has been approved.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm rounded-lg hover:from-green-600 hover:to-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Mark as Read
                         </button>
@@ -418,11 +462,24 @@ const NotificationSection = ({ userId }) => {
                           <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'Your session request has been rejected.'}</p>
+                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                        {n.message || 'Your session request has been rejected.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm rounded-lg hover:from-red-600 hover:to-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Mark as Read
                         </button>
@@ -437,26 +494,52 @@ const NotificationSection = ({ userId }) => {
                           <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'Your session has been cancelled.'}</p>
+                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                        {n.message || 'Your session has been cancelled.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-4 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm rounded-lg hover:from-orange-600 hover:to-orange-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Mark as Read
                         </button>
                       </div>
                     </div>
                   ) : n.type === 'skillmate-requested' && n.skillMateRequest ? (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                         <span className="font-semibold text-blue-700">SkillMate Request</span>
                         {!n.read && (
-                          <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">New</span>
+                          <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || `${n.requesterName} has sent you a SkillMate request.`}</p>
+                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                        {n.message || `${n.requesterName} has sent you a SkillMate request.`}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-500">Check the request section to approve or reject.</p>
                     </div>
                   ) : n.type === 'skillmate-approved' ? (
@@ -465,16 +548,29 @@ const NotificationSection = ({ userId }) => {
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                         <span className="font-semibold text-green-700">SkillMate Approved</span>
                         {!n.read && (
-                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">OK</span>
+                          <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'Your SkillMate request has been approved.'}</p>
+                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                        {n.message || 'Your SkillMate request has been approved.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm rounded-lg hover:from-green-600 hover:to-green-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
-                          Mark as read
+                          Mark as Read
                         </button>
                       </div>
                     </div>
@@ -484,16 +580,29 @@ const NotificationSection = ({ userId }) => {
                         <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                         <span className="font-semibold text-red-700">SkillMate Rejected</span>
                         {!n.read && (
-                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">Sorry</span>
+                          <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'Your SkillMate request has been rejected.'}</p>
+                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                        {n.message || 'Your SkillMate request has been rejected.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-4 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-sm rounded-lg hover:from-red-600 hover:to-red-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
-                          Mark as read
+                          Mark as Read
                         </button>
                       </div>
                     </div>
@@ -503,16 +612,29 @@ const NotificationSection = ({ userId }) => {
                         <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
                         <span className="font-semibold text-orange-700">SkillMate Removed</span>
                         {!n.read && (
-                          <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">OK</span>
+                          <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-700">{n.message || 'You have been removed as a SkillMate.'}</p>
+                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                        {n.message || 'You have been removed as a SkillMate.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-4 py-1.5 bg-orange-600 text-white text-sm rounded-lg hover:bg-orange-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-sm rounded-lg hover:from-orange-600 hover:to-orange-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
-                          Mark as read
+                          Mark as Read
                         </button>
                       </div>
                     </div>
@@ -525,11 +647,24 @@ const NotificationSection = ({ userId }) => {
                           <span className="bg-gray-500 text-white text-xs px-2 py-1 rounded-full shadow-sm">NEW</span>
                         )}
                       </div>
-                      <p className="text-gray-600">{n.message || 'General notification.'}</p>
+                      <p className="notification-message text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                        {n.message || 'General notification.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-blue-500 font-medium">
+                          {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          }) : 'Unknown time'}
+                        </span>
+                      </div>
                       <div className="flex gap-3 mt-3">
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-4 py-1.5 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                          className="px-4 py-1.5 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-sm rounded-lg hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           Mark as Read
                         </button>

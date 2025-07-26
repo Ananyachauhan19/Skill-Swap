@@ -40,7 +40,9 @@ const SessionRequestNotification = ({ sessionRequest, requester, onClose }) => {
         )}
       </div>
       <div>
-        <p className="text-sm text-gray-700">{message}</p>
+        <p className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400 py-1 px-2 rounded-md bg-blue-50 shadow-sm hover:from-blue-700 hover:to-blue-500 transition-all duration-200">
+          {message}
+        </p>
         <p className="text-xs text-gray-500 mt-1">
           Check the request section to approve or reject.
         </p>
