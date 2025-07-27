@@ -26,13 +26,13 @@ const server = http.createServer(app);
 
 const io = socketIO(server, {
   cors: { 
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'https://skill-swap-qbsn.onrender.com'],
     credentials: true 
   },
 });
 
 app.use(cors({ 
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://skill-swap-qbsn.onrender.com'],
   credentials: true 
 }));
 app.use(express.json());

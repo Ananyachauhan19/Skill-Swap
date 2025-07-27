@@ -5,7 +5,7 @@ const TutorQuestions = () => {
   const [questions, setQuestions] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/questions/')
+    axios.get('https://skill-swap-69nw.onrender.com/api/questions/')
       .then(res => setQuestions(res.data))
       .catch(() => setQuestions([]));
   }, []);
@@ -20,7 +20,7 @@ const TutorQuestions = () => {
           <p><b>Subtopic:</b> {q.subtopic}</p>
           <p><b>Question:</b> {q.questionText}</p>
           {q.fileUrl && (
-            <a href={`http://localhost:5000${q.fileUrl}`} target="_blank" rel="noopener noreferrer">
+            <a href={`https://skill-swap-69nw.onrender.com${q.fileUrl}`} target="_blank" rel="noopener noreferrer">
               View Uploaded File
             </a>
           )}
