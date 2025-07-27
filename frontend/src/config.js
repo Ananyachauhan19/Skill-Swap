@@ -1,16 +1,18 @@
-// Get the backend URL dynamically
+// getBackendUrl.js
+
+// Function to get the backend URL dynamically
 export const getBackendUrl = () => {
-  // If we're in development, use localhost
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  // Development environment (local)
+  if (
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1'
+  ) {
     return 'http://localhost:5000';
   }
-  
-  // For production or cross-network, use the same hostname as the frontend
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = '5000'; // Backend port
-  
-  return `${protocol}//${hostname}:${port}`;
+
+  // Production: use your Render backend URL
+  return 'https://skill-swap-69nw.onrender.com'; 
 };
 
-export const BACKEND_URL = getBackendUrl(); 
+// Export the constant for use in your app
+export const BACKEND_URL = getBackendUrl();
