@@ -55,10 +55,11 @@ router.get('/google/callback', passport.authenticate('google', {
       return res.redirect('/auth/failure');
     }
     const token = generateToken(user);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = 'https://skill-swap-qbsn.onrender.com';
+// ... existing code ...;
     res.cookie('token', token, {
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'none',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
       domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : null
     });
