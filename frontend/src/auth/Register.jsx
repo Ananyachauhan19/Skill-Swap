@@ -16,6 +16,9 @@ import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config.js';
 import { STATIC_COURSES, STATIC_UNITS, STATIC_TOPICS } from '../constants/teachingData';
 
+
+
+
 const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const navigate = useNavigate();
   const { openLogin } = useModal();
@@ -39,8 +42,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const leftPanelRef = useRef(null);
-
-  // ✅ New OTP States
   const [otp, setOtp] = useState("");
   const [showOtp, setShowOtp] = useState(false);
   const [emailForOtp, setEmailForOtp] = useState("");
@@ -54,7 +55,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   ];
   const extendedImages = [...carouselImages, ...carouselImages];
 
-  const MAX_SKILLS = 3; // Limit to 3 skills to prevent overflow
+  const MAX_SKILLS = 3;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -139,7 +140,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
       setIsLoading(true);
       setError("");
       
-      // Store registration data for OTP verification
       setRegistrationData({
         firstName,
         lastName,
@@ -152,7 +152,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         skillsToTeach,
       });
       
-      // Send registration request
       const res = await axios.post(`${BACKEND_URL}/api/auth/register`, {
         firstName,
         lastName,
@@ -165,7 +164,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         skillsToTeach,
       });
       
-      // Show OTP verification
       setEmailForOtp(email);
       setShowOtp(true);
       setError("");
@@ -222,7 +220,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
       className={`${
         isModal
           ? "fixed inset-0 z-50 flex items-center justify-center"
-          : "min-h-screen flex items-center justify-center pt-12 pb-8 px-4"
+          : "min-h-screen flex items-center justify-center pt-8 pb-4 px-2 sm:px-4"
       }`}
       style={{
         backgroundColor: isModal ? "rgba(0,0,0,0.2)" : "transparent",
@@ -234,13 +232,13 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
-        className="bg-white rounded-xl p-4 w-[90vw] max-w-[1000px] h-[85vh] md:h-[650px] flex flex-col"
+        className="bg-white rounded-xl p-3 sm:p-4 w-[95vw] sm:w-[90vw] max-w-[1000px] h-[90vh] sm:h-[85vh] md:h-[650px] flex flex-col"
       >
         <div className="flex flex-col md:flex-row w-full h-full">
           {/* Left Panel */}
           <div
             ref={leftPanelRef}
-            className="w-full md:w-1/2 relative"
+            className="w-full md:w-1/2 relative hidden md:block"
             style={{
               backgroundColor: "#e6f2fb",
               borderTopLeftRadius: "32px",
@@ -277,80 +275,65 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                 </div>
               </div>
             </div>
-
-            <div className="absolute bottom-3 left-0 right-0 flex justify-center space-x-2 z-30">
-              {carouselImages.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentImageIndex(idx)}
-                  className={`w-2 h-2 rounded-full transition-all ${
-                    idx === currentImageIndex
-                      ? "bg-blue-600 scale-125"
-                      : "bg-blue-300"
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
           </div>
 
           {/* Right Panel */}
-          <div className="w-full md:w-1/2 p-6 bg-white flex items-center justify-center">
-            <div className={`w-full ${skillsToTeach.length > 1 ? 'max-w-[450px]' : 'max-w-[380px]'} bg-white rounded-lg p-3 flex flex-col gap-1.5 overflow-hidden`}>
+          <div className="w-full md:w-1/2 p-2 sm:p-4 bg-white flex items-center justify-center">
+            <div className="w-full max-w-[360px] sm:max-w-[420px] bg-white rounded-lg p-2 sm:p-3 flex flex-col gap-2">
               {isModal && (
                 <button
                   onClick={onClose}
-                  className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 transition-colors"
+                  className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 transition-colors"
                   aria-label="Close"
                 >
                   <FaTimes className="w-4 h-4" />
                 </button>
               )}
 
-              <h1 className="text-lg font-bold text-[#154360] text-center">
+              <h1 className="text-base sm:text-lg font-bold text-[#154360] text-center">
                 Create an Account
               </h1>
 
               {error && (
-                <div className="p-1 bg-red-50 text-red-700 rounded-lg text-[11px] flex items-center gap-1">
+                <div className="p-2 bg-red-50 text-red-700 rounded-lg text-xs flex items-center gap-1">
                   <FaExclamationCircle className="w-3 h-3" />
                   <span>{error}</span>
                 </div>
               )}
 
               {!showOtp ? (
-                <form onSubmit={handleSubmit} className="space-y-1.5">
-                  <div className="grid grid-cols-2 gap-1.5">
+                <form onSubmit={handleSubmit} className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      First Name*
-                    </label>
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={form.firstName}
-                      onChange={handleChange}
-                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                        First Name*
+                      </label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={form.firstName}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs"
                         placeholder="Enter first name"
-                    />
-                  </div>
+                      />
+                    </div>
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={form.lastName}
-                      onChange={handleChange}
-                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={form.lastName}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs"
                         placeholder="Enter last name"
-                    />
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">
                       Username*
                     </label>
                     <input
@@ -358,142 +341,142 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                       name="username"
                       value={form.username}
                       onChange={handleChange}
-                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs"
                       placeholder="Choose a unique username"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Email*
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    autoComplete="email"
-                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                      Email*
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      autoComplete="email"
+                      className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs"
                       placeholder="Enter your email"
-                  />
-                </div>
-
-                <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Phone*
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                      placeholder="Enter your phone number"
-                  />
-                </div>
-
-                <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Gender*
-                  </label>
-                    <div className="flex gap-1">
-                    {["male", "female", "other"].map((g) => (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => setForm({ ...form, gender: g })}
-                          className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] font-medium transition-all ${
-                          form.gender === g
-                            ? "border-blue-600 bg-blue-50 text-blue-800"
-                              : "border-gray-300 text-gray-700 hover:bg-gray-100 border"
-                        }`}
-                      >
-                        {g === "male" ? (
-                            <FaMale className="w-2.5 h-2.5" />
-                        ) : g === "female" ? (
-                            <FaFemale className="w-2.5 h-2.5" />
-                        ) : (
-                            <MdOutlineMoreHoriz className="w-2.5 h-2.5" />
-                        )}
-                        {g.charAt(0).toUpperCase() + g.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Password*
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      placeholder="Create password"
-                      value={form.password}
-                      onChange={handleChange}
-                      autoComplete="new-password"
-                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
                     />
-                    <button
-                      type="button"
-                        className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                          <FaEyeSlash className="w-2.5 h-2.5" />
-                      ) : (
-                          <FaEye className="w-2.5 h-2.5" />
-                      )}
-                    </button>
                   </div>
-                </div>
-
-                <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
-                    Confirm Password*
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      name="confirmPassword"
-                      placeholder="Re-enter password"
-                      value={form.confirmPassword}
-                      onChange={handleChange}
-                      autoComplete="new-password"
-                        className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
-                    />
-                    <button
-                      type="button"
-                        className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? (
-                          <FaEyeSlash className="w-2.5 h-2.5" />
-                      ) : (
-                          <FaEye className="w-2.5 h-2.5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                      Phone*
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs"
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                      Gender*
+                    </label>
+                    <div className="flex gap-2 flex-wrap">
+                      {["male", "female", "other"].map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => setForm({ ...form, gender: g })}
+                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all ${
+                            form.gender === g
+                              ? "border-blue-600 bg-blue-50 text-blue-800"
+                              : "border-gray-300 text-gray-700 hover:bg-gray-100 border"
+                          }`}
+                        >
+                          {g === "male" ? (
+                            <FaMale className="w-3 h-3" />
+                          ) : g === "female" ? (
+                            <FaFemale className="w-3 h-3" />
+                          ) : (
+                            <MdOutlineMoreHoriz className="w-3 h-3" />
+                          )}
+                          {g.charAt(0).toUpperCase() + g.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                      Password*
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        placeholder="Create password"
+                        value={form.password}
+                        onChange={handleChange}
+                        autoComplete="new-password"
+                        className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <FaEyeSlash className="w-3 h-3" />
+                        ) : (
+                          <FaEye className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">
+                      Confirm Password*
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        name="confirmPassword"
+                        placeholder="Re-enter password"
+                        value={form.confirmPassword}
+                        onChange={handleChange}
+                        autoComplete="new-password"
+                        className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <FaEyeSlash className="w-3 h-3" />
+                        ) : (
+                          <FaEye className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">
                       Register as:
                     </label>
-                    <div className="flex gap-1.5">
+                    <div className="flex gap-2 flex-wrap">
                       {["teacher", "learner", "both"].map((r) => (
-                        <label key={r} className="flex items-center gap-0.5">
+                        <label key={r} className="flex items-center gap-1">
                           <input
                             type="radio"
                             name="role"
                             value={r}
                             checked={role === r}
                             onChange={() => setRole(r)}
-                            className="w-2.5 h-2.5 text-blue-600"
+                            className="w-3 h-3 text-blue-600"
                           />
-                          <span className="text-[11px]">{r.charAt(0).toUpperCase() + r.slice(1)}</span>
+                          <span className="text-xs">{r.charAt(0).toUpperCase() + r.slice(1)}</span>
                         </label>
                       ))}
                     </div>
@@ -501,13 +484,13 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
 
                   {(role === 'teacher' || role === 'both') && (
                     <div>
-                      <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                      <label className="block text-xs font-medium text-gray-700 mb-0.5">
                         What do you want to teach? (Max {MAX_SKILLS} skills)
                       </label>
                       {skillsToTeach.map((skill, idx) => (
-                        <div key={idx} className="flex gap-1 mb-0.5 items-center">
+                        <div key={idx} className="flex gap-2 mb-1 items-center flex-wrap">
                           <select
-                            className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="flex-1 min-w-[90px] px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none"
                             value={skill.subject}
                             onChange={(e) => handleSkillChange(idx, 'subject', e.target.value)}
                             required={role === 'teacher' || role === 'both'}
@@ -520,7 +503,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                             ))}
                           </select>
                           <select
-                            className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="flex-1 min-w-[90px] px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none"
                             value={skill.topic}
                             onChange={(e) => handleSkillChange(idx, 'topic', e.target.value)}
                             required={role === 'teacher' || role === 'both'}
@@ -534,7 +517,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                             ))}
                           </select>
                           <select
-                            className="flex-1 px-1.5 py-0.5 border border-gray-300 rounded-lg text-[11px] focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="flex-1 min-w-[90px] px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none"
                             value={skill.subtopic}
                             onChange={(e) => handleSkillChange(idx, 'subtopic', e.target.value)}
                             required={role === 'teacher' || role === 'both'}
@@ -551,7 +534,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                             <button
                               type="button"
                               onClick={() => handleRemoveSkill(idx)}
-                              className="text-red-500 hover:text-red-700 font-medium text-[11px]"
+                              className="text-red-500 hover:text-red-700 font-medium text-xs"
                             >
                               Remove
                             </button>
@@ -562,7 +545,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                         <button
                           type="button"
                           onClick={handleAddSkill}
-                          className="text-blue-600 hover:text-blue-800 underline text-[11px]"
+                          className="text-blue-600 hover:text-blue-800 underline text-xs"
                         >
                           Add Another Skill
                         </button>
@@ -570,88 +553,88 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                     </div>
                   )}
 
-                  <div className="flex items-start text-[11px] text-gray-600">
+                  <div className="flex items-start text-xs text-gray-600">
                     <input
                       type="checkbox"
                       required
-                      className="mt-0.5 mr-1 w-2.5 h-2.5 text-blue-600"
+                      className="mt-0.5 mr-1 w-3 h-3 text-blue-600"
                     />
-                  <span>
-                    I agree to the{" "}
+                    <span>
+                      I agree to the{" "}
                       <a href="#" className="text-blue-600 hover:underline">
-                      Privacy Policy
-                    </a>{" "}
-                    and{" "}
+                        Privacy Policy
+                      </a>{" "}
+                      and{" "}
                       <a href="#" className="text-blue-600 hover:underline">
-                      Terms
-                    </a>
-                  </span>
-                </div>
+                        Terms
+                      </a>
+                    </span>
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={isLoading || !isFormValid}
-                    className={`w-full py-1.5 ${registerButtonColor} rounded-lg font-semibold text-[11px] text-white transition-all flex items-center justify-center ${
-                    isLoading ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"
-                  }`}
-                >
-                  {isLoading ? (
-                    <svg className="animate-spin h-3 w-3 text-white" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      />
-                    </svg>
-                  ) : (
-                    "Create Account"
-                  )}
-                </button>
-
-                  <div className="text-center text-[11px]">
-                  <span className="text-gray-600">Already have an account? </span>
                   <button
-                      type="button"
-                    onClick={() => {
-                      if (isModal && onClose) {
-                        onClose();
-                        openLogin();
-                      } else {
-                        navigate("/login");
-                      }
-                    }}
-                      className="font-semibold text-[#154360] hover:underline"
+                    type="submit"
+                    disabled={isLoading || !isFormValid}
+                    className={`w-full py-1.5 ${registerButtonColor} rounded-lg font-semibold text-xs text-white transition-all flex items-center justify-center ${
+                      isLoading ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"
+                    }`}
                   >
-                    Login
+                    {isLoading ? (
+                      <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                    ) : (
+                      "Create Account"
+                    )}
                   </button>
-                </div>
-              </form>
+
+                  <div className="text-center text-xs">
+                    <span className="text-gray-600">Already have an account? </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (isModal && onClose) {
+                          onClose();
+                          openLogin();
+                        } else {
+                          navigate("/login");
+                        }
+                      }}
+                      className="font-semibold text-[#154360] hover:underline"
+                    >
+                      Login
+                    </button>
+                  </div>
+                </form>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2 max-w-[360px] sm:max-w-[420px] mx-auto flex flex-col items-center">
                   <div className="text-center">
-                    <h2 className="text-lg font-bold text-[#154360] mb-2">Verify Your Email</h2>
-                    <p className="text-[11px] text-gray-600 mb-4">
+                    <h2 className="text-base sm:text-lg font-bold text-[#154360] mb-2">Verify Your Email</h2>
+                    <p className="text-xs text-gray-600 mb-3">
                       We've sent a verification code to <strong>{emailForOtp}</strong>
                     </p>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-medium text-gray-700 mb-0.5">
+                  <div className="w-full">
+                    <label className="block text-xs font-medium text-gray-700 mb-0.5">
                       Enter OTP*
                     </label>
                     <input
                       type="text"
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
-                      className="w-full px-1.5 py-0.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-[11px]"
+                      className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all text-xs"
                       placeholder="Enter 6-digit code"
                       maxLength={6}
                     />
@@ -660,14 +643,14 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                   <button
                     onClick={handleVerifyOtp}
                     disabled={!otp || otp.length !== 6}
-                    className={`w-full py-1.5 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 rounded-lg font-semibold text-[11px] text-white transition-all flex items-center justify-center ${
+                    className={`w-full py-1.5 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 rounded-lg font-semibold text-xs text-white transition-all flex items-center justify-center ${
                       !otp || otp.length !== 6 ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"
                     }`}
                   >
                     Verify & Complete Registration
                   </button>
 
-                  <div className="text-center text-[11px]">
+                  <div className="text-center text-xs">
                     <span className="text-gray-600">Didn't receive the code? </span>
                     <button
                       type="button"

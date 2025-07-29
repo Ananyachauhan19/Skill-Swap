@@ -18,7 +18,6 @@ function useSessionSocketNotifications(setNotifications) {
       socket.emit('register', user._id);
     }
 
-    // Listen for session request received (for tutors)
     socket.on('session-request-received', (data) => {
       const { sessionRequest, requester } = data;
       setNotifications((prev) => [
@@ -37,7 +36,6 @@ function useSessionSocketNotifications(setNotifications) {
                 headers: { 'Content-Type': 'application/json' }
               });
               if (response.ok) {
-                // Send socket notification to requester
                 socket.emit('session-request-response', {
                   requestId: sessionRequest._id,
                   action: 'approve'
@@ -56,7 +54,6 @@ function useSessionSocketNotifications(setNotifications) {
                 headers: { 'Content-Type': 'application/json' }
               });
               if (response.ok) {
-                // Send socket notification to requester
                 socket.emit('session-request-response', {
                   requestId: sessionRequest._id,
                   action: 'reject'
@@ -72,7 +69,6 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Listen for session request updated (for requesters)
     socket.on('session-request-updated', (data) => {
       const { sessionRequest, action } = data;
       setNotifications((prev) => [
@@ -88,13 +84,12 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Listen for session-requested (for creators)
     socket.on('session-requested', (session) => {
       setNotifications((prev) => [
         {
           type: 'session-requested',
           session,
-          sessionId: session._id, // Add sessionId for approve/reject functionality
+          sessionId: session._id,
           message: `You have a new session request from ${session.requester?.name || session.requester?.firstName || 'a user'}.`,
           timestamp: Date.now(),
           read: false,
@@ -103,7 +98,6 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Listen for session-approved (for requesters)
     socket.on('session-approved', (session) => {
       setNotifications((prev) => [
         {
@@ -117,7 +111,6 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Listen for session-rejected (for requesters)
     socket.on('session-rejected', (session) => {
       setNotifications((prev) => [
         {
@@ -131,7 +124,6 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Listen for session-started (for approved users)
     socket.on('session-started', (data) => {
       const newNotification = {
         type: 'session-started',
@@ -140,11 +132,9 @@ function useSessionSocketNotifications(setNotifications) {
         timestamp: Date.now(),
         read: false,
         onJoin: () => {
-          // Handle joining the video call
           setActiveVideoCall(data.sessionId);
         },
         onCancel: () => {
-          // Handle canceling the session
           fetch(`${BACKEND_URL}/api/sessions/${data.sessionId}/cancel`, {
             method: 'POST',
             headers: {
@@ -163,11 +153,10 @@ function useSessionSocketNotifications(setNotifications) {
       };
       setNotifications((prev) => {
         const updated = [newNotification, ...prev];
-        return updated;
+ഗ
       });
     });
 
-    // Listen for session-cancelled (for creators)
     socket.on('session-cancelled', (data) => {
       setNotifications((prev) => [
         {
@@ -181,7 +170,6 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Listen for skillmate-request-received (for recipients)
     socket.on('skillmate-request-received', (data) => {
       const { skillMateRequest, requester } = data;
       setNotifications((prev) => [
@@ -199,7 +187,6 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Listen for skillmate-request-sent (for requesters)
     socket.on('skillmate-request-sent', (data) => {
       const { skillMateRequest, recipient } = data;
       setNotifications((prev) => [
@@ -217,7 +204,6 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Listen for skillmate-request-approved (for both users)
     socket.on('skillmate-request-approved', (data) => {
       const { skillMateRequest, approver, requester } = data;
       const isRequester = user && user._id === requester._id;
@@ -240,7 +226,6 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Listen for skillmate-request-rejected (for both users)
     socket.on('skillmate-request-rejected', (data) => {
       const { skillMateRequest, rejecter, requester } = data;
       const isRequester = user && user._id === requester._id;
@@ -263,7 +248,6 @@ function useSessionSocketNotifications(setNotifications) {
       ]);
     });
 
-    // Cleanup listeners on unmount
     return () => {
       socket.off('session-request-received');
       socket.off('session-request-updated');
@@ -296,7 +280,7 @@ const Navbar = () => {
   const menuRef = useRef();
   const coinsRef = useRef();
 
-  // Load notifications from localStorage on component mount
+  // Load notifications from localStorage
   useEffect(() => {
     const savedNotifications = localStorage.getItem('notifications');
     if (savedNotifications) {
@@ -309,19 +293,19 @@ const Navbar = () => {
     }
   }, []);
 
-  // Save notifications to localStorage whenever they change
+  // Save notifications to localStorage
   useEffect(() => {
     localStorage.setItem('notifications', JSON.stringify(notifications));
   }, [notifications]);
 
-  // Clean up old notifications (older than 24 hours)
+  // Clean up old notifications
   useEffect(() => {
     const cleanupOldNotifications = () => {
       const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
       const now = Date.now();
       
       const filteredNotifications = notifications.filter(notification => {
-        if (!notification.timestamp) return true; // Keep notifications without timestamp
+        if (!notification.timestamp) return true;
         return (now - notification.timestamp) < TWENTY_FOUR_HOURS;
       });
       
@@ -330,7 +314,6 @@ const Navbar = () => {
       }
     };
 
-    // Clean up every hour
     const interval = setInterval(cleanupOldNotifications, 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, [notifications]);
@@ -374,21 +357,18 @@ const Navbar = () => {
     };
   }, [showProfileMenu, showCoinsDropdown]);
 
- const handleSearch = (e) => {
-  e.preventDefault();
-  if (searchQuery.trim()) {
-    const username = searchQuery.trim();
-
-    if (location.pathname.startsWith("/profile/")) {
-      // Already on profile page, just change the route programmatically without full reload
-      navigate(`/profile/${username}`, { replace: true });
-    } else {
-      navigate(`/profile/${username}`);
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      const username = searchQuery.trim();
+      if (location.pathname.startsWith("/profile/")) {
+        navigate(`/profile/${username}`, { replace: true });
+      } else {
+        navigate(`/profile/${username}`);
+      }
+      setSearchQuery("");
     }
-
-    setSearchQuery("");
-  }
-};
+  };
 
   const handleLoginClick = () => {
     openLogin();
@@ -457,184 +437,188 @@ const Navbar = () => {
 
   return (
     <>
-    <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] text-blue-800 px-2 sm:px-4 md:px-6 lg:px-8 py-2 sm:py-3 shadow-lg border-b-2 border-blue-200 z-50 animate-fadeIn">
-      <div className="flex items-center justify-between max-w-7xl mx-auto">
-        {/* Left: Logo */}
-        <div
-          className="flex items-center gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
-          onClick={() => navigate("/")}
-        >
-          <img
-            src="/assets/skillswap-logo.webp"
-            alt="SkillSwapHub Logo"
-            className="h-8 sm:h-10 w-8 sm:w-10 object-contain rounded-full shadow-md"
-          />
-          <span className="text-sm sm:text-lg font-bold text-blue-900 font-lora">
-            SkillSwapHub
-          </span>
-        </div>
-
-        {/* Right: Mobile Menu Button, Search, Auth/Profile */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Mobile Menu Button */}
-          <button
-            className="sm:hidden p-2 rounded-md text-blue-800 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            onClick={handleMobileMenu}
-            aria-label="Toggle menu"
+      <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] text-blue-800 px-2 sm:px-4 md:px-6 lg:px-8 py-1.5 sm:py-2 shadow-md border-b border-blue-200 z-50 animate-fadeIn">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
+          {/* Left: Logo */}
+          <div
+            className="flex items-center gap-1 cursor-pointer transition-transform duration-300 hover:scale-105"
+            onClick={() => navigate("/")}
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
-              />
-            </svg>
-          </button>
+            <img
+              src="/assets/skillswap-logo.webp"
+              alt="SkillSwapHub Logo"
+              className="h-7 sm:h-8 w-7 sm:w-8 object-contain rounded-full shadow-md border-2 border-blue-800"
+            />
+            <span className="text-xs sm:text-base font-bold text-blue-800 font-lora">
+              SkillSwapHub
+            </span>
+          </div>
 
-          {/* Desktop Search Bar */}
-          <div className="hidden sm:flex flex-1 max-w-xs">
-            <form onSubmit={handleSearch} className="w-full">
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search skills..."
-                  className="pl-10 pr-4 py-2 text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-blue-800 placeholder-blue-800 w-full font-nunito"
-                />
+          {/* Right: Mobile Menu Button, Desktop Search, Auth/Profile */}
+          <div className="flex items-center gap-1 sm:gap-3">
+            {/* Desktop Search Bar */}
+            <div className="hidden sm:flex flex-1 max-w-[200px] md:max-w-xs">
+              <form onSubmit={handleSearch} className="w-full">
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search SkillMate..."
+                    className="pl-8 pr-3 py-1.5 text-xs md:text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-blue-800 placeholder-blue-800 w-full font-nunito"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-blue-800"
+                  >
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Desktop Navigation Links */}
+            <div className="hidden sm:flex items-center gap-2 md:gap-3">
+              {[
+                { path: "/home", label: "Home" },
+                { path: "/one-on-one", label: "1-on-1" },
+                { path: "/session", label: "Session" },
+                { path: "/session-requests", label: "Requests" },
+                { path: "/discuss", label: "Discuss" },
+                { path: "/interview", label: "Interview" },
+              ].map(({ path, label }) => (
                 <button
-                  type="submit"
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-700"
+                  key={path}
+                  className={`text-xs md:text-sm font-medium px-2 md:px-3 py-1 md:py-1.5 rounded-md transition-all duration-300 ${
+                    isActive(path)
+                      ? "bg-blue-100 text-blue-800 font-semibold border-b-2 border-blue-800"
+                      : "text-blue-800 hover:bg-blue-50 hover:text-blue-800 hover:border-b-2 hover:border-blue-800 hover:scale-105"
+                  }`}
+                  onClick={() => navigate(path)}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
+                  {label}
                 </button>
-              </div>
-            </form>
-          </div>
+              ))}
+            </div>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden sm:flex items-center gap-3">
-            {[
-              { path: "/home", label: "Home" },
-              { path: "/one-on-one", label: "1-on-1" },
-              { path: "/session", label: "Session" },
-              { path: "/session-requests", label: "Requests" },
-              { path: "/discuss", label: "GD" },
-              { path: "/interview", label: "Interview" },
-            ].map(({ path, label }) => (
-              <button
-                key={path}
-                className={`text-sm font-medium px-3 py-2 rounded-md transition-all duration-300 ${
-                  isActive(path)
-                    ? "bg-blue-100 text-blue-900 font-semibold border-b-2 border-blue-900"
-                    : "text-blue-900 hover:bg-blue-50 hover:text-blue-900 hover:border-b-2 hover:border-blue-900 hover:scale-105"
-                }`}
-                onClick={() => navigate(path)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+            {/* SkillCoin */}
+            {isLoggedIn && (
+              <div className="relative z-50">
+                <button
+                  className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white rounded-2xl shadow-md border border-blue-600 hover:scale-105 hover:shadow-lg transition duration-300"
+                  onClick={() => setShowCoinsDropdown((prev) => !prev)}
+                  title="SkillCoin"
+                  ref={coinsRef}
+                >
+                  <svg className="w-6 h-6" viewBox="0 0 64 64" fill="none">
+                    <defs>
+                      <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="#fff9c4" />
+                        <stop offset="30%" stopColor="#fdd835" />
+                        <stop offset="60%" stopColor="#fbc02d" />
+                        <stop offset="100%" stopColor="#f57f17" />
+                      </radialGradient>
+                      <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#ffecb3" />
+                        <stop offset="100%" stopColor="#ffa000" />
+                      </linearGradient>
+                    </defs>
+                    <circle cx="32" cy="32" r="28" fill="url(#3d-coin-gold)" stroke="url(#coin-edge)" strokeWidth="4" />
+                    <circle cx="32" cy="32" r="22" stroke="#fff8dc" strokeWidth="1.5" opacity="0.7" />
+                    <text
+                      x="32"
+                      y="40"
+                      fontSize="24"
+                      fill="#1e3a8a"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                      filter="url(#coin-glow)"
+                    >
+                      S
+                    </text>
+                  </svg>
+                  <span className="font-semibold text-sm font-nunito hidden md:inline">SkillCoin</span>
+                </button>
 
-          {/* SkillCoin - Visible on all screens when logged in */}
-          {isLoggedIn && (
-            <div className="relative">
-              <button
-                className="flex items-center gap-1.5 text-white bg-gradient-to-r from-blue-700 to-blue-900 font-nunito font-semibold px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm rounded-lg border border-blue-300 shadow-md transition-all duration-300 hover:from-blue-600 hover:to-blue-800 hover:shadow-lg hover:scale-105"
-                onClick={() => setShowCoinsDropdown((v) => !v)}
-                title="SkillCoin"
-                ref={coinsRef}
-              >
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="url(#coin-gradient)" viewBox="0 0 24 24">
-                  <defs>
-                    <linearGradient id="coin-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" style={{ stopColor: '#1e3a8a', stopOpacity: 1 }} />
-                      <stop offset="100%" style={{ stopColor: '#3b82f6', stopOpacity: 1 }} />
-                    </linearGradient>
-                  </defs>
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm-1-13h2v2h-2V7zm0 4h2v6h-2v-6z" />
-                  <circle cx="12" cy="12" r="8" fill="none" stroke="url(#coin-gradient)" strokeWidth="1" />
-                </svg>
-                <span className="hidden xs:inline">SkillCoin</span>
-              </button>
-              {showCoinsDropdown && (
-                <div className="absolute right-0 mt-2 w-40 bg-gradient-to-br from-blue-50 to-gray-50 border border-blue-200 rounded-xl shadow-lg z-40 animate-slide-up">
-                  <div className="p-3 space-y-2 font-nunito text-gray-600">
-                    <div className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-blue-100">
-                      <svg className="w-5 h-5" fill="url(#gold-gradient)" viewBox="0 0 24 24">
-                        <defs>
-                          <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style={{ stopColor: '#f59e0b', stopOpacity: 1 }} />
-                            <stop offset="100%" style={{ stopColor: '#d97706', stopOpacity: 1 }} />
-                          </linearGradient>
-                        </defs>
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
-                        <circle cx="12" cy="12" r="8" fill="none" stroke="url(#gold-gradient)" strokeWidth="1" />
-                      </svg>
-                      <span className="text-sm font-semibold text-gray-700">Golden Coins: {goldenCoins}</span>
-                    </div>
-                    <div className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-blue-100">
-                      <svg className="w-5 h-5" fill="url(#silver-gradient)" viewBox="0 0 24 24">
-                        <defs>
-                          <linearGradient id="silver-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" style={{ stopColor: '#d1d5db', stopOpacity: 1 }} />
-                            <stop offset="100%" style={{ stopColor: '#9ca3af', stopOpacity: 1 }} />
-                          </linearGradient>
-                        </defs>
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z" />
-                        <circle cx="12" cy="12" r="8" fill="none" stroke="url(#silver-gradient)" strokeWidth="1" />
-                      </svg>
-                      <span className="text-sm font-semibold text-gray-700">Silver Coins: {silverCoins}</span>
+                {showCoinsDropdown && (
+                  <div className="absolute right-0 mt-2 w-44 bg-white border border-blue-200 rounded-xl shadow-xl animate-fade-in-down backdrop-blur-sm">
+                    <div className="p-3 space-y-2 text-sm font-medium text-gray-700">
+                      <div className="flex items-center gap-2 p-1 rounded-md hover:bg-blue-50 transition">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
+                          <span className="text-xs font-bold text-blue-900">G</span>
+                        </div>
+                        <span className="text-gray-800">Golden: {goldenCoins}</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-1 rounded-md hover:bg-blue-50 transition">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
+                          <span className="text-xs font-bold text-blue-900">S</span>
+                        </div>
+                        <span className="text-gray-800">Silver: {silverCoins}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            )}
 
-          {/* Notifications */}
-          <Notifications notifications={notifications} setNotifications={setNotifications} />
+            {/* Notifications */}
+            <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-5 h-" />
 
-          {/* Auth/Profile */}
-          {!isLoggedIn ? (
-            <button
-              className="bg-blue-700 text-white px-2 py-1 text-xs sm:px-3 sm:py-1.5 sm:text-sm rounded-md font-medium transition-all duration-300 hover:bg-blue-800 hover:scale-105 font-nunito"
-              onClick={handleLoginClick}
-            >
-              Login
-            </button>
-          ) : (
-            <div className="relative">
+            {/* Auth/Profile */}
+            {!isLoggedIn ? (
               <button
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:scale-105"
-                onClick={() => setShowProfileMenu((v) => !v)}
-                title="Profile"
-                ref={menuRef}
+                className="bg-blue-800 text-white px-1.5 py-0.5 text-xs md:px-2 md:py-1 md:text-sm rounded-md font-medium transition-all duration-300 hover:bg-blue-700 hover:scale-105 font-nunito"
+                onClick={handleLoginClick}
               >
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-                </svg>
+                Login
               </button>
-              {showProfileMenu && (
-                <ProfileDropdown
-                  show={showProfileMenu}
-                  onClose={() => setShowProfileMenu(false)}
-                  navigate={navigate}
-                  menuRef={menuRef}
+            ) : (
+              <div className="relative">
+                <button
+                  className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                  onClick={() => setShowProfileMenu((v) => !v)}
+                  title="Profile"
+                  ref={menuRef}
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                  </svg>
+                </button>
+                {showProfileMenu && (
+                  <ProfileDropdown
+                    show={showProfileMenu}
+                    onClose={() => setShowProfileMenu(false)}
+                    navigate={navigate}
+                    menuRef={menuRef}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Mobile Menu Button */}
+            <button
+              className="sm:hidden p-1.5 rounded-md text-blue-800 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              onClick={handleMobileMenu}
+              aria-label="Toggle menu"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
                 />
-              )}
-            </div>
-          )}
+              </svg>
+            </button>
+          </div>
         </div>
-      </div>
       </nav>
 
       {/* Mobile Menu */}

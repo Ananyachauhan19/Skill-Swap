@@ -90,7 +90,7 @@ const GoPro = () => {
 
     return (
       <span
-        className={`text-xs font-semibold px-3 py-1 rounded-full border ${
+        className={`text-xs font-semibold px-2 sm:px-3 py-1 rounded-full border ${
           typeStyles[type] || typeStyles.silver
         }`}
       >
@@ -100,27 +100,27 @@ const GoPro = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl sm:text-5xl font-bold text-blue-900 mb-4 tracking-tight">
+        <div className="text-center mb-12">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-900 mb-4 tracking-tight">
             SkillSwapHub <span className="text-blue-600">Pro</span> Features
           </h1>
-          <p className="text-lg text-blue-800 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg text-blue-800 max-w-3xl mx-auto">
             Unlock premium features and maximize your learning potential with our
             exclusive Skill Coin packages
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 mb-16">
           {/* Left Column */}
-          <div className="space-y-12">
-            <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg border border-blue-100 transition-all duration-300 hover:shadow-xl">
+          <div className="space-y-8">
+            <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg border border-blue-100 transition-all duration-300 hover:shadow-xl">
               <div className="flex items-start mb-4">
-                <div className="bg-blue-100 p-3 rounded-lg mr-4">
+                <div className="bg-blue-100 p-2 sm:p-3 rounded-lg mr-3 sm:mr-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-blue-700"
+                    className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -133,11 +133,11 @@ const GoPro = () => {
                     />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-blue-900">
+                <h2 className="text-xl sm:text-2xl font-bold text-blue-900">
                   Skill Coin Packages
                 </h2>
               </div>
-              <ul className="space-y-4 text-gray-700">
+              <ul className="space-y-4 text-gray-700 text-sm sm:text-base">
                 <li className="flex items-start">
                   <div className="flex-shrink-0 mt-1">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -171,7 +171,7 @@ const GoPro = () => {
                 <p className="text-sm text-blue-800 flex items-center">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-2 text-blue-600"
+                    className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-600"
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
@@ -187,12 +187,12 @@ const GoPro = () => {
               </div>
             </section>
 
-            <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg border border-blue-100 transition-all duration-300 hover:shadow-xl">
+            <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg border border-blue-100 transition-all duration-300 hover:shadow-xl">
               <div className="flex items-start mb-4">
-                <div className="bg-blue-100 p-3 rounded-lg mr-4">
+                <div className="bg-blue-100 p-2 sm:p-3 rounded-lg mr-3 sm:mr-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-blue-700"
+                    className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -205,9 +205,9 @@ const GoPro = () => {
                     />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-blue-900">Why Go Pro?</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-blue-900">Why Go Pro?</h2>
               </div>
-              <ul className="space-y-4 text-gray-700">
+              <ul className="space-y-4 text-gray-700 text-sm sm:text-base">
                 {[
                   "Unlock exclusive Skill Coin packages and bonus offers",
                   "Access premium content and live/recorded sessions",
@@ -228,12 +228,12 @@ const GoPro = () => {
 
           {/* Right Column */}
           <div>
-            <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 sm:p-8 shadow-lg border border-blue-100 mb-12 transition-all duration-300 hover:shadow-xl">
+            <section className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg border border-blue-100 mb-8 md:mb-12 transition-all duration-300 hover:shadow-xl">
               <div className="flex items-start mb-4">
-                <div className="bg-blue-100 p-3 rounded-lg mr-4">
+                <div className="bg-blue-100 p-2 sm:p-3 rounded-lg mr-3 sm:mr-4">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-blue-700"
+                    className="h-5 w-5 sm:h-6 sm:w-6 text-blue-700"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -246,11 +246,11 @@ const GoPro = () => {
                     />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-blue-900">
+                <h2 className="text-xl sm:text-2xl font-bold text-blue-900">
                   How Skill Coins Work
                 </h2>
               </div>
-              <ul className="space-y-4 text-gray-700">
+              <ul className="space-y-4 text-gray-700 text-sm sm:text-base">
                 <li className="flex items-start">
                   <div className="flex-shrink-0 mt-1">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
@@ -302,15 +302,15 @@ const GoPro = () => {
 
         {/* Packages Section */}
         <section className="text-center">
-          <h3 className="text-3xl font-bold text-blue-900 mb-4">
+          <h3 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-4">
             Available Packages
           </h3>
-          <p className="text-blue-800 max-w-2xl mx-auto mb-12">
+          <p className="text-blue-800 max-w-2xl mx-auto mb-8 sm:mb-12 text-sm sm:text-base">
             Choose the perfect package for your learning journey. All packages
             come with bonus coins and exclusive benefits.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12">
             {offers.map((offer) => (
               <div
                 key={offer.id}
@@ -330,7 +330,7 @@ const GoPro = () => {
                   }`}
                 ></div>
 
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   <div className="flex justify-between items-start mb-4">
                     <OfferBadge type={offer.type} />
                     <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-1 rounded">
@@ -338,19 +338,19 @@ const GoPro = () => {
                     </span>
                   </div>
 
-                  <h4 className="font-bold text-xl text-blue-900 mb-2">
+                  <h4 className="font-bold text-lg sm:text-xl text-blue-900 mb-2">
                     {offer.name}
                   </h4>
-                  <p className="text-3xl font-bold text-blue-800 mb-1">
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-800 mb-1">
                     {offer.coins}
                   </p>
-                  <p className="text-base text-gray-700 mb-2">
+                  <p className="text-sm sm:text-base text-gray-700 mb-2">
                     Worth {offer.value}
                   </p>
 
-                  <div className="my-6">
+                  <div className="my-4 sm:my-6">
                     <button
-                      className={`w-full py-3 rounded-xl font-bold transition-all duration-300 ${
+                      className={`w-full py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 text-sm sm:text-base ${
                         selectedOffer === offer.id
                           ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg"
                           : "bg-gradient-to-r from-blue-500 to-blue-700 text-white hover:from-blue-600 hover:to-blue-800 shadow-md"
@@ -361,7 +361,7 @@ const GoPro = () => {
                       {loading && selectedOffer === offer.id ? (
                         <span className="flex items-center justify-center">
                           <svg
-                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                            className="animate-spin -ml-1 mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -388,10 +388,10 @@ const GoPro = () => {
                     </button>
                   </div>
 
-                  <ul className="text-left text-sm text-gray-600 space-y-2 mt-4">
+                  <ul className="text-left text-xs sm:text-sm text-gray-600 space-y-2 mt-4">
                     <li className="flex items-center">
                       <svg
-                        className="h-5 w-5 text-green-500 mr-2"
+                        className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -412,7 +412,7 @@ const GoPro = () => {
                     </li>
                     <li className="flex items-center">
                       <svg
-                        className="h-5 w-5 text-green-500 mr-2"
+                        className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -430,7 +430,7 @@ const GoPro = () => {
                     </li>
                     <li className="flex items-center">
                       <svg
-                        className="h-5 w-5 text-green-500 mr-2"
+                        className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -453,10 +453,10 @@ const GoPro = () => {
           </div>
 
           {message && (
-            <div className="animate-fadeIn fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-green-100 border border-green-400 text-green-700 px-6 py-3 rounded-xl shadow-lg">
+            <div className="animate-fadeIn fixed bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 bg-green-100 border border-green-400 text-green-700 px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg w-11/12 sm:w-auto">
               <div className="flex items-center">
                 <svg
-                  className="h-6 w-6 mr-2"
+                  className="h-5 w-5 sm:h-6 sm:w-6 mr-2"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -468,16 +468,16 @@ const GoPro = () => {
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="font-medium">{message}</span>
+                <span className="font-medium text-sm sm:text-base">{message}</span>
               </div>
             </div>
           )}
 
           {error && (
-            <div className="animate-fadeIn fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-6 py-3 rounded-xl shadow-lg">
+            <div className="animate-fadeIn fixed bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg w-11/12 sm:w-auto">
               <div className="flex items-center">
                 <svg
-                  className="h-6 w-6 mr-2"
+                  className="h-5 w-5 sm:h-6 sm:w-6 mr-2"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -489,7 +489,7 @@ const GoPro = () => {
                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="font-medium">{error}</span>
+                <span className="font-medium text-sm sm:text-base">{error}</span>
               </div>
             </div>
           )}

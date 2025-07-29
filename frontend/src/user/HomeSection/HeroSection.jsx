@@ -13,17 +13,17 @@ const HeroSection = ({
   navigate,
   exploreRef
 }) => (
-  <section className="relative z-10 py-8 sm:py-12 max-w-7xl mx-auto px-4 sm:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+  <section className="relative z-10 pt-20 pb-6 sm:pt-24 sm:pb-8 md:pt-28 md:pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-50 to-gray-100">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-center">
       {/* Hero Text Content */}
       <motion.div
-        className="flex flex-col justify-center space-y-4"
+        className="flex flex-col justify-center space-y-4 md:space-y-6"
         initial="hidden"
         animate="visible"
         variants={textVariants}
       >
         <motion.h1
-          className="text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-snug text-blue-900"
+          className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold leading-snug text-blue-900"
           variants={textVariants}
         >
           <span>
@@ -39,12 +39,12 @@ const HeroSection = ({
           </span>
         </motion.h1>
         <motion.p
-          className="text-base sm:text-lg text-gray-600 max-w-md leading-relaxed"
+          className="text-xs sm:text-sm md:text-base lg:text-lg text-gray-600 max-w-full sm:max-w-md leading-relaxed"
           variants={textVariants}
         >
           SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.
         </motion.p>
-        <motion.div className="flex flex-wrap gap-4" variants={textVariants}>
+        <motion.div className="flex flex-wrap gap-3 md:gap-4" variants={textVariants}>
           {isLoggedIn ? (
             <motion.button
               onClick={() => {
@@ -52,7 +52,7 @@ const HeroSection = ({
                   exploreRef.current.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
-              className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-blue-900 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-md font-semibold text-sm sm:text-base md:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
@@ -62,7 +62,7 @@ const HeroSection = ({
           ) : (
             <motion.button
               onClick={() => openRegister()}
-              className="bg-blue-900 text-white px-8 py-4 rounded-md font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-blue-900 text-white px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-md font-semibold text-sm sm:text-base md:text-lg shadow-lg hover:shadow-xl transition-all duration-300"
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
@@ -72,7 +72,7 @@ const HeroSection = ({
           )}
           <motion.button
             onClick={() => navigate("/pro")}
-            className="border-2 border-blue-900 text-blue-900 px-8 py-4 rounded-md font-semibold text-lg hover:bg-blue-900 hover:text-white transition-all duration-300"
+            className="border-2 border-blue-900 text-blue-900 px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-md font-semibold text-sm sm:text-base md:text-lg hover:bg-blue-900 hover:text-white transition-all duration-300"
             variants={buttonVariants}
             whileHover="hover"
             whileTap="tap"
@@ -94,33 +94,33 @@ const HeroSection = ({
           <img
             src="/assets/skillswap-hero.png"
             alt="SkillSwap Hero Image"
-            className="w-full h-[450px] object-contain hover:scale-105 transition-transform duration-300"
+            className="w-full h-auto max-h-[200px] sm:max-h-[300px] md:max-h-[400px] lg:max-h-[450px] object-contain hover:scale-105 transition-transform duration-300"
             loading="lazy"
           />
         </picture>
 
         {isLoggedIn && (
           <motion.div
-            className="mt-6 p-4 bg-white rounded-md shadow-md border border-blue-100 max-w-lg mx-auto"
+            className="mt-4 sm:mt-6 p-4 bg-white rounded-md shadow-md border border-blue-100 max-w-full sm:max-w-lg mx-auto"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.5 }}
           >
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
               <picture>
                 <source srcSet={user?.avatar || "/assets/default-avatar.webp"} type="image/webp" />
                 <img
                   src={user?.avatar || "/assets/default-avatar.png"}
                   alt="User Avatar"
-                  className="w-14 h-14 rounded-full border-2 border-blue-100"
+                  className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full border-2 border-blue-100"
                   loading="lazy"
                 />
               </picture>
               <div>
-                <p className="text-lg font-semibold text-blue-900">
+                <p className="text-sm sm:text-base md:text-lg font-semibold text-blue-900">
                   Welcome, {user?.name || "Professional"}! Let's continue with your profile
                 </p>
-                <p className="text-base text-gray-600">Explore your personalized learning journey</p>
+                <p className="text-xs sm:text-sm md:text-base text-gray-600">Explore your personalized learning journey</p>
               </div>
             </div>
           </motion.div>
