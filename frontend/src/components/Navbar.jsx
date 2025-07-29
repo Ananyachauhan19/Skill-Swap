@@ -153,7 +153,7 @@ function useSessionSocketNotifications(setNotifications) {
       };
       setNotifications((prev) => {
         const updated = [newNotification, ...prev];
-ഗ
+        return updated;
       });
     });
 
@@ -332,7 +332,7 @@ const Navbar = () => {
     window.addEventListener("authChanged", handleAuthChange);
     return () => {
       window.removeEventListener("storage", handleAuthChange);
-      window.removeEventListener("authChanged", handleAuthChange);
+      window.removeEventListener("authChanged", handleUser);
     };
   }, []);
 
@@ -471,7 +471,7 @@ const Navbar = () => {
                     type="submit"
                     className="absolute left-2 top-1/2 transform -translate-y-1/2 text-blue-800"
                   >
-                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -512,12 +512,12 @@ const Navbar = () => {
             {isLoggedIn && (
               <div className="relative z-50">
                 <button
-                  className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white rounded-2xl shadow-md border border-blue-600 hover:scale-105 hover:shadow-lg transition duration-300"
+                  className="flex items-center gap-2 px-2 py-1 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white rounded-2xl shadow-md border border-blue-600 hover:scale-105 hover:shadow-lg transition duration-300"
                   onClick={() => setShowCoinsDropdown((prev) => !prev)}
                   title="SkillCoin"
                   ref={coinsRef}
                 >
-                  <svg className="w-6 h-6" viewBox="0 0 64 64" fill="none">
+                  <svg className="w-5 h-5" viewBox="0 0 64 64" fill="none">
                     <defs>
                       <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
                         <stop offset="0%" stopColor="#fff9c4" />
@@ -544,20 +544,20 @@ const Navbar = () => {
                       S
                     </text>
                   </svg>
-                  <span className="font-semibold text-sm font-nunito hidden md:inline">SkillCoin</span>
+                  <span className="font-semibold text-xs font-nunito hidden md:inline">SkillCoin</span>
                 </button>
 
                 {showCoinsDropdown && (
                   <div className="absolute right-0 mt-2 w-44 bg-white border border-blue-200 rounded-xl shadow-xl animate-fade-in-down backdrop-blur-sm">
                     <div className="p-3 space-y-2 text-sm font-medium text-gray-700">
                       <div className="flex items-center gap-2 p-1 rounded-md hover:bg-blue-50 transition">
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
+                        <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
                           <span className="text-xs font-bold text-blue-900">G</span>
                         </div>
                         <span className="text-gray-800">Golden: {goldenCoins}</span>
                       </div>
                       <div className="flex items-center gap-2 p-1 rounded-md hover:bg-blue-50 transition">
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
+                        <div className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
                           <span className="text-xs font-bold text-blue-900">S</span>
                         </div>
                         <span className="text-gray-800">Silver: {silverCoins}</span>
@@ -569,7 +569,7 @@ const Navbar = () => {
             )}
 
             {/* Notifications */}
-            <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-5 h-" />
+            <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-5 h-5" />
 
             {/* Auth/Profile */}
             {!isLoggedIn ? (
@@ -581,16 +581,18 @@ const Navbar = () => {
               </button>
             ) : (
               <div className="relative">
-                <button
-                  className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 border-2 border-blue-300 transition-all duration-300 hover:bg-blue-200 hover:scale-105"
-                  onClick={() => setShowProfileMenu((v) => !v)}
-                  title="Profile"
-                  ref={menuRef}
-                >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-                  </svg>
-                </button>
+               <button
+  className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 border border-blue-300 shadow-sm transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+  onClick={() => setShowProfileMenu((v) => !v)}
+  title="Profile"
+  ref={menuRef}
+>
+  <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+  </svg>
+</button>
+
+
                 {showProfileMenu && (
                   <ProfileDropdown
                     show={showProfileMenu}
@@ -608,7 +610,7 @@ const Navbar = () => {
               onClick={handleMobileMenu}
               aria-label="Toggle menu"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
