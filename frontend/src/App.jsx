@@ -37,6 +37,7 @@ import CompleteProfile from './user/myprofile/CompleteProfile';
 import { useAuth } from './context/AuthContext';
 import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
+import AdminPanel from './admin/adminpanel'; // Updated import for AdminPanel
 
 // Define all routes in a single array for useRoutes
 const appRoutes = [
@@ -60,8 +61,9 @@ const appRoutes = [
   { path: '/StartSkillSwap', element: <StartSkillSwap /> },
   { path: '/report', element: <ReportPage /> },
   { path: '/teaching-history', element: <TeachingHistory /> },
-  { path: '/blog', element: <Blog /> }, // Added Blog route
-  { path: '/search', element: <SearchPage /> }, // Added Search route
+  { path: '/blog', element: <Blog /> },
+  { path: '/search', element: <SearchPage /> },
+  { path: '/admin', element: <AdminPanel /> }, // Updated to use AdminPanel
   ...accountSettingsRoutes,
   {
     path: '/profile',
