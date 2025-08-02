@@ -93,7 +93,8 @@ exports.verifyOtp = async (req, res) => {
   await user.save();
 
   // Generate JWT token after successful OTP verification
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+  const isAdmin = user.email === 'skillswaphubb@gmail.com';
+  const token = jwt.sign({ id: user._id, isAdmin }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
   console.log('Generated token:', token.substring(0, 20) + '...');
 
@@ -107,7 +108,7 @@ exports.verifyOtp = async (req, res) => {
 
   console.log('Token cookie set successfully');
 
-  return res.status(200).json({ message: 'Login successful', user });
+  return res.status(200).json({ message: 'Login successful', user: { ...user.toObject(), isAdmin } });
 };
 
 // Add logout controller
