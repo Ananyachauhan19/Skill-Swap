@@ -1,32 +1,34 @@
-import React, { useEffect, useRef, useState, createContext, useContext } from 'react';
+import React, { useEffect, useRef, useState, createContext } from 'react';
 import {
-  FaRegFileAlt,
-  FaChevronDown,
   FaLinkedin,
   FaGithub,
   FaTwitter,
   FaGlobe,
   FaSearch,
+  FaBars,
+  FaTimes,
+  FaUser,
+  FaGraduationCap,
+  FaBriefcase,
+  FaCode,
+  FaChalkboardTeacher,
+  FaChevronDown,
 } from 'react-icons/fa';
 import { useNavigate, useLocation, Outlet, NavLink, useParams } from 'react-router-dom';
 import ContributionCalendar from '../myprofile/ContributionCalendar';
 import SearchBar from '../privateProfile/SearchBar';
 import { BACKEND_URL } from '../../config.js';
 
-// Context to pass searchQuery to PublicHome
 export const ProfileContext = createContext();
 
-// Mock contribution data for the calendar
 const contributions = {
   '2024-01-01': 5,
   '2024-01-02': 2,
-  // Add more contribution data as needed
 };
 
 const months = [
   { name: 'Jan', year: 2024, days: 31 },
   { name: 'Feb', year: 2024, days: 29 },
-  // Add more months as needed
 ];
 
 const currentDate = new Date();
@@ -39,31 +41,38 @@ const getContributionColor = (count) => {
   return 'bg-blue-700';
 };
 
-// Fetch user profile data from backend
-const fetchUserProfile = async (username, userId) => {
+const fetchUserProfile = async (username, userId, retries = 3, delay = 1000) => {
   try {
-    let url = '';
-    if (username) {
-      url = `${BACKEND_URL}/api/auth/user/public/${username}`;
-    } else if (userId) {
-      url = `${BACKEND_URL}/api/auth/user/profile?userId=${userId}`;
-    } else {
-      url = `${BACKEND_URL}/api/auth/user/profile`;
-    }
-    console.log('Fetching:', url);
-    const res = await fetch(url, { credentials: 'include' });
+    const url = username
+      ? `${BACKEND_URL}/api/auth/user/public/${username}`
+      : userId
+      ? `${BACKEND_URL}/api/auth/user/profile?userId=${userId}`
+      : `${BACKEND_URL}/api/auth/user/profile`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
     if (!res.ok) throw new Error('Failed to fetch user profile');
     const user = await res.json();
-    return user;
-  } catch {
-    throw new Error('Failed to fetch user profile');
+    return {
+      ...user,
+      fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
+    };
+  } catch (error) {
+    if (retries > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchUserProfile(username, userId, retries - 1, delay * 2);
+    }
+    throw new Error('Failed to fetch user profile after retries');
   }
 };
 
 const SideBarPublic = ({ username, setNotFound }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { username: paramUsername } = useParams(); // Get username from URL params
+  const { username: paramUsername } = useParams();
   const activeTab = 'border-b-2 border-blue-600 text-dark-blue font-semibold';
   const normalTab = 'text-gray-600 hover:text-dark-blue';
 
@@ -76,109 +85,85 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const [requestLoading, setRequestLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSearchBar, setShowSearchBar] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dropdownRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
-  // Load user profile data based on username from URL params or prop
   useEffect(() => {
-    const targetUsername = paramUsername || username; // Prioritize URL param over prop
-    console.log('Target username:', targetUsername);
-    
+    const targetUsername = paramUsername || username;
+    const userId = new URLSearchParams(window.location.search).get('userId');
+
     async function loadProfile() {
       setLoading(true);
+      setError(null);
       try {
-        const userId = new URLSearchParams(window.location.search).get('userId');
         const data = await fetchUserProfile(targetUsername, userId);
-        setProfile({
-          ...data,
-          fullName: `${data.firstName} ${data.lastName}`.trim(), // Combine first and last name
-        });
-        setError(null);
+        setProfile(data);
         if (setNotFound) setNotFound(false);
-        
-        // Check SkillMate status if profile loaded successfully
-        if (data._id) {
-          checkSkillMateStatus(data._id);
-        }
+        if (data._id) await checkSkillMateStatus(data._id);
       } catch (err) {
-        setError('User not found');
+        setError(err.message);
         setProfile(null);
         if (setNotFound) setNotFound(true);
       } finally {
         setLoading(false);
       }
     }
-    if (targetUsername || new URLSearchParams(window.location.search).get('userId')) {
-      loadProfile();
+
+    if (targetUsername || userId) loadProfile();
+    else {
+      setError('No username or userId provided');
+      setLoading(false);
     }
+
     window.addEventListener('profileUpdated', loadProfile);
     return () => window.removeEventListener('profileUpdated', loadProfile);
   }, [paramUsername, username]);
-  
-  // Check if users are SkillMates or have pending requests
+
   const checkSkillMateStatus = async (userId) => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/skillmates/check/${userId}`, {
         method: 'GET',
         credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to check SkillMate status');
-      }
-      
+      if (!response.ok) throw new Error('Failed to check SkillMate status');
       const data = await response.json();
       setIsSkillMate(data.isSkillMate);
       setPendingRequest(data.pendingRequest);
-    } catch (error) {
-      console.error('Error checking SkillMate status:', error);
-    }
+    } catch (error) {}
   };
 
-  // Handle clicks outside dropdown to close it
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setShowDropdown(false);
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false);
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setShowMobileMenu(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Send a SkillMate request to another user
   const sendSkillMateRequest = async (recipientId) => {
-    const response = await fetch(`${BACKEND_URL}/api/skillmates/request`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ recipientId }),
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to send SkillMate request');
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/skillmates/request`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId }),
+      });
+      if (!response.ok) throw new Error('Failed to send SkillMate request');
+      return await response.json();
+    } catch (error) {
+      throw error;
     }
-    
-    return await response.json();
   };
-  
+
   const handleAddSkillMate = async () => {
     if (!profile || !profile._id) return;
-    
     setRequestLoading(true);
     try {
-      // Send SkillMate request
       await sendSkillMateRequest(profile._id);
-      
-      // Update UI to show pending request
       setPendingRequest({ isRequester: true });
-      
-      // Show success message
       alert('SkillMate request sent successfully!');
     } catch (error) {
       alert(error.message || 'Failed to send SkillMate request');
@@ -187,38 +172,28 @@ const SideBarPublic = ({ username, setNotFound }) => {
     }
   };
 
-  // Remove a SkillMate
   const removeSkillMate = async (skillMateId) => {
-    const response = await fetch(`${BACKEND_URL}/api/skillmates/remove/${skillMateId}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to remove SkillMate');
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/skillmates/remove/${skillMateId}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to remove SkillMate');
+      return await response.json();
+    } catch (error) {
+      throw error;
     }
-    
-    return await response.json();
   };
-  
+
   const handleRemoveSkillMate = async () => {
     if (!profile || !profile._id) return;
-    
     setRequestLoading(true);
     try {
-      // Remove SkillMate
       await removeSkillMate(profile._id);
-      
-      // Update UI
       setIsSkillMate(false);
       setPendingRequest(null);
       setShowDropdown(false);
-      
-      // Show success message
       alert('SkillMate removed successfully!');
     } catch (error) {
       alert(error.message || 'Failed to remove SkillMate');
@@ -227,37 +202,27 @@ const SideBarPublic = ({ username, setNotFound }) => {
     }
   };
 
-  // Approve a SkillMate request
   const approveSkillMateRequest = async (requestId) => {
-    const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/approve/${requestId}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to approve SkillMate request');
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/approve/${requestId}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to approve SkillMate request');
+      return await response.json();
+    } catch (error) {
+      throw error;
     }
-    
-    return await response.json();
   };
-  
+
   const handleApproveRequest = async () => {
     if (!pendingRequest || !pendingRequest.id) return;
-    
     setRequestLoading(true);
     try {
-      // Approve SkillMate request
       await approveSkillMateRequest(pendingRequest.id);
-      
-      // Update UI
       setIsSkillMate(true);
       setPendingRequest(null);
-      
-      // Show success message
       alert('SkillMate request approved successfully!');
     } catch (error) {
       alert(error.message || 'Failed to approve SkillMate request');
@@ -265,315 +230,390 @@ const SideBarPublic = ({ username, setNotFound }) => {
       setRequestLoading(false);
     }
   };
-  
-  const toggleDropdown = () => setShowDropdown((prev) => !prev);
 
+  const toggleDropdown = () => setShowDropdown((prev) => !prev);
   const toggleSearchBar = () => setShowSearchBar((prev) => !prev);
+  const toggleMobileMenu = () => setShowMobileMenu((prev) => !prev);
+
+  const mobileNavItems = [
+    { icon: FaUser, label: 'Profile', path: '/public-profile/Home' },
+    { icon: FaGraduationCap, label: 'Education', path: '#education' },
+    { icon: FaBriefcase, label: 'Experience', path: '#experience' },
+    { icon: FaCode, label: 'Skills', path: '#skills' },
+    { icon: FaChalkboardTeacher, label: 'Teach', path: '#teach' },
+  ];
 
   return (
     <ProfileContext.Provider value={{ searchQuery, setSearchQuery }}>
-      <div className="flex flex-col sm:flex-row min-h-screen w-full bg-gradient-to-br from-blue-50 to-cream-100 font-sans animate-fade-in">
-        {/* Sidebar */}
-        <aside className="w-full sm:w-60 h-auto min-h-[calc(100vh-4rem)] bg-blue-50 bg-opacity-30 px-4 pt-8 z-10 overflow-y-auto scrollbar-hidden sm:border-r sm:border-blue-200">
-          {/* Social Links */}
-          <div className="mb-8">
-            <div className="font-semibold text-dark-blue mb-3 text-lg">Social</div>
-            <div className="flex flex-col gap-3">
-              {profile?.linkedin && (
-                <a
-                  href={`https://linkedin.com/in/${profile.linkedin}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm transition-colors duration-300"
-                >
-                  <FaLinkedin className="text-xl text-dark-blue" />
-                  LinkedIn
-                </a>
-              )}
-              {profile?.github && (
-                <a
-                  href={`https://github.com/${profile.github}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm transition-colors duration-300"
-                >
-                  <FaGithub className="text-xl text-dark-blue" />
-                  GitHub
-                </a>
-              )}
-              {profile?.twitter && (
-                <a
-                  href={`https://twitter.com/${profile.twitter}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm transition-colors duration-300"
-                >
-                  <FaTwitter className="text-xl text-dark-blue" />
-                  Twitter
-                </a>
-              )}
-              {profile?.website && (
-                <a
-                  href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm transition-colors duration-300"
-                >
-                  <FaGlobe className="text-xl text-dark-blue" />
-                  Website
-                </a>
+      <div className="flex flex-col sm:flex-row min-h-screen w-full bg-gradient-to-br from-blue-50 to-cream-100 font-sans">
+   {/* Scrollable Menu Button */}
+<div className="sm:hidden px-4 py-2 relative">
+  <button
+    onClick={toggleMobileMenu}
+    className="text-dark-blue"
+    aria-label="Open menu"
+  >
+    <FaBars className="text-2xl" />
+  </button>
+
+  {/* Dropdown appears OVER page content */}
+  {showMobileMenu && (
+    <div className="absolute top-full left-0 mt-2 w-screen bg-blue-100 z-50 shadow-md">
+      <div className="p-4 max-w-md mx-auto rounded-md">
+        <ul className="space-y-3">
+          {mobileNavItems.map((item, index) => (
+            <li key={index}>
+              <a
+                href={item.path}
+                className="flex items-center gap-3 p-2 rounded-md text-dark-blue hover:bg-blue-200"
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleMobileMenu();
+                  navigate(item.path);
+                }}
+              >
+                <item.icon className="text-lg" />
+                <span className="text-sm">{item.label}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )}
+</div>
+
+
+        {/* Sidebar - Web Version */}
+        <aside className="hidden sm:flex sm:w-64 min-h-screen bg-blue-50 px-6 pt-8 border-r border-blue-200">
+          <div className="w-full">
+            <div className="mb-8">
+            
+              <div className="flex flex-col gap-3">
+                {profile?.linkedin && (
+                  <a
+                    href={`https://linkedin.com/in/${profile.linkedin}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm"
+                  >
+                    <FaLinkedin className="text-xl text-dark-blue" />
+                    LinkedIn
+                  </a>
+                )}
+                {profile?.github && (
+                  <a
+                    href={`https://github.com/${profile.github}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm"
+                  >
+                    <FaGithub className="text-xl text-dark-blue" />
+                    GitHub
+                  </a>
+                )}
+                {profile?.twitter && (
+                  <a
+                    href={`https://twitter.com/${profile.twitter}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm"
+                  >
+                    <FaTwitter className="text-xl text-dark-blue" />
+                    Twitter
+                  </a>
+                )}
+                {profile?.website && (
+                  <a
+                    href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm"
+                  >
+                    <FaGlobe className="text-xl text-dark-blue" />
+                    Website
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <div className="font-semibold text-dark-blue mb-3 text-lg">Education</div>
+              {loading ? (
+                <span className="text-gray-600 text-sm">Loading...</span>
+              ) : error ? (
+                <span className="text-red-500 text-sm">{error}</span>
+              ) : profile?.education && profile.education.length > 0 ? (
+                <ul className="flex flex-col gap-4">
+                  {profile.education.map((edu, i) => (
+                    <li key={i} className="text-xs text-gray-600 whitespace-pre-line">
+                      {edu.course && <div>{edu.course}</div>}
+                      {edu.branch && <div>{edu.branch}</div>}
+                      {edu.college && <div>{edu.college}</div>}
+                      {edu.city && <div>{edu.city}</div>}
+                      {edu.passingYear && <div>{edu.passingYear}</div>}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-xs text-gray-600">Not added yet</span>
               )}
             </div>
-          </div>
 
-          {/* Education Section */}
-          <div className="mb-8">
-            <div className="font-semibold text-dark-blue mb-3 text-lg">Education</div>
-            {loading ? (
-              <span className="text-gray-600 text-sm">Loading...</span>
-            ) : error ? (
-              <span className="text-red-500 text-sm">{error}</span>
-            ) : profile?.education && profile.education.length > 0 ? (
-              <ul className="flex flex-col gap-4">
-                {profile.education.map((edu, i) => (
-                  <li key={i} className="text-xs text-gray-600 whitespace-pre-line">
-                    {edu.course && <div>{edu.course}</div>}
-                    {edu.branch && <div>{edu.branch}</div>}
-                    {edu.college && <div>{edu.college}</div>}
-                    {edu.city && <div>{edu.city}</div>}
-                    {edu.passingYear && <div>{edu.passingYear}</div>}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span className="text-xs text-gray-600">Not added yet</span>
-            )}
-          </div>
+            <div className="mb-8">
+              <div className="font-semibold text-dark-blue mb-3 text-lg">Experience</div>
+              {loading ? (
+                <span className="text-gray-600 text-sm">Loading...</span>
+              ) : error ? (
+                <span className="text-red-500 text-sm">{error}</span>
+              ) : profile?.experience && profile.experience.length > 0 ? (
+                <ul className="flex flex-col gap-3">
+                  {profile.experience.map((exp, i) => (
+                    <li key={i} className="text-xs text-gray-600">
+                      <span className="font-medium">{exp.title}</span>
+                      {exp.company ? ` at ${exp.company}` : ''}
+                      {exp.duration ? ` (${exp.duration})` : ''}
+                      {exp.description ? `: ${exp.description}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-xs text-gray-600">Not added yet</span>
+              )}
+            </div>
 
-          {/* Experience Section */}
-          <div className="mb-8">
-            <div className="font-semibold text-dark-blue mb-3 text-lg">Experience</div>
-            {loading ? (
-              <span className="text-gray-600 text-sm">Loading...</span>
-            ) : error ? (
-              <span className="text-red-500 text-sm">{error}</span>
-            ) : profile?.experience && profile.experience.length > 0 ? (
-              <ul className="flex flex-col gap-3">
-                {profile.experience.map((exp, i) => (
-                  <li key={i} className="text-xs text-gray-600">
-                    <span className="font-medium">{exp.title}</span>
-                    {exp.company ? ` at ${exp.company}` : ''}
-                    {exp.duration ? ` (${exp.duration})` : ''}
-                    {exp.description ? `: ${exp.description}` : ''}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span className="text-xs text-gray-600">Not added yet</span>
-            )}
-          </div>
+            <div className="mb-8">
+              <div className="font-semibold text-dark-blue mb-3 text-lg">Skills</div>
+              {loading ? (
+                <span className="text-gray-600 text-sm">Loading...</span>
+              ) : error ? (
+                <span className="text-red-500 text-sm">{error}</span>
+              ) : profile?.skills && profile.skills.length > 0 ? (
+                <ul className="flex flex-col gap-3">
+                  {profile.skills.map((skill, i) => (
+                    <li key={i} className="text-xs text-gray-600">{skill}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-xs text-gray-600">Not added yet</span>
+              )}
+            </div>
 
-          {/* Skills Section */}
-          <div className="mb-8">
-            <div className="font-semibold text-dark-blue mb-3 text-lg">Skills</div>
-            {loading ? (
-              <span className="text-gray-600 text-sm">Loading...</span>
-            ) : error ? (
-              <span className="text-red-500 text-sm">{error}</span>
-            ) : profile?.skills && profile.skills.length > 0 ? (
-              <ul className="flex flex-col gap-3">
-                {profile.skills.map((skill, i) => (
-                  <li key={i} className="text-xs text-gray-600">
-                    {skill}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span className="text-xs text-gray-600">Not added yet</span>
-            )}
-          </div>
-
-          {/* What I Can Teach Section */}
-          <div className="mb-8">
-            <div className="font-semibold text-dark-blue mb-3 text-lg">What I Can Teach</div>
-            {loading ? (
-              <span className="text-gray-600 text-sm">Loading...</span>
-            ) : error ? (
-              <span className="text-red-500 text-sm">{error}</span>
-            ) : profile?.skillsToTeach && profile.skillsToTeach.length > 0 ? (
-              <ul className="flex flex-wrap gap-2">
-                {profile.skillsToTeach.map((s, i) => (
-                  <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
-                    {s.subject} {s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <span className="text-xs text-gray-600">Not added yet</span>
-            )}
+            <div className="mb-8">
+              <div className="font-semibold text-dark-blue mb-3 text-lg">What I Can Teach</div>
+              {loading ? (
+                <span className="text-gray-600 text-sm">Loading...</span>
+              ) : error ? (
+                <span className="text-red-500 text-sm">{error}</span>
+              ) : profile?.skillsToTeach && profile.skillsToTeach.length > 0 ? (
+                <ul className="flex flex-wrap gap-2">
+                  {profile.skillsToTeach.map((s, i) => (
+                    <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
+                      {s.subject} {s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="text-xs text-gray-600">Not added yet</span>
+              )}
+            </div>
           </div>
         </aside>
 
         {/* Main Content Area */}
-        <main className="w-full min-h-screen pt-8 pb-24 px-4 sm:px-6 overflow-y-auto scrollbar-hidden animate-fade-in scroll-smooth">
-          <div className="flex flex-col sm:flex-row items-start mb-6">
-            {loading ? (
-              <div className="flex items-center justify-center w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] mx-auto sm:mx-0">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center gap-2 mx-auto sm:mx-0">
-                <span className="text-red-500 text-sm transition-all duration-300 animate-fade-in">{error}</span>
-                <button
-                  onClick={() => loadProfile()}
-                  className="text-dark-blue px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 hover:bg-blue-100 transition-all duration-300"
-                  aria-label="Retry loading profile"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : (
-              <>
-                <img
-                  src={profile?.profilePic || 'https://placehold.co/100x100?text=User'}
-                  alt={`${profile?.fullName || 'User'}'s profile picture`}
-                  className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] rounded-full object-cover border-2 border-blue-200 transition-all duration-300 hover:scale-105 mx-auto sm:mx-0"
-                />
-                <div className="mt-4 sm:mt-0 sm:ml-4 flex-1 flex flex-col items-center sm:items-start">
-                  <h1 className="text-xl sm:text-4xl font-bold text-dark-blue transition-colors duration-300">
-                    {profile?.fullName || 'Full Name'}
-                  </h1>
-                  <p className="text-sm text-gray-600 transition-colors duration-300">
-                    @{profile?.username || 'username'}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-2 max-w-md transition-colors duration-300">
-                    {profile?.bio || 'Your bio goes here, set it in Setup Profile.'}
-                  </p>
-                  <div className="mt-4">
-                    <button
-                      className={`border border-blue-200 text-dark-blue px-4 sm:px-8 py-2 rounded-lg text-sm font-medium w-full max-w-xs flex items-center justify-between bg-blue-50 bg-opacity-80 hover:bg-blue-100 transition-all duration-300 transform hover:scale-105 ${isSkillMate ? 'bg-green-50 border-green-200' : pendingRequest ? 'bg-yellow-50 border-yellow-200' : ''}`}
-                      onClick={isSkillMate ? toggleDropdown : pendingRequest ? (pendingRequest.isRequester ? null : handleApproveRequest) : handleAddSkillMate}
-                      disabled={requestLoading || (pendingRequest && pendingRequest.isRequester)}
-                      title={isSkillMate ? 'Manage SkillMate' : pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 'Add SkillMate'}
-                      aria-label={isSkillMate ? 'Manage SkillMate' : pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 'Add SkillMate'}
-                    >
-                      {requestLoading ? (
-                        <span className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Processing...
-                        </span>
-                      ) : (
-                        <span>
-                          {isSkillMate ? 'SkillMate' : 
-                           pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 
-                           'Add SkillMate'}
-                        </span>
-                      )}
-                      {isSkillMate && <FaChevronDown className="text-sm" />}
-                    </button>
-                    {showDropdown && (
-                      <div
-                        ref={dropdownRef}
-                        className="absolute z-50 mt-2 w-44 bg-blue-50 border border-blue-200 rounded-lg shadow-lg"
-                      >
-                        <button
-                          className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
-                          onClick={() => {
-                            alert('Notifications turned ON');
-                            setShowDropdown(false);
-                          }}
-                        >
-                          🔔 On Notification
-                        </button>
-                        <button
-                          className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
-                          onClick={() => {
-                            alert('Notifications muted');
-                            setShowDropdown(false);
-                          }}
-                        >
-                          🔕 Mute Notification
-                        </button>
-                        <button
-                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-blue-100"
-                          onClick={handleRemoveSkillMate}
-                        >
-                          ❌ Remove SkillMate
-                        </button>
-                      </div>
-                    )}
-                  </div>
+        <main className="flex-1 min-h-screen pt-8 pb-24 px-4 sm:px-8">
+          <div className="max-w-5xl mx-auto">
+            {/* Profile Section */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start mb-8">
+              {loading ? (
+                <div className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] mx-auto">
+                  <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                 </div>
-              </>
-            )}
-          </div>
-
-          {/* Contribution Calendar */}
-          <div className="mb-6">
-            <ContributionCalendar
-              contributions={contributions}
-              months={months}
-              currentDate={currentDate}
-              getContributionColor={getContributionColor}
-            />
-          </div>
-
-          {/* Tab Navigation */}
-          <div className="px-2 sm:px-6 pt-4 sm:pt-6">
-            <div className="flex flex-wrap gap-2 sm:gap-4 border-b border-blue-200 mb-4">
-              <NavLink
-                to="/public-profile/Home"
-                className={({ isActive }) =>
-                  `pb-2 px-2 text-sm font-medium ${isActive ? activeTab : normalTab}`
-                }
-                end
-              >
-                Home
-              </NavLink>
-              <NavLink
-                to="/public-profile/live"
-                className={({ isActive }) =>
-                  `pb-2 px-2 text-sm font-medium ${isActive ? activeTab : normalTab}`
-                }
-              >
-                Live
-              </NavLink>
-              <NavLink
-                to="/public-profile/videos"
-                className={({ isActive }) =>
-                  `pb-2 px-2 text-sm font-medium ${isActive ? activeTab : normalTab}`
-                }
-              >
-                Videos
-              </NavLink>
+              ) : error ? (
+                <div className="flex flex-col items-center gap-2 mx-auto">
+                  <span className="text-red-500 text-sm">{error}</span>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="text-dark-blue px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 hover:bg-blue-100"
+                    aria-label="Retry loading profile"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <img
+                    src={profile?.profilePic || 'https://placehold.co/100x100?text=User'}
+                    alt={`${profile?.fullName || 'User'}'s profile picture`}
+                    className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] rounded-full object-cover border-2 border-blue-200 mx-auto sm:mx-0"
+                  />
+                  <div className="mt-4 sm:mt-0 sm:ml-6 flex-1 flex flex-col items-center sm:items-start relative">
+                    <h1 className="text-xl sm:text-3xl font-bold text-dark-blue text-center sm:text-left">{profile?.fullName || 'Full Name'}</h1>
+                    <p className="text-sm text-gray-600 text-center sm:text-left">{profile?.username ? `@${profile.username}` : '@username'}</p>
+                    <p className="text-sm text-gray-600 mt-2 max-w-md text-center sm:text-left">
+                      {profile?.bio || 'Your bio goes here, set it in Setup Profile.'}
+                    </p>
+                    <div className="mt-4 flex justify-center sm:justify-start relative z-10">
+                      <button
+                        className={`border border-blue-200 text-dark-blue px-6 sm:px-8 py-2 rounded-lg text-sm font-medium max-w-xs flex items-center justify-between ${
+                          isSkillMate ? 'bg-green-50 border-green-200' : pendingRequest ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 hover:bg-blue-100'
+                        }`}
+                        onClick={isSkillMate ? toggleDropdown : pendingRequest ? (pendingRequest.isRequester ? null : handleApproveRequest) : handleAddSkillMate}
+                        disabled={requestLoading || (pendingRequest && pendingRequest.isRequester)}
+                        title={isSkillMate ? 'Manage SkillMate' : pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 'Add SkillMate'}
+                      >
+                        {requestLoading ? (
+                          <span className="flex items-center justify-center w-full">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                          </span>
+                        ) : (
+                          <span className="flex-1 text-center">
+                            {isSkillMate ? 'SkillMate' : pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 'Add SkillMate'}
+                          </span>
+                        )}
+                        {isSkillMate && <FaChevronDown className="text-sm" />}
+                      </button>
+                      {showDropdown && (
+                        <div ref={dropdownRef} className="absolute z-20 mt-12 w-44 bg-blue-50 border border-blue-200 rounded-lg shadow-lg">
+                          <button
+                            className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
+                            onClick={() => {
+                              alert('Notifications turned ON');
+                              setShowDropdown(false);
+                            }}
+                          >
+                            🔔 On Notification
+                          </button>
+                          <button
+                            className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
+                            onClick={() => {
+                              alert('Notifications muted');
+                              setShowDropdown(false);
+                            }}
+                          >
+                            🔕 Mute Notification
+                          </button>
+                          <button
+                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-blue-100"
+                            onClick={handleRemoveSkillMate}
+                          >
+                            ❌ Remove SkillMate
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
-          </div>
 
-          {/* Tab Content Outlet */}
-          <div className="relative min-h-[calc(100vh-28rem)] sm:min-h-[calc(100vh-32rem)] overflow-y-auto scrollbar-hidden animate-fade-in scroll-smooth">
-            <div className="absolute top-0 right-[2%] p-2 sm:p-4 flex items-center space-x-2">
-              <button
-                onClick={toggleSearchBar}
-                className="text-dark-blue hover:text-blue-700 transition-colors duration-300"
-                aria-label="Toggle search bar"
-                title="Search videos"
-              >
-                <FaSearch className="text-xl" />
-              </button>
-              <div
-                className={`transition-all duration-2000 ease-in-out transform ${
-                  showSearchBar ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'
-                }`}
-              >
-                {showSearchBar && (
-                  <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-                )}
+            {/* Social Section (Mobile) */}
+            <div className="sm:hidden mb-8">
+              <div className="flex flex-col items-center w-full max-w-sm">
+            
+                <div className="flex flex-col gap-3 w-full">
+                  {profile?.linkedin && (
+                    <a
+                      href={`https://linkedin.com/in/${profile.linkedin}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue"
+                    >
+                      <FaLinkedin className="text-xl" />
+                      LinkedIn
+                    </a>
+                  )}
+                  {profile?.github && (
+                    <a
+                      href={`https://github.com/${profile.github}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue"
+                    >
+                      <FaGithub className="text-xl" />
+                      GitHub
+                    </a>
+                  )}
+                  {profile?.twitter && (
+                    <a
+                      href={`https://twitter.com/${profile.twitter}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue"
+                    >
+                      <FaTwitter className="text-xl" />
+                      Twitter
+                    </a>
+                  )}
+                  {profile?.website && (
+                    <a
+                      href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue"
+                    >
+                      <FaGlobe className="text-xl" />
+                      Website
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
-            <Outlet />
+
+            {/* Contribution Calendar */}
+            <div className="mb-8 overflow-x-auto">
+              <div className="max-w-full">
+                <ContributionCalendar 
+                  contributions={contributions} 
+                  months={months} 
+                  currentDate={currentDate} 
+                  getContributionColor={getContributionColor}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="px-2 sm:px-0 pt-4 sm:pt-6">
+              <div className="flex flex-wrap gap-2 sm:gap-4 border-b border-blue-200 mb-6">
+                <NavLink
+                  to="/public-profile/Home"
+                  className={({ isActive }) => `pb-2 px-3 text-sm font-medium ${isActive ? activeTab : normalTab}`}
+                  end
+                >
+                  Home
+                </NavLink>
+                <NavLink
+                  to="/public-profile/live"
+                  className={({ isActive }) => `pb-2 px-3 text-sm font-medium ${isActive ? activeTab : normalTab}`}
+                >
+                  Live
+                </NavLink>
+                <NavLink
+                  to="/public-profile/videos"
+                  className={({ isActive }) => `pb-2 px-3 text-sm font-medium ${isActive ? activeTab : normalTab}`}
+                >
+                  Videos
+                </NavLink>
+              </div>
+            </div>
+
+            {/* Tab Content Outlet */}
+            <div className="relative min-h-[calc(100vh-28rem)] sm:min-h-[calc(100vh-32rem)]">
+              <div className="absolute top-0 right-0 p-2 sm:p-4 flex items-center space-x-2">
+                <button onClick={toggleSearchBar} className="text-dark-blue hover:text-blue-700" aria-label="Toggle search bar">
+                  <FaSearch className="text-xl" />
+                </button>
+                <div className={`transition-all duration-300 ease-in-out ${showSearchBar ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'}`}>
+                  {showSearchBar && <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
+                </div>
+              </div>
+              <Outlet />
+            </div>
           </div>
         </main>
       </div>

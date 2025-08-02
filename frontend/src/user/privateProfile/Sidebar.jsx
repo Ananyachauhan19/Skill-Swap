@@ -117,31 +117,6 @@ const Sidebar = () => {
         ))}
       </aside>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-blue-100 z-50 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
-        <div className="flex justify-around items-center py-2">
-          {navItems.slice(0, 3).map(({ path, icon: Icon, label, title, route }) => (
-            <button
-              key={path}
-              onClick={() => navigate(route || `/profile/${path}`)}
-              className={`flex flex-col items-center gap-1 p-2 transition-all duration-300 w-full ${isActive(path)}`}
-              title={title}
-              aria-label={title}
-            >
-              <Icon className="text-blue-900 text-lg" />
-              <span className="text-blue-900 text-xs">{label}</span>
-            </button>
-          ))}
-          <button
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            className="flex flex-col items-center gap-1 p-2 w-full text-blue-900 hover:bg-blue-100 rounded-lg"
-            aria-label="More options"
-          >
-            <FaEllipsisH className="text-lg" />
-            <span className="text-xs">More</span>
-          </button>
-        </div>
-      </div>
 
       {/* Mobile Menu Overlay */}
       {showMobileMenu && (
