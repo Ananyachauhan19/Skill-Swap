@@ -446,7 +446,7 @@ const Navbar = () => {
     <>
       <nav className="fixed top-0 left-0 w-full h-[60px] sm:h-[64px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-2 sm:px-4 py-2 sm:py-3 shadow-lg border-b border-blue-200 z-50">
         <div className="flex items-center justify-between max-w-7xl mx-auto h-full">
-       {/* Mobile View */}
+          {/* Mobile View */}
 <div className="flex items-center justify-between w-full md:hidden">
   {/* Logo */}
   <div
@@ -504,28 +504,14 @@ const Navbar = () => {
           </svg>
         </button>
 
-      {/* Notifications */}
-<button
-  className="min-w-[28px] h-[28px] rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md border border-blue-700 hover:scale-105 transition duration-300 relative"
-  onClick={() => {/* Handle notification click, e.g., open notification dropdown */}}
-  title="Notifications"
-  aria-label="View notifications"
->
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-    />
-  </svg>
-  {/* Optional: Notification badge */}
-  {notifications?.length > 0 && (
-    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-      {notifications.length}
-    </span>
-  )}
-</button>
+        {/* Notifications - enlarged */}
+        <div className="mt-[2px]">
+          <Notifications
+            notifications={notifications}
+            setNotifications={setNotifications}
+            iconSize="w-5 h-5"
+          />
+        </div>
 
         {/* Profile */}
         <div className="relative">
