@@ -446,177 +446,140 @@ const Navbar = () => {
     <>
       <nav className="fixed top-0 left-0 w-full h-[60px] sm:h-[64px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-2 sm:px-4 py-2 sm:py-3 shadow-lg border-b border-blue-200 z-50">
         <div className="flex items-center justify-between max-w-7xl mx-auto h-full">
-          {/* Mobile View */}
-          <div className="flex items-center justify-between w-full md:hidden">
-            {/* Logo */}
-            <div
-              className="flex items-center gap-1 sm:gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
-              onClick={() => navigate('/')}
+       {/* Mobile View */}
+<div className="flex items-center justify-between w-full md:hidden">
+  {/* Logo */}
+  <div
+    className="flex items-center gap-1 sm:gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
+    onClick={() => navigate('/')}
+  >
+    <img
+      src="/assets/skillswap-logo.webp"
+      alt="SkillSwapHub Logo"
+      className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-full shadow-md border-2 border-blue-900"
+    />
+    <span className="text-sm sm:text-base font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
+      SkillSwapHub
+    </span>
+  </div>
+
+  {/* Right Side: Icons */}
+  <div className="flex items-center gap-1">
+    {isLoggedIn ? (
+      <>
+        {/* SkillCoin */}
+        <button
+          className="min-w-[28px] h-[28px] rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md border border-blue-700 hover:scale-105 transition duration-300"
+          onClick={() => setShowCoinsDropdown((prev) => !prev)}
+          title="SkillCoin"
+          ref={coinsRef}
+          aria-label="View SkillCoin balance"
+        >
+          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+            <defs>
+              <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="#fff9c4" />
+                <stop offset="30%" stopColor="#fdd835" />
+                <stop offset="60%" stopColor="#fbc02d" />
+                <stop offset="100%" stopColor="#f57f17" />
+              </radialGradient>
+              <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffecb3" />
+                <stop offset="100%" stopColor="#ffa000" />
+              </linearGradient>
+            </defs>
+            <circle cx="12" cy="12" r="10" fill="url(#3d-coin-gold)" stroke="url(#coin-edge)" strokeWidth="2" />
+            <circle cx="12" cy="12" r="8" stroke="#fff8dc" strokeWidth="1" opacity="0.7" />
+            <text
+              x="12"
+              y="14"
+              fontSize="10"
+              fill="#1e3a8a"
+              fontWeight="bold"
+              textAnchor="middle"
+              dominantBaseline="middle"
             >
-              <img
-                src="/assets/skillswap-logo.webp"
-                alt="SkillSwapHub Logo"
-                className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-full shadow-md border-2 border-blue-900"
-              />
-              <span className="text-sm sm:text-base font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
-                SkillSwapHub
-              </span>
-            </div>
+              S
+            </text>
+          </svg>
+        </button>
 
-            {/* Right Side: Search Toggle, SkillCoin, Notifications, Profile/Login, Menu */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              {/* Mobile Search Toggle */}
-              <button
-                className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
-                onClick={() => setShowMobileSearch((prev) => !prev)}
-                aria-label="Toggle search"
-              >
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </button>
-
-              {isLoggedIn ? (
-                <>
-                  {/* SkillCoin Button */}
-                  <button
-                    className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] bg-blue-800 text-white rounded-lg shadow-md border border-blue-700 hover:scale-105 transition duration-300"
-                    onClick={() => setShowCoinsDropdown((prev) => !prev)}
-                    title="SkillCoin"
-                    ref={coinsRef}
-                    aria-label="View SkillCoin balance"
-                  >
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 64 64" fill="none">
-                      <defs>
-                        <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
-                          <stop offset="0%" stopColor="#fff9c4" />
-                          <stop offset="30%" stopColor="#fdd835" />
-                          <stop offset="60%" stopColor="#fbc02d" />
-                          <stop offset="100%" stopColor="#f57f17" />
-                        </radialGradient>
-                        <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#ffecb3" />
-                          <stop offset="100%" stopColor="#ffa000" />
-                        </linearGradient>
-                      </defs>
-                      <circle cx="32" cy="32" r="28" fill="url(#3d-coin-gold)" stroke="url(#coin-edge)" strokeWidth="4" />
-                      <circle cx="32" cy="32" r="22" stroke="#fff8dc" strokeWidth="1.5" opacity="0.7" />
-                      <text x="32" y="40" fontSize="24" fill="#1e3a8a" fontWeight="bold" textAnchor="middle">
-                        S
-                      </text>
-                    </svg>
-                  </button>
-
-                  {showCoinsDropdown && (
-                    <div className="absolute right-2 sm:right-4 top-[60px] sm:top-[64px] w-44 sm:w-48 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50">
-                      <div className="p-3 sm:p-4 space-y-3 text-xs sm:text-sm font-medium text-gray-700">
-                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
-                            <span className="text-[10px] sm:text-xs font-bold text-blue-900">G</span>
-                          </div>
-                          <span className="text-gray-800">Golden: {goldenCoins}</span>
-                        </div>
-                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
-                            <span className="text-[10px] sm:text-xs font-bold text-blue-900">S</span>
-                          </div>
-                          <span className="text-gray-800">Silver: {silverCoins}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notifications */}
-                  <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-5 h-5 sm:w-6 sm:h-6" />
-
-                  {/* Profile Dropdown */}
-                  <div className="relative">
-                    <button
-                      className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
-                      onClick={() => setShowProfileMenu((v) => !v)}
-                      title="Profile"
-                      ref={menuRef}
-                      aria-label="Open profile menu"
-                    >
-                      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-                      </svg>
-                    </button>
-
-                    {showProfileMenu && (
-                      <ProfileDropdown
-                        show={showProfileMenu}
-                        onClose={() => setShowProfileMenu(false)}
-                        navigate={navigate}
-                        menuRef={menuRef}
-                      />
-                    )}
-                  </div>
-                </>
-              ) : (
-               <button
-  className="bg-blue-800 text-white px-2 sm:px-2.5 py-1.5 sm:py-2 text-[11px] sm:text-xs rounded-lg font-medium transition-all duration-300 hover:bg-blue-700 hover:scale-105 font-nunito shadow-sm"
-  onClick={handleLoginClick}
-  aria-label="Login to SkillSwapHub"
+      {/* Notifications */}
+<button
+  className="min-w-[28px] h-[28px] rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md border border-blue-700 hover:scale-105 transition duration-300 relative"
+  onClick={() => {/* Handle notification click, e.g., open notification dropdown */}}
+  title="Notifications"
+  aria-label="View notifications"
 >
-  Login
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+    />
+  </svg>
+  {/* Optional: Notification badge */}
+  {notifications?.length > 0 && (
+    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+      {notifications.length}
+    </span>
+  )}
 </button>
 
-              )}
-
-              {/* Mobile Menu Button */}
-              <button
-                className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
-                onClick={handleMobileMenu}
-                aria-label="Toggle mobile menu"
-              >
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Search Bar */}
-          {showMobileSearch && (
-            <div className="absolute top-[60px] sm:top-[64px] left-0 w-full bg-blue-50 p-2 sm:p-3 border-b border-blue-200 z-40">
-              <form onSubmit={handleSearch} className="w-full">
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search SkillMate..."
-                    className="w-full pl-8 sm:pl-10 pr-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
-                  />
-                  <button
-                    type="submit"
-                    className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-blue-900"
-                    aria-label="Search"
-                  >
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </form>
-            </div>
+        {/* Profile */}
+        <div className="relative">
+          <button
+            className="min-w-[28px] h-[28px] rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300"
+            onClick={() => setShowProfileMenu((v) => !v)}
+            title="Profile"
+            ref={menuRef}
+            aria-label="Open profile menu"
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+            </svg>
+          </button>
+          {showProfileMenu && (
+            <ProfileDropdown
+              show={showProfileMenu}
+              onClose={() => setShowProfileMenu(false)}
+              navigate={navigate}
+              menuRef={menuRef}
+            />
           )}
+        </div>
+      </>
+    ) : (
+      <button
+        className="min-w-[28px] h-[28px] rounded-full bg-blue-800 text-white flex items-center justify-center text-[8px] font-medium transition-all duration-300 hover:bg-blue-700 hover:scale-105 font-nunito shadow-md"
+        onClick={handleLoginClick}
+        aria-label="Login to SkillSwapHub"
+      >
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+        </svg>
+      </button>
+    )}
+
+    {/* Hamburger */}
+    <button
+      className="min-w-[28px] h-[28px] rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300"
+      onClick={handleMobileMenu}
+      aria-label="Toggle mobile menu"
+    >
+      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
+        />
+      </svg>
+    </button>
+  </div>
+</div>
+
 
           {/* Desktop/Tablet View */}
           <div className="hidden md:flex items-center justify-between w-full h-full">
@@ -693,13 +656,17 @@ const Navbar = () => {
               {isLoggedIn && (
                 <div className="relative z-50">
                   <button
-                    className="flex items-center gap-1 lg:gap-2 px-3 lg:px-4 py-1.5 lg:py-2 bg-gradient-to-br from-blue-800 to-blue-600 text-white rounded-full shadow-md border border-blue-700 hover:scale-105 hover:shadow-lg transition duration-300"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-br from-blue-800 to-blue-600 text-white rounded-full shadow-md border border-blue-700 hover:scale-105 hover:shadow-lg transition duration-300"
                     onClick={() => setShowCoinsDropdown((prev) => !prev)}
                     title="SkillCoin"
                     ref={coinsRef}
-                    aria-label="View SkillCoin balance"
                   >
-                    <svg className="w-5 h-5 lg:w-6 lg:h-6" viewBox="0 0 64 64" fill="none">
+                    <svg
+                      className="w-5 h-5 lg:w-6 lg:h-6"
+                      viewBox="0 0 64 64"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
                       <defs>
                         <radialGradient id="outer-coin" cx="50%" cy="50%" r="50%">
                           <stop offset="0%" stopColor="#fff9c4" />
@@ -716,13 +683,29 @@ const Navbar = () => {
                           <stop offset="100%" stopColor="#f6b500" />
                         </radialGradient>
                       </defs>
-                      <circle cx="32" cy="32" r="28" fill="url(#outer-coin)" stroke="url(#coin-edge)" strokeWidth="4" />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="28"
+                        fill="url(#outer-coin)"
+                        stroke="url(#coin-edge)"
+                        strokeWidth="4"
+                      />
                       <circle cx="32" cy="32" r="18" fill="url(#inner-coin)" />
-                      <text x="32" y="40" fontSize="24" fill="#1e3a8a" fontWeight="bold" textAnchor="middle">
+                      <text
+                        x="32"
+                        y="40"
+                        fontSize="24"
+                        fill="#1e3a8a"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                      >
                         S
                       </text>
                     </svg>
-                    <span className="font-semibold text-xs lg:text-sm font-nunito hidden lg:inline">SkillCoin</span>
+                    <span className="font-semibold text-xs lg:text-sm font-nunito hidden lg:inline">
+                      SkillCoin
+                    </span>
                   </button>
 
                   {showCoinsDropdown && (
