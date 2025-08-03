@@ -447,125 +447,142 @@ const Navbar = () => {
       <nav className="fixed top-0 left-0 w-full h-[60px] sm:h-[64px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-2 sm:px-4 py-2 sm:py-3 shadow-lg border-b border-blue-200 z-50">
         <div className="flex items-center justify-between max-w-7xl mx-auto h-full">
           {/* Mobile View */}
-<div className="flex items-center justify-between w-full md:hidden">
-  {/* Logo */}
-  <div
-    className="flex items-center gap-1 sm:gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
-    onClick={() => navigate('/')}
-  >
-    <img
-      src="/assets/skillswap-logo.webp"
-      alt="SkillSwapHub Logo"
-      className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-full shadow-md border-2 border-blue-900"
-    />
-    <span className="text-sm sm:text-base font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
-      SkillSwapHub
-    </span>
-  </div>
-
-  {/* Right Side: Icons */}
-  <div className="flex items-center gap-1">
-    {isLoggedIn ? (
-      <>
-        {/* SkillCoin */}
-        <button
-          className="min-w-[28px] h-[28px] rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md border border-blue-700 hover:scale-105 transition duration-300"
-          onClick={() => setShowCoinsDropdown((prev) => !prev)}
-          title="SkillCoin"
-          ref={coinsRef}
-          aria-label="View SkillCoin balance"
-        >
-          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
-            <defs>
-              <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#fff9c4" />
-                <stop offset="30%" stopColor="#fdd835" />
-                <stop offset="60%" stopColor="#fbc02d" />
-                <stop offset="100%" stopColor="#f57f17" />
-              </radialGradient>
-              <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ffecb3" />
-                <stop offset="100%" stopColor="#ffa000" />
-              </linearGradient>
-            </defs>
-            <circle cx="12" cy="12" r="10" fill="url(#3d-coin-gold)" stroke="url(#coin-edge)" strokeWidth="2" />
-            <circle cx="12" cy="12" r="8" stroke="#fff8dc" strokeWidth="1" opacity="0.7" />
-            <text
-              x="12"
-              y="14"
-              fontSize="10"
-              fill="#1e3a8a"
-              fontWeight="bold"
-              textAnchor="middle"
-              dominantBaseline="middle"
+          <div className="flex items-center justify-between w-full md:hidden">
+            {/* Logo */}
+            <div
+              className="flex items-center gap-1 sm:gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
+              onClick={() => navigate('/')}
             >
-              S
-            </text>
-          </svg>
-        </button>
+              <img
+                src="/assets/skillswap-logo.webp"
+                alt="SkillSwapHub Logo"
+                className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-full shadow-md border-2 border-blue-900"
+              />
+              <span className="text-sm sm:text-base font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
+                SkillSwapHub
+              </span>
+            </div>
 
-        {/* Notifications - enlarged */}
-        <div className="mt-[2px]">
-          <Notifications
-            notifications={notifications}
-            setNotifications={setNotifications}
-            iconSize="w-5 h-5"
-          />
-        </div>
+            {/* Right Side: Icons */}
+            <div className="flex items-center gap-1">
+              {isLoggedIn ? (
+                <>
+                  {/* SkillCoin */}
+                  <div className="relative">
+                    <button
+                      className="min-w-[28px] h-[28px] rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md border border-blue-700 hover:scale-105 transition duration-300"
+                      onClick={() => setShowCoinsDropdown((prev) => !prev)}
+                      title="SkillCoin"
+                      ref={coinsRef}
+                      aria-label="View SkillCoin balance"
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                        <defs>
+                          <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stopColor="#fff9c4" />
+                            <stop offset="30%" stopColor="#fdd835" />
+                            <stop offset="60%" stopColor="#fbc02d" />
+                            <stop offset="100%" stopColor="#f57f17" />
+                          </radialGradient>
+                          <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ffecb3" />
+                            <stop offset="100%" stopColor="#ffa000" />
+                          </linearGradient>
+                        </defs>
+                        <circle cx="12" cy="12" r="10" fill="url(#3d-coin-gold)" stroke="url(#coin-edge)" strokeWidth="2" />
+                        <circle cx="12" cy="12" r="8" stroke="#fff8dc" strokeWidth="1" opacity="0.7" />
+                        <text
+                          x="12"
+                          y="14"
+                          fontSize="10"
+                          fill="#1e3a8a"
+                          fontWeight="bold"
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          S
+                        </text>
+                      </svg>
+                    </button>
+                    {showCoinsDropdown && (
+                      <div className="absolute right-0 mt-2 w-40 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50">
+                        <div className="p-3 space-y-2 text-xs font-medium text-gray-700">
+                          <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
+                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-blue-900">G</span>
+                            </div>
+                            <span className="text-gray-800">Golden: {goldenCoins}</span>
+                          </div>
+                          <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
+                            <div className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-blue-900">S</span>
+                            </div>
+                            <span className="text-gray-800">Silver: {silverCoins}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-        {/* Profile */}
-        <div className="relative">
-          <button
-            className="min-w-[28px] h-[28px] rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300"
-            onClick={() => setShowProfileMenu((v) => !v)}
-            title="Profile"
-            ref={menuRef}
-            aria-label="Open profile menu"
-          >
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-            </svg>
-          </button>
-          {showProfileMenu && (
-            <ProfileDropdown
-              show={showProfileMenu}
-              onClose={() => setShowProfileMenu(false)}
-              navigate={navigate}
-              menuRef={menuRef}
-            />
-          )}
-        </div>
-      </>
-    ) : (
-      <button
-        className="min-w-[28px] h-[28px] rounded-full bg-blue-800 text-white flex items-center justify-center text-[8px] font-medium transition-all duration-300 hover:bg-blue-700 hover:scale-105 font-nunito shadow-md"
-        onClick={handleLoginClick}
-        aria-label="Login to SkillSwapHub"
-      >
-        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-        </svg>
-      </button>
-    )}
+                  {/* Notifications - enlarged */}
+                  <div className="mt-[2px]">
+                    <Notifications
+                      notifications={notifications}
+                      setNotifications={setNotifications}
+                      iconSize="w-5 h-5"
+                    />
+                  </div>
 
-    {/* Hamburger */}
-    <button
-      className="min-w-[28px] h-[28px] rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300"
-      onClick={handleMobileMenu}
-      aria-label="Toggle mobile menu"
-    >
-      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
-        />
-      </svg>
-    </button>
-  </div>
-</div>
+                  {/* Profile */}
+                  <div className="relative">
+                    <button
+                      className="min-w-[28px] h-[28px] rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300"
+                      onClick={() => setShowProfileMenu((v) => !v)}
+                      title="Profile"
+                      ref={menuRef}
+                      aria-label="Open profile menu"
+                    >
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                      </svg>
+                    </button>
+                    {showProfileMenu && (
+                      <ProfileDropdown
+                        show={showProfileMenu}
+                        onClose={() => setShowProfileMenu(false)}
+                        navigate={navigate}
+                        menuRef={menuRef}
+                      />
+                    )}
+                  </div>
+                </>
+              ) : (
+                <button
+                  className="px-3 py-1.5 text-xs font-medium text-white bg-blue-800 rounded-full shadow-md hover:bg-blue-700 hover:scale-105 transition-all duration-300 font-nunito"
+                  onClick={handleLoginClick}
+                  aria-label="Login to SkillSwapHub"
+                >
+                  Login
+                </button>
+              )}
 
+              {/* Hamburger */}
+              <button
+                className="min-w-[28px] h-[28px] rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300"
+                onClick={handleMobileMenu}
+                aria-label="Toggle mobile menu"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
 
           {/* Desktop/Tablet View */}
           <div className="hidden md:flex items-center justify-between w-full h-full">

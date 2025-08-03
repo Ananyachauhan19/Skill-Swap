@@ -25,7 +25,7 @@ const fetchUserProfile = async () => {
   } catch (err) {
     console.error("Fetch user profile error:", err);
     return {
-      fullName: "Professional",
+      fullName: "Professional", // Fallback data
       profilePic: "https://placehold.co/100x100?text=User",
     };
   }
@@ -63,7 +63,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
   ];
 
   // Debug mode: Force profile section to show for testing (set to false in production)
-  const debugMode = true;
+  const debugMode = true; // Change to false to rely on actual isLoggedIn state
 
   // Fetch user profile on mount if logged in
   useEffect(() => {
@@ -102,17 +102,17 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
   }, [isLoggedIn, user, loading, error]);
 
   return (
-    <section className="relative z-10 min-h-[calc(100vh-80px)] w-full bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden pt-16 sm:pt-20">
-      <div className="max-w-7xl w-full flex flex-col lg:flex-row gap-6 md:gap-8 items-center justify-between py-4 sm:py-6">
+    <section className="relative z-10 min-h-[calc(100vh-80px)] w-full bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-hidden pt-16 sm:pt-3">
+      <div className="max-w-7xl w-full flex flex-col lg:flex-row gap-4 md:gap-6 items-center justify-between h-full py-2 sm:py-4">
         {/* Hero Text Content */}
         <motion.div
-          className="flex flex-col justify-center space-y-4 w-full lg:w-1/2 text-center lg:text-left"
+          className="flex flex-col justify-center space-y-4 w-full lg:w-1/2"
           initial="hidden"
           animate="visible"
           variants={textVariants}
         >
           <motion.h1
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold leading-tight text-blue-900"
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-extrabold leading-tight text-blue-900 text-center lg:text-left"
             variants={textVariants}
           >
             <span>
@@ -128,16 +128,16 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             </span>
           </motion.h1>
           <motion.p
-            className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-full sm:max-w-md leading-relaxed mx-auto lg:mx-0 px-2 sm:px-0"
+            className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-full sm:max-w-md leading-relaxed text-center lg:text-left mx-auto lg:mx-0 px-2 sm:px-0"
             variants={textVariants}
           >
             SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.
           </motion.p>
-          <motion.div className="flex flex-wrap gap-3 justify-center lg:justify-start px-2 sm:px-0" variants={textVariants}>
+          <motion.div className="flex flex-wrap gap-2 justify-center lg:justify-start px-2 sm:px-0" variants={textVariants}>
             {(isLoggedIn || debugMode) ? (
               <motion.button
                 onClick={() => exploreRef?.current?.scrollIntoView({ behavior: "smooth" })}
-                className="bg-blue-900 text-white px-3 sm:px-4 py-2 rounded-md font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
+                className="bg-blue-900 text-white px-4 py-2 rounded-md font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
                 variants={buttonVariants}
                 whileHover="hover"
                 whileTap="tap"
@@ -147,7 +147,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             ) : (
               <motion.button
                 onClick={openRegister}
-                className="bg-blue-900 text-white px-3 sm:px-4 py-2 rounded-md font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
+                className="bg-blue-900 text-white px-4 py-2 rounded-md font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
                 variants={buttonVariants}
                 whileHover="hover"
                 whileTap="tap"
@@ -157,7 +157,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             )}
             <motion.button
               onClick={() => navigate("/pro")}
-              className="border-2 border-blue-900 text-blue-900 px-3 sm:px-4 py-2 rounded-md font-semibold text-sm hover:bg-blue-900 hover:text-white transition-all duration-300"
+              className="border-2 border-blue-900 text-blue-900 px-4 py-2 rounded-md font-semibold text-sm hover:bg-blue-900 hover:text-white transition-all duration-300"
               variants={buttonVariants}
               whileHover="hover"
               whileTap="tap"
@@ -168,10 +168,10 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
         </motion.div>
 
         {/* Hero Image and Profile Section */}
-        <div className="flex flex-col w-full lg:w-1/2 items-center justify-start gap-4 mt-8 lg:mt-0">
+        <div className="flex flex-col w-full lg:w-1/2 items-center justify-start gap-2 mt-12 lg:mt-16">
           {(isLoggedIn || debugMode) && (
             <motion.div
-              className="w-full max-w-full sm:max-w-md bg-gradient-to-r from-blue-800 to-blue-600 rounded-lg shadow-xl border border-blue-200 px-4 py-3 z-20"
+              className="w-full max-w-full sm:max-w-[500px] md:max-w-[580px] bg-gradient-to-r from-blue-800 to-blue-600 rounded-lg shadow-xl border border-blue-200 px-4 py-3 z-20"
               variants={profileVariants}
               initial="hidden"
               animate="visible"
@@ -223,7 +223,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
           )}
 
           <motion.div
-            className="relative w-full max-w-full sm:max-w-md px-3 sm:px-0"
+            className="relative w-full max-w-full sm:max-w-[520px] md:max-w-[600px] px-3 sm:px-0 -mt-4 sm:-mt-6"
             initial={{ opacity: 0, scale: 0.95, x: 50 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
@@ -233,7 +233,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
               <img
                 src="/assets/skillswap-hero.png"
                 alt="SkillSwap Hero Image"
-                className="w-full h-auto max-h-[300px] sm:max-h-[400px] md:max-h-[500px] object-contain hover:scale-105 transition-transform duration-300 mx-auto"
+                className="w-full h-[300px] sm:h-[500px] md:h-[600px] lg:h-[600px] object-contain hover:scale-105 transition-transform duration-300 mx-auto"
               />
             </picture>
           </motion.div>
