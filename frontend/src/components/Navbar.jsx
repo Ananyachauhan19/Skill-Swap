@@ -5,7 +5,7 @@ import { useModal } from '../context/ModalContext';
 import MobileMenu from './MobileMenu';
 import ProfileDropdown from './ProfileDropdown';
 import Notifications from './Navbar/Notifications';
-import VideoCall from "./VideoCall";
+import VideoCall from './VideoCall';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 
@@ -14,7 +14,7 @@ function useSessionSocketNotifications(setNotifications) {
   useEffect(() => {
     const userCookie = Cookies.get('user');
     const user = userCookie ? JSON.parse(userCookie) : null;
-    
+
     if (user && user._id) {
       socket.emit('register', user._id);
     }
@@ -34,12 +34,12 @@ function useSessionSocketNotifications(setNotifications) {
               const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${sessionRequest._id}`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
               });
               if (response.ok) {
                 socket.emit('session-request-response', {
                   requestId: sessionRequest._id,
-                  action: 'approve'
+                  action: 'approve',
                 });
                 return true;
               }
@@ -52,19 +52,19 @@ function useSessionSocketNotifications(setNotifications) {
               const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${sessionRequest._id}`, {
                 method: 'POST',
                 credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
               });
               if (response.ok) {
                 socket.emit('session-request-response', {
                   requestId: sessionRequest._id,
-                  action: 'reject'
+                  action: 'reject',
                 });
                 return true;
               }
             } catch (error) {
               return false;
             }
-          }
+          },
         },
         ...prev,
       ]);
@@ -143,14 +143,17 @@ function useSessionSocketNotifications(setNotifications) {
             },
             credentials: 'include',
           })
-          .then(response => {
-            if (response.ok) {
-            } else {
-            }
-          })
-          .catch(error => {
-          });
-        }
+            .then((response) => {
+              if (response.ok) {
+                // Handle success if needed
+              } else {
+                // Handle error if needed
+              }
+            })
+            .catch((error) => {
+              // Handle error if needed
+            });
+        },
       };
       setNotifications((prev) => {
         const updated = [newNotification, ...prev];
@@ -209,7 +212,7 @@ function useSessionSocketNotifications(setNotifications) {
       const { skillMateRequest, approver, requester } = data;
       const isRequester = user && user._id === requester._id;
       const otherUser = isRequester ? approver : requester;
-      
+
       setNotifications((prev) => [
         {
           type: 'skillmate',
@@ -217,13 +220,13 @@ function useSessionSocketNotifications(setNotifications) {
           requestId: skillMateRequest._id,
           otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
           otherUserUsername: otherUser.username,
-          message: isRequester 
-            ? `${approver.firstName} ${approver.lastName} accepted your SkillMate request.` 
+          message: isRequester
+            ? `${approver.firstName} ${approver.lastName} accepted your SkillMate request.`
             : `You accepted the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
           timestamp: Date.now(),
           read: false,
         },
-        ...prev.filter(n => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
+        ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
       ]);
     });
 
@@ -231,7 +234,7 @@ function useSessionSocketNotifications(setNotifications) {
       const { skillMateRequest, rejecter, requester } = data;
       const isRequester = user && user._id === requester._id;
       const otherUser = isRequester ? rejecter : requester;
-      
+
       setNotifications((prev) => [
         {
           type: 'skillmate',
@@ -239,13 +242,13 @@ function useSessionSocketNotifications(setNotifications) {
           requestId: skillMateRequest._id,
           otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
           otherUserUsername: otherUser.username,
-          message: isRequester 
-            ? `${rejecter.firstName} ${rejecter.lastName} declined your SkillMate request.` 
+          message: isRequester
+            ? `${rejecter.firstName} ${rejecter.lastName} declined your SkillMate request.`
             : `You declined the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
           timestamp: Date.now(),
           read: false,
         },
-        ...prev.filter(n => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
+        ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
       ]);
     });
 
@@ -273,11 +276,12 @@ const Navbar = () => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showCoinsDropdown, setShowCoinsDropdown] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [notifications, setNotifications] = useState([]);
   const [goldenCoins, setGoldenCoins] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
   const [activeVideoCall, setActiveVideoCall] = useState(null);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const menuRef = useRef();
   const coinsRef = useRef();
 
@@ -304,12 +308,12 @@ const Navbar = () => {
     const cleanupOldNotifications = () => {
       const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
       const now = Date.now();
-      
-      const filteredNotifications = notifications.filter(notification => {
+
+      const filteredNotifications = notifications.filter((notification) => {
         if (!notification.timestamp) return true;
-        return (now - notification.timestamp) < TWENTY_FOUR_HOURS;
+        return now - notification.timestamp < TWENTY_FOUR_HOURS;
       });
-      
+
       if (filteredNotifications.length !== notifications.length) {
         setNotifications(filteredNotifications);
       }
@@ -329,16 +333,17 @@ const Navbar = () => {
     const handleAuthChange = () => {
       setIsLoggedIn(!!Cookies.get('user'));
     };
-    window.addEventListener("storage", handleAuthChange);
-    window.addEventListener("authChanged", handleAuthChange);
+    window.addEventListener('storage', handleAuthChange);
+    window.addEventListener('authChanged', handleAuthChange);
     return () => {
-      window.removeEventListener("storage", handleAuthChange);
-      window.removeEventListener("authChanged", handleAuthChange); 
+      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('authChanged', handleAuthChange);
     };
   }, []);
 
   useEffect(() => {
     setMenuOpen(false);
+    setShowMobileSearch(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -352,9 +357,9 @@ const Navbar = () => {
         setShowCoinsDropdown(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showProfileMenu, showCoinsDropdown]);
 
@@ -362,12 +367,13 @@ const Navbar = () => {
     e.preventDefault();
     if (searchQuery.trim()) {
       const username = searchQuery.trim();
-      if (location.pathname.startsWith("/profile/")) {
+      if (location.pathname.startsWith('/profile/')) {
         navigate(`/profile/${username}`, { replace: true });
       } else {
         navigate(`/profile/${username}`);
       }
-      setSearchQuery("");
+      setSearchQuery('');
+      setShowMobileSearch(false);
     }
   };
 
@@ -402,7 +408,7 @@ const Navbar = () => {
         ...prev.filter(
           (n) =>
             !(n.type === 'request' && n.tutor && n.tutor.name === e.detail.tutor.name) &&
-            !(n.type === 'session' && n.tutor && n.tutor.name === e.detail.tutor.name)
+            !(n.type === 'session' && n.tutor && n.tutor.name === e.detail.tutor.name),
         ),
       ]);
     };
@@ -419,7 +425,7 @@ const Navbar = () => {
   useEffect(() => {
     if (!isLoggedIn) return;
     fetch(`${BACKEND_URL}/api/auth/coins`, {
-      credentials: 'include'
+      credentials: 'include',
     })
       .then((res) => res.json())
       .then((data) => {
@@ -438,37 +444,54 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-4 py-5 shadow-lg border-b border-blue-200 z-50">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Mobile View: Logo, SkillCoin, Notifications, Profile/Login */}
-          <div className="flex items-center justify-between w-full sm:hidden">
-            {/* Logo with Text */}
+      <nav className="fixed top-0 left-0 w-full h-[60px] sm:h-[64px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-3 sm:px-4 py-2 sm:py-3 shadow-lg border-b border-blue-200 z-50">
+        <div className="flex items-center justify-between max-w-7xl mx-auto h-full">
+          {/* Mobile View */}
+          <div className="flex items-center justify-between w-full md:hidden">
+            {/* Logo */}
             <div
-              className="flex items-center gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
-              onClick={() => navigate("/")}
+              className="flex items-center gap-1 sm:gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
+              onClick={() => navigate('/')}
             >
               <img
                 src="/assets/skillswap-logo.webp"
                 alt="SkillSwapHub Logo"
-                className="h-8 w-8 object-contain rounded-full shadow-md border-2 border-blue-900"
+                className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-full shadow-md border-2 border-blue-900"
               />
-              <span className="text-lg font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
+              <span className="text-sm sm:text-base font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
                 SkillSwapHub
               </span>
             </div>
 
-            {/* Right Side: SkillCoin, Notifications, Profile/Login */}
-            <div className="flex items-center gap-3">
-              {isLoggedIn ? (
+            {/* Right Side: Search Toggle, SkillCoin, Notifications, Profile/Login, Menu */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Mobile Search Toggle */}
+              <button
+                className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                onClick={() => setShowMobileSearch((prev) => !prev)}
+                aria-label="Toggle search"
+              >
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </button>
+
+              {isLoggedIn && (
                 <>
                   {/* SkillCoin Button */}
                   <button
-                    className="flex items-center justify-center w-8 h-8 bg-blue-800 text-white rounded-lg shadow-md border border-blue-700 hover:scale-105 transition duration-300"
+                    className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] bg-blue-800 text-white rounded-lg shadow-md border border-blue-700 hover:scale-105 transition duration-300"
                     onClick={() => setShowCoinsDropdown((prev) => !prev)}
                     title="SkillCoin"
                     ref={coinsRef}
+                    aria-label="View SkillCoin balance"
                   >
-                    <svg className="w-5 h-5" viewBox="0 0 64 64" fill="none">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 64 64" fill="none">
                       <defs>
                         <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
                           <stop offset="0%" stopColor="#fff9c4" />
@@ -483,31 +506,24 @@ const Navbar = () => {
                       </defs>
                       <circle cx="32" cy="32" r="28" fill="url(#3d-coin-gold)" stroke="url(#coin-edge)" strokeWidth="4" />
                       <circle cx="32" cy="32" r="22" stroke="#fff8dc" strokeWidth="1.5" opacity="0.7" />
-                      <text
-                        x="32"
-                        y="40"
-                        fontSize="24"
-                        fill="#1e3a8a"
-                        fontWeight="bold"
-                        textAnchor="middle"
-                      >
+                      <text x="32" y="40" fontSize="24" fill="#1e3a8a" fontWeight="bold" textAnchor="middle">
                         S
                       </text>
                     </svg>
                   </button>
 
                   {showCoinsDropdown && (
-                    <div className="absolute right-4 top-12 w-48 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm">
-                      <div className="p-4 space-y-3 text-sm font-medium text-gray-700">
+                    <div className="absolute right-2 sm:right-4 top-[60px] sm:top-[64px] w-44 sm:w-48 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50">
+                      <div className="p-3 sm:p-4 space-y-3 text-xs sm:text-sm font-medium text-gray-700">
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
-                            <span className="text-xs font-bold text-blue-900">G</span>
+                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
+                            <span className="text-[10px] sm:text-xs font-bold text-blue-900">G</span>
                           </div>
                           <span className="text-gray-800">Golden: {goldenCoins}</span>
                         </div>
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
-                            <span className="text-xs font-bold text-blue-900">S</span>
+                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
+                            <span className="text-[10px] sm:text-xs font-bold text-blue-900">S</span>
                           </div>
                           <span className="text-gray-800">Silver: {silverCoins}</span>
                         </div>
@@ -516,17 +532,18 @@ const Navbar = () => {
                   )}
 
                   {/* Notifications */}
-                  <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-5 h-5" />
+                  <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-5 h-5 sm:w-6 sm:h-6" />
 
                   {/* Profile Dropdown */}
                   <div className="relative">
                     <button
-                      className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                      className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
                       onClick={() => setShowProfileMenu((v) => !v)}
                       title="Profile"
                       ref={menuRef}
+                      aria-label="Open profile menu"
                     >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
                       </svg>
                     </button>
@@ -541,13 +558,16 @@ const Navbar = () => {
                     )}
                   </div>
                 </>
-              ) : (
+              )}
+
+              {!isLoggedIn && (
                 <button
-                  className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                  className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
                   onClick={handleLoginClick}
                   title="Login"
+                  aria-label="Login to SkillSwapHub"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -560,55 +580,86 @@ const Navbar = () => {
 
               {/* Mobile Menu Button */}
               <button
-                className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
                 onClick={handleMobileMenu}
-                aria-label="Toggle menu"
+                aria-label="Toggle mobile menu"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth="2"
-                    d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                    d={menuOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
                   />
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Desktop View (Unchanged) */}
-          <div className="hidden sm:flex items-center justify-between w-full">
+          {/* Mobile Search Bar */}
+          {showMobileSearch && (
+            <div className="absolute top-[60px] sm:top-[64px] left-0 w-full bg-blue-50 p-2 sm:p-3 border-b border-blue-200 z-40">
+              <form onSubmit={handleSearch} className="w-full">
+                <div className="relative flex items-center">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search SkillMate..."
+                    className="w-full pl-8 sm:pl-10 pr-4 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
+                  />
+                  <button
+                    type="submit"
+                    className="absolute left-2 sm:left-3 top-1/2 transform -translate-y-1/2 text-blue-900"
+                    aria-label="Search"
+                  >
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* Desktop/Tablet View */}
+          <div className="hidden md:flex items-center justify-between w-full h-full">
             {/* Left: Logo and Navigation */}
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4 lg:gap-6">
               <div
-                className="flex items-center gap-3 cursor-pointer transition-transform duration-300 hover:scale-105"
-                onClick={() => navigate("/")}
+                className="flex items-center gap-2 lg:gap-3 cursor-pointer transition-transform duration-300 hover:scale-105"
+                onClick={() => navigate('/')}
               >
                 <img
                   src="/assets/skillswap-logo.webp"
                   alt="SkillSwapHub Logo"
-                  className="h-10 w-10 object-contain rounded-full shadow-md border-2 border-blue-900"
+                  className="h-9 w-9 lg:h-10 lg:w-10 object-contain rounded-full shadow-md border-2 border-blue-900"
                 />
-                <span className="text-xl font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
+                <span className="text-base lg:text-xl font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
                   SkillSwapHub
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 lg:gap-2">
                 {[
-                  { path: "/home", label: "Home" },
-                  { path: "/one-on-one", label: "1-on-1" },
-                  { path: "/discuss", label: "Discuss" },
-                  { path: "/interview", label: "Interview" },
-                  { path: "/session", label: "Session" },
-                  { path: "/session-requests", label: "Requests" },
+                  { path: '/home', label: 'Home' },
+                  { path: '/one-on-one', label: '1-on-1' },
+                  { path: '/discuss', label: 'Discuss' },
+                  { path: '/interview', label: 'Interview' },
+                  { path: '/session', label: 'Session' },
+                  { path: '/session-requests', label: 'Requests' },
                 ].map(({ path, label }) => (
                   <button
                     key={path}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-full text-blue-900 bg-blue-100/50 shadow-sm transition-all duration-300 ${
+                    className={`text-xs lg:text-sm font-bold px-2 lg:px-3 py-1.5 rounded-full text-blue-900 bg-blue-100/50 shadow-sm transition-all duration-300 ${
                       isActive(path)
-                        ? "bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md"
-                        : "hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105"
+                        ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md'
+                        : 'hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105'
                     }`}
                     onClick={() => navigate(path)}
                   >
@@ -618,9 +669,9 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Right: Desktop Search, SkillCoin, Notifications, Auth/Profile */}
-            <div className="flex items-center gap-8 flex-1 justify-end">
-              <div className="flex-1 max-w-xl ml-[2%]">
+            {/* Right: Search, SkillCoin, Notifications, Auth/Profile */}
+            <div className="flex items-center gap-3 lg:gap-6 flex-1 justify-end">
+              <div className="flex-1 max-w-md lg:max-w-xl ml-[1%] lg:ml-[2%]">
                 <form onSubmit={handleSearch} className="w-full">
                   <div className="relative flex items-center">
                     <input
@@ -628,13 +679,14 @@ const Navbar = () => {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search SkillMate..."
-                      className="w-full pl-10 pr-4 py-2 text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
+                      className="w-full pl-8 lg:pl-10 pr-4 py-1.5 lg:py-2 text-xs lg:text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
                     />
                     <button
                       type="submit"
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-900"
+                      className="absolute left-2 lg:left-3 top-1/2 transform -translate-y-1/2 text-blue-900"
+                      aria-label="Search"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -650,63 +702,50 @@ const Navbar = () => {
               {isLoggedIn && (
                 <div className="relative z-50">
                   <button
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-blue-800 to-blue-600 text-white rounded-full shadow-md border border-blue-700 hover:scale-105 hover:shadow-lg transition duration-300"
+                    className="flex items-center gap-1 lg:gap-2 px-3 lg:px-4 py-1.5 lg:py-2 bg-gradient-to-br from-blue-800 to-blue-600 text-white rounded-full shadow-md border border-blue-700 hover:scale-105 hover:shadow-lg transition duration-300"
                     onClick={() => setShowCoinsDropdown((prev) => !prev)}
                     title="SkillCoin"
                     ref={coinsRef}
+                    aria-label="View SkillCoin balance"
                   >
-                   <svg className="w-6 h-6" viewBox="0 0 64 64" fill="none">
-  <defs>
-    <radialGradient id="outer-coin" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stopColor="#fff9c4" />
-      <stop offset="30%" stopColor="#fdd835" />
-      <stop offset="60%" stopColor="#fbc02d" />
-      <stop offset="100%" stopColor="#f57f17" />
-    </radialGradient>
-    <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="#ffecb3" />
-      <stop offset="100%" stopColor="#ffa000" />
-    </linearGradient>
-    <radialGradient id="inner-coin" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stopColor="#fff8dc" />
-      <stop offset="100%" stopColor="#f6b500" />
-    </radialGradient>
-  </defs>
-
-  {/* Outer Coin */}
-  <circle cx="32" cy="32" r="28" fill="url(#outer-coin)" stroke="url(#coin-edge)" strokeWidth="4" />
-
-  {/* Inner Coin */}
-  <circle cx="32" cy="32" r="18" fill="url(#inner-coin)" />
-
-  {/* S Text */}
-  <text
-    x="32"
-    y="40"
-    fontSize="24"
-    fill="#1e3a8a"
-    fontWeight="bold"
-    textAnchor="middle"
-  >
-    S
-  </text>
-</svg>
-
-                    <span className="font-semibold text-sm font-nunito hidden md:inline">SkillCoin</span>
+                    <svg className="w-5 h-5 lg:w-6 lg:h-6" viewBox="0 0 64 64" fill="none">
+                      <defs>
+                        <radialGradient id="outer-coin" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#fff9c4" />
+                          <stop offset="30%" stopColor="#fdd835" />
+                          <stop offset="60%" stopColor="#fbc02d" />
+                          <stop offset="100%" stopColor="#f57f17" />
+                        </radialGradient>
+                        <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#ffecb3" />
+                          <stop offset="100%" stopColor="#ffa000" />
+                        </linearGradient>
+                        <radialGradient id="inner-coin" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#fff8dc" />
+                          <stop offset="100%" stopColor="#f6b500" />
+                        </radialGradient>
+                      </defs>
+                      <circle cx="32" cy="32" r="28" fill="url(#outer-coin)" stroke="url(#coin-edge)" strokeWidth="4" />
+                      <circle cx="32" cy="32" r="18" fill="url(#inner-coin)" />
+                      <text x="32" y="40" fontSize="24" fill="#1e3a8a" fontWeight="bold" textAnchor="middle">
+                        S
+                      </text>
+                    </svg>
+                    <span className="font-semibold text-xs lg:text-sm font-nunito hidden lg:inline">SkillCoin</span>
                   </button>
 
                   {showCoinsDropdown && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm">
-                      <div className="p-4 space-y-3 text-sm font-medium text-gray-700">
+                    <div className="absolute right-0 mt-2 w-44 lg:w-48 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50">
+                      <div className="p-3 lg:p-4 space-y-3 text-xs lg:text-sm font-medium text-gray-700">
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
-                            <span className="text-xs font-bold text-blue-900">G</span>
+                          <div className="w-4 h-4 lg:w-5 lg:h-5 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
+                            <span className="text-[10px] lg:text-xs font-bold text-blue-900">G</span>
                           </div>
                           <span className="text-gray-800">Golden: {goldenCoins}</span>
                         </div>
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
-                            <span className="text-xs font-bold text-blue-900">S</span>
+                          <div className="w-4 h-4 lg:w-5 lg:h-5 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
+                            <span className="text-[10px] lg:text-xs font-bold text-blue-900">S</span>
                           </div>
                           <span className="text-gray-800">Silver: {silverCoins}</span>
                         </div>
@@ -716,24 +755,26 @@ const Navbar = () => {
                 </div>
               )}
 
-              <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-6 h-6" />
+              <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-5 h-5 lg:w-6 lg:h-6" />
 
               {!isLoggedIn ? (
                 <button
-                  className="bg-blue-800 text-white px-4 py-2 text-sm rounded-lg font-medium transition-all duration-300 hover:bg-blue-700 hover:scale-105 font-nunito shadow-sm"
+                  className="bg-blue-800 text-white px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm rounded-lg font-medium transition-all duration-300 hover:bg-blue-700 hover:scale-105 font-nunito shadow-sm"
                   onClick={handleLoginClick}
+                  aria-label="Login to SkillSwapHub"
                 >
                   Login
                 </button>
               ) : (
                 <div className="relative">
                   <button
-                    className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                    className="min-w-[40px] h-[40px] lg:min-w-[44px] lg:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
                     onClick={() => setShowProfileMenu((v) => !v)}
                     title="Profile"
                     ref={menuRef}
+                    aria-label="Open profile menu"
                   >
-                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 lg:w-6 lg:h-6" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
                     </svg>
                   </button>
