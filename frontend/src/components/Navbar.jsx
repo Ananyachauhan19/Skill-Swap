@@ -444,7 +444,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full h-[60px] sm:h-[64px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-3 sm:px-4 py-2 sm:py-3 shadow-lg border-b border-blue-200 z-50">
+      <nav className="fixed top-0 left-0 w-full h-[60px] sm:h-[64px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-2 sm:px-4 py-2 sm:py-3 shadow-lg border-b border-blue-200 z-50">
         <div className="flex items-center justify-between max-w-7xl mx-auto h-full">
           {/* Mobile View */}
           <div className="flex items-center justify-between w-full md:hidden">
@@ -464,7 +464,7 @@ const Navbar = () => {
             </div>
 
             {/* Right Side: Search Toggle, SkillCoin, Notifications, Profile/Login, Menu */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1 sm:gap-2">
               {/* Mobile Search Toggle */}
               <button
                 className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
@@ -481,7 +481,7 @@ const Navbar = () => {
                 </svg>
               </button>
 
-              {isLoggedIn && (
+              {isLoggedIn ? (
                 <>
                   {/* SkillCoin Button */}
                   <button
@@ -558,24 +558,15 @@ const Navbar = () => {
                     )}
                   </div>
                 </>
-              )}
+              ) : (
+               <button
+  className="bg-blue-800 text-white px-2 sm:px-2.5 py-1.5 sm:py-2 text-[11px] sm:text-xs rounded-lg font-medium transition-all duration-300 hover:bg-blue-700 hover:scale-105 font-nunito shadow-sm"
+  onClick={handleLoginClick}
+  aria-label="Login to SkillSwapHub"
+>
+  Login
+</button>
 
-              {!isLoggedIn && (
-                <button
-                  className="min-w-[40px] h-[40px] sm:min-w-[44px] sm:h-[44px] rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
-                  onClick={handleLoginClick}
-                  title="Login"
-                  aria-label="Login to SkillSwapHub"
-                >
-                  <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-                    />
-                  </svg>
-                </button>
               )}
 
               {/* Mobile Menu Button */}
