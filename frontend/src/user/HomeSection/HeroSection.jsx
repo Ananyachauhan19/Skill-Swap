@@ -1,26 +1,33 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { BACKEND_URL } from '../../config.js';
+import { BACKEND_URL } from "../../config.js";
 
 // Fetch user profile from backend
 const fetchUserProfile = async () => {
   try {
     const response = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
-      method: 'GET',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
     });
-    if (!response.ok) throw new Error('Failed to fetch user profile');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch user profile: ${response.status} ${response.statusText}`);
+    }
     const userData = await response.json();
     return {
-      fullName: userData.firstName && userData.lastName 
-        ? `${userData.firstName} ${userData.lastName}` 
-        : userData.firstName || userData.username || 'User',
-      profilePic: userData.profilePic || 'https://placehold.co/100x100?text=User',
+      fullName:
+        userData.firstName && userData.lastName
+          ? `${userData.firstName} ${userData.lastName}`
+          : userData.firstName || userData.username || "Professional",
+      profilePic: userData.profilePic || "https://placehold.co/100x100?text=User",
     };
   } catch (err) {
-    throw new Error("Failed to fetch user profile");
+    console.error("Fetch user profile error:", err);
+    return {
+      fullName: "Professional", // Fallback data
+      profilePic: "https://placehold.co/100x100?text=User",
+    };
   }
 };
 
@@ -33,6 +40,11 @@ const textVariants = {
 const buttonVariants = {
   hover: { scale: 1.05, boxShadow: "0px 4px 12px rgba(0, 0, 139, 0.2)" },
   tap: { scale: 0.95 },
+};
+
+const profileVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
 };
 
 const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegister, closeModals, exploreRef }) => {
@@ -50,9 +62,12 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
     "Discover courses to boost your career!",
   ];
 
+  // Debug mode: Force profile section to show for testing (set to false in production)
+  const debugMode = true; // Change to false to rely on actual isLoggedIn state
+
   // Fetch user profile on mount if logged in
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn || debugMode) {
       const loadUser = async () => {
         setLoading(true);
         setError(null);
@@ -61,6 +76,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
           setUser(data);
         } catch (err) {
           setError(err.message);
+          setUser({ fullName: "Professional", profilePic: "https://placehold.co/100x100?text=User" });
         } finally {
           setLoading(false);
         }
@@ -68,6 +84,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
       loadUser();
     } else {
       setLoading(false);
+      setUser(null);
     }
   }, [isLoggedIn]);
 
@@ -79,8 +96,13 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
     return () => clearInterval(interval);
   }, [prompts.length]);
 
+  // Debugging logs
+  useEffect(() => {
+    console.log("HeroSection State:", { isLoggedIn, debugMode, user, loading, error });
+  }, [isLoggedIn, user, loading, error]);
+
   return (
-    <section className="relative z-10 min-h-screen w-full bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-hidden">
+    <section className="relative z-10 min-h-screen w-full bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-visible">
       <div className="max-w-7xl w-full flex flex-col lg:flex-row gap-4 md:gap-6 items-center justify-between h-full py-4 sm:py-0">
         {/* Hero Text Content */}
         <motion.div
@@ -93,9 +115,17 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-extrabold leading-tight text-blue-900 text-center lg:text-left"
             variants={textVariants}
           >
-            <span><span className="text-black">Teach</span> What You Know,</span><br />
-            <span><span className="text-black">Learn</span> What You Don't-</span><br />
-            <span>And <span className="text-black">Earn</span> While You Do!</span>
+            <span>
+              <span className="text-black">Teach</span> What You Know,
+            </span>
+            <br />
+            <span>
+              <span className="text-black">Learn</span> What You Don't-
+            </span>
+            <br />
+            <span>
+              And <span className="text-black">Earn</span> While You Do!
+            </span>
           </motion.h1>
           <motion.p
             className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-full sm:max-w-md leading-relaxed text-center lg:text-left mx-auto lg:mx-0 px-2 sm:px-0"
@@ -104,9 +134,9 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.
           </motion.p>
           <motion.div className="flex flex-wrap gap-2 justify-center lg:justify-start px-2 sm:px-0" variants={textVariants}>
-            {isLoggedIn ? (
+            {(isLoggedIn || debugMode) ? (
               <motion.button
-                onClick={() => exploreRef?.current?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => exploreRef?.current?.scrollIntoView({ behavior: "smooth" })}
                 className="bg-blue-900 text-white px-4 py-2 rounded-md font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
                 variants={buttonVariants}
                 whileHover="hover"
@@ -138,12 +168,14 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
         </motion.div>
 
         {/* Hero Image and Profile Section */}
-       <div className="flex flex-col w-full lg:w-1/2 items-center lg:items-end justify-start gap-3 mt-6 sm:mt-0 lg:-mt-10">
+ <div className="flex flex-col w-full lg:w-1/2 items-center lg:items-end justify-start gap-3 mt-1 sm:mt-[-7.99rem]">
+
+
 
           <motion.div
             className="relative w-full max-w-full sm:max-w-[520px] md:max-w-[600px] px-3 sm:px-0"
-            initial={{ opacity: 0, scale: 0.95, x: 50, y: -20 }}
-            animate={{ opacity: 1, scale: 1, x: 0, y: -20 }}
+            initial={{ opacity: 0, scale: 0.95, x: 50 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
           >
             <picture>
@@ -156,40 +188,57 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             </picture>
           </motion.div>
 
-          {isLoggedIn && (
-            <div className="w-full max-w-full sm:max-w-[500px] md:max-w-[580px] bg-gradient-to-r from-blue-800 to-blue-600 rounded-lg shadow-xl border border-blue-200 px-4 py-3 -mt-16 sm:-mt-28 lg:-mt-36">
-
+          {(isLoggedIn || debugMode) && (
+            <motion.div
+              className="w-full max-w-full sm:max-w-[500px] md:max-w-[580px] bg-gradient-to-r from-blue-800 to-blue-600 rounded-lg shadow-xl border border-blue-200 px-4 py-3 z-20"
+              variants={profileVariants}
+              initial="hidden"
+              animate="visible"
+            >
               <div className="flex items-center gap-2">
                 {loading ? (
                   <div className="w-5 h-5 border-2 border-blue-200 border-t-transparent rounded-full animate-spin" />
                 ) : error ? (
-                  <p className="text-red-300 text-xs">{error}</p>
-                ) : (
                   <>
                     <img
-                      src={user?.profilePic}
+                      src="https://placehold.co/100x100?text=User"
+                      alt="User Avatar"
+                      className="w-8 h-8 rounded-full border border-blue-100"
+                    />
+                    <p className="text-sm font-medium text-white truncate">Welcome, Professional!</p>
+                  </>
+                ) : user ? (
+                  <>
+                    <img
+                      src={user.profilePic}
                       alt="User Avatar"
                       className="w-8 h-8 rounded-full border border-blue-100"
                     />
                     <p className="text-sm font-medium text-white truncate">
-                      Welcome, {user?.fullName || "Professional"}!
+                      Welcome, {user.fullName || "Professional"}!
                     </p>
+                  </>
+                ) : (
+                  <>
+                    <img
+                      src="https://placehold.co/100x100?text=User"
+                      alt="User Avatar"
+                      className="w-8 h-8 rounded-full border border-blue-100"
+                    />
+                    <p className="text-sm font-medium text-white truncate">Welcome, Professional!</p>
                   </>
                 )}
               </div>
-
               <motion.div
                 className="mt-1"
                 key={promptIndex}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <p className="text-xs text-blue-100 font-medium truncate">
-                  {prompts[promptIndex]}
-                </p>
+                <p className="text-xs text-blue-100 font-medium truncate">{prompts[promptIndex]}</p>
               </motion.div>
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
