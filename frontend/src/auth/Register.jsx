@@ -16,9 +16,6 @@ import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config.js';
 import { STATIC_COURSES, STATIC_UNITS, STATIC_TOPICS } from '../constants/teachingData';
 
-
-
-
 const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const navigate = useNavigate();
   const { openLogin } = useModal();
@@ -42,6 +39,8 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const leftPanelRef = useRef(null);
+  const lastMouseMoveRef = useRef(0);
+  const isTransitioningRef = useRef(false);
   const [otp, setOtp] = useState("");
   const [showOtp, setShowOtp] = useState(false);
   const [emailForOtp, setEmailForOtp] = useState("");
@@ -53,37 +52,55 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     "/assets/group-discussion-illustration.webp",
     "/assets/skillchoose.webp",
   ];
-  const extendedImages = [...carouselImages, ...carouselImages];
+  const extendedImages = [...carouselImages, carouselImages[0]]; // Append first image for seamless loop
 
   const MAX_SKILLS = 3;
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) =>
-        prev >= carouselImages.length - 1 ? 0 : prev + 1
-      );
+      setCurrentImageIndex((prev) => {
+        if (prev >= carouselImages.length) {
+          // When reaching the duplicated image, instantly reset to 0 without transition
+          leftPanelRef.current.querySelector('.carousel-container').style.transition = 'none';
+          setTimeout(() => {
+            leftPanelRef.current.querySelector('.carousel-container').style.transition = 'transform 1500ms ease-in-out';
+          }, 0);
+          return 0;
+        }
+        return prev + 1;
+      });
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [carouselImages.length]);
 
   useEffect(() => {
-    let lastMoveTime = 0;
-    const moveThreshold = 500;
     const handleMouseMove = () => {
       const now = Date.now();
-      if (now - lastMoveTime > moveThreshold) {
-        setCurrentImageIndex((prev) =>
-          prev >= carouselImages.length - 1 ? 0 : prev + 1
-        );
-        lastMoveTime = now;
+      if (now - lastMouseMoveRef.current > 1000 && !isTransitioningRef.current) {
+        isTransitioningRef.current = true;
+        setCurrentImageIndex((prev) => {
+          if (prev >= carouselImages.length) {
+            leftPanelRef.current.querySelector('.carousel-container').style.transition = 'none';
+            setTimeout(() => {
+              leftPanelRef.current.querySelector('.carousel-container').style.transition = 'transform 1500ms ease-in-out';
+            }, 0);
+            return 0;
+          }
+          return prev + 1;
+        });
+        lastMouseMoveRef.current = now;
+        setTimeout(() => {
+          isTransitioningRef.current = false;
+        }, 1500);
       }
     };
+
     const panel = leftPanelRef.current;
     if (panel) {
       panel.addEventListener("mousemove", handleMouseMove);
       return () => panel.removeEventListener("mousemove", handleMouseMove);
     }
-  }, []);
+  }, [carouselImages.length]);
 
   useEffect(() => {
     if (isModal) {
@@ -256,11 +273,10 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
             <div className="absolute inset-0 flex items-center justify-center z-20">
               <div className="relative w-[70%] h-[50%] overflow-hidden">
                 <div
-                  className="flex transition-transform ease-in-out"
+                  className="flex carousel-container"
                   style={{
                     transform: `translateX(-${100 * currentImageIndex}%)`,
-                    transitionDuration:
-                      currentImageIndex >= carouselImages.length ? "0ms" : "1500ms",
+                    transition: 'transform 1500ms ease-in-out',
                   }}
                 >
                   {extendedImages.map((src, idx) => (

@@ -17,6 +17,8 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const leftPanelRef = useRef(null);
+  const lastMouseMoveRef = useRef(0);
+  const isTransitioningRef = useRef(false);
 
   // OTP States
   const [otp, setOtp] = useState("");
@@ -29,37 +31,56 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     "/assets/group-discussion-illustration.webp",
     "/assets/skillchoose.webp",
   ];
-  const extendedImages = [...carouselImages, ...carouselImages];
+  // Duplicate images for seamless infinite loop
+  const extendedImages = [...carouselImages, carouselImages[0]];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev >= carouselImages.length - 1 ? 0 : prev + 1));
+      setCurrentImageIndex((prev) => {
+        const nextIndex = prev + 1;
+        // When reaching the duplicated image, instantly jump back to the first image without transition
+        if (nextIndex >= carouselImages.length + 1) {
+          leftPanelRef.current.querySelector('.carousel-container').style.transition = 'none';
+          setTimeout(() => {
+            leftPanelRef.current.querySelector('.carousel-container').style.transition = 'transform 1500ms ease-in-out';
+          }, 0);
+          return 0;
+        }
+        return nextIndex;
+      });
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [carouselImages.length]);
 
   useEffect(() => {
-    if (currentImageIndex >= carouselImages.length) {
-      const timeout = setTimeout(() => setCurrentImageIndex(0), 1500);
-      return () => clearTimeout(timeout);
-    }
-  }, [currentImageIndex]);
-
-  useEffect(() => {
-    let lastMoveTime = 0;
     const handleMouseMove = () => {
       const now = Date.now();
-      if (now - lastMoveTime > 500) {
-        setCurrentImageIndex((prev) => (prev >= carouselImages.length - 1 ? 0 : prev + 1));
-        lastMoveTime = now;
+      if (now - lastMouseMoveRef.current > 1000 && !isTransitioningRef.current) {
+        isTransitioningRef.current = true;
+        setCurrentImageIndex((prev) => {
+          const nextIndex = prev + 1;
+          if (nextIndex >= carouselImages.length + 1) {
+            leftPanelRef.current.querySelector('.carousel-container').style.transition = 'none';
+            setTimeout(() => {
+              leftPanelRef.current.querySelector('.carousel-container').style.transition = 'transform 1500ms ease-in-out';
+            }, 0);
+            return 0;
+          }
+          return nextIndex;
+        });
+        lastMouseMoveRef.current = now;
+        setTimeout(() => {
+          isTransitioningRef.current = false;
+        }, 1500);
       }
     };
+
     const panel = leftPanelRef.current;
     if (panel) {
       panel.addEventListener("mousemove", handleMouseMove);
       return () => panel.removeEventListener("mousemove", handleMouseMove);
     }
-  }, []);
+  }, [carouselImages.length]);
 
   useEffect(() => {
     if (isModal) {
@@ -143,11 +164,13 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
 
             <div className="absolute inset-0 flex items-center justify-center z-20">
               <div className="relative w-[80%] sm:w-[70%] h-[60%] sm:h-[50%] overflow-hidden">
-                <div className="flex transition-transform ease-in-out"
+                <div
+                  className="flex carousel-container"
                   style={{
                     transform: `translateX(-${100 * currentImageIndex}%)`,
-                    transitionDuration: currentImageIndex >= carouselImages.length ? "0ms" : "1500ms",
-                  }}>
+                    transition: 'transform 1500ms ease-in-out',
+                  }}
+                >
                   {extendedImages.map((src, idx) => (
                     <div key={idx} className="min-w-full h-full">
                       <img src={src} alt={`Feature ${idx + 1}`} className="w-full h-full object-contain" />
