@@ -5,6 +5,7 @@ import { useLocation, useRoutes, Navigate } from 'react-router-dom';
 import { ModalProvider } from './context/ModalContext';
 import GlobalModals from './GlobalModals';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import socket from './socket';
 import Cookies from 'js-cookie';
@@ -63,7 +64,7 @@ const appRoutes = [
   { path: '/teaching-history', element: <TeachingHistory /> },
   { path: '/blog', element: <Blog /> },
   { path: '/search', element: <SearchPage /> },
-  { path: '/admin', element: <AdminPanel /> }, // Updated to use AdminPanel
+  { path: '/admin', element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> }, // Updated to use AdminPanel
   ...accountSettingsRoutes,
   {
     path: '/profile',

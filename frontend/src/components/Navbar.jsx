@@ -332,7 +332,7 @@ const Navbar = () => {
     window.addEventListener("authChanged", handleAuthChange);
     return () => {
       window.removeEventListener("storage", handleAuthChange);
-      window.removeEventListener("authChanged", handleUser);
+      window.removeEventListener("authChanged", handleAuthChange); 
     };
   }, []);
 

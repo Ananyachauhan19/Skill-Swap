@@ -1,8 +1,10 @@
 import React, { useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config.js';
+import { useAuth } from '../context/AuthContext';
 
 const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
+  const { user } = useAuth();
   useEffect(() => {
     if (!show) return;
     function handleClickOutside(event) {
@@ -50,6 +52,14 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
       >
         Purchase
       </button>
+      {user && user.isAdmin && (
+        <button
+          className="text-left px-4 py-2 hover:bg-blue-50 rounded"
+          onClick={() => { onClose(); navigate('/admin'); }}
+        >
+          Admin Panel
+        </button>
+      )}
       <button
         className="text-left px-4 py-2 hover:bg-blue-50 rounded"
         onClick={() => { onClose(); navigate('/help'); }}
