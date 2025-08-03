@@ -9,6 +9,7 @@ import VideoCall from "./VideoCall";
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 
+// useSessionSocketNotifications remains unchanged
 function useSessionSocketNotifications(setNotifications) {
   useEffect(() => {
     const userCookie = Cookies.get('user');
@@ -437,193 +438,321 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-[#e8f1ff] to-[#dbeaff] text-blue-800 px-2 sm:px-4 md:px-6 lg:px-8 py-1.5 sm:py-2 shadow-md border-b border-blue-200 z-50 animate-fadeIn">
+      <nav className="fixed top-0 left-0 w-full bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-4 py-2 shadow-lg border-b border-blue-200 z-50">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Left: Logo */}
-          <div
-            className="flex items-center gap-1 cursor-pointer transition-transform duration-300 hover:scale-105"
-            onClick={() => navigate("/")}
-          >
-            <img
-              src="/assets/skillswap-logo.webp"
-              alt="SkillSwapHub Logo"
-              className="h-7 sm:h-8 w-7 sm:w-8 object-contain rounded-full shadow-md border-2 border-blue-800"
-            />
-            <span className="text-xs sm:text-base font-bold text-blue-800 font-lora">
-              SkillSwapHub
-            </span>
-          </div>
+          {/* Mobile View: Logo, SkillCoin, Notifications, Profile/Login */}
+          <div className="flex items-center justify-between w-full sm:hidden">
+            {/* Logo with Text */}
+            <div
+              className="flex items-center gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
+              onClick={() => navigate("/")}
+            >
+              <img
+                src="/assets/skillswap-logo.webp"
+                alt="SkillSwapHub Logo"
+                className="h-8 w-8 object-contain rounded-full shadow-md border-2 border-blue-900"
+              />
+              <span className="text-lg font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
+                SkillSwapHub
+              </span>
+            </div>
 
-          {/* Right: Mobile Menu Button, Desktop Search, Auth/Profile */}
-          <div className="flex items-center gap-1 sm:gap-3">
-            {/* Desktop Search Bar */}
-            <div className="hidden sm:flex flex-1 max-w-[200px] md:max-w-xs">
-              <form onSubmit={handleSearch} className="w-full">
-                <div className="relative flex items-center">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search SkillMate..."
-                    className="pl-8 pr-3 py-1.5 text-xs md:text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-blue-800 placeholder-blue-800 w-full font-nunito"
-                  />
+            {/* Right Side: SkillCoin, Notifications, Profile/Login */}
+            <div className="flex items-center gap-3">
+              {isLoggedIn ? (
+                <>
+                  {/* SkillCoin Button */}
                   <button
-                    type="submit"
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 text-blue-800"
+                    className="flex items-center justify-center w-8 h-8 bg-blue-800 text-white rounded-lg shadow-md border border-blue-700 hover:scale-105 transition duration-300"
+                    onClick={() => setShowCoinsDropdown((prev) => !prev)}
+                    title="SkillCoin"
+                    ref={coinsRef}
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                      />
+                    <svg className="w-5 h-5" viewBox="0 0 64 64" fill="none">
+                      <defs>
+                        <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#fff9c4" />
+                          <stop offset="30%" stopColor="#fdd835" />
+                          <stop offset="60%" stopColor="#fbc02d" />
+                          <stop offset="100%" stopColor="#f57f17" />
+                        </radialGradient>
+                        <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#ffecb3" />
+                          <stop offset="100%" stopColor="#ffa000" />
+                        </linearGradient>
+                      </defs>
+                      <circle cx="32" cy="32" r="28" fill="url(#3d-coin-gold)" stroke="url(#coin-edge)" strokeWidth="4" />
+                      <circle cx="32" cy="32" r="22" stroke="#fff8dc" strokeWidth="1.5" opacity="0.7" />
+                      <text
+                        x="32"
+                        y="40"
+                        fontSize="24"
+                        fill="#1e3a8a"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                      >
+                        S
+                      </text>
                     </svg>
                   </button>
-                </div>
-              </form>
-            </div>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden sm:flex items-center gap-2 md:gap-3">
-              {[
-                { path: "/home", label: "Home" },
-                { path: "/one-on-one", label: "1-on-1" },
-                { path: "/session", label: "Session" },
-                { path: "/session-requests", label: "Requests" },
-                { path: "/discuss", label: "Discuss" },
-                { path: "/interview", label: "Interview" },
-              ].map(({ path, label }) => (
-                <button
-                  key={path}
-                  className={`text-xs md:text-sm font-medium px-2 md:px-3 py-1 md:py-1.5 rounded-md transition-all duration-300 ${
-                    isActive(path)
-                      ? "bg-blue-100 text-blue-800 font-semibold border-b-2 border-blue-800"
-                      : "text-blue-800 hover:bg-blue-50 hover:text-blue-800 hover:border-b-2 hover:border-blue-800 hover:scale-105"
-                  }`}
-                  onClick={() => navigate(path)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {/* SkillCoin */}
-            {isLoggedIn && (
-              <div className="relative z-50">
-                <button
-                  className="flex items-center gap-2 px-2 py-1 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white rounded-2xl shadow-md border border-blue-600 hover:scale-105 hover:shadow-lg transition duration-300"
-                  onClick={() => setShowCoinsDropdown((prev) => !prev)}
-                  title="SkillCoin"
-                  ref={coinsRef}
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 64 64" fill="none">
-                    <defs>
-                      <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
-                        <stop offset="0%" stopColor="#fff9c4" />
-                        <stop offset="30%" stopColor="#fdd835" />
-                        <stop offset="60%" stopColor="#fbc02d" />
-                        <stop offset="100%" stopColor="#f57f17" />
-                      </radialGradient>
-                      <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ffecb3" />
-                        <stop offset="100%" stopColor="#ffa000" />
-                      </linearGradient>
-                    </defs>
-                    <circle cx="32" cy="32" r="28" fill="url(#3d-coin-gold)" stroke="url(#coin-edge)" strokeWidth="4" />
-                    <circle cx="32" cy="32" r="22" stroke="#fff8dc" strokeWidth="1.5" opacity="0.7" />
-                    <text
-                      x="32"
-                      y="40"
-                      fontSize="24"
-                      fill="#1e3a8a"
-                      fontWeight="bold"
-                      textAnchor="middle"
-                      filter="url(#coin-glow)"
-                    >
-                      S
-                    </text>
-                  </svg>
-                  <span className="font-semibold text-xs font-nunito hidden md:inline">SkillCoin</span>
-                </button>
-
-                {showCoinsDropdown && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white border border-blue-200 rounded-xl shadow-xl animate-fade-in-down backdrop-blur-sm">
-                    <div className="p-3 space-y-2 text-sm font-medium text-gray-700">
-                      <div className="flex items-center gap-2 p-1 rounded-md hover:bg-blue-50 transition">
-                        <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
-                          <span className="text-xs font-bold text-blue-900">G</span>
+                  {showCoinsDropdown && (
+                    <div className="absolute right-4 top-12 w-48 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm">
+                      <div className="p-4 space-y-3 text-sm font-medium text-gray-700">
+                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
+                            <span className="text-xs font-bold text-blue-900">G</span>
+                          </div>
+                          <span className="text-gray-800">Golden: {goldenCoins}</span>
                         </div>
-                        <span className="text-gray-800">Golden: {goldenCoins}</span>
-                      </div>
-                      <div className="flex items-center gap-2 p-1 rounded-md hover:bg-blue-50 transition">
-                        <div className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
-                          <span className="text-xs font-bold text-blue-900">S</span>
+                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
+                            <span className="text-xs font-bold text-blue-900">S</span>
+                          </div>
+                          <span className="text-gray-800">Silver: {silverCoins}</span>
                         </div>
-                        <span className="text-gray-800">Silver: {silverCoins}</span>
                       </div>
                     </div>
+                  )}
+
+                  {/* Notifications */}
+                  <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-5 h-5" />
+
+                  {/* Profile Dropdown */}
+                  <div className="relative">
+                    <button
+                      className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                      onClick={() => setShowProfileMenu((v) => !v)}
+                      title="Profile"
+                      ref={menuRef}
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                      </svg>
+                    </button>
+
+                    {showProfileMenu && (
+                      <ProfileDropdown
+                        show={showProfileMenu}
+                        onClose={() => setShowProfileMenu(false)}
+                        navigate={navigate}
+                        menuRef={menuRef}
+                      />
+                    )}
                   </div>
-                )}
-              </div>
-            )}
+                </>
+              ) : (
+                <button
+                  className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                  onClick={handleLoginClick}
+                  title="Login"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                    />
+                  </svg>
+                </button>
+              )}
 
-            {/* Notifications */}
-            <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-5 h-5" />
-
-            {/* Auth/Profile */}
-            {!isLoggedIn ? (
+              {/* Mobile Menu Button */}
               <button
-                className="bg-blue-800 text-white px-1.5 py-0.5 text-xs md:px-2 md:py-1 md:text-sm rounded-md font-medium transition-all duration-300 hover:bg-blue-700 hover:scale-105 font-nunito"
-                onClick={handleLoginClick}
+                className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                onClick={handleMobileMenu}
+                aria-label="Toggle menu"
               >
-                Login
-              </button>
-            ) : (
-              <div className="relative">
-               <button
-  className="w-7 h-7 md:w-9 md:h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-800 border border-blue-300 shadow-sm transition-all duration-300 hover:bg-blue-200 hover:scale-105"
-  onClick={() => setShowProfileMenu((v) => !v)}
-  title="Profile"
-  ref={menuRef}
->
-  <svg className="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-  </svg>
-</button>
-
-
-                {showProfileMenu && (
-                  <ProfileDropdown
-                    show={showProfileMenu}
-                    onClose={() => setShowProfileMenu(false)}
-                    navigate={navigate}
-                    menuRef={menuRef}
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
                   />
-                )}
-              </div>
-            )}
+                </svg>
+              </button>
+            </div>
+          </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              className="sm:hidden p-1.5 rounded-md text-blue-800 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              onClick={handleMobileMenu}
-              aria-label="Toggle menu"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d={menuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+          {/* Desktop View (Unchanged) */}
+          <div className="hidden sm:flex items-center justify-between w-full">
+            {/* Left: Logo and Navigation */}
+            <div className="flex items-center gap-8">
+              <div
+                className="flex items-center gap-3 cursor-pointer transition-transform duration-300 hover:scale-105"
+                onClick={() => navigate("/")}
+              >
+                <img
+                  src="/assets/skillswap-logo.webp"
+                  alt="SkillSwapHub Logo"
+                  className="h-10 w-10 object-contain rounded-full shadow-md border-2 border-blue-900"
                 />
-              </svg>
-            </button>
+                <span className="text-xl font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
+                  SkillSwapHub
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {[
+                  { path: "/home", label: "Home" },
+                  { path: "/one-on-one", label: "1-on-1" },
+                  { path: "/discuss", label: "Discuss" },
+                  { path: "/interview", label: "Interview" },
+                  { path: "/session", label: "Session" },
+                  { path: "/session-requests", label: "Requests" },
+                ].map(({ path, label }) => (
+                  <button
+                    key={path}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-full text-blue-900 bg-blue-100/50 shadow-sm transition-all duration-300 ${
+                      isActive(path)
+                        ? "bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md"
+                        : "hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105"
+                    }`}
+                    onClick={() => navigate(path)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Desktop Search, SkillCoin, Notifications, Auth/Profile */}
+            <div className="flex items-center gap-8 flex-1 justify-end">
+              <div className="flex-1 max-w-xl ml-[2%]">
+                <form onSubmit={handleSearch} className="w-full">
+                  <div className="relative flex items-center">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search SkillMate..."
+                      className="w-full pl-10 pr-4 py-2 text-sm rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
+                    />
+                    <button
+                      type="submit"
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-900"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {isLoggedIn && (
+                <div className="relative z-50">
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-blue-800 to-blue-600 text-white rounded-full shadow-md border border-blue-700 hover:scale-105 hover:shadow-lg transition duration-300"
+                    onClick={() => setShowCoinsDropdown((prev) => !prev)}
+                    title="SkillCoin"
+                    ref={coinsRef}
+                  >
+                   <svg className="w-6 h-6" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <radialGradient id="outer-coin" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stopColor="#fff9c4" />
+      <stop offset="30%" stopColor="#fdd835" />
+      <stop offset="60%" stopColor="#fbc02d" />
+      <stop offset="100%" stopColor="#f57f17" />
+    </radialGradient>
+    <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#ffecb3" />
+      <stop offset="100%" stopColor="#ffa000" />
+    </linearGradient>
+    <radialGradient id="inner-coin" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stopColor="#fff8dc" />
+      <stop offset="100%" stopColor="#f6b500" />
+    </radialGradient>
+  </defs>
+
+  {/* Outer Coin */}
+  <circle cx="32" cy="32" r="28" fill="url(#outer-coin)" stroke="url(#coin-edge)" strokeWidth="4" />
+
+  {/* Inner Coin */}
+  <circle cx="32" cy="32" r="18" fill="url(#inner-coin)" />
+
+  {/* S Text */}
+  <text
+    x="32"
+    y="40"
+    fontSize="24"
+    fill="#1e3a8a"
+    fontWeight="bold"
+    textAnchor="middle"
+  >
+    S
+  </text>
+</svg>
+
+                    <span className="font-semibold text-sm font-nunito hidden md:inline">SkillCoin</span>
+                  </button>
+
+                  {showCoinsDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm">
+                      <div className="p-4 space-y-3 text-sm font-medium text-gray-700">
+                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
+                            <span className="text-xs font-bold text-blue-900">G</span>
+                          </div>
+                          <span className="text-gray-800">Golden: {goldenCoins}</span>
+                        </div>
+                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
+                            <span className="text-xs font-bold text-blue-900">S</span>
+                          </div>
+                          <span className="text-gray-800">Silver: {silverCoins}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-6 h-6" />
+
+              {!isLoggedIn ? (
+                <button
+                  className="bg-blue-800 text-white px-4 py-2 text-sm rounded-lg font-medium transition-all duration-300 hover:bg-blue-700 hover:scale-105 font-nunito shadow-sm"
+                  onClick={handleLoginClick}
+                >
+                  Login
+                </button>
+              ) : (
+                <div className="relative">
+                  <button
+                    className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-900 border border-blue-300 shadow-md transition-all duration-300 hover:bg-blue-200 hover:scale-105"
+                    onClick={() => setShowProfileMenu((v) => !v)}
+                    title="Profile"
+                    ref={menuRef}
+                  >
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+                    </svg>
+                  </button>
+
+                  {showProfileMenu && (
+                    <ProfileDropdown
+                      show={showProfileMenu}
+                      onClose={() => setShowProfileMenu(false)}
+                      navigate={navigate}
+                      menuRef={menuRef}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Menu */}
       {menuOpen && (
         <MobileMenu
           isOpen={menuOpen}
@@ -646,7 +775,6 @@ const Navbar = () => {
         />
       )}
 
-      {/* Video Call Overlay */}
       {activeVideoCall && (
         <VideoCall
           sessionId={activeVideoCall}

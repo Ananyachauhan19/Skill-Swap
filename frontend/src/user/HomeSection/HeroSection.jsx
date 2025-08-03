@@ -102,8 +102,8 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
   }, [isLoggedIn, user, loading, error]);
 
   return (
-    <section className="relative z-10 min-h-screen w-full bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-visible">
-      <div className="max-w-7xl w-full flex flex-col lg:flex-row gap-4 md:gap-6 items-center justify-between h-full py-4 sm:py-0">
+    <section className="relative z-10 min-h-[calc(100vh-80px)] w-full bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-hidden">
+      <div className="max-w-7xl w-full flex flex-col lg:flex-row gap-4 md:gap-6 items-center justify-between h-full py-2 sm:py-4">
         {/* Hero Text Content */}
         <motion.div
           className="flex flex-col justify-center space-y-4 w-full lg:w-1/2"
@@ -168,26 +168,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
         </motion.div>
 
         {/* Hero Image and Profile Section */}
- <div className="flex flex-col w-full lg:w-1/2 items-center lg:items-end justify-start gap-3 mt-1 sm:mt-[-7.99rem]">
-
-
-
-          <motion.div
-            className="relative w-full max-w-full sm:max-w-[520px] md:max-w-[600px] px-3 sm:px-0"
-            initial={{ opacity: 0, scale: 0.95, x: 50 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-          >
-            <picture>
-              <source srcSet="/assets/skillswap-hero.webp" type="image/webp" />
-              <img
-                src="/assets/skillswap-hero.png"
-                alt="SkillSwap Hero Image"
-                className="w-full h-[300px] sm:h-[500px] md:h-[600px] lg:h-[700px] object-contain hover:scale-105 transition-transform duration-300 mx-auto"
-              />
-            </picture>
-          </motion.div>
-
+        <div className="flex flex-col w-full lg:w-1/2 items-center justify-start gap-2 mt-12 lg:mt-16">
           {(isLoggedIn || debugMode) && (
             <motion.div
               className="w-full max-w-full sm:max-w-[500px] md:max-w-[580px] bg-gradient-to-r from-blue-800 to-blue-600 rounded-lg shadow-xl border border-blue-200 px-4 py-3 z-20"
@@ -212,7 +193,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
                     <img
                       src={user.profilePic}
                       alt="User Avatar"
-                      className="w-8 h-8 rounded-full border border-blue-100"
+                      className="w-8 h-8 rounded-full border border-blue-200"
                     />
                     <p className="text-sm font-medium text-white truncate">
                       Welcome, {user.fullName || "Professional"}!
@@ -240,6 +221,22 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
               </motion.div>
             </motion.div>
           )}
+
+          <motion.div
+            className="relative w-full max-w-full sm:max-w-[520px] md:max-w-[600px] px-3 sm:px-0 -mt-4 sm:-mt-6"
+            initial={{ opacity: 0, scale: 0.95, x: 50 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+          >
+            <picture>
+              <source srcSet="/assets/skillswap-hero.webp" type="image/webp" />
+              <img
+                src="/assets/skillswap-hero.png"
+                alt="SkillSwap Hero Image"
+                className="w-full h-[300px] sm:h-[500px] md:h-[600px] lg:h-[600px] object-contain hover:scale-105 transition-transform duration-300 mx-auto"
+              />
+            </picture>
+          </motion.div>
         </div>
       </div>
     </section>
