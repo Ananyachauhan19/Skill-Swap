@@ -9,6 +9,8 @@ import TopPerformersSection from "./HomeSection/TopPerformersSection";
 import Blog from '../user/company/Blog'; 
 import { useNavigate, useLocation } from 'react-router-dom';
 
+
+
 const HowItWorks = () => {
   const [clickedIndex, setClickedIndex] = useState(null);
 
@@ -17,10 +19,10 @@ const HowItWorks = () => {
   };
 
   return (
-    <section className="relative bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col gap-8 border border-blue-200 mb-8 animate-slideUp">
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-blue-900 text-center flex items-center justify-center gap-3">
+    <section className="relative bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-2xl p-4 sm:p-8 flex flex-col gap-6 border border-blue-200 mb-8 animate-slideUp">
+      <h2 className="text-xl sm:text-3xl font-extrabold text-blue-900 text-center flex items-center justify-center gap-2">
         <svg
-          className="w-8 h-8 text-blue-600"
+          className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -31,7 +33,7 @@ const HowItWorks = () => {
         </svg>
         How It Works
       </h2>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {[
           {
             icon: <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />,
@@ -56,12 +58,12 @@ const HowItWorks = () => {
         ].map((item, index) => (
           <div
             key={index}
-            className="flex flex-col items-center text-center p-5 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:bg-blue-50 border border-blue-100 cursor-pointer"
+            className="flex flex-col items-center text-center p-4 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:bg-blue-50 border border-blue-100 cursor-pointer aspect-square sm:aspect-auto"
             onClick={() => handleCardClick(index)}
           >
-            <div className={`bg-blue-600 text-white rounded-full p-3 mb-4 transform transition-transform duration-300 ${clickedIndex === index ? 'scale-125 rotate-12' : ''}`}>
+            <div className={`bg-blue-600 text-white rounded-full p-3 mb-3 transform transition-transform duration-300 ${clickedIndex === index ? 'scale-125 rotate-12' : ''}`}>
               <svg
-                className="w-7 h-7"
+                className="w-6 h-6 sm:w-7 sm:h-7"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -71,8 +73,8 @@ const HowItWorks = () => {
                 {item.icon}
               </svg>
             </div>
-            <h3 className="text-lg sm:text-xl font-semibold text-blue-900">{item.title}</h3>
-            <p className="text-sm sm:text-base text-gray-600 mt-2 whitespace-pre-line">{item.desc}</p>
+            <h3 className="text-sm sm:text-xl font-semibold text-blue-900">{item.title}</h3>
+            <p className="text-xs sm:text-base text-gray-600 mt-2 whitespace-pre-line">{item.desc}</p>
           </div>
         ))}
       </div>
@@ -178,25 +180,25 @@ const OneOnOne = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-50 transition-all duration-2000">
+    <div className="min-h-screen w-full bg-blue-50 transition-all duration-2000 pt-16 sm:pt-20">
       <header className="w-full max-w-7xl mx-auto text-center py-6 sm:py-10 px-4 sm:px-6 relative animate-slideUp">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
           <div className="flex-1 text-left">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-900 mb-4 leading-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-blue-900 mb-4 leading-tight">
               Connect with Experts for Personalized Learning
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-gray-700 max-w-xl mb-6">
+            <p className="text-sm sm:text-lg md:text-xl text-gray-700 max-w-xl mb-6">
               Instantly connect with subject experts, get your doubts solved, and accelerate your learning with tailored guidance.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <button
-                className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-base sm:text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105"
+                className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-sm sm:text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105"
                 onClick={() => window.location.href = '/createSession'}
               >
                 Create a Session
               </button>
               <button
-                className="w-full sm:w-auto bg-white text-blue-700 border border-blue-600 px-6 py-3 rounded-full font-semibold text-base sm:text-lg shadow-md hover:bg-blue-50 transition-all duration-300 hover:scale-105"
+                className="w-full sm:w-auto bg-white text-blue-700 border border-blue-600 px-6 py-3 rounded-full font-semibold text-sm sm:text-lg shadow-md hover:bg-blue-50 transition-all duration-300 hover:scale-105"
                 onClick={() => navigate('/startskillswap')}
               >
                 Start SkillSwap
@@ -207,11 +209,11 @@ const OneOnOne = () => {
             <img
               src="/assets/expert-connect-illustration.webp"
               alt="Expert Connect Illustration"
-              className="w-full max-w-md mx-auto object-contain"
+              className="w-full max-w-xs sm:max-w-md mx-auto object-contain"
             />
           </div>
         </div>
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mt-6 sm:mt-8">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mt-6 sm:mt-8">
           {[
             "Instant Doubt Solving",
             "Personalized Guidance",
@@ -226,9 +228,9 @@ const OneOnOne = () => {
           ))}
         </div>
       </header>
-      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-12 sm:gap-16 px-4 sm:px-8 pb-16">
+      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-8 sm:gap-12 px-4 sm:px-8 pb-16">
         <div className="py-6 sm:py-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-blue-900 mb-6 text-center animate-slideUp">Find Your Expert</h2>
+          <h2 className="text-lg sm:text-2xl font-bold text-blue-900 mb-6 text-center animate-slideUp">Find Your Expert</h2>
           <SearchBar
             ref={searchBarRef}
             courseValue={course}
@@ -298,6 +300,46 @@ const OneOnOne = () => {
         }
         .animate-slideUp {
           animation: slideUp 0.5s ease-out;
+        }
+        /* Ensure content starts below navbar */
+        .min-h-screen {
+          padding-top: 4rem; /* Adjust based on navbar height */
+        }
+        @media (min-width: 640px) {
+          .min-h-screen {
+            padding-top: 5rem;
+          }
+        }
+        /* Square cards for mobile */
+        @media (max-width: 639px) {
+          .grid-cols-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+          }
+          .aspect-square {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0.75rem;
+          }
+          .aspect-square p {
+            font-size: 0.65rem;
+            line-height: 1.2;
+          }
+          .aspect-square h3 {
+            font-size: 0.9rem;
+          }
+          .aspect-square svg {
+            width: 1.25rem;
+            height: 1.25rem;
+          }
+          .aspect-square > div {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+          }
         }
       `}</style>
     </div>
