@@ -9,8 +9,6 @@ import TopPerformersSection from "./HomeSection/TopPerformersSection";
 import Blog from '../user/company/Blog'; 
 import { useNavigate, useLocation } from 'react-router-dom';
 
-
-
 const HowItWorks = () => {
   const [clickedIndex, setClickedIndex] = useState(null);
 
@@ -19,8 +17,8 @@ const HowItWorks = () => {
   };
 
   return (
-    <section className="relative bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-2xl p-4 sm:p-8 flex flex-col gap-6 border border-blue-200 mb-8 animate-slideUp">
-      <h2 className="text-xl sm:text-3xl font-extrabold text-blue-900 text-center flex items-center justify-center gap-2">
+    <section className="relative bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-2xl p-4 sm:p-6 flex flex-col gap-6 border border-blue-200 mb-8 animate-slideUp w-full max-w-7xl mx-auto box-border">
+      <h2 className="text-xl sm:text-3xl font-extrabold text-blue-900 text-center flex items-center justify-center gap-2 sm:gap-3">
         <svg
           className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600"
           fill="none"
@@ -33,37 +31,37 @@ const HowItWorks = () => {
         </svg>
         How It Works
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           {
             icon: <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />,
             title: "Search for an Expert",
-            desc: "Select your course, unit, or topic to find a subject expert."
+            desc: "Select course, unit, or topic."
           },
           {
             icon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />,
             title: "Connect & Learn",
-            desc: "Request a session and get real-time, personalized guidance."
+            desc: "Get real-time guidance."
           },
           {
             icon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 2c-2.761 0-5 2.239-5 5h10c0-2.761-2.239-5-5-5z" />,
             title: "Silver Coin System",
-            desc: "Each minute costs 0.25 rupees (paid in Silver Coins). Total coins are deducted based on session duration."
+            desc: "0.25 rupees per minute."
           },
           {
             icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-6v12" />,
             title: "Example",
-            desc: "40 min = 10 Silver Coins (10 rupees)\n60 min = 15 Silver Coins (15 rupees)"
+            desc: "40 min = 10 Coins\n60 min = 15 Coins"
           }
         ].map((item, index) => (
           <div
             key={index}
-            className="flex flex-col items-center text-center p-4 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:bg-blue-50 border border-blue-100 cursor-pointer aspect-square sm:aspect-auto"
+            className="flex flex-col items-center justify-center text-center p-3 sm:p-4 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:bg-blue-50 border border-blue-100 cursor-pointer aspect-square"
             onClick={() => handleCardClick(index)}
           >
-            <div className={`bg-blue-600 text-white rounded-full p-3 mb-3 transform transition-transform duration-300 ${clickedIndex === index ? 'scale-125 rotate-12' : ''}`}>
+            <div className={`bg-blue-600 text-white rounded-full p-2 sm:p-3 mb-2 sm:mb-3 transform transition-transform duration-300 ${clickedIndex === index ? 'scale-110 rotate-12' : ''}`}>
               <svg
-                className="w-6 h-6 sm:w-7 sm:h-7"
+                className="w-4 h-4 sm:w-6 sm:h-6"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -73,8 +71,8 @@ const HowItWorks = () => {
                 {item.icon}
               </svg>
             </div>
-            <h3 className="text-sm sm:text-xl font-semibold text-blue-900">{item.title}</h3>
-            <p className="text-xs sm:text-base text-gray-600 mt-2 whitespace-pre-line">{item.desc}</p>
+            <h3 className="text-sm sm:text-lg font-semibold text-blue-900 leading-tight">{item.title}</h3>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2 whitespace-pre-line line-clamp-3">{item.desc}</p>
           </div>
         ))}
       </div>
@@ -188,7 +186,7 @@ const OneOnOne = () => {
               Connect with Experts for Personalized Learning
             </h1>
             <p className="text-sm sm:text-lg md:text-xl text-gray-700 max-w-xl mb-6">
-              Instantly connect with subject experts, get your doubts solved, and accelerate your learning with tailored guidance.
+              Instantly connect with subject experts, get your doubts solved, and accelerate your learning.
             </p>
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <button
@@ -213,7 +211,7 @@ const OneOnOne = () => {
             />
           </div>
         </div>
-        <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mt-6 sm:mt-8">
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mt-6 sm:mt-8">
           {[
             "Instant Doubt Solving",
             "Personalized Guidance",
@@ -228,7 +226,7 @@ const OneOnOne = () => {
           ))}
         </div>
       </header>
-      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-8 sm:gap-12 px-4 sm:px-8 pb-16">
+      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-12 sm:gap-16 px-4 sm:px-8 pb-16">
         <div className="py-6 sm:py-8">
           <h2 className="text-lg sm:text-2xl font-bold text-blue-900 mb-6 text-center animate-slideUp">Find Your Expert</h2>
           <SearchBar
@@ -301,21 +299,15 @@ const OneOnOne = () => {
         .animate-slideUp {
           animation: slideUp 0.5s ease-out;
         }
-        /* Ensure content starts below navbar */
-        .min-h-screen {
-          padding-top: 4rem; /* Adjust based on navbar height */
+        /* Prevent overflow on mobile */
+        html, body {
+          overflow-x: hidden;
+          width: 100%;
         }
-        @media (min-width: 640px) {
-          .min-h-screen {
-            padding-top: 5rem;
-          }
-        }
-        /* Square cards for mobile */
-        @media (max-width: 639px) {
+        /* Responsive adjustments for mobile */
+        @media (max-width: 640px) {
           .grid-cols-2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
           .aspect-square {
             aspect-ratio: 1 / 1;
@@ -324,21 +316,47 @@ const OneOnOne = () => {
             justify-content: center;
             align-items: center;
             padding: 0.75rem;
+            overflow: hidden;
           }
-          .aspect-square p {
+          .text-xl {
+            font-size: 1.25rem;
+          }
+          .text-lg {
+            font-size: 1rem;
+          }
+          .text-sm {
+            font-size: 0.75rem;
+          }
+          .text-xs {
             font-size: 0.65rem;
-            line-height: 1.2;
           }
-          .aspect-square h3 {
-            font-size: 0.9rem;
+          .p-3 {
+            padding: 0.75rem;
           }
-          .aspect-square svg {
-            width: 1.25rem;
-            height: 1.25rem;
-          }
-          .aspect-square > div {
+          .p-2 {
             padding: 0.5rem;
+          }
+          .mb-2 {
             margin-bottom: 0.5rem;
+          }
+          .mt-1 {
+            margin-top: 0.25rem;
+          }
+          .w-4 {
+            width: 1rem;
+            height: 1rem;
+          }
+          .max-w-xs {
+            max-width: 18rem;
+          }
+          .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+          .leading-tight {
+            line-height: 1.2;
           }
         }
       `}</style>

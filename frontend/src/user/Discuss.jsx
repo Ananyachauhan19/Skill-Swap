@@ -6,8 +6,8 @@ import PastGDExpertSection from './discussSection/PastGDExpertSection';
 import TopPerformersSection from "./HomeSection/TopPerformersSection";
 
 const HowItWorks = () => (
-  <section className="relative bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-2xl p-4 sm:p-8 flex flex-col gap-6 border border-blue-200 mb-8 animate-slideUp">
-    <h2 className="text-xl sm:text-3xl font-extrabold text-blue-900 text-center flex items-center justify-center gap-2">
+  <section className="relative bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-2xl p-4 sm:p-6 flex flex-col gap-6 border border-blue-200 mb-8 animate-slideUp w-full max-w-7xl mx-auto box-border">
+    <h2 className="text-xl sm:text-3xl font-extrabold text-blue-900 text-center flex items-center justify-center gap-2 sm:gap-3">
       <svg
         className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600"
         fill="none"
@@ -20,28 +20,28 @@ const HowItWorks = () => (
       </svg>
       How It Works
     </h2>
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
       {[
         {
           icon: (
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           ),
-          title: "Register & Book Session",
-          desc: "Sign up and select from trending or placement-focused GD topics."
+          title: "Register & Book",
+          desc: "Sign up and pick a GD topic."
         },
         {
           icon: (
             <path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l4-4h4a1.994 1.994 0 01-1.414.586z" />
           ),
           title: "Join Live Session",
-          desc: "Participate in a real-time, expert-moderated group discussion."
+          desc: "Engage in expert-moderated GD."
         },
         {
           icon: (
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           ),
-          title: "Get Feedback & Improve",
-          desc: "Receive actionable feedback and ratings to boost your skills."
+          title: "Get Feedback",
+          desc: "Receive ratings and tips."
         },
         {
           icon: (
@@ -50,17 +50,17 @@ const HowItWorks = () => (
               <circle cx="12" cy="12" r="10" />
             </g>
           ),
-          title: "Session Fee & Payment",
-          desc: "Each session costs ₹1500 per head, payable online via secure transaction."
+          title: "Session Fee",
+          desc: "₹1500 per session, pay online."
         }
       ].map((item, index) => (
         <div
           key={index}
-          className="flex flex-col items-center text-center p-4 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:bg-blue-50 border border-blue-100 cursor-pointer aspect-square sm:aspect-auto"
+          className="flex flex-col items-center justify-between text-center p-3 sm:p-4 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:bg-blue-50 border border-blue-100 cursor-pointer aspect-square"
         >
-          <div className={`bg-blue-600 text-white rounded-full p-3 mb-3 ${index === 3 ? 'bg-green-600' : ''}`}>
+          <div className={`bg-blue-600 text-white rounded-full p-2 sm:p-3 mb-2 sm:mb-3 transform transition-transform duration-300 ${index === 3 ? 'bg-green-600' : ''}`}>
             <svg
-              className="w-6 h-6 sm:w-7 sm:h-7"
+              className="w-4 h-4 sm:w-6 sm:h-6"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -70,8 +70,8 @@ const HowItWorks = () => (
               {item.icon}
             </svg>
           </div>
-          <h3 className="text-sm sm:text-xl font-semibold text-blue-900">{item.title}</h3>
-          <p className="text-xs sm:text-base text-gray-600 mt-2 whitespace-pre-line">{item.desc}</p>
+          <h3 className="text-sm sm:text-lg font-semibold text-blue-900 leading-tight">{item.title}</h3>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2 whitespace-pre-line line-clamp-3">{item.desc}</p>
         </div>
       ))}
     </div>
@@ -183,53 +183,64 @@ const Discuss = () => {
         .animate-slideUp {
           animation: slideUp 0.5s ease-out;
         }
-        /* Ensure content starts below navbar */
-        .min-h-screen {
-          padding-top: 4rem; /* Adjust based on navbar height */
+        /* Prevent overflow on mobile */
+        html, body {
+          overflow-x: hidden;
+          width: 100%;
         }
-        @media (min-width: 640px) {
-          .min-h-screen {
-            padding-top: 5rem;
-          }
-        }
-        /* Square cards for mobile */
-        @media (max-width: 639px) {
+        /* Responsive adjustments for mobile */
+        @media (max-width: 640px) {
           .grid-cols-2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
           .aspect-square {
             aspect-ratio: 1 / 1;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
             padding: 0.75rem;
             overflow: hidden;
           }
-          .aspect-square p {
+          .text-xl {
+            font-size: 1.25rem;
+          }
+          .text-lg {
+            font-size: 1rem;
+          }
+          .text-sm {
+            font-size: 0.75rem;
+          }
+          .text-xs {
             font-size: 0.65rem;
-            line-height: 1.2;
-            overflow: hidden;
-            text-overflow: ellipsis;
+          }
+          .p-3 {
+            padding: 0.75rem;
+          }
+          .p-2 {
+            padding: 0.5rem;
+          }
+          .mb-2 {
+            margin-bottom: 0.5rem;
+          }
+          .mt-1 {
+            margin-top: 0.25rem;
+          }
+          .w-4 {
+            width: 1rem;
+            height: 1rem;
+          }
+          .max-w-xs {
+            max-width: 18rem;
+          }
+          .line-clamp-3 {
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
-          }
-          .aspect-square h3 {
-            font-size: 0.9rem;
             overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
           }
-          .aspect-square svg {
-            width: 1.25rem;
-            height: 1.25rem;
-          }
-          .aspect-square > div {
-            padding: 0.5rem;
-            margin-bottom: 0.5rem;
+          .leading-tight {
+            line-height: 1.2;
           }
         }
       `}</style>
