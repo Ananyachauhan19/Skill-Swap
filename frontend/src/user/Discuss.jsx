@@ -58,7 +58,7 @@ const HowItWorks = () => (
           key={index}
           className="flex flex-col items-center text-center p-4 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:bg-blue-50 border border-blue-100 cursor-pointer aspect-square sm:aspect-auto"
         >
-          <div className={`bg-blue-600 text-white rounded-full p-3 mb-3 ${item.title === "Session Fee & Payment" ? "bg-green-600" : ""}`}>
+          <div className={`bg-blue-600 text-white rounded-full p-3 mb-3 ${index === 3 ? 'bg-green-600' : ''}`}>
             <svg
               className="w-6 h-6 sm:w-7 sm:h-7"
               fill="none"
@@ -88,7 +88,7 @@ const Discuss = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-50 transition-all duration-2000 pt-16 sm:pt-20 relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-blue-50 transition-all duration-2000 pt-16 sm:pt-20">
       <header className="w-full max-w-7xl mx-auto text-center py-6 sm:py-10 px-4 sm:px-6 relative animate-slideUp">
         <div className="absolute inset-0 bg-blue-100 opacity-20" style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%231e40af' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30v4h2v-4h4V2h-4V0h-2v2h-4v2h4zM6 34v4h4v-4h2v-4h-2v-4H6v4H2v2h4zm0-30v4h-4v2h4v4h2V6h4V4H6V0H4v4H0v2h4z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
@@ -206,13 +206,22 @@ const Discuss = () => {
             justify-content: center;
             align-items: center;
             padding: 0.75rem;
+            overflow: hidden;
           }
           .aspect-square p {
             font-size: 0.65rem;
             line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
           }
           .aspect-square h3 {
             font-size: 0.9rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
           }
           .aspect-square svg {
             width: 1.25rem;
