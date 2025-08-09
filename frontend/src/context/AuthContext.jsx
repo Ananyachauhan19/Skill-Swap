@@ -7,22 +7,62 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.info('[DEBUG] AuthContext: Checking for user...');
-    const storedUser = localStorage.getItem("user");
-    if (storedUser && storedUser !== 'undefined') { // Add check for 'undefined' string
+    const initializeAuth = async () => {
+      console.info('[DEBUG] AuthContext: Checking for user...');
+      
       try {
+        const storedUser = localStorage.getItem("user");
+        
+        // Check for invalid or empty data
+        if (!storedUser || storedUser === 'undefined' || storedUser === 'null') {
+          localStorage.removeItem("user");
+          return;
+        }
+
+        // Try to parse the stored user data
         const parsedUser = JSON.parse(storedUser);
+        
+        // Validate parsed data
+        if (!parsedUser || typeof parsedUser !== 'object') {
+          throw new Error('Invalid user data structure');
+        }
+
         setUser({ ...parsedUser, isAdmin: parsedUser.isAdmin || false });
-        setLoading(false);
       } catch (error) {
-        console.error('[DEBUG] AuthContext: Error parsing stored user:', error);
-        // Clear invalid stored user to prevent future errors
+        console.error('[DEBUG] AuthContext: Error with stored user:', error);
         localStorage.removeItem("user");
+        
+        // Try to fetch user data from backend if we have a token
+        const token = Cookies.get('token');
+        if (token) {
+          try {
+            const response = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
+              credentials: "include"
+            });
+            
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            if (data && data._id) {
+              setUser({ ...data, isAdmin: data.isAdmin || false });
+              localStorage.setItem("user", JSON.stringify(data));
+            }
+          } catch (err) {
+            console.error("[DEBUG] Failed to fetch user profile:", err);
+            Cookies.remove("token");
+          }
+        }
+      } finally {
         setLoading(false);
       }
+    };
+
+    initializeAuth();
     } else {
       const token = Cookies.get('token');
       if (!token) {
@@ -54,11 +94,26 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const updateUser = (newUser) => {
-    setUser(newUser ? { ...newUser, isAdmin: newUser.isAdmin || false } : null);
+    if (newUser) {
+      // Validate and store user data
+      try {
+        localStorage.setItem("user", JSON.stringify(newUser));
+        setUser({ ...newUser, isAdmin: newUser.isAdmin || false });
+      } catch (error) {
+        console.error('[DEBUG] AuthContext: Error storing user data:', error);
+        // If storing fails, at least update the state
+        setUser({ ...newUser, isAdmin: newUser.isAdmin || false });
+      }
+    } else {
+      localStorage.removeItem("user");
+      setUser(null);
+    }
   };
 
   const logout = () => {
+    // Clear all auth-related data
     Cookies.remove("token");
+    localStorage.removeItem("user");
     setUser(null);
   };
 
