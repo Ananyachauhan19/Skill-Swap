@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import { BACKEND_URL } from "../config.js";
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -14,83 +14,58 @@ export const AuthProvider = ({ children }) => {
       console.info('[DEBUG] AuthContext: Checking for user...');
       
       try {
+        // First try to get user from localStorage
         const storedUser = localStorage.getItem("user");
         
-        // Check for invalid or empty data
-        if (!storedUser || storedUser === 'undefined' || storedUser === 'null') {
-          localStorage.removeItem("user");
+        if (storedUser && storedUser !== 'undefined' && storedUser !== 'null') {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            if (parsedUser && typeof parsedUser === 'object') {
+              setUser({ ...parsedUser, isAdmin: parsedUser.isAdmin || false });
+              setLoading(false);
+              return; // Successfully loaded user from localStorage
+            }
+          } catch (parseError) {
+            console.error('[DEBUG] AuthContext: Error parsing stored user:', parseError);
+            localStorage.removeItem("user");
+          }
+        }
+
+        // If we get here, either there was no stored user or it was invalid
+        const token = Cookies.get('token');
+        if (!token) {
+          console.info("[DEBUG] No token found. User is not logged in.");
+          setLoading(false);
           return;
         }
 
-        // Try to parse the stored user data
-        const parsedUser = JSON.parse(storedUser);
+        // Try to fetch fresh user data from backend
+        const response = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
+          credentials: "include"
+        });
         
-        // Validate parsed data
-        if (!parsedUser || typeof parsedUser !== 'object') {
-          throw new Error('Invalid user data structure');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
         }
-
-        setUser({ ...parsedUser, isAdmin: parsedUser.isAdmin || false });
+        
+        const data = await response.json();
+        if (data && data._id) {
+          const userData = { ...data, isAdmin: data.isAdmin || false };
+          setUser(userData);
+          localStorage.setItem("user", JSON.stringify(userData));
+        } else {
+          console.warn("[DEBUG] No valid user data received from backend.");
+        }
       } catch (error) {
-        console.error('[DEBUG] AuthContext: Error with stored user:', error);
+        console.error("[DEBUG] Auth initialization failed:", error);
         localStorage.removeItem("user");
-        
-        // Try to fetch user data from backend if we have a token
-        const token = Cookies.get('token');
-        if (token) {
-          try {
-            const response = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
-              credentials: "include"
-            });
-            
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
-            }
-            
-            const data = await response.json();
-            if (data && data._id) {
-              setUser({ ...data, isAdmin: data.isAdmin || false });
-              localStorage.setItem("user", JSON.stringify(data));
-            }
-          } catch (err) {
-            console.error("[DEBUG] Failed to fetch user profile:", err);
-            Cookies.remove("token");
-          }
-        }
+        Cookies.remove("token");
       } finally {
         setLoading(false);
       }
     };
 
     initializeAuth();
-    } else {
-      const token = Cookies.get('token');
-      if (!token) {
-        console.info("[DEBUG] No token found. User is not logged in.");
-        setLoading(false);
-        return;
-      }
-
-      fetch(`${BACKEND_URL}/api/auth/user/profile`, {
-        credentials: "include",
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.json();
-        })
-        .then((data) => {
-          if (data && data._id) {
-            setUser({ ...data, isAdmin: data.isAdmin || false });
-          } else {
-            console.warn("[DEBUG] No valid user data received from backend.");
-          }
-          setLoading(false);
-        })
-        .catch((err) => {
-          console.error("[DEBUG] Failed to fetch user profile:", err);
-          setLoading(false);
-        });
-    }
   }, []);
 
   const updateUser = (newUser) => {

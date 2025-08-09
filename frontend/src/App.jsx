@@ -6,6 +6,7 @@ import { ModalProvider } from './context/ModalContext';
 import GlobalModals from './GlobalModals';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
 import ProtectedRoute from './components/ProtectedRoute';
+import { useAuth } from './context/AuthContext.jsx';
 
 import socket from './socket';
 import Cookies from 'js-cookie';
@@ -35,7 +36,7 @@ import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
 import CompleteProfile from './user/myprofile/CompleteProfile';
-import { useAuth } from './context/AuthContext';
+
 import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
 import AdminPanel from './admin/adminpanel'; // Updated import for AdminPanel
