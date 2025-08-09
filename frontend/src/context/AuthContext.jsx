@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
       }
     } else {
       const token = Cookies.get('token');
-      if (token) {
+      if (!token) {
         console.info("[DEBUG] No token found. User is not logged in.");
         setLoading(false);
         return;
