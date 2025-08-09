@@ -1,17 +1,12 @@
-// getBackendUrl.js
-
 // Function to get the backend URL dynamically
 export const getBackendUrl = () => {
-  // Development environment (local)
-  if (
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1'
-  ) {
-    return 'http://localhost:5000';
+  // Check if running in a production environment (e.g., on Render)
+  if (import.meta.env.MODE === 'production') {
+    return import.meta.env.VITE_BACKEND_URL_PROD ;
+  } else {
+    // Development environment (local)
+    return import.meta.env.VITE_BACKEND_URL_DEV || 'http://localhost:5000';
   }
-
-  // Production: use your Render backend URL
-  return 'https://skill-swap-69nw.onrender.com'; 
 };
 
 // Export the constant for use in your app
