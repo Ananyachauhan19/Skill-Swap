@@ -109,7 +109,7 @@ const SessionRequests = () => {
       console.info('[DEBUG] SessionRequests: session-started event received:', data);
       let role = null;
       if (user && data.tutor && user._id === data.tutor._id) role = 'tutor';
-      if (user && data.requester && user._id === data.requester._id) role = 'requester';
+      if (user && data.requester && user._id === data.requester._id) role = 'student';
       if (role) {
         const newActiveSession = {
           sessionId: data.sessionId,
@@ -483,6 +483,8 @@ const SessionRequests = () => {
     );
   }
 
+  const username = user ? user.username || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User' : 'User';
+
   return (
     <div className="min-h-screen bg-cream-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -530,7 +532,7 @@ const SessionRequests = () => {
                   <FaVideo className="text-sm" />
                   <span>Join Session</span>
                 </button>
-                {activeSession.role === 'requester' && (
+                {activeSession.role === 'student' && (
                   <button
                     className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300"
                     onClick={handleCancelSession}
@@ -549,6 +551,7 @@ const SessionRequests = () => {
               sessionId={activeSession.sessionId}
               userRole={activeSession.role}
               onEndCall={handleEndCall}
+              username={username}
             />
           </div>
         )}

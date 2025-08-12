@@ -113,8 +113,9 @@ const CreateSession = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState({});
   const [startingSession, setStartingSession] = useState(null);
-  const [videoCall, setVideoCall] = useState(null);
+  const [activeSession, setActiveSession] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
 
   // Helper function to normalize user IDs for comparison
   const normalizeUserId = (userId) => {
@@ -151,6 +152,25 @@ const CreateSession = () => {
     }
   }, []);
 
+  // Load active session from localStorage on component mount
+  useEffect(() => {
+    const savedActiveSession = localStorage.getItem('activeSession');
+    if (savedActiveSession) {
+      try {
+        const session = JSON.parse(savedActiveSession);
+        if (session.sessionId) {
+          setActiveSession(session);
+          setShowVideoModal(true); // Automatically show video modal if active session exists
+        } else {
+          localStorage.removeItem('activeSession');
+        }
+      } catch (error) {
+        localStorage.removeItem('activeSession');
+      }
+    }
+    fetchUserSessions(); // To validate if the session is still active
+  }, []);
+
   // Socket listeners for real-time updates
   useEffect(() => {
     if (!currentUser) return;
@@ -160,19 +180,52 @@ const CreateSession = () => {
 
     // Listen for session-started (for requesters)
     socket.on('session-started', (data) => {
+      const role = isCurrentUserRequester({ requester: { _id: data.requesterId } }) ? 'student' : null;
+      if (role) {
+        const newActiveSession = {
+          sessionId: data.sessionId,
+          role
+        };
+        setActiveSession(newActiveSession);
+        setShowVideoModal(true); // Show video modal when session starts
+        localStorage.setItem('activeSession', JSON.stringify(newActiveSession));
+      }
       fetchUserSessions();
     });
 
     // Listen for session-cancelled (for creators)
     socket.on('session-cancelled', (data) => {
+      if (activeSession && activeSession.sessionId === data.sessionId) {
+        setActiveSession(null);
+        setShowVideoModal(false); // Close video modal
+        localStorage.removeItem('activeSession');
+      }
       fetchUserSessions();
+    });
+
+    socket.on('end-call', ({ sessionId }) => {
+      if (activeSession && activeSession.sessionId === sessionId) {
+        setActiveSession(null);
+        setShowVideoModal(false); // Close video modal
+        localStorage.removeItem('activeSession');
+      }
+    });
+
+    socket.on('session-completed', ({ sessionId }) => {
+      if (activeSession && activeSession.sessionId === sessionId) {
+        setActiveSession(null);
+        setShowVideoModal(false); // Close video modal
+        localStorage.removeItem('activeSession');
+      }
     });
 
     return () => {
       socket.off('session-started');
       socket.off('session-cancelled');
+      socket.off('end-call');
+      socket.off('session-completed');
     };
-  }, [currentUser]);
+  }, [currentUser, activeSession]);
 
   // Filtered lists for cascading dropdowns
   const filteredCourseSuggestions = STATIC_COURSES.filter(
@@ -245,7 +298,7 @@ const CreateSession = () => {
             fetchUserSessions();
             return;
           }
-          throw new Error(err.message || 'Failed to update session');
+          throw new Error(err.message ||she || 'Failed to update session');
         }
         setEditId(null);
       } else {
@@ -311,8 +364,8 @@ const CreateSession = () => {
         }
         throw new Error(err.message || 'Failed to delete session');
       }
-    setScheduledSessions(prev => prev.filter(s => s._id !== id));
-    if (editId === id) setEditId(null);
+      setScheduledSessions(prev => prev.filter(s => s._id !== id));
+      if (editId === id) setEditId(null);
       alert('Session deleted!');
     } catch (error) {
       alert('Error deleting session: ' + error.message);
@@ -370,8 +423,11 @@ const CreateSession = () => {
   const handleJoinSession = async (session) => {
     setActionLoading(prev => ({ ...prev, [`join-${session._id}`]: true }));
     try {
-      setVideoCall(session._id);
-      // The video call will handle the connection
+      const role = 'student';
+      const newActiveSession = { sessionId: session._id, role };
+      setActiveSession(newActiveSession);
+      setShowVideoModal(true); // Show video modal when joining
+      localStorage.setItem('activeSession', JSON.stringify(newActiveSession));
     } catch (error) {
       console.error('Error joining session:', error);
       alert('Error joining session: ' + error.message);
@@ -394,6 +450,9 @@ const CreateSession = () => {
         const err = await response.json();
         throw new Error(err.message || 'Failed to cancel session');
       }
+      setActiveSession(null);
+      setShowVideoModal(false); // Close video modal
+      localStorage.removeItem('activeSession');
       alert('Session cancelled!');
       fetchUserSessions();
     } catch (error) {
@@ -432,7 +491,11 @@ const CreateSession = () => {
       alert('Session started! The approved user has been notified.');
       
       // Start video call for creator
-      setVideoCall(session._id);
+      const role = 'tutor';
+      const newActiveSession = { sessionId: session._id, role };
+      setActiveSession(newActiveSession);
+      setShowVideoModal(true); // Show video modal when starting
+      localStorage.setItem('activeSession', JSON.stringify(newActiveSession));
       
       // Refresh sessions list
       fetchUserSessions();
@@ -442,6 +505,15 @@ const CreateSession = () => {
       alert(error.message || 'Failed to start session');
     } finally {
       setStartingSession(null);
+    }
+  };
+
+  const handleEndCall = () => {
+    if (activeSession) {
+      socket.emit('end-call', { sessionId: activeSession.sessionId });
+      setActiveSession(null);
+      setShowVideoModal(false); // Close video modal
+      localStorage.removeItem('activeSession');
     }
   };
 
@@ -457,6 +529,16 @@ const CreateSession = () => {
       const sessions = await response.json();
       
       setScheduledSessions(sessions);
+
+      // Validate activeSession
+      if (activeSession) {
+        const currentSession = sessions.find(s => s._id === activeSession.sessionId);
+        if (!currentSession || currentSession.status !== 'active') {
+          setActiveSession(null);
+          setShowVideoModal(false); // Close video modal
+          localStorage.removeItem('activeSession');
+        }
+      }
     } catch (error) {
       console.error('Error fetching sessions:', error);
     } finally {
@@ -478,26 +560,11 @@ const CreateSession = () => {
       fetchUserSessions(); // Refresh sessions
     });
 
-    socket.on('session-started', (data) => {
-      // Start video call
-      setVideoCall(data.sessionId);
-    });
-
-    socket.on('session-cancelled', (data) => {
-      fetchUserSessions(); // Refresh sessions
-      // End video call if active
-      if (videoCall === data.sessionId) {
-        setVideoCall(null);
-      }
-    });
-
     return () => {
       socket.off('session-approved');
       socket.off('session-rejected');
-      socket.off('session-started');
-      socket.off('session-cancelled');
     };
-  }, [videoCall]);
+  }, []);
 
   // Skeleton Loader for Scheduled Sessions
   const SkeletonLoader = () => (
@@ -517,6 +584,8 @@ const CreateSession = () => {
       ))}
     </div>
   );
+
+  const username = currentUser ? currentUser.username || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'User' : 'User';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-gray-50 to-blue-100 pt-20 pb-8 px-4 sm:px-6 lg:px-8 font-inter">
@@ -732,7 +801,9 @@ const CreateSession = () => {
                 <div className="flex gap-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 pyόν
+
+2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
                   >
                     {editId ? 'Update Session' : 'Schedule Session'}
                   </button>
@@ -756,7 +827,7 @@ const CreateSession = () => {
         {/* Scheduled Sessions (Right) */}
         <div className="flex-1 w-full">
           <section>
-            <h2 className="text-xl font-bold text-blue-900 mb-6 border-b-2 border-blue-200 pb-2 font-lora tracking-tight relative group animate-fade-in">
+            <h2 className="text-xl font-bold text.docs-blue-900 mb-6 border-b-2 border-blue-200 pb-2 font-lora tracking-tight relative group animate-fade-in">
               Scheduled Sessions
               <span className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
             </h2>
@@ -777,16 +848,16 @@ const CreateSession = () => {
                           session.status === 'rejected' ? 'text-red-600' : 
                           'text-yellow-600'
                         }`}>
-                        {session.status.toUpperCase()}
+                          {session.status.toUpperCase()}
                         </div>
-                                                  {currentUser && (
-                            <div className={`text-xs px-2 py-1 rounded-full font-nunito ${
-                              isCurrentUserCreator(session) 
-                                ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                            }`}>
-                              {isCurrentUserCreator(session) ? 'Creator' : 'Requester'}
-                            </div>
-                          )}
+                        {currentUser && (
+                          <div className={`text-xs px-2 py-1 rounded-full font-nunito ${
+                            isCurrentUserCreator(session) 
+                              ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                          }`}>
+                            {isCurrentUserCreator(session) ? 'Creator' : 'Requester'}
+                          </div>
+                        )}
                       </div>
                       <div className="font-semibold text-blue-900 mb-1 text-lg truncate font-lora">
                         {[session.subject, session.topic, session.subtopic].filter(x => x && x.trim()).join(' - ')}
@@ -795,20 +866,20 @@ const CreateSession = () => {
                       <div className="text-gray-500 text-xs mb-4 font-nunito">{session.date} at {session.time}</div>
                     </div>
                     <div className="flex gap-3 mt-auto">
-                                                                    {currentUser && isCurrentUserCreator(session) && (
+                      {currentUser && isCurrentUserCreator(session) && (
                         <>
-                      <button
-                        className="text-blue-600 hover:underline text-sm font-medium font-nunito"
-                        onClick={() => handleEdit(session)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="text-red-600 hover:underline text-sm font-medium font-nunito"
-                        onClick={() => handleDelete(session._id)}
-                      >
-                        Delete
-                      </button>
+                          <button
+                            className="text-blue-600 hover:underline text-sm font-medium font-nunito"
+                            onClick={() => handleEdit(session)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="text-red-600 hover:underline text-sm font-medium font-nunito"
+                            onClick={() => handleDelete(session._id)}
+                          >
+                            Delete
+                          </button>
                         </>
                       )}
                     </div>
@@ -834,8 +905,8 @@ const CreateSession = () => {
                       )}
                       {/* Start Session for creator when approved */}
                       {session.status === 'approved' && currentUser && isCurrentUserCreator(session) && (
-                      <button
-                        className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                        <button
+                          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
                           onClick={() => handleStartSession(session)}
                           disabled={startingSession === session._id}
                         >
@@ -858,7 +929,7 @@ const CreateSession = () => {
                             disabled={actionLoading[`cancel-${session._id}`]}
                           >
                             {actionLoading[`cancel-${session._id}`] ? 'Cancelling...' : 'Cancel Session'}
-                      </button>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -871,13 +942,28 @@ const CreateSession = () => {
           </section>
         </div>
       </div>
-      {videoCall && (
-        <VideoCall
-          sessionId={videoCall}
-          onEndCall={() => setVideoCall(null)}
-          userRole={currentUser && scheduledSessions.find(s => s._id === videoCall) && 
-            isCurrentUserCreator(scheduledSessions.find(s => s._id === videoCall)) ? 'Creator' : 'Requester'}
-        />
+      {showVideoModal && activeSession && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300">
+          <div className="w-full h-full bg-gray-900 rounded-lg shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center p-4 bg-blue-800 text-white">
+              <h2 className="text-lg font-semibold font-lora">Video Call Session</h2>
+              <button
+                className="bg-red-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-700 hover:scale-105 transition duration-200 transform font-nunito"
+                onClick={handleEndCall}
+              >
+                End Call
+              </button>
+            </div>
+            <div className="flex-1">
+              <VideoCall
+                sessionId={activeSession.sessionId}
+                onEndCall={handleEndCall}
+                userRole={activeSession.role}
+                username={username}
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
