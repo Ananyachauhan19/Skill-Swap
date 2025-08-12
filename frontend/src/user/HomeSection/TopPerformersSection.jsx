@@ -11,32 +11,37 @@ const TopPerformersSection = () => {
     tap: { scale: 0.98 },
   };
 
-  const performers = [
-    {
-      img: "/user1.webp",
-      imgFallback: "/user1.png",
-      alt: "Most Active",
-      title: "Most Active Learner",
-      name: "Aditya Singh",
-      stat: "15 sessions",
-    },
-    {
-      img: "/user2.webp",
-      imgFallback: "/user2.png",
-      alt: "Top Tutor",
-      title: "Highest Rated Tutor",
-      name: "Ananya S.",
-      extra: <span className="text-blue-300 text-xl sm:text-2xl">★★★★★</span>,
-    },
-    {
-      img: "/user3.webp",
-      imgFallback: "/user3.png",
-      alt: "Top Earner",
-      title: "Top Earner",
-      name: "Rahul",
-      stat: <span className="font-semibold text-sm sm:text-base text-blue-600">₹ 8,200 Earned</span>,
-    },
-  ];
+const performers = [
+  {
+    img: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
+    imgFallback: "/user1.png",
+    alt: "Most Active",
+    title: "Most Active Learner",
+    name: "Anshika singh",
+    stat: "15 sessions",
+  },
+  {
+    img:"https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
+
+    imgFallback: "/user2.png",
+    alt: "Top Tutor",
+    title: "Highest Rated Tutor",
+    name: "Ananya S.",
+    extra: <span className="text-blue-300 text-xl sm:text-2xl">★★★★★</span>,
+  },
+  {
+    img: "https://images.unsplash.com/photo-1595152772835-219674b2a8a6?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80",
+    imgFallback: "/user3.png",
+    alt: "Top Earner",
+    title: "Top Earner",
+    name: "Rahul",
+    stat: (
+      <span className="font-semibold text-sm sm:text-base text-blue-600">
+        ₹ 8,200 Earned
+      </span>
+    ),
+  },
+];
 
   return (
     <section className="py-10 sm:py-16 px-4 sm:px-8 bg-gradient-to-br from-[#FFFFFF] to-[#F5F8FF]">
