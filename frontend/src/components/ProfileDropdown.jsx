@@ -4,7 +4,7 @@ import { BACKEND_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 
 const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   useEffect(() => {
     if (!show) return;
     function handleClickOutside(event) {
@@ -66,16 +66,17 @@ const ProfileDropdown = ({ show, onClose, navigate, menuRef }) => {
       >
         Help & Support
       </button>
-      
       <button
         className="text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded"
         onClick={async () => {
-          Cookies.remove('user');
-          localStorage.removeItem('token'); // Remove token from localStorage
+          // Clear all cookies
+          Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName));
+          localStorage.removeItem('token');
           await fetch(`${BACKEND_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
+          setUser(null); // Clear user from auth context
           window.dispatchEvent(new Event('authChanged'));
           onClose();
-          navigate('/home');
+          navigate('/login'); // Redirect to login page
         }}
       >
         Logout

@@ -36,50 +36,115 @@ import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
 import CompleteProfile from './user/myprofile/CompleteProfile';
-
 import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
-import AdminPanel from './admin/adminpanel'; // Updated import for AdminPanel
+import AdminPanel from './admin/adminpanel';
 
 // Define all routes in a single array for useRoutes
 const appRoutes = [
   { path: '/', element: <Navigate to="/home" replace /> },
-  { path: '/home', element: <Home /> },
-  { path: '/login', element: <Login /> },
-  { path: '/register', element: <Register /> },
-  { path: '/one-on-one', element: <OneOnOne /> },
-  { path: '/discuss', element: <Discuss /> },
-  { path: '/interview', element: <Interview /> },
-  { path: '/session', element: <Sessions /> },
-  { path: '/session-requests', element: <SessionRequests /> },
-  { path: '/testimonials', element: <Testimonial showAll={true} /> },
-  { path: '/your-profile', element: <Profile /> },
-  { path: '/createSession', element: <CreateSession /> },
-  { path: '/package', element: <Package /> },
-  { path: '/learning-history', element: <HistoryPage /> },
-  { path: '/help', element: <HelpSupportPage /> },
-  { path: '/pro', element: <GoPro /> },
-  { path: '/accountSettings', element: <AccountSettings /> },
-  { path: '/StartSkillSwap', element: <StartSkillSwap /> },
-  { path: '/report', element: <ReportPage /> },
-  { path: '/teaching-history', element: <TeachingHistory /> },
-  { path: '/blog', element: <Blog /> },
-  { path: '/search', element: <SearchPage /> },
-  { path: '/admin', element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> }, // Updated to use AdminPanel
-  ...accountSettingsRoutes,
+  { path: '/home', element: <Home /> }, // Public route
+  { path: '/login', element: <Login /> }, // Public route
+  { path: '/register', element: <Register /> }, // Public route
+  { 
+    path: '/one-on-one', 
+    element: <ProtectedRoute><OneOnOne /></ProtectedRoute> 
+  },
+  { 
+    path: '/discuss', 
+    element: <ProtectedRoute><Discuss /></ProtectedRoute> 
+  },
+  { 
+    path: '/interview', 
+    element: <ProtectedRoute><Interview /></ProtectedRoute> 
+  },
+  { 
+    path: '/session', 
+    element: <ProtectedRoute><Sessions /></ProtectedRoute> 
+  },
+  { 
+    path: '/session-requests', 
+    element: <ProtectedRoute><SessionRequests /></ProtectedRoute> 
+  },
+  { 
+    path: '/testimonials', 
+    element: <ProtectedRoute><Testimonial showAll={true} /></ProtectedRoute> 
+  },
+  { 
+    path: '/your-profile', 
+    element: <ProtectedRoute><Profile /></ProtectedRoute> 
+  },
+  { 
+    path: '/createSession', 
+    element: <ProtectedRoute><CreateSession /></ProtectedRoute> 
+  },
+  { 
+    path: '/package', 
+    element: <ProtectedRoute><Package /></ProtectedRoute> 
+  },
+  { 
+    path: '/learning-history', 
+    element: <ProtectedRoute><HistoryPage /></ProtectedRoute> 
+  },
+  { 
+    path: '/help', 
+    element: <ProtectedRoute><HelpSupportPage /></ProtectedRoute> 
+  },
+  { 
+    path: '/pro', 
+    element: <ProtectedRoute><GoPro /></ProtectedRoute> 
+  },
+  { 
+    path: '/accountSettings', 
+    element: <ProtectedRoute><AccountSettings /></ProtectedRoute> 
+  },
+  { 
+    path: '/StartSkillSwap', 
+    element: <ProtectedRoute><StartSkillSwap /></ProtectedRoute> 
+  },
+  { 
+    path: '/report', 
+    element: <ProtectedRoute><ReportPage /></ProtectedRoute> 
+  },
+  { 
+    path: '/teaching-history', 
+    element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> 
+  },
+  { 
+    path: '/blog', 
+    element: <ProtectedRoute><Blog /></ProtectedRoute> 
+  },
+  { 
+    path: '/search', 
+    element: <ProtectedRoute><SearchPage /></ProtectedRoute> 
+  },
+  { 
+    path: '/admin', 
+    element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> 
+  },
+  ...accountSettingsRoutes.map(route => ({
+    ...route,
+    element: <ProtectedRoute>{route.element}</ProtectedRoute>
+  })),
   {
     path: '/profile',
-    element: <PrivateProfile />,
-    children: privateProfileRoutes,
+    element: <ProtectedRoute><PrivateProfile /></ProtectedRoute>,
+    children: privateProfileRoutes.map(route => ({
+      ...route,
+      element: <ProtectedRoute>{route.element}</ProtectedRoute>
+    })),
   },
   {
     path: '/public-profile',
-    element: <PublicProfile />,
-    children: publicProfileRoutes,
+    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>, // Now protected
+    children: publicProfileRoutes.map(route => ({
+      ...route,
+      element: <ProtectedRoute>{route.element}</ProtectedRoute>
+    })),
   },
   {
     path: '/profile/:username',
-    element: <PublicProfile />,
+    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>, // Now protected
   },
 ];
 
@@ -96,8 +161,6 @@ function useRegisterSocket() {
     }
     if (user && user._id) {
       socket.emit('register', user._id);
-    } else {
-      // No user found in cookie
     }
   }, []);
 }
@@ -126,7 +189,7 @@ function App() {
       {!isAuthPage && <Navbar />}
       <div className={location.pathname === '/home' ? '' : 'pt-8'}>
         {element}
-        <CompleteProfile /> {/* Render the CompleteProfile component */}
+        {user && <CompleteProfile />} {/* Only render for authenticated users */}
       </div>
       {!isAuthPage && <Footer />}
     </ModalProvider>
