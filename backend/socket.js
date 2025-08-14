@@ -80,12 +80,14 @@ module.exports = (io) => {
             skillsToTeach: user.skillsToTeach,
             profilePic: user.profilePic,
             rating: user.rating || 4.5,
-            status: 'Available'
+            status: 'Available',
+            role: user.role // Added role to track teacher or learner
           });
           console.log(`[Socket Register] Registered socket ${socket.id} for user ${userId}`, {
             userId: user._id,
             socketId: user.socketId,
-            firstName: user.firstName
+            firstName: user.firstName,
+            role: user.role
           });
         } else {
           console.log(`[Socket Register] No user found for userId: ${userId}`);
@@ -475,6 +477,73 @@ module.exports = (io) => {
       }
     });
 
+    // Handle session creation (only for teachers)
+    socket.on('create-session', async (data) => {
+      try {
+        const { subject, topic, subtopic, description, date, time } = data;
+        const creatorId = socket.userId;
+
+        let creatorData = null;
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (userData.userId.toString() === creatorId) {
+            creatorData = userData;
+            break;
+          }
+        }
+
+        if (!creatorData) {
+          socket.emit('session-create-error', { message: 'User not found' });
+          return;
+        }
+
+        // Check if user is a teacher
+        if (creatorData.role !== 'teacher') {
+          socket.emit('session-create-error', { message: 'Only teachers can create sessions' });
+          return;
+        }
+
+        // Validate teacher's skills
+        const hasMatchingSkill = creatorData.skillsToTeach.some(skill => {
+          const subjectMatch = skill.subject === subject;
+          const topicMatch = !topic || skill.topic === topic;
+          const subtopicMatch = !subtopic || skill.subtopic === subtopic;
+          return subjectMatch && topicMatch && subtopicMatch;
+        });
+
+        if (!hasMatchingSkill) {
+          socket.emit('session-create-error', { message: 'You can only create sessions for your registered skills' });
+          return;
+        }
+
+        // Create new session
+        const session = new Session({
+          creator: creatorId,
+          subject,
+          topic,
+          subtopic: subtopic || '',
+          description: description || '',
+          date,
+          time,
+          status: 'pending'
+        });
+
+        await session.save();
+
+        await session.populate('creator', 'firstName lastName profilePic');
+
+        socket.emit('session-created', {
+          message: 'Session created successfully',
+          session
+        });
+
+        console.log(`[Session Create] Session created by ${creatorData.firstName} for ${subject}${subtopic ? ` (${subtopic})` : ''}`);
+
+      } catch (error) {
+        console.error('[Session Create] Error:', error);
+        socket.emit('session-create-error', { message: 'Failed to create session' });
+      }
+    });
+
     // Handle session request
     socket.on('send-session-request', async (data) => {
       try {
@@ -663,6 +732,7 @@ module.exports = (io) => {
         
         for (const [socketId, userData] of onlineUsers.entries()) {
           if (socketId === socket.id) continue;
+          if (userData.role !== 'teacher') continue; // Only include teachers
           const userSkills = userData.skillsToTeach || [];
           
           const hasMatchingSkill = userSkills.some(skill => {
@@ -749,18 +819,25 @@ module.exports = (io) => {
 
       const userIds = getUserIdsInSession(sessionId);
       if (userIds.length === 2 && !sessionTimers.has(sessionId)) {
-        let sessionRequest = await SessionRequest.findById(sessionId);
-        let requesterId, tutorId;
-        if (sessionRequest) {
-          requesterId = String(sessionRequest.requester);
-          tutorId = String(sessionRequest.tutor);
-        } else {
-          const session = await Session.findById(sessionId);
+        let session = await Session.findById(sessionId);
+        if (!session) {
+          session = await SessionRequest.findById(sessionId);
           if (session) {
-            requesterId = session.requester ? String(session.requester) : null;
-            tutorId = session.creator ? String(session.creator) : null;
+            session = await Session.create({
+              creator: session.tutor,
+              requester: session.requester,
+              subject: session.subject,
+              topic: session.topic,
+              subtopic: session.subtopic,
+              description: session.message,
+              status: 'active'
+            });
           }
         }
+        if (!session) return;
+
+        const requesterId = session.requester ? String(session.requester) : null;
+        const tutorId = session.creator ? String(session.creator) : null;
         if (!requesterId || !tutorId) return;
 
         // Start timer for coin updates
@@ -851,22 +928,22 @@ module.exports = (io) => {
     // Start session after approval
     socket.on('start-session', async ({ sessionId }) => {
       try {
-        const sessionRequest = await SessionRequest.findById(sessionId)
-          .populate('tutor', 'firstName lastName profilePic socketId')
+        const session = await Session.findById(sessionId)
+          .populate('creator', 'firstName lastName profilePic socketId')
           .populate('requester', 'firstName lastName profilePic socketId');
-        if (!sessionRequest || sessionRequest.status !== 'approved') return;
+        if (!session || session.status !== 'approved') return;
 
         let tutorSocketId = null, requesterSocketId = null;
         for (const [socketId, userData] of onlineUsers.entries()) {
-          if (userData.userId.toString() === sessionRequest.tutor._id.toString()) tutorSocketId = socketId;
-          if (userData.userId.toString() === sessionRequest.requester._id.toString()) requesterSocketId = socketId;
+          if (userData.userId.toString() === session.creator._id.toString()) tutorSocketId = socketId;
+          if (session.requester && userData.userId.toString() === session.requester._id.toString()) requesterSocketId = socketId;
         }
 
         const payload = {
-          sessionId: sessionRequest._id.toString(),
-          sessionRequest,
-          tutor: sessionRequest.tutor,
-          requester: sessionRequest.requester
+          sessionId: session._id.toString(),
+          session,
+          tutor: session.creator,
+          requester: session.requester
         };
         if (tutorSocketId) io.to(tutorSocketId).emit('session-started', payload);
         if (requesterSocketId) io.to(requesterSocketId).emit('session-started', payload);
@@ -878,39 +955,39 @@ module.exports = (io) => {
     // Cancel session
     socket.on('cancel-session', async ({ sessionId }) => {
       try {
-        const sessionRequest = await SessionRequest.findById(sessionId)
-          .populate('tutor', 'firstName lastName profilePic socketId')
+        const session = await Session.findById(sessionId)
+          .populate('creator', 'firstName lastName profilePic socketId')
           .populate('requester', 'firstName lastName profilePic socketId');
-        if (!sessionRequest) return;
+        if (!session) return;
 
         let tutorSocketId = null, requesterSocketId = null;
         for (const [socketId, userData] of onlineUsers.entries()) {
-          if (userData.userId.toString() === sessionRequest.tutor._id.toString()) tutorSocketId = socketId;
-          if (userData.userId.toString() === sessionRequest.requester._id.toString()) requesterSocketId = socketId;
+          if (userData.userId.toString() === session.creator._id.toString()) tutorSocketId = socketId;
+          if (session.requester && userData.userId.toString() === session.requester._id.toString()) requesterSocketId = socketId;
         }
 
-        sessionRequest.status = 'cancelled';
-        await sessionRequest.save();
+        session.status = 'cancelled';
+        await session.save();
 
-        const requesterName = `${sessionRequest.requester.firstName} ${sessionRequest.requester.lastName}`;
+        const requesterName = session.requester ? `${session.requester.firstName} ${session.requester.lastName}` : 'Unknown';
         await sendNotification(
           io,
-          sessionRequest.tutor._id,
+          session.creator._id,
           'session-cancelled',
-          `${requesterName} has cancelled the session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`,
-          sessionRequest._id,
+          `${requesterName} has cancelled the session on ${session.subject}${session.subtopic ? ` (${session.subtopic})` : ''}.`,
+          session._id,
           null,
-          sessionRequest.requester._id,
+          session.requester ? session.requester._id : null,
           requesterName,
-          sessionRequest.subject,
-          sessionRequest.topic,
-          sessionRequest.subtopic
+          session.subject,
+          session.topic,
+          session.subtopic
         );
 
         const payload = {
-          sessionId: sessionRequest._id.toString(),
-          sessionRequest,
-          message: 'Session was cancelled by the requester.'
+          sessionId: session._id.toString(),
+          session,
+          message: 'Session was cancelled.'
         };
         if (tutorSocketId) io.to(tutorSocketId).emit('session-cancelled', payload);
         if (requesterSocketId) io.to(requesterSocketId).emit('session-cancelled', payload);

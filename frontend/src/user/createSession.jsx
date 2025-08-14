@@ -116,6 +116,7 @@ const CreateSession = () => {
   const [activeSession, setActiveSession] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [userSkills, setUserSkills] = useState([]);
 
   // Helper function to normalize user IDs for comparison
   const normalizeUserId = (userId) => {
@@ -139,13 +140,14 @@ const CreateSession = () => {
     return currentUserId === requesterId;
   };
 
-  // Get current user from cookies
+  // Get current user and skills from cookies
   useEffect(() => {
     const userCookie = Cookies.get('user');
     if (userCookie) {
       try {
         const user = JSON.parse(userCookie);
         setCurrentUser(user);
+        setUserSkills(user.skillsToTeach || []);
       } catch (error) {
         console.error('Error parsing user cookie:', error);
       }
@@ -227,19 +229,29 @@ const CreateSession = () => {
     };
   }, [currentUser, activeSession]);
 
-  // Filtered lists for cascading dropdowns
-  const filteredCourseSuggestions = STATIC_COURSES.filter(
-    (s) => (form.subject || '').toLowerCase().includes((s || '').toLowerCase()) && (form.subject || '').trim() !== ''
-  );
-  const courseList = (form.subject || '').trim() === '' ? STATIC_COURSES : filteredCourseSuggestions;
+  // Filter course suggestions based on user's skills
+  const filteredCourseSuggestions = userSkills.length > 0
+    ? STATIC_COURSES.filter(s => userSkills.some(skill => skill.subject === s) && (form.subject || '').toLowerCase().includes(s.toLowerCase()))
+    : [];
+  const courseList = (form.subject || '').trim() === '' ? (userSkills.length > 0 ? [...new Set(userSkills.map(skill => skill.subject))] : STATIC_COURSES) : filteredCourseSuggestions;
 
-  const unitList = form.subject ? (STATIC_UNITS[form.subject] || []) : [];
+  // Filter unit suggestions based on user's skills
+  const unitList = form.subject
+    ? userSkills.length > 0
+      ? [...new Set(userSkills.filter(skill => skill.subject === form.subject).map(skill => skill.topic))].filter(t => STATIC_UNITS[form.subject]?.includes(t))
+      : STATIC_UNITS[form.subject] || []
+    : [];
   const filteredUnitSuggestions = unitList.filter(
     (u) => (form.topic || '').toLowerCase().includes((u || '').toLowerCase()) && (form.topic || '').trim() !== ''
   );
   const unitDropdownList = (form.topic || '').trim() === '' ? unitList : filteredUnitSuggestions;
 
-  const topicList = form.topic ? (STATIC_TOPICS[form.topic] || []) : [];
+  // Filter subtopic suggestions based on user's skills
+  const topicList = form.topic
+    ? userSkills.length > 0
+      ? [...new Set(userSkills.filter(skill => skill.subject === form.subject && skill.topic === form.topic).map(skill => skill.subtopic))].filter(t => STATIC_TOPICS[form.topic]?.includes(t))
+      : STATIC_TOPICS[form.topic] || []
+    : [];
   const filteredTopicSuggestions = topicList.filter(
     (t) => (form.subtopic || '').toLowerCase().includes((t || '').toLowerCase()) && (form.subtopic || '').trim() !== ''
   );
@@ -272,6 +284,24 @@ const CreateSession = () => {
   const handleSubmit = async e => {
     e.preventDefault();
 
+    // Check if user is a learner
+    if (currentUser?.role === 'learner') {
+      alert('Please add a skill if you want to create a session.');
+      return;
+    }
+
+    // Check if user has the selected skill
+    const hasSkill = userSkills.some(skill =>
+      skill.subject === form.subject &&
+      (!form.topic || skill.topic === form.topic) &&
+      (!form.subtopic || skill.subtopic === form.subtopic)
+    );
+
+    if (!hasSkill) {
+      alert('You can only create sessions for your registered skills.');
+      return;
+    }
+
     // Prevent scheduling in the past
     const today = getTodayDate();
     const now = getCurrentTime();
@@ -298,7 +328,7 @@ const CreateSession = () => {
             fetchUserSessions();
             return;
           }
-          throw new Error(err.message ||she || 'Failed to update session');
+          throw new Error(err.message || 'Failed to update session');
         }
         setEditId(null);
       } else {
@@ -612,6 +642,10 @@ const CreateSession = () => {
                   Schedule Another
                 </button>
               </div>
+            ) : currentUser?.role === 'learner' ? (
+              <div className="text-center animate-fade-in">
+                <p className="text-red-600 font-semibold mb-4 font-nunito">Please add a skill if you want to create a session.</p>
+              </div>
             ) : (
               <form className="flex flex-col gap-5" onSubmit={handleSubmit} autoComplete="off">
                 <div className="relative">
@@ -801,9 +835,7 @@ const CreateSession = () => {
                 <div className="flex gap-4">
                   <button
                     type="submit"
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 pyόν
-
-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
                   >
                     {editId ? 'Update Session' : 'Schedule Session'}
                   </button>
@@ -827,7 +859,7 @@ const CreateSession = () => {
         {/* Scheduled Sessions (Right) */}
         <div className="flex-1 w-full">
           <section>
-            <h2 className="text-xl font-bold text.docs-blue-900 mb-6 border-b-2 border-blue-200 pb-2 font-lora tracking-tight relative group animate-fade-in">
+            <h2 className="text-xl font-bold text-blue-900 mb-6 border-b-2 border-blue-200 pb-2 font-lora tracking-tight relative group animate-fade-in">
               Scheduled Sessions
               <span className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
             </h2>
