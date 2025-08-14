@@ -55,7 +55,7 @@ router.get('/google/callback', passport.authenticate('google', {
       return res.redirect('/auth/failure');
     }
     const token = generateToken(user);
-  const frontendUrl = 'https://skill-swap-qbsn.onrender.com';
+  const frontendUrl = 'https://skillswaphub.in';
 // ... existing code ...;
     res.cookie('token', token, {
       secure: process.env.NODE_ENV === 'production',
