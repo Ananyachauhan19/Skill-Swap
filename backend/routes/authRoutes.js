@@ -29,12 +29,26 @@ const sanitizeArrayFields = (data, validKeys) => {
 router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
+
 router.post('/logout', (req, res) => {
-  res.clearCookie('jwt', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+  // Clear cookies set at login. Adjust names/options to match your login.
+  const isProd = process.env.NODE_ENV === 'production';
+
+  res.clearCookie('token', {
+    httpOnly: true,         // match how it was set
+    sameSite: 'lax',        // or 'none' if cross-site
+    secure: isProd,         // true in production with HTTPS
+    path: '/',              // must match the path used when setting
+    // domain: '.yourdomain.com', // include if you set domain on login
   });
+
+  // If you also set a 'user' cookie, clear it too
+  res.clearCookie('user', {
+    sameSite: 'lax',
+    secure: isProd,
+    path: '/',
+  });
+
   return res.status(200).json({ message: 'Logged out' });
 });
 
