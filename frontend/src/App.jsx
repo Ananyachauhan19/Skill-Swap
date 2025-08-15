@@ -13,7 +13,7 @@ import Cookies from 'js-cookie';
 
 import Home from './user/Home';
 import Login from './auth/Login';
-import Register from './auth/Register';
+import Register from './auth/register';
 import OneOnOne from './user/OneOnOne';
 import Discuss from './user/Discuss';
 import Interview from './user/Interview';

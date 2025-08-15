@@ -5,10 +5,12 @@ import axios from "axios";
 import { useModal } from '../context/ModalContext';
 import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config.js';
+import { useAuth } from '../context/AuthContext';
 
 const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const navigate = useNavigate();
   const { openRegister } = useModal();
+  const { setUser } = useAuth(); // Added to update AuthContext
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -130,6 +132,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       localStorage.setItem('user', JSON.stringify(user));
       Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
       Cookies.set('isRegistered', 'true', { expires: 1 });
+      setUser(user); // Update AuthContext immediately
       window.dispatchEvent(new Event("authChanged"));
       if (onLoginSuccess) onLoginSuccess(user);
       if (isModal && onClose) onClose();

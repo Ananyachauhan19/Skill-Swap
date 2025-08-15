@@ -1,4 +1,3 @@
-// src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import { BACKEND_URL } from "../config.js";
@@ -68,6 +67,37 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
+  useEffect(() => {
+    const handleAuthChange = () => {
+      console.info('[DEBUG] AuthContext: authChanged event received');
+      const storedUser = localStorage.getItem("user");
+      if (storedUser && storedUser !== 'undefined' && storedUser !== 'null') {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser && typeof parsedUser === 'object') {
+            setUser({ ...parsedUser, isAdmin: parsedUser.isAdmin || false });
+          } else {
+            setUser(null);
+            localStorage.removeItem("user");
+            Cookies.remove("token");
+          }
+        } catch (error) {
+          console.error('[DEBUG] AuthContext: Error parsing user on authChanged:', error);
+          setUser(null);
+          localStorage.removeItem("user");
+          Cookies.remove("token");
+        }
+      } else {
+        setUser(null);
+        localStorage.removeItem("user");
+        Cookies.remove("token");
+      }
+    };
+
+    window.addEventListener("authChanged", handleAuthChange);
+    return () => window.removeEventListener("authChanged", handleAuthChange);
+  }, []);
+
   const updateUser = (newUser) => {
     if (newUser) {
       // Validate and store user data
@@ -82,6 +112,7 @@ export const AuthProvider = ({ children }) => {
     } else {
       localStorage.removeItem("user");
       setUser(null);
+      Cookies.remove("token");
     }
   };
 
