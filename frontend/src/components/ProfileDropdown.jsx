@@ -24,16 +24,19 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
   const handleLogout = async () => {
     try {
       // Clear all cookies
-      Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName));
+      Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName, { path: '/', domain: window.location.hostname }));
       
       // Clear localStorage and sessionStorage
       localStorage.clear();
       sessionStorage.clear();
 
-      // Make logout API call
+      // Make logout API call for regular and Google login
       await fetch(`${BACKEND_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       // Clear user context
@@ -47,7 +50,10 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
       navigate('/home', { replace: true });
     } catch (error) {
       console.error('Logout failed:', error);
-      // Still clear client-side data and redirect on error
+      // Clear client-side data and redirect even on error
+      Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName, { path: '/', domain: window.location.hostname }));
+      localStorage.clear();
+      sessionStorage.clear();
       setUser(null);
       window.dispatchEvent(new Event('authChanged'));
       onClose();

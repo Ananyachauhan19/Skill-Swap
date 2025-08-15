@@ -149,7 +149,7 @@ const appRoutes = [
 ];
 
 function App() {
-  const { user, setUser } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
@@ -184,12 +184,11 @@ function App() {
   useEffect(() => {
     const handleAuthChange = () => {
       if (!user) {
-        // Clear all client-side data (cookies, localStorage, sessionStorage)
-        Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName));
+        // Clear all client-side data
+        Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName, { path: '/', domain: window.location.hostname }));
         localStorage.clear();
         sessionStorage.clear();
-        setUser(null);
-        // Disconnect socket to prevent further events
+        // Disconnect socket
         socket.disconnect();
         // Redirect to /home
         navigate('/home', { replace: true });
@@ -198,14 +197,19 @@ function App() {
 
     window.addEventListener('authChanged', handleAuthChange);
     return () => window.removeEventListener('authChanged', handleAuthChange);
-  }, [user, navigate, setUser]);
+  }, [user, navigate]);
 
-  // Ensure redirection to /login for protected routes when not authenticated
+  // Redirect to /login for protected routes when not authenticated
   useEffect(() => {
-    if (!user && !isAuthPage && location.pathname !== '/home') {
+    if (!loading && !user && !isAuthPage && location.pathname !== '/home') {
       navigate('/login', { replace: true });
     }
-  }, [user, location.pathname, navigate, isAuthPage]);
+  }, [user, loading, location.pathname, navigate, isAuthPage]);
+
+  // Prevent rendering until loading is complete
+  if (loading) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <ModalProvider>

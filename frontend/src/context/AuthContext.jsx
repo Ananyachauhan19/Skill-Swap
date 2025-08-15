@@ -21,11 +21,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const handleAuthChange = () => {
       // Clear all client-side authentication data
-      Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName));
+      Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName, { path: '/', domain: window.location.hostname }));
       localStorage.clear();
       sessionStorage.clear();
       // Reset user state
       setUser(null);
+      setLoading(false);
     };
 
     window.addEventListener('authChanged', handleAuthChange);
