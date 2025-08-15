@@ -12,6 +12,15 @@ const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax',                        // same-site works with api.skillswaphub.in + skillswaphub.in
+  domain: process.env.COOKIE_DOMAIN || undefined, // .skillswaphub.in in prod
+  maxAge: 24 * 60 * 60 * 1000,
+  path: '/'
+};
+
 // Sanitize array fields to remove invalid keys (e.g., _id)
 const sanitizeArrayFields = (data, validKeys) => {
   return data.map(item => {
@@ -45,30 +54,24 @@ router.get('/test-cookie', (req, res) => {
 
 // Google OAuth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/google/callback', passport.authenticate('google', {
-  failureRedirect: '/auth/failure'
-}), async (req, res) => {
-  try {
-    const user = req.user;
-    if (!user || !user.email) {
-      console.error('Missing Google user or email');
+router.get('/google/callback',
+  passport.authenticate('google', { failureRedirect: '/auth/failure' }),
+  async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) return res.redirect('/auth/failure');
+
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+      res.cookie('token', token, cookieOptions);
+
+      const frontendUrl = process.env.FRONTEND_URL || 'https://skillswaphub.in';
+      return res.redirect(`${frontendUrl}/auth/success?google=true`);
+    } catch (e) {
+      console.error('OAuth error:', e);
       return res.redirect('/auth/failure');
     }
-    const token = generateToken(user);
-  const frontendUrl = 'https://skillswaphub.in';
-// ... existing code ...;
-    res.cookie('token', token, {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-      domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : null
-    });
-    res.redirect(`${frontendUrl}/home`);
-  } catch (error) {
-    console.error('OAuth error:', error);
-    res.redirect('/auth/failure');
   }
-});
+);
 
 // Google OAuth success/failure
 router.get('/success', (req, res) => {

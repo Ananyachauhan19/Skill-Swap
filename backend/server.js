@@ -31,9 +31,17 @@ const io = socketIO(server, {
   },
 });
 
-app.use(cors({ 
-  origin: ['http://localhost:5173', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
-  credentials: true 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://skillswaphub.in',
+  'https://www.skillswaphub.in',
+];
+
+app.use(cors({
+  origin: (origin, cb) => cb(null, !origin || allowedOrigins.includes(origin)),
+  credentials: true,
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
 }));
 app.use(express.json());
 app.use(cookieParser());

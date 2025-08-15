@@ -1,9 +1,3 @@
-const getBackendUrl = () => {
-  if (import.meta.env.MODE === 'production') {
-    return import.meta.env.VITE_BACKEND_URL_PROD || 'https://skill-swap-69nw.onrender.com';
-  } else {
-    return import.meta.env.VITE_BACKEND_URL_DEV || 'http://localhost:5000';
-  }
-};
-
-export const BACKEND_URL = getBackendUrl();
+export const BACKEND_URL = import.meta.env.PROD
+  ? (import.meta.env.VITE_BACKEND_URL_PROD || 'https://api.skillswaphub.in')
+  : (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000');

@@ -1,7 +1,8 @@
 // src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from "react";
 import Cookies from "js-cookie";
-import { BACKEND_URL } from "../config.js";
+
+const BACKEND_URL = 'https://skill-swap-69nw.onrender.com';
 
 export const AuthContext = createContext();
 
@@ -14,32 +15,7 @@ export const AuthProvider = ({ children }) => {
       console.info('[DEBUG] AuthContext: Checking for user...');
       
       try {
-        // First try to get user from localStorage
-        const storedUser = localStorage.getItem("user");
-        
-        if (storedUser && storedUser !== 'undefined' && storedUser !== 'null') {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            if (parsedUser && typeof parsedUser === 'object') {
-              setUser({ ...parsedUser, isAdmin: parsedUser.isAdmin || false });
-              setLoading(false);
-              return; // Successfully loaded user from localStorage
-            }
-          } catch (parseError) {
-            console.error('[DEBUG] AuthContext: Error parsing stored user:', parseError);
-            localStorage.removeItem("user");
-          }
-        }
-
-        // If we get here, either there was no stored user or it was invalid
-        const token = Cookies.get('token');
-        if (!token) {
-          console.info("[DEBUG] No token found. User is not logged in.");
-          setLoading(false);
-          return;
-        }
-
-        // Try to fetch fresh user data from backend
+        // Only check backend authentication - no localStorage
         const response = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
           credentials: "include"
         });
@@ -52,14 +28,10 @@ export const AuthProvider = ({ children }) => {
         if (data && data._id) {
           const userData = { ...data, isAdmin: data.isAdmin || false };
           setUser(userData);
-          localStorage.setItem("user", JSON.stringify(userData));
-        } else {
-          console.warn("[DEBUG] No valid user data received from backend.");
         }
       } catch (error) {
         console.error("[DEBUG] Auth initialization failed:", error);
-        localStorage.removeItem("user");
-        Cookies.remove("token");
+        setUser(null);
       } finally {
         setLoading(false);
       }
@@ -68,32 +40,67 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  const updateUser = (newUser) => {
-    if (newUser) {
-      // Validate and store user data
-      try {
-        localStorage.setItem("user", JSON.stringify(newUser));
-        setUser({ ...newUser, isAdmin: newUser.isAdmin || false });
-      } catch (error) {
-        console.error('[DEBUG] AuthContext: Error storing user data:', error);
-        // If storing fails, at least update the state
-        setUser({ ...newUser, isAdmin: newUser.isAdmin || false });
+  const checkAuthStatus = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/user/profile`, {
+        credentials: "include"
+      });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        if (userData && userData._id) {
+          const userWithAdmin = { ...userData, isAdmin: userData.isAdmin || false };
+          setUser(userWithAdmin);
+          return true;
+        }
       }
-    } else {
-      localStorage.removeItem("user");
+      return false;
+    } catch (error) {
+      console.error("[DEBUG] Auth check failed:", error);
+      return false;
+    }
+  };
+
+  const login = (userData) => {
+    if (userData && userData._id) {
+      const userWithAdmin = { ...userData, isAdmin: userData.isAdmin || false };
+      setUser(userWithAdmin);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await fetch(`${BACKEND_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
       setUser(null);
     }
   };
 
-  const logout = () => {
-    // Clear all auth-related data
-    Cookies.remove("token");
-    localStorage.removeItem("user");
-    setUser(null);
+  const updateUser = (newUser) => {
+    if (newUser && newUser._id) {
+      const userData = { ...newUser, isAdmin: newUser.isAdmin || false };
+      setUser(userData);
+    } else {
+      setUser(null);
+    }
+  };
+
+  const value = {
+    user,
+    login,
+    logout,
+    updateUser,
+    loading,
+    checkAuthStatus
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, setUser: updateUser, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

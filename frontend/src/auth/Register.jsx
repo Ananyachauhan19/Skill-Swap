@@ -203,8 +203,13 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
       }, { withCredentials: true });
 
       const { user } = res.data;
-      Cookies.set('user', JSON.stringify(user), { expires: 1 });
-      localStorage.setItem('user', JSON.stringify(user));
+      // Remove localStorage
+      // localStorage.setItem('user', JSON.stringify(user));
+      Cookies.set('user', JSON.stringify(user), {
+        expires: 1,
+        sameSite: 'lax',
+        secure: location.protocol === 'https:'
+      });
       Cookies.set('registeredName', `${registrationData.firstName}${registrationData.lastName ? " " + registrationData.lastName : ""}`, { expires: 1 });
       Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
       Cookies.set('isRegistered', 'true', { expires: 1 });

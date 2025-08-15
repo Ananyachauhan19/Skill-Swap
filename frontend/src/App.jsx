@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { useLocation, useRoutes, Navigate } from 'react-router-dom';
+import { useLocation, useRoutes, Navigate, Routes, Route } from 'react-router-dom';
 import { ModalProvider } from './context/ModalContext';
 import GlobalModals from './GlobalModals';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
@@ -39,6 +39,7 @@ import CompleteProfile from './user/myprofile/CompleteProfile';
 import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
 import AdminPanel from './admin/adminpanel';
+import AuthSuccess from './components/AuthSuccess';
 
 // Define all routes in a single array for useRoutes
 const appRoutes = [
@@ -175,6 +176,9 @@ function App() {
         {user && location.pathname !== '/login' && location.pathname !== '/register' && <CompleteProfile />}
       </div>
       {!isAuthPage && <Footer />}
+      <Routes>
+        <Route path="/auth/success" element={<AuthSuccess />} />
+      </Routes>
     </ModalProvider>
   );
 }
