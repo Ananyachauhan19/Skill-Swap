@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
 
   // Clear all authentication data
   const clearAuthData = () => {
-    // Clear cookies for all paths and domains
+    // Clear all cookies for all paths and domains
     const cookieNames = Object.keys(Cookies.get());
     cookieNames.forEach(cookieName => {
       Cookies.remove(cookieName, { path: '/', domain: window.location.hostname });
@@ -54,8 +54,8 @@ export function AuthProvider({ children }) {
       clearAuthData();
       setUser(null);
       setLoading(true);
-      await fetchUser(); // Revalidate backend session
-      window.dispatchEvent(new Event('authChanged')); // Ensure event loops to all listeners
+      await fetchUser(); // Revalidate to confirm no session
+      window.dispatchEvent(new Event('authChanged')); // Ensure event loops
     };
 
     window.addEventListener('authChanged', handleAuthChange);
@@ -65,18 +65,21 @@ export function AuthProvider({ children }) {
   // Logout function
   const logout = async () => {
     try {
+      // Attempt to invalidate backend session
       await api.post('/api/auth/logout', {}, {
         withCredentials: true,
         headers: { 'Cache-Control': 'no-cache' }
       });
     } catch (error) {
       console.error('Logout API failed:', error);
-    } finally {
-      clearAuthData();
-      setUser(null);
-      setLoading(false);
-      window.dispatchEvent(new Event('authChanged'));
     }
+    // Clear all data regardless of API success
+    clearAuthData();
+    setUser(null);
+    setLoading(true);
+    await fetchUser(); // Revalidate to confirm session is dead
+    setLoading(false);
+    window.dispatchEvent(new Event('authChanged')); // Notify all components
   };
 
   return (
