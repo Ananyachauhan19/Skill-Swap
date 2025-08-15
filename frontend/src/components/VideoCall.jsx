@@ -25,16 +25,15 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   const [reactions, setReactions] = useState([]);
   const [audioDevices, setAudioDevices] = useState([]);
   const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
-  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(true); // Changed to true for auto full screen
   const [callStartTime, setCallStartTime] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [silverCoins, setSilverCoins] = useState(null);
   const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid', 'remote-full', 'local-full'
+  const [viewMode, setViewMode] = useState('grid');
   const [showReactionsMenu, setShowReactionsMenu] = useState(false);
-  const [isCameraSwitched, setIsCameraSwitched] = useState(false);
-  const [virtualBackground, setVirtualBackground] = useState('none'); // 'none', 'blur', 'image1', etc.
-  const [isAnnotationsEnabled, setIsAnnotationsEnabled] = useState(false); // For drawing on screen share
+  const [virtualBackground, setVirtualBackground] = useState('none');
+  const [isAnnotationsEnabled, setIsAnnotationsEnabled] = useState(false);
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -63,11 +62,22 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   }, []);
 
   useEffect(() => {
+    // Auto-enter full screen when call starts
+    if (videoContainerRef.current && !document.fullscreenElement) {
+      if (videoContainerRef.current.requestFullscreen) {
+        videoContainerRef.current.requestFullscreen().catch(err => console.error('[DEBUG] Fullscreen request failed:', err));
+      } else if (videoContainerRef.current.webkitRequestFullscreen) {
+        videoContainerRef.current.webkitRequestFullscreen();
+      }
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
     console.info('[DEBUG] VideoCall: Setting up socket listeners for session:', sessionId);
     const initializeCall = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: isCameraSwitched ? 'environment' : 'user' },
+          video: { facingMode: 'user' }, // Removed camera switch option
           audio: true,
         });
         setLocalStream(stream);
@@ -119,7 +129,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       socket.off('hold-status');
       socket.off('coin-update');
     };
-  }, [sessionId, userRole, username, isCameraSwitched]);
+  }, [sessionId, userRole, username]);
 
   useEffect(() => {
     if (isConnected && localStream && remoteStream && !callStartTime) {
@@ -163,7 +173,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       canvas.width = screenVideoRef.current.offsetWidth;
       canvas.height = screenVideoRef.current.offsetHeight;
       const context = canvas.getContext('2d');
-      context.strokeStyle = drawingTool === 'eraser' ? 'rgba(255,255,255,0)' : drawingColor; // For annotations, eraser clears
+      context.strokeStyle = drawingTool === 'eraser' ? 'rgba(255,255,255,0)' : drawingColor;
       context.lineWidth = brushSize;
       context.lineCap = 'round';
       context.lineJoin = 'round';
@@ -187,7 +197,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       localVideoRef.current.style.filter = 'blur(5px)';
     } else {
       localVideoRef.current.style.filter = 'none';
-      // For other backgrounds, would need more complex implementation like body-pix, but skipping for now
     }
   }, [virtualBackground]);
 
@@ -481,30 +490,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     }
   };
 
-  const switchCamera = async () => {
-    setIsCameraSwitched(!isCameraSwitched);
-    // Re-initialize stream with new facing mode
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-    const newStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: isCameraSwitched ? 'user' : 'environment' },
-      audio: true,
-    });
-    setLocalStream(newStream);
-    localStreamRef.current = newStream;
-    if (localVideoRef.current) {
-      localVideoRef.current.srcObject = newStream;
-    }
-    if (peerConnectionRef.current) {
-      const videoTrack = newStream.getVideoTracks()[0];
-      const sender = peerConnectionRef.current.getSenders().find(s => s.track?.kind === 'video');
-      if (sender) {
-        sender.replaceTrack(videoTrack);
-      }
-    }
-  };
-
   const toggleScreenShare = async () => {
     try {
       if (!isScreenSharing) {
@@ -588,8 +573,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
   const toggleBackground = (type) => {
     setVirtualBackground(type);
-    // For blur, already handled in useEffect
-    // For images, would need canvas processing, but simulating with filter for now
   };
 
   const toggleFullScreen = () => {
@@ -627,8 +610,8 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   return (
     <div className="fixed inset-0 bg-gray-900 flex flex-col h-screen w-screen overflow-hidden font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-center p-4 bg-gray-800 text-white shadow-md">
-        <div className="text-lg font-semibold mb-2 sm:mb-0">
+      <div className="flex flex-col sm:flex-row justify-between items-center p-2 sm:p-4 bg-gray-800 text-white shadow-md">
+        <div className="text-sm sm:text-lg font-semibold mb-2 sm:mb-0">
           {callStartTime ? (
             <span>
               Call Time: {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:
@@ -638,16 +621,16 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
             <span>Waiting for connection...</span>
           )}
           {silverCoins !== null && (
-            <span className="ml-4">Coins: {silverCoins.toFixed(2)}</span>
+            <span className="ml-2 sm:ml-4">Coins: {silverCoins.toFixed(2)}</span>
           )}
         </div>
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg">{username} ({userRole})</h2>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <h2 className="text-sm sm:text-lg">{username} ({userRole})</h2>
           <button
             onClick={handleEndCall}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+            className="px-3 sm:px-4 py-1 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 text-xs sm:text-base"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
             End Call
@@ -658,10 +641,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden" ref={videoContainerRef}>
         {/* Video and Controls Section */}
-        <div className="flex-1 p-2 sm:p-6 flex flex-col gap-4 sm:gap-6 overflow-y-auto">
+        <div className="flex-1 p-2 sm:p-4 flex flex-col gap-2 sm:gap-4 overflow-y-auto">
           {/* Video Grid */}
-          <div className={`grid gap-4 sm:gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-            <div className={`relative rounded-xl overflow-hidden shadow-lg ${viewMode === 'local-full' ? 'h-[80vh]' : viewMode === 'remote-full' ? 'hidden' : 'h-48 sm:h-96'}`}>
+          <div className={`grid gap-2 sm:gap-4 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            <div className={`relative rounded-lg overflow-hidden shadow-lg ${viewMode === 'local-full' ? 'h-[80vh] sm:h-[85vh]' : viewMode === 'remote-full' ? 'hidden' : 'h-40 sm:h-80'}`}>
               <video
                 ref={localVideoRef}
                 autoPlay
@@ -669,65 +652,65 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                 playsInline
                 className="w-full h-full bg-gray-800 object-cover"
               />
-              <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded-md text-xs sm:text-sm">
+              <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black bg-opacity-60 text-white px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm">
                 You ({username})
               </div>
               <button
                 onClick={makeLocalFullScreen}
-                className="absolute top-2 right-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
+                className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
                 title="Full Screen Self"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                 </svg>
               </button>
               {viewMode !== 'grid' && (
                 <button
                   onClick={resetViewMode}
-                  className="absolute top-2 left-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
+                  className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
                   title="Exit Full Screen"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               )}
             </div>
-            <div className={`relative rounded-xl overflow-hidden shadow-lg ${viewMode === 'remote-full' ? 'h-[80vh]' : viewMode === 'local-full' ? 'hidden' : 'h-48 sm:h-96'}`}>
+            <div className={`relative rounded-lg overflow-hidden shadow-lg ${viewMode === 'remote-full' ? 'h-[80vh] sm:h-[85vh]' : viewMode === 'local-full' ? 'hidden' : 'h-40 sm:h-80'}`}>
               <video
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
                 className="w-full h-full bg-gray-800 object-cover"
               />
-              <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded-md text-xs sm:text-sm">
+              <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black bg-opacity-60 text-white px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm">
                 Partner
               </div>
               <button
                 onClick={makeRemoteFullScreen}
-                className="absolute top-2 right-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
+                className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
                 title="Full Screen Partner"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                 </svg>
               </button>
               {viewMode !== 'grid' && (
                 <button
                   onClick={resetViewMode}
-                  className="absolute top-2 left-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
+                  className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
                   title="Exit Full Screen"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               )}
               {!remoteStream && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-xl">
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg">
                   <div className="text-white text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 sm:h-10 sm:w-10 border-t-2 border-white mx-auto mb-2 sm:mb-3"></div>
-                    <p className="text-sm sm:text-base">Waiting for partner...</p>
+                    <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-t-2 border-white mx-auto mb-2"></div>
+                    <p className="text-xs sm:text-sm">Waiting for partner...</p>
                   </div>
                 </div>
               )}
@@ -736,15 +719,15 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
           {/* Screen Share */}
           {isScreenSharing && (
-            <div className="mt-4 sm:mt-6">
-              <h3 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">Screen Share</h3>
-              <div className="relative rounded-xl overflow-hidden shadow-lg">
+            <div className="mt-2 sm:mt-4">
+              <h3 className="text-sm sm:text-base font-semibold text-white mb-1 sm:mb-2">Screen Share</h3>
+              <div className="relative rounded-lg overflow-hidden shadow-lg">
                 <video
                   ref={screenVideoRef}
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-48 sm:h-96 bg-gray-800 object-cover"
+                  className="w-full h-40 sm:h-80 bg-gray-800 object-cover"
                 />
                 {isAnnotationsEnabled && (
                   <canvas
@@ -765,14 +748,14 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={toggleAnnotations}
-                    className={`px-3 py-1 text-sm rounded-md ${isAnnotationsEnabled ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white'}`}
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md ${isAnnotationsEnabled ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white'}`}
                   >
                     {isAnnotationsEnabled ? 'Disable Annotations' : 'Enable Annotations'}
                   </button>
                   {isAnnotationsEnabled && (
                     <button
                       onClick={() => clearWhiteboard(true)}
-                      className="px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600"
+                      className="px-2 sm:px-3 py-1 bg-red-500 text-white rounded-md text-xs sm:text-sm hover:bg-red-600"
                     >
                       Clear Annotations
                     </button>
@@ -784,21 +767,21 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
           {/* Whiteboard */}
           {showWhiteboard && (
-            <div className="mt-4 sm:mt-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 sm:mb-3 gap-2">
-                <h3 className="text-base sm:text-lg font-semibold text-white">Whiteboard</h3>
+            <div className="mt-2 sm:mt-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-1 sm:mb-2 gap-2">
+                <h3 className="text-sm sm:text-base font-semibold text-white">Whiteboard</h3>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                   <input
                     type="color"
                     value={drawingColor}
                     onChange={(e) => setDrawingColor(e.target.value)}
-                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-md border cursor-pointer"
+                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-md border cursor-pointer"
                     title="Choose color"
                   />
                   <select
                     value={brushSize}
                     onChange={(e) => setBrushSize(Number(e.target.value))}
-                    className="px-2 py-1 bg-gray-700 text-white rounded-md text-xs sm:text-sm focus:outline-none"
+                    className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 text-white rounded-md text-xs sm:text-sm focus:outline-none"
                   >
                     <option value={1}>1px</option>
                     <option value={3}>3px</option>
@@ -809,7 +792,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                   <select
                     value={drawingTool}
                     onChange={(e) => setDrawingTool(e.target.value)}
-                    className="px-2 py-1 bg-gray-700 text-white rounded-md text-xs sm:text-sm focus:outline-none"
+                    className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 text-white rounded-md text-xs sm:text-sm focus:outline-none"
                   >
                     <option value="pen">Pen</option>
                     <option value="highlighter">Highlighter</option>
@@ -817,13 +800,13 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                   </select>
                   <button
                     onClick={() => clearWhiteboard()}
-                    className="px-3 py-1 bg-red-500 text-white rounded-md text-xs sm:text-sm hover:bg-red-600 transition-colors"
+                    className="px-2 sm:px-3 py-0.5 sm:py-1 bg-red-500 text-white rounded-md text-xs sm:text-sm hover:bg-red-600 transition-colors"
                   >
                     Clear
                   </button>
                 </div>
               </div>
-              <div className="border-2 border-gray-300 rounded-xl overflow-hidden shadow-lg">
+              <div className="border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg">
                 <canvas
                   ref={canvasRef}
                   onMouseDown={startDrawing}
@@ -833,7 +816,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                   onTouchStart={startDrawing}
                   onTouchMove={draw}
                   onTouchEnd={stopDrawing}
-                  className="w-full h-[300px] sm:h-[500px] bg-white cursor-crosshair"
+                  className="w-full h-[200px] sm:h-[400px] bg-white cursor-crosshair"
                   style={{ touchAction: 'none' }}
                 />
               </div>
@@ -843,9 +826,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
         {/* Chat Section */}
         {showChat && (
-          <div className="w-full sm:w-80 md:w-96 bg-gray-800 p-4 sm:p-6 flex flex-col shadow-lg">
-            <div className="flex justify-between items-center mb-2 sm:mb-3">
-              <h3 className="text-base sm:text-lg font-semibold text-white">Chat</h3>
+          <div className="w-full sm:w-72 md:w-80 bg-gray-800 p-2 sm:p-4 flex flex-col shadow-lg">
+            <div className="flex justify-between items-center mb-1 sm:mb-2">
+              <h3 className="text-sm sm:text-base font-semibold text-white">Chat</h3>
               <button
                 onClick={() => setShowChat(false)}
                 className="p-1 sm:p-2 text-gray-400 hover:text-white"
@@ -858,7 +841,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
             </div>
             <div
               ref={chatContainerRef}
-              className="flex-1 bg-gray-700 rounded-lg p-2 sm:p-3 overflow-y-auto text-white text-sm sm:text-base"
+              className="flex-1 bg-gray-700 rounded-lg p-2 sm:p-3 overflow-y-auto text-white text-xs sm:text-sm"
             >
               {messages.map((msg, index) => (
                 <div
@@ -881,11 +864,11 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1 px-2 sm:px-3 py-1 sm:py-2 bg-gray-600 text-white rounded-l-lg focus:outline-none text-sm sm:text-base"
+                className="flex-1 px-2 sm:px-3 py-1 sm:py-2 bg-gray-600 text-white rounded-l-lg focus:outline-none text-xs sm:text-sm"
               />
               <button
                 onClick={sendMessage}
-                className="px-3 sm:px-4 py-1 sm:py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+                className="px-2 sm:px-4 py-1 sm:py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm"
               >
                 Send
               </button>
@@ -895,11 +878,11 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       </div>
 
       {/* Reactions */}
-      <div className="absolute top-1/4 right-2 sm:right-10 flex flex-col gap-2">
+      <div className="absolute top-1/4 right-2 sm:right-4 flex flex-col gap-2">
         {reactions.map((reaction, index) => (
           <div
             key={index}
-            className="bg-gray-800 text-white px-2 py-1 rounded-full animate-bounce text-sm sm:text-base"
+            className="bg-gray-800 text-white px-2 py-1 rounded-full animate-bounce text-xs sm:text-sm"
           >
             {reaction.type} {reaction.username}
           </div>
@@ -907,15 +890,15 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       </div>
 
       {/* Controls Footer */}
-      <div className="flex flex-wrap justify-center gap-2 sm:gap-4 p-2 sm:p-4 bg-gray-800 shadow-md overflow-x-auto">
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-800 shadow-md overflow-x-auto">
         <button
           onClick={toggleMute}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-base ${
+          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
             isMuted ? 'bg-red-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
           }`}
           title={isMuted ? 'Unmute' : 'Mute'}
         >
-          <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             {isMuted ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM16 12h2M6 18L18 6" />
             ) : (
@@ -925,12 +908,12 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
         </button>
         <button
           onClick={toggleVideo}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-base ${
+          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
             isVideoOff ? 'bg-red-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
           }`}
           title={isVideoOff ? 'Turn On Video' : 'Turn Off Video'}
         >
-          <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             {isVideoOff ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2zm0 0l6-6m-6 6l6-6" />
             ) : (
@@ -938,24 +921,15 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
             )}
           </svg>
         </button>
-        <button
-          onClick={switchCamera}
-          className="p-2 sm:p-3 rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-colors text-xs sm:text-base"
-          title="Switch Camera"
-        >
-          <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-        </button>
         <div className="relative">
           <button
             onClick={toggleSpeaker}
-            className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-base ${
+            className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
               isSpeakerOn ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-red-600 text-white'
             }`}
             title={isSpeakerOn ? 'Mute Speaker' : 'Unmute Speaker'}
           >
-            <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               {isSpeakerOn ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
               ) : (
@@ -967,7 +941,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
             <select
               value={selectedAudioDevice}
               onChange={(e) => changeAudioDevice(e.target.value)}
-              className="absolute left-0 top-10 sm:top-12 bg-gray-700 text-white rounded-md p-1 sm:p-2 text-xs sm:text-sm z-50"
+              className="absolute left-0 top-8 sm:top-10 bg-gray-700 text-white rounded-md p-1 sm:p-2 text-xs sm:text-sm z-50"
             >
               {audioDevices.map((device) => (
                 <option key={device.deviceId} value={device.deviceId}>
@@ -977,95 +951,118 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
             </select>
           )}
         </div>
-        <button
-          onClick={toggleScreenShare}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-base ${
-            isScreenSharing ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
-          }`}
-          title={isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
-        >
-          <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        </button>
+       <button
+  onClick={toggleScreenShare}
+  className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
+    isScreenSharing ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
+  }`}
+  title={isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
+>
+  <svg
+    className="w-4 h-4 sm:w-5 sm:h-5"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Monitor outline */}
+    <rect
+      x="3"
+      y="5"
+      width="18"
+      height="12"
+      rx="2"
+      ry="2"
+      strokeWidth="2"
+    />
+    {/* Upward arrow from center */}
+    <path
+      d="M12 17V9m0 0l-3 3m3-3l3 3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+    />
+  </svg>
+</button>
+
         <button
           onClick={toggleRecording}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-base ${
+          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
             isRecording ? 'bg-red-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
           }`}
           title={isRecording ? 'Stop Recording' : 'Start Recording'}
         >
-          <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
           </svg>
         </button>
         <button
           onClick={() => setShowWhiteboard(!showWhiteboard)}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-base ${
+          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
             showWhiteboard ? 'bg-green-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
           }`}
           title={showWhiteboard ? 'Hide Whiteboard' : 'Show Whiteboard'}
         >
-          <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
         </button>
         <button
           onClick={() => setShowChat(!showChat)}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-base ${
+          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
             showChat ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
           }`}
           title={showChat ? 'Hide Chat' : 'Show Chat'}
         >
-          <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
         </button>
-  <div className="relative">
-  <button
-    onClick={() => setShowReactionsMenu(!showReactionsMenu)}
-    className="p-2 sm:p-3 rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-colors text-xs sm:text-base"
-    title="Send Reaction"
-  >
-    <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-  </button>
-  {showReactionsMenu && (
-    <div className="fixed top-2 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white rounded-md p-2 sm:p-3 flex flex-row gap-2 z-[1000] shadow-lg">
-      {['😊', '👍', '👏', '❤️', '😂', '😮', '😢', '😡'].map((emoji) => (
-        <button
-          key={emoji}
-          onClick={() => sendReaction(emoji)}
-          className="p-1 sm:p-2 hover:bg-gray-600 rounded text-base sm:text-lg transition-colors"
-        >
-          {emoji}
-        </button>
-      ))}
-    </div>
-  )}
-</div>
+        <div className="relative">
+          <button
+            onClick={() => setShowReactionsMenu(!showReactionsMenu)}
+            className="p-2 sm:p-3 rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-colors text-xs sm:text-sm"
+            title="Send Reaction"
+          >
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </button>
+          {showReactionsMenu && (
+            <div className="fixed top-2 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white rounded-md p-2 sm:p-3 flex flex-row gap-2 z-[1000] shadow-lg">
+              {['😊', '👍', '👏', '❤️', '😂', '😮', '😢', '😡'].map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => sendReaction(emoji)}
+                  className="p-1 sm:p-2 hover:bg-gray-600 rounded text-sm sm:text-base transition-colors"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="relative">
           <button
             onClick={() => toggleBackground(virtualBackground === 'blur' ? 'none' : 'blur')}
-            className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-base ${
+            className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
               virtualBackground !== 'none' ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
             }`}
             title={virtualBackground !== 'none' ? 'Remove Background' : 'Apply Background Blur'}
           >
-            <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </button>
         </div>
         <button
           onClick={toggleFullScreen}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-base ${
+          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
             isFullScreen ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
           }`}
           title={isFullScreen ? 'Exit Full Screen' : 'Enter Full Screen'}
         >
-          <svg className="w-4 h-4 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             {isFullScreen ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
             ) : (
@@ -1076,7 +1073,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       </div>
 
       {/* Session Info */}
-      <div className="p-2 sm:p-4 text-center text-gray-400 text-xs sm:text-sm">
+      <div className="p-2 sm:p-3 text-center text-gray-400 text-xs sm:text-sm">
         <p>Your Role: {userRole}</p>
         <p>Status: {isConnected ? 'Connected' : 'Connecting...'}</p>
         {remoteStream && <p className="text-green-400">Partner Connected!</p>}
