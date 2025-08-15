@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaExclamationCircle, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import { useModal } from '../context/ModalContext';
-import Cookies from 'js-cookie';
+import { useAuth } from '../context/AuthContext';
 import { BACKEND_URL } from '../config.js';
 
 const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const navigate = useNavigate();
   const { openRegister } = useModal();
+  const { login } = useAuth();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -126,11 +127,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       }, { withCredentials: true });
 
       const { user } = res.data;
-      Cookies.set('user', JSON.stringify(user), { expires: 1 });
-      localStorage.setItem('user', JSON.stringify(user));
-      Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
-      Cookies.set('isRegistered', 'true', { expires: 1 });
-      window.dispatchEvent(new Event("authChanged"));
+      login(user); // This will set the user in context
       if (onLoginSuccess) onLoginSuccess(user);
       if (isModal && onClose) onClose();
       else navigate("/home");
