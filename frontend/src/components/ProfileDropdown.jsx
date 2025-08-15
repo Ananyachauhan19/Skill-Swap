@@ -21,6 +21,40 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
 
   if (!show) return null;
 
+  const handleLogout = async () => {
+    try {
+      // Clear all cookies
+      Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName));
+      
+      // Clear localStorage and sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Make logout API call
+      await fetch(`${BACKEND_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      // Clear user context
+      setUser(null);
+
+      // Dispatch auth change event
+      window.dispatchEvent(new Event('authChanged'));
+
+      // Close dropdown and redirect to /home
+      onClose();
+      navigate('/home', { replace: true });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Still clear client-side data and redirect on error
+      setUser(null);
+      window.dispatchEvent(new Event('authChanged'));
+      onClose();
+      navigate('/home', { replace: true });
+    }
+  };
+
   return (
     <div
       ref={menuRef}
@@ -74,15 +108,7 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
           </button>
           <button
             className="text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded"
-            onClick={async () => {
-              Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName));
-              localStorage.removeItem('token');
-              await fetch(`${BACKEND_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
-              setUser(null);
-              window.dispatchEvent(new Event('authChanged'));
-              onClose();
-              navigate('/login');
-            }}
+            onClick={handleLogout}
           >
             Logout
           </button>
