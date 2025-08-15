@@ -1,16 +1,15 @@
 const express = require('express');
+const router = express.Router();
 const passport = require('passport');
+const { generateToken } = require('../utils/jwt'); // adjust path if different
 const {
   register,
   login,
   verifyOtp,
   logout
 } = require('../controllers/authController');
-const generateToken = require('../utils/generateToken');
 const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
-
-const router = express.Router();
 
 // Sanitize array fields to remove invalid keys (e.g., _id)
 const sanitizeArrayFields = (data, validKeys) => {
@@ -43,40 +42,49 @@ router.get('/test-cookie', (req, res) => {
   res.json({ message: 'Test cookie set', cookies: req.cookies });
 });
 
-// Google OAuth
+// Google OAuth entry
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-router.get('/google/callback', passport.authenticate('google', {
-  failureRedirect: '/auth/failure'
-}), async (req, res) => {
-  try {
-    const user = req.user;
-    if (!user || !user.email) {
-      console.error('Missing Google user or email');
-      return res.redirect('/auth/failure');
+
+// Google OAuth callback
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { failureRedirect: '/api/auth/failure' }),
+  async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user || !user.email) return res.redirect('/api/auth/failure');
+
+      const token = generateToken(user);
+
+      // Prefer explicit env; otherwise infer from Origin/Referer; final fallback to localhost
+      const origin = req.get('origin') || req.get('referer') || '';
+      const frontendEnv =
+        process.env.FRONTEND_URL ||
+        (process.env.NODE_ENV === 'production' ? 'https://skillswaphub.in' : 'http://localhost:5173');
+
+      const frontendUrl =
+        origin && /^https?:\/\//i.test(origin) ? origin.replace(/\/+$/, '') : frontendEnv;
+
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : undefined,
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000
+      });
+
+      return res.redirect(`${frontendUrl}/home`);
+    } catch (e) {
+      console.error('Google OAuth error:', e);
+      return res.redirect('/api/auth/failure');
     }
-    const token = generateToken(user);
-  const frontendUrl = 'https://skillswaphub.in';
-// ... existing code ...;
-    res.cookie('token', token, {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
-      domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : null
-    });
-    res.redirect(`${frontendUrl}/home`);
-  } catch (error) {
-    console.error('OAuth error:', error);
-    res.redirect('/auth/failure');
   }
-});
+);
 
-// Google OAuth success/failure
-router.get('/success', (req, res) => {
-  res.send('Google login successful!');
-});
-
-router.get('/failure', (req, res) => {
-  res.send('Google login failed.');
+// Failure route
+router.get('/failure', (_req, res) => {
+  res.status(400).json({ message: 'Google sign-in failed' });
 });
 
 // LinkedIn OAuth
