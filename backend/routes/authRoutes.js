@@ -718,4 +718,9 @@ router.post('/live/:id/archive', requireAuth, async (req, res) => {
   }
 });
 
+// Return the logged-in user using the cookie JWT
+router.get('/me', requireAuth, (req, res) => {
+  res.json({ user: req.user });
+});
+
 module.exports = router;
