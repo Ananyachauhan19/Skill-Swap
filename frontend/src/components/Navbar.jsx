@@ -574,7 +574,8 @@ const Navbar = () => {
                 <Notifications
                   notifications={notifications}
                   setNotifications={setNotifications}
-                  iconSize="w-5 h-5 sm:w-6 sm:h-6"
+                  iconSize="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5"
+                  className="relative flex items-center justify-center"
                 />
 
                 {/* Profile */}
@@ -610,9 +611,9 @@ const Navbar = () => {
               </button>
             )}
 
-            {/* Hamburger */}
+            {/* Hamburger (only visible on mobile) */}
             <button
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation"
+              className="md:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation"
               onClick={handleMobileMenu}
               aria-label="Toggle mobile menu"
             >
@@ -629,7 +630,8 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {menuOpen && (
+      {/* Mobile Menu (only rendered on mobile) */}
+      {menuOpen && window.innerWidth < 768 && (
         <MobileMenu
           isOpen={menuOpen}
           isLoggedIn={isLoggedIn}
