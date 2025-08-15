@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-const { generateToken } = require('../utils/generateToken'); // adjust path if different
+// FIX: import generateToken as default (not named)
+const generateToken = require('../utils/generateToken');
 const {
   register,
   login,
@@ -42,8 +43,15 @@ router.get('/test-cookie', (req, res) => {
   res.json({ message: 'Test cookie set', cookies: req.cookies });
 });
 
-// Google OAuth entry
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+// Google OAuth entry (force exact callback URL)
+router.get(
+  '/google',
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    callbackURL: process.env.GOOGLE_CALLBACK,
+    prompt: 'select_account'
+  })
+);
 
 // Google OAuth callback
 router.get(
@@ -56,7 +64,6 @@ router.get(
 
       const token = generateToken(user);
 
-      // Prefer explicit env; otherwise infer from Origin/Referer; final fallback to localhost
       const origin = req.get('origin') || req.get('referer') || '';
       const frontendEnv =
         process.env.FRONTEND_URL ||
@@ -76,13 +83,12 @@ router.get(
 
       return res.redirect(`${frontendUrl}/home`);
     } catch (e) {
-      console.error('Google OAuth error:', e);
       return res.redirect('/api/auth/failure');
     }
   }
 );
 
-// Failure route
+// Failure route — returns only the message
 router.get('/failure', (_req, res) => {
   res.status(400).json({ message: 'Google sign-in failed' });
 });
