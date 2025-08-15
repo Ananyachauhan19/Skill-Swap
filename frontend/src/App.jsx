@@ -48,103 +48,103 @@ const appRoutes = [
   { path: '/register', element: <Register /> }, // Public route
   { 
     path: '/one-on-one', 
-    element: <ProtectedRoute><OneOnOne /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><OneOnOne /></ProtectedRoute> 
   },
   { 
     path: '/discuss', 
-    element: <ProtectedRoute><Discuss /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><Discuss /></ProtectedRoute> 
   },
   { 
     path: '/interview', 
-    element: <ProtectedRoute><Interview /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><Interview /></ProtectedRoute> 
   },
   { 
     path: '/session', 
-    element: <ProtectedRoute><Sessions /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><Sessions /></ProtectedRoute> 
   },
   { 
     path: '/session-requests', 
-    element: <ProtectedRoute><SessionRequests /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><SessionRequests /></ProtectedRoute> 
   },
   { 
     path: '/testimonials', 
-    element: <ProtectedRoute><Testimonial showAll={true} /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><Testimonial showAll={true} /></ProtectedRoute> 
   },
   { 
     path: '/your-profile', 
-    element: <ProtectedRoute><Profile /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><Profile /></ProtectedRoute> 
   },
   { 
     path: '/createSession', 
-    element: <ProtectedRoute><CreateSession /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><CreateSession /></ProtectedRoute> 
   },
   { 
     path: '/package', 
-    element: <ProtectedRoute><Package /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><Package /></ProtectedRoute> 
   },
   { 
     path: '/learning-history', 
-    element: <ProtectedRoute><HistoryPage /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><HistoryPage /></ProtectedRoute> 
   },
   { 
     path: '/help', 
-    element: <ProtectedRoute><HelpSupportPage /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><HelpSupportPage /></ProtectedRoute> 
   },
   { 
     path: '/pro', 
-    element: <ProtectedRoute><GoPro /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><GoPro /></ProtectedRoute> 
   },
   { 
     path: '/accountSettings', 
-    element: <ProtectedRoute><AccountSettings /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><AccountSettings /></ProtectedRoute> 
   },
   { 
     path: '/StartSkillSwap', 
-    element: <ProtectedRoute><StartSkillSwap /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><StartSkillSwap /></ProtectedRoute> 
   },
   { 
     path: '/report', 
-    element: <ProtectedRoute><ReportPage /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><ReportPage /></ProtectedRoute> 
   },
   { 
     path: '/teaching-history', 
-    element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><TeachingHistory /></ProtectedRoute> 
   },
   { 
     path: '/blog', 
-    element: <ProtectedRoute><Blog /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><Blog /></ProtectedRoute> 
   },
   { 
     path: '/search', 
-    element: <ProtectedRoute><SearchPage /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login"><SearchPage /></ProtectedRoute> 
   },
   { 
     path: '/admin', 
-    element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> 
+    element: <ProtectedRoute redirectTo="/login" adminOnly><AdminPanel /></ProtectedRoute> 
   },
   ...accountSettingsRoutes.map(route => ({
     ...route,
-    element: <ProtectedRoute>{route.element}</ProtectedRoute>
+    element: <ProtectedRoute redirectTo="/login">{route.element}</ProtectedRoute>
   })),
   {
     path: '/profile',
-    element: <ProtectedRoute><PrivateProfile /></ProtectedRoute>,
+    element: <ProtectedRoute redirectTo="/login"><PrivateProfile /></ProtectedRoute>,
     children: privateProfileRoutes.map(route => ({
       ...route,
-      element: <ProtectedRoute>{route.element}</ProtectedRoute>
+      element: <ProtectedRoute redirectTo="/login">{route.element}</ProtectedRoute>
     })),
   },
   {
     path: '/public-profile',
-    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>, // Now protected
+    element: <ProtectedRoute redirectTo="/login"><PublicProfile /></ProtectedRoute>,
     children: publicProfileRoutes.map(route => ({
       ...route,
-      element: <ProtectedRoute>{route.element}</ProtectedRoute>
+      element: <ProtectedRoute redirectTo="/login">{route.element}</ProtectedRoute>
     })),
   },
   {
     path: '/profile/:username',
-    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>, // Now protected
+    element: <ProtectedRoute redirectTo="/login"><PublicProfile /></ProtectedRoute>,
   },
 ];
 
@@ -169,6 +169,7 @@ function App() {
   const { user } = useAuth();
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isHomePage = location.pathname === '/home';
   const element = useRoutes(appRoutes);
 
   // Register socket whenever user changes
@@ -182,16 +183,23 @@ function App() {
     }
   }, [user]);
 
+  // Redirect to login for unauthenticated users trying to access protected routes from home
+  React.useEffect(() => {
+    if (!user && !isAuthPage && !isHomePage) {
+      navigate('/login', { state: { from: location.pathname } });
+    }
+  }, [user, location.pathname]);
+
   return (
     <ModalProvider>
       <ModalBodyScrollLock />
       <GlobalModals />
-      {!isAuthPage && <Navbar />}
-      <div className={location.pathname === '/home' ? '' : 'pt-8'}>
+      <Navbar /> {/* Show Navbar on all pages, but links are protected by ProtectedRoute */}
+      <div className={isHomePage ? '' : 'pt-8'}>
         {element}
         {user && <CompleteProfile />} {/* Only render for authenticated users */}
       </div>
-      {!isAuthPage && <Footer />}
+      <Footer /> {/* Show Footer on all pages */}
     </ModalProvider>
   );
 }
