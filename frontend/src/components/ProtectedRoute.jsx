@@ -6,10 +6,10 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return null; // Or a loading spinner
+    return <div>Loading...</div>; // Replace with a proper loading spinner if needed
   }
 
-  if (!user) {
+  if (!user || !user._id) { // Additional check for valid user object
     return <Navigate to="/login" replace />;
   }
 

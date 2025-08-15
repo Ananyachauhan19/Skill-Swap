@@ -40,88 +40,30 @@ import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
 import AdminPanel from './admin/adminpanel';
 
-// Define all routes in a single array for useRoutes
 const appRoutes = [
   { path: '/', element: <Navigate to="/home" replace /> },
-  { path: '/home', element: <Home /> }, // Public route
-  { path: '/login', element: <Login /> }, // Public route
-  { path: '/register', element: <Register /> }, // Public route
-  { 
-    path: '/one-on-one', 
-    element: <ProtectedRoute><OneOnOne /></ProtectedRoute> 
-  },
-  { 
-    path: '/discuss', 
-    element: <ProtectedRoute><Discuss /></ProtectedRoute> 
-  },
-  { 
-    path: '/interview', 
-    element: <ProtectedRoute><Interview /></ProtectedRoute> 
-  },
-  { 
-    path: '/session', 
-    element: <ProtectedRoute><Sessions /></ProtectedRoute> 
-  },
-  { 
-    path: '/session-requests', 
-    element: <ProtectedRoute><SessionRequests /></ProtectedRoute> 
-  },
-  { 
-    path: '/testimonials', 
-    element: <ProtectedRoute><Testimonial showAll={true} /></ProtectedRoute> 
-  },
-  { 
-    path: '/your-profile', 
-    element: <ProtectedRoute><Profile /></ProtectedRoute> 
-  },
-  { 
-    path: '/createSession', 
-    element: <ProtectedRoute><CreateSession /></ProtectedRoute> 
-  },
-  { 
-    path: '/package', 
-    element: <ProtectedRoute><Package /></ProtectedRoute> 
-  },
-  { 
-    path: '/learning-history', 
-    element: <ProtectedRoute><HistoryPage /></ProtectedRoute> 
-  },
-  { 
-    path: '/help', 
-    element: <ProtectedRoute><HelpSupportPage /></ProtectedRoute> 
-  },
-  { 
-    path: '/pro', 
-    element: <ProtectedRoute><GoPro /></ProtectedRoute> 
-  },
-  { 
-    path: '/accountSettings', 
-    element: <ProtectedRoute><AccountSettings /></ProtectedRoute> 
-  },
-  { 
-    path: '/StartSkillSwap', 
-    element: <ProtectedRoute><StartSkillSwap /></ProtectedRoute> 
-  },
-  { 
-    path: '/report', 
-    element: <ProtectedRoute><ReportPage /></ProtectedRoute> 
-  },
-  { 
-    path: '/teaching-history', 
-    element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> 
-  },
-  { 
-    path: '/blog', 
-    element: <ProtectedRoute><Blog /></ProtectedRoute> 
-  },
-  { 
-    path: '/search', 
-    element: <ProtectedRoute><SearchPage /></ProtectedRoute> 
-  },
-  { 
-    path: '/admin', 
-    element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> 
-  },
+  { path: '/home', element: <Home /> },
+  { path: '/login', element: <Login /> },
+  { path: '/register', element: <Register /> },
+  { path: '/one-on-one', element: <ProtectedRoute><OneOnOne /></ProtectedRoute> },
+  { path: '/discuss', element: <ProtectedRoute><Discuss /></ProtectedRoute> },
+  { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
+  { path: '/session', element: <ProtectedRoute><Sessions /></ProtectedRoute> },
+  { path: '/session-requests', element: <ProtectedRoute><SessionRequests /></ProtectedRoute> },
+  { path: '/testimonials', element: <ProtectedRoute><Testimonial showAll={true} /></ProtectedRoute> },
+  { path: '/your-profile', element: <ProtectedRoute><Profile /></ProtectedRoute> },
+  { path: '/createSession', element: <ProtectedRoute><CreateSession /></ProtectedRoute> },
+  { path: '/package', element: <ProtectedRoute><Package /></ProtectedRoute> },
+  { path: '/learning-history', element: <ProtectedRoute><HistoryPage /></ProtectedRoute> },
+  { path: '/help', element: <ProtectedRoute><HelpSupportPage /></ProtectedRoute> },
+  { path: '/pro', element: <ProtectedRoute><GoPro /></ProtectedRoute> },
+  { path: '/accountSettings', element: <ProtectedRoute><AccountSettings /></ProtectedRoute> },
+  { path: '/StartSkillSwap', element: <ProtectedRoute><StartSkillSwap /></ProtectedRoute> },
+  { path: '/report', element: <ProtectedRoute><ReportPage /></ProtectedRoute> },
+  { path: '/teaching-history', element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> },
+  { path: '/blog', element: <ProtectedRoute><Blog /></ProtectedRoute> },
+  { path: '/search', element: <ProtectedRoute><SearchPage /></ProtectedRoute> },
+  { path: '/admin', element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> },
   ...accountSettingsRoutes.map(route => ({
     ...route,
     element: <ProtectedRoute>{route.element}</ProtectedRoute>
@@ -155,7 +97,7 @@ function App() {
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const element = useRoutes(appRoutes);
 
-  // Register socket and handle cleanup
+  // Register socket
   useEffect(() => {
     const userCookie = Cookies.get('user');
     let parsedUser = null;
@@ -174,22 +116,18 @@ function App() {
       console.info('[DEBUG] App: No valid user found for socket registration');
     }
 
-    // Cleanup socket on unmount
     return () => {
       socket.off('register');
     };
   }, [user]);
 
-  // Handle authChanged event for logout
+  // Handle authChanged event
   useEffect(() => {
     const handleAuthChange = () => {
-      // Clear all client-side data
       Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName, { path: '/', domain: window.location.hostname }));
       localStorage.clear();
       sessionStorage.clear();
-      // Disconnect socket
       socket.disconnect();
-      // Redirect to /home
       navigate('/home', { replace: true });
     };
 
@@ -197,14 +135,13 @@ function App() {
     return () => window.removeEventListener('authChanged', handleAuthChange);
   }, [navigate]);
 
-  // Redirect to /login for protected routes when not authenticated
+  // Redirect to /login for protected routes
   useEffect(() => {
     if (!loading && !user && !isAuthPage && location.pathname !== '/home') {
       navigate('/login', { replace: true });
     }
   }, [user, loading, location.pathname, navigate, isAuthPage]);
 
-  // Prevent rendering until loading is complete
   if (loading) {
     return <div>Loading...</div>;
   }
