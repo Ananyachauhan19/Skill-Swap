@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-const { generateToken } = require('../utils/jwt'); // adjust path if different
+const { generateToken } = require('../utils/generateToken'); // adjust path if different
 const {
   register,
   login,
