@@ -12,15 +12,6 @@ const requireAuth = require('../middleware/requireAuth');
 
 const router = express.Router();
 
-// Add this helper function at the top
-const getCookieOptions = () => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-  maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  path: '/'
-});
-
 // Sanitize array fields to remove invalid keys (e.g., _id)
 const sanitizeArrayFields = (data, validKeys) => {
   return data.map(item => {
@@ -65,7 +56,13 @@ router.get('/google/callback', passport.authenticate('google', {
     }
     const token = generateToken(user);
   const frontendUrl = 'https://skillswaphub.in';
-    res.cookie('token', token, getCookieOptions());
+// ... existing code ...;
+    res.cookie('token', token, {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : null
+    });
     res.redirect(`${frontendUrl}/home`);
   } catch (error) {
     console.error('OAuth error:', error);
