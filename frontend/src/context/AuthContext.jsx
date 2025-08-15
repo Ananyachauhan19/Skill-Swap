@@ -31,10 +31,7 @@ export function AuthProvider({ children }) {
       });
       const fetchedUser = response.data.user || null;
       setUser(fetchedUser);
-      // Only set cookie if user exists
-      if (fetchedUser) {
-        Cookies.set('user', JSON.stringify(fetchedUser), { path: '/', secure: true, sameSite: 'strict' });
-      } else {
+      if (!fetchedUser) {
         clearAuthData();
       }
     } catch (error) {
@@ -49,15 +46,16 @@ export function AuthProvider({ children }) {
   // Initial fetch on mount
   useEffect(() => {
     fetchUser();
-  }, []); // Removed location.pathname dependency
+  }, []);
 
-  // Handle authChanged event and force revalidation
+  // Handle authChanged event
   useEffect(() => {
     const handleAuthChange = async () => {
       clearAuthData();
       setUser(null);
       setLoading(true);
       await fetchUser(); // Revalidate backend session
+      window.dispatchEvent(new Event('authChanged')); // Ensure event loops to all listeners
     };
 
     window.addEventListener('authChanged', handleAuthChange);
