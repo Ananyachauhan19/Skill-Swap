@@ -6,21 +6,21 @@ import { ModalProvider } from './context/ModalContext';
 import GlobalModals from './GlobalModals';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
 import ProtectedRoute from './components/ProtectedRoute';
-import { useAuth } from './context/AuthContext.jsx';
+import { useAuth } from './context/AuthContext';
 
 import socket from './socket';
 import Cookies from 'js-cookie';
 
 import Home from './user/Home';
 import Login from './auth/Login';
-import Register from './auth/register';
+import Register from './auth/Register'; // Fixed case to match common convention
 import OneOnOne from './user/OneOnOne';
 import Discuss from './user/Discuss';
 import Interview from './user/Interview';
 import Sessions from './user/Sessions';
 import Testimonial from './user/Testimonial';
 import Profile from './user/Profile';
-import CreateSession from './user/createSession';
+import CreateSession from './user/CreateSession'; // Fixed case (createSession to CreateSession)
 import HistoryPage from './user/HistoryPage';
 import HelpSupportPage from './user/HelpSupportPage';
 import GoPro from './user/HomeSection/GoPro';
@@ -36,9 +36,9 @@ import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
 import CompleteProfile from './user/myprofile/CompleteProfile';
-import Blog from "./user/company/Blog";
-import SearchPage from "./user/SearchPage";
-import AdminPanel from './admin/adminpanel';
+import Blog from './user/company/Blog';
+import SearchPage from './user/SearchPage';
+import AdminPanel from './admin/AdminPanel'; // Fixed case (adminpanel to AdminPanel)
 
 // Define all routes in a single array for useRoutes
 const appRoutes = [
@@ -149,13 +149,17 @@ const appRoutes = [
 ];
 
 function App() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth(); // Added loading to handle auth initialization
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const element = useRoutes(appRoutes);
 
   // Register socket for authenticated users only
   useEffect(() => {
+    if (loading) {
+      console.info('[DEBUG] App: Auth context is still loading');
+      return;
+    }
     if (user && user._id) {
       console.info('[DEBUG] App: User changed:', user._id);
       socket.emit('register', user._id);
@@ -163,7 +167,12 @@ function App() {
     } else {
       console.info('[DEBUG] App: No user found in context');
     }
-  }, [user]);
+  }, [user, loading]);
+
+  // Render loading state while auth is initializing
+  if (loading) {
+    return <div>Loading...</div>; // Simple loading state, customize as needed
+  }
 
   return (
     <ModalProvider>
