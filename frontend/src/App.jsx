@@ -39,6 +39,7 @@ import CompleteProfile from './user/myprofile/CompleteProfile';
 import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
 import AdminPanel from './admin/adminpanel';
+import { googleLogout } from '@react-oauth/google';
 
 const appRoutes = [
   { path: '/', element: <Navigate to="/home" replace /> },
@@ -91,7 +92,7 @@ const appRoutes = [
 ];
 
 function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, setUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
@@ -124,16 +125,18 @@ function App() {
   // Handle authChanged event
   useEffect(() => {
     const handleAuthChange = () => {
+      googleLogout();
       Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName, { path: '/', domain: window.location.hostname }));
       localStorage.clear();
       sessionStorage.clear();
       socket.disconnect();
+      setUser(null);
       navigate('/home', { replace: true });
     };
 
     window.addEventListener('authChanged', handleAuthChange);
     return () => window.removeEventListener('authChanged', handleAuthChange);
-  }, [navigate]);
+  }, [navigate, setUser]);
 
   // Redirect to /login for protected routes
   useEffect(() => {
