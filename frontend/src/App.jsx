@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { useLocation, useRoutes, Navigate } from 'react-router-dom';
+import { useLocation, useRoutes, Navigate, useNavigate } from 'react-router-dom';
 import { ModalProvider } from './context/ModalContext';
 import GlobalModals from './GlobalModals';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
@@ -136,7 +136,7 @@ const appRoutes = [
   },
   {
     path: '/public-profile',
-    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>, // Now protected
+    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>,
     children: publicProfileRoutes.map(route => ({
       ...route,
       element: <ProtectedRoute>{route.element}</ProtectedRoute>
@@ -144,43 +144,68 @@ const appRoutes = [
   },
   {
     path: '/profile/:username',
-    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>, // Now protected
+    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>,
   },
 ];
 
-function useRegisterSocket() {
-  useEffect(() => {
-    const userCookie = Cookies.get('user');
-    let user = null;
-    if (userCookie && userCookie !== 'undefined') {
-      try {
-        user = JSON.parse(userCookie);
-      } catch (e) {
-        user = null;
-      }
-    }
-    if (user && user._id) {
-      socket.emit('register', user._id);
-    }
-  }, []);
-}
-
 function App() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const element = useRoutes(appRoutes);
 
-  // Register socket whenever user changes
-  React.useEffect(() => {
-    console.info('[DEBUG] App: User changed:', user && user._id);
-    if (user && user._id) {
-      socket.emit('register', user._id);
-      console.info('[DEBUG] Socket register emitted for user:', user && user._id);
-    } else {
-      console.info('[DEBUG] App: No user found in context');
+  // Register socket and handle cleanup
+  useEffect(() => {
+    const userCookie = Cookies.get('user');
+    let parsedUser = null;
+    if (userCookie && userCookie !== 'undefined') {
+      try {
+        parsedUser = JSON.parse(userCookie);
+      } catch (e) {
+        console.error('Failed to parse user cookie:', e);
+      }
     }
+
+    if (parsedUser && parsedUser._id && user && user._id) {
+      socket.emit('register', user._id);
+      console.info('[DEBUG] Socket register emitted for user:', user._id);
+    } else {
+      console.info('[DEBUG] App: No valid user found for socket registration');
+    }
+
+    // Cleanup socket on unmount
+    return () => {
+      socket.off('register');
+    };
   }, [user]);
+
+  // Handle authChanged event for logout (regular and Google login)
+  useEffect(() => {
+    const handleAuthChange = () => {
+      if (!user) {
+        // Clear all client-side data (cookies, localStorage, sessionStorage)
+        Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName));
+        localStorage.clear();
+        sessionStorage.clear();
+        setUser(null);
+        // Disconnect socket to prevent further events
+        socket.disconnect();
+        // Redirect to /home
+        navigate('/home', { replace: true });
+      }
+    };
+
+    window.addEventListener('authChanged', handleAuthChange);
+    return () => window.removeEventListener('authChanged', handleAuthChange);
+  }, [user, navigate, setUser]);
+
+  // Ensure redirection to /login for protected routes when not authenticated
+  useEffect(() => {
+    if (!user && !isAuthPage && location.pathname !== '/home') {
+      navigate('/login', { replace: true });
+    }
+  }, [user, location.pathname, navigate, isAuthPage]);
 
   return (
     <ModalProvider>

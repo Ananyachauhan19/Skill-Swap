@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import api from "../lib/api";
+import Cookies from 'js-cookie';
 
 const AuthCtx = createContext(null);
 
@@ -8,11 +9,27 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Fetch authenticated user on mount
     api
       .get("/api/auth/me")
       .then((r) => setUser(r.data.user))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
+  }, []);
+
+  // Listen for authChanged event to handle logout
+  useEffect(() => {
+    const handleAuthChange = () => {
+      // Clear all client-side authentication data
+      Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName));
+      localStorage.clear();
+      sessionStorage.clear();
+      // Reset user state
+      setUser(null);
+    };
+
+    window.addEventListener('authChanged', handleAuthChange);
+    return () => window.removeEventListener('authChanged', handleAuthChange);
   }, []);
 
   return (
@@ -23,5 +40,3 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthCtx);
-
-
