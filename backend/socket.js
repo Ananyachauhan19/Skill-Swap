@@ -724,24 +724,52 @@ module.exports = (io) => {
       }
     });
 
+    // Allow clients to refresh their skills after editing profile
+    socket.on('update-skills', async (skills) => {
+      const entry = onlineUsers.get(socket.id);
+      if (!entry) return;
+      // If payload not sent, pull fresh skills from DB
+      let newSkills = skills;
+      if (!Array.isArray(newSkills)) {
+        const dbUser = await User.findById(entry.userId).select('skillsToTeach');
+        newSkills = dbUser?.skillsToTeach || [];
+      }
+      entry.skillsToTeach = newSkills;
+      onlineUsers.set(socket.id, entry);
+      console.log(`[Socket] Updated skills for ${entry.userId}: ${newSkills.length} items`);
+    });
+
     // Find online tutors based on skills
     socket.on('find-tutors', async (searchCriteria) => {
       try {
         const { subject, topic, subtopic } = searchCriteria;
         const matchingTutors = [];
-        
+
+        const norm = (s) => (s || '').trim().toLowerCase();
+
         for (const [socketId, userData] of onlineUsers.entries()) {
           if (socketId === socket.id) continue;
-          if (userData.role !== 'teacher') continue; // Only include teachers
-          const userSkills = userData.skillsToTeach || [];
-          
+
+          // DO NOT restrict by role; show any user who has skills to teach
+          let userSkills = Array.isArray(userData.skillsToTeach) ? userData.skillsToTeach : [];
+
+          // If skills are missing in memory, fetch once from DB
+          if (!userSkills.length) {
+            const dbUser = await User.findById(userData.userId).select('skillsToTeach');
+            userSkills = dbUser?.skillsToTeach || [];
+            userData.skillsToTeach = userSkills; // cache for next time
+            onlineUsers.set(socketId, userData);
+          }
+
           const hasMatchingSkill = userSkills.some(skill => {
-            const subjectMatch = !subject || skill.subject === subject;
-            const topicMatch = !topic || skill.topic === topic;
-            const subtopicMatch = !subtopic || skill.subtopic === subtopic;
+            const subjectMatch = !subject || norm(skill.subject) === norm(subject);
+            const topicMatch = !topic || norm(skill.topic) === norm(topic);
+            // If tutor has no subtopic recorded, still treat as match when subject/topic match
+            const subtopicMatch =
+              !subtopic || !skill.subtopic || norm(skill.subtopic) === norm(subtopic);
             return subjectMatch && topicMatch && subtopicMatch;
           });
-          
+
           if (hasMatchingSkill) {
             matchingTutors.push({
               userId: userData.userId,
@@ -754,20 +782,12 @@ module.exports = (io) => {
             });
           }
         }
-        
-        socket.emit('tutors-found', {
-          tutors: matchingTutors,
-          searchCriteria
-        });
-        
+
+        socket.emit('tutors-found', { tutors: matchingTutors, searchCriteria });
         console.log(`[Find Tutors] Found ${matchingTutors.length} tutors for criteria:`, searchCriteria);
-        
       } catch (error) {
         console.error('[Find Tutors] Error:', error);
-        socket.emit('tutors-found', {
-          tutors: [],
-          error: 'Failed to find tutors'
-        });
+        socket.emit('tutors-found', { tutors: [], error: 'Failed to find tutors' });
       }
     });
 
