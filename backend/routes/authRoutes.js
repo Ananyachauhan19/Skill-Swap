@@ -29,7 +29,14 @@ const sanitizeArrayFields = (data, validKeys) => {
 router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
-router.post('/logout', logout);
+router.post('/logout', (req, res) => {
+  res.clearCookie('jwt', {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+  return res.status(200).json({ message: 'Logged out' });
+});
 
 // Test endpoint to check cookies
 router.get('/test-cookie', (req, res) => {

@@ -1,11 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useContext } from 'react';
 import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config.js';
-import { useAuth } from '../context/AuthContext';
+import { AuthContext } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 
 const ProfileDropdown = ({ show, onClose, menuRef }) => {
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -114,7 +114,7 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
           </button>
           <button
             className="text-left px-4 py-2 hover:bg-red-50 text-red-600 rounded"
-            onClick={handleLogout}
+            onClick={logout}
           >
             Logout
           </button>
