@@ -105,8 +105,9 @@ export function AuthProvider({ children }) {
       try { localStorage.removeItem('user'); } catch {}
       try { localStorage.removeItem('email'); } catch {}
       try { sessionStorage.removeItem('token'); } catch {}
+      try { Cookies.removeItem('token'); } catch {}
+      try { Cookies.removeItem('user'); } catch {}
       try { Cookies.removeItem('email'); } catch {}
-
 
       // If you use a shared axios instance, clear its header
       try {
