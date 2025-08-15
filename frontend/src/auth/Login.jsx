@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FaEye, FaEyeSlash, FaExclamationCircle, FaTimes } from "react-icons/fa";
 import axios from "axios";
 import { useModal } from '../context/ModalContext';
@@ -9,8 +9,9 @@ import { useAuth } from '../context/AuthContext';
 
 const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { openRegister } = useModal();
-  const { setUser } = useAuth(); // Added to update AuthContext
+  const { setUser } = useAuth();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -33,14 +34,12 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     "/assets/group-discussion-illustration.webp",
     "/assets/skillchoose.webp",
   ];
-  // Duplicate images for seamless infinite loop
   const extendedImages = [...carouselImages, carouselImages[0]];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => {
         const nextIndex = prev + 1;
-        // When reaching the duplicated image, instantly jump back to the first image without transition
         if (nextIndex >= carouselImages.length + 1) {
           leftPanelRef.current.querySelector('.carousel-container').style.transition = 'none';
           setTimeout(() => {
@@ -93,6 +92,33 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     };
   }, [isModal]);
 
+  // Handle Google login callback
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const token = query.get('token');
+    const userData = query.get('user');
+
+    if (token && userData) {
+      try {
+        const parsedUser = JSON.parse(decodeURIComponent(userData));
+        // Set user data in cookies and localStorage
+        Cookies.set('user', JSON.stringify(parsedUser), { expires: 1, path: '/', domain: window.location.hostname });
+        localStorage.setItem('user', JSON.stringify(parsedUser));
+        Cookies.set('isRegistered', 'true', { expires: 1, path: '/', domain: window.location.hostname });
+        // Update AuthContext
+        setUser(parsedUser);
+        window.dispatchEvent(new Event('authChanged'));
+        // Redirect to home or call onLoginSuccess
+        if (onLoginSuccess) onLoginSuccess(parsedUser);
+        if (isModal && onClose) onClose();
+        else navigate('/home', { replace: true });
+      } catch (e) {
+        console.error('Failed to parse Google login user data:', e);
+        setError('Google login failed. Please try again.');
+      }
+    }
+  }, [location.search, setUser, navigate, onLoginSuccess, isModal, onClose]);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError("");
@@ -128,15 +154,15 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       }, { withCredentials: true });
 
       const { user } = res.data;
-      Cookies.set('user', JSON.stringify(user), { expires: 1 });
+      Cookies.set('user', JSON.stringify(user), { expires: 1, path: '/', domain: window.location.hostname });
       localStorage.setItem('user', JSON.stringify(user));
-      Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
-      Cookies.set('isRegistered', 'true', { expires: 1 });
-      setUser(user); // Update AuthContext immediately
-      window.dispatchEvent(new Event("authChanged"));
+      Cookies.set('registeredEmail', emailForOtp, { expires: 1, path: '/', domain: window.location.hostname });
+      Cookies.set('isRegistered', 'true', { expires: 1, path: '/', domain: window.location.hostname });
+      setUser(user);
+      window.dispatchEvent(new Event('authChanged'));
       if (onLoginSuccess) onLoginSuccess(user);
       if (isModal && onClose) onClose();
-      else navigate("/home");
+      else navigate('/home', { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "OTP verification failed.");
     }
@@ -159,7 +185,6 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     <div className={`${isModal ? "fixed inset-0 flex items-center justify-center bg-black/40 z-50" : "min-h-screen flex items-start justify-center pt-8 pb-10 px-2 sm:px-4"}`}>
       <div className="bg-white rounded-xl p-2 sm:p-4 shadow-2xl w-[90vw] sm:w-[80vw] md:w-[70vw] h-[85vh] sm:h-[75vh] max-w-[1200px]">
         <div className="flex flex-col md:flex-row w-full h-full">
-          {/* Left Panel */}
           <div ref={leftPanelRef} className="w-full md:w-1/2 relative overflow-hidden" style={{
             backgroundColor: "#e6f2fb",
             borderTopLeftRadius: "40px",
@@ -168,7 +193,6 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
             <div className="absolute top-4 left-4 z-30">
               <img src="/assets/skillswap-logo.webp" alt="SkillSwap Logo" className="h-6 sm:h-8 w-auto" />
             </div>
-
             <div className="absolute inset-0 flex items-center justify-center z-20">
               <div className="relative w-[80%] sm:w-[70%] h-[60%] sm:h-[50%] overflow-hidden">
                 <div
@@ -186,19 +210,14 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
                 </div>
               </div>
             </div>
-
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 z-10" />
           </div>
-
-          {/* Right Panel */}
           <div className="w-full md:w-1/2 p-4 sm:p-6 md:p-8 bg-gray-50 relative overflow-y-auto">
             {isModal && (
               <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
                 <FaTimes className="w-5 h-5" />
               </button>
             )}
-
-            {/* OAuth */}
             <div className="space-y-3 mb-4 sm:mb-6">
               <button onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 py-2 sm:py-2.5 px-4 bg-white border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-100">
                 <svg className="w-5 h-5" viewBox="0 0 48 48">
@@ -209,7 +228,6 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
                 </svg>
                 <span>Login with Google</span>
               </button>
-
               <button onClick={() => handleOAuth("linkedin")} className="w-full flex items-center justify-center gap-3 py-2 sm:py-2.5 px-4 bg-white border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-100">
                 <svg className="w-5 h-5" viewBox="0 0 448 512" fill="#0077B5">
                   <path d="M100.28 448H7.4V148.9h92.88zM53.79 108.1C24.09 108.1 0 83.5 0 53.8S24.09 0 53.79 0s53.79 24.6 53.79 53.8-24.09 54.3-53.79 54.3zM447.9 448h-92.68V302.4c0-34.7-.7-79.2-48.29-79.2-48.29 0-55.69 37.7-55.69 76.7V448h-92.78V148.9h89.08v40.8h1.3c12.4-23.5 42.69-48.3 87.88-48.3 94 0 111.28 61.9 111.28 142.3V448z" />
@@ -217,23 +235,19 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
                 <span>Login with LinkedIn</span>
               </button>
             </div>
-
             <h1 className="text-xl sm:text-2xl font-bold text-[#154360] mb-4 sm:mb-6 text-center">Login to Your Account</h1>
-
             {error && (
               <div className="mb-4 p-2 bg-red-50 text-red-700 rounded-lg text-xs sm:text-sm flex items-center">
                 <FaExclamationCircle className="mr-2" />
                 <span>{error}</span>
               </div>
             )}
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input type="email" name="email" value={form.email} onChange={handleChange}
                   className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 text-sm sm:text-base" />
               </div>
-
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Password</label>
                 <div className="relative">
@@ -246,7 +260,6 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
                   </button>
                 </div>
               </div>
-
               <button type="submit" disabled={isLoading || !isFormValid}
                 className={`w-full py-2 sm:py-3 ${loginButtonColor} rounded-lg font-semibold text-white flex justify-center items-center text-sm sm:text-base ${isLoading ? "opacity-75 cursor-not-allowed" : "hover:opacity-90"}`}>
                 {isLoading ? (
@@ -257,8 +270,6 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
                 ) : "Login"}
               </button>
             </form>
-
-            {/* OTP Input and Submit */}
             {showOtp && (
               <div className="mt-4 sm:mt-6 space-y-4">
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Enter OTP</label>
@@ -276,7 +287,6 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
                 </button>
               </div>
             )}
-
             <div className="mt-4 sm:mt-6 text-center text-xs sm:text-sm">
               <span className="text-gray-600">Don't have an account? </span>
               <button onClick={() => {

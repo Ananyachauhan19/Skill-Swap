@@ -12,9 +12,14 @@ export function AuthProvider({ children }) {
     // Fetch authenticated user on mount
     api
       .get("/api/auth/me")
-      .then((r) => setUser(r.data.user))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+      .then((r) => {
+        setUser(r.data.user);
+        setLoading(false);
+      })
+      .catch(() => {
+        setUser(null);
+        setLoading(false);
+      });
   }, []);
 
   // Listen for authChanged event to handle logout

@@ -180,24 +180,22 @@ function App() {
     };
   }, [user]);
 
-  // Handle authChanged event for logout (regular and Google login)
+  // Handle authChanged event for logout
   useEffect(() => {
     const handleAuthChange = () => {
-      if (!user) {
-        // Clear all client-side data
-        Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName, { path: '/', domain: window.location.hostname }));
-        localStorage.clear();
-        sessionStorage.clear();
-        // Disconnect socket
-        socket.disconnect();
-        // Redirect to /home
-        navigate('/home', { replace: true });
-      }
+      // Clear all client-side data
+      Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName, { path: '/', domain: window.location.hostname }));
+      localStorage.clear();
+      sessionStorage.clear();
+      // Disconnect socket
+      socket.disconnect();
+      // Redirect to /home
+      navigate('/home', { replace: true });
     };
 
     window.addEventListener('authChanged', handleAuthChange);
     return () => window.removeEventListener('authChanged', handleAuthChange);
-  }, [user, navigate]);
+  }, [navigate]);
 
   // Redirect to /login for protected routes when not authenticated
   useEffect(() => {
@@ -208,7 +206,7 @@ function App() {
 
   // Prevent rendering until loading is complete
   if (loading) {
-    return null; // Or a loading spinner
+    return <div>Loading...</div>;
   }
 
   return (
@@ -218,7 +216,7 @@ function App() {
       {!isAuthPage && <Navbar />}
       <div className={location.pathname === '/home' ? '' : 'pt-8'}>
         {element}
-        {user && <CompleteProfile />} {/* Only render for authenticated users */}
+        {user && <CompleteProfile />}
       </div>
       {!isAuthPage && <Footer />}
     </ModalProvider>
