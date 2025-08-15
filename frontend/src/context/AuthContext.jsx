@@ -1,12 +1,40 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import api from '../lib/api';
 
-const AuthCtx = createContext(null);
+// Ensure the context is a named export
+export const AuthContext = createContext({
+  user: null,
+  isAuthenticated: false,
+  login: () => {},
+  logout: () => {},
+});
+
+// Optional helper to sign out from Google
+async function signOutFromGoogle(userEmail) {
+  if (window.google?.accounts?.id) {
+    try {
+      window.google.accounts.id.disableAutoSelect();
+      if (userEmail) {
+        await new Promise((resolve) => window.google.accounts.id.revoke(userEmail, resolve));
+      }
+    } catch (_) {}
+    return;
+  }
+  if (window.gapi?.auth2) {
+    try {
+      const auth2 = window.gapi.auth2.getAuthInstance();
+      if (auth2) {
+        await auth2.signOut();
+        auth2.disconnect();
+      }
+    } catch (_) {}
+  }
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Clear all authentication data
   const clearAuthData = () => {
@@ -24,7 +52,6 @@ export function AuthProvider({ children }) {
   // Fetch authenticated user
   const fetchUser = async () => {
     try {
-      setLoading(true);
       const response = await api.get('/api/auth/me', {
         withCredentials: true,
         headers: { 'Cache-Control': 'no-cache' }
@@ -38,8 +65,6 @@ export function AuthProvider({ children }) {
       console.error('Failed to fetch user:', error);
       clearAuthData();
       setUser(null);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -53,7 +78,7 @@ export function AuthProvider({ children }) {
     const handleAuthChange = async () => {
       clearAuthData();
       setUser(null);
-      setLoading(true);
+      setIsAuthenticated(false);
       await fetchUser(); // Revalidate to confirm no session
       window.dispatchEvent(new Event('authChanged')); // Ensure event loops
     };
@@ -62,62 +87,49 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('authChanged', handleAuthChange);
   }, []);
 
-  // Add this helper somewhere inside the AuthContext component/file
-  async function signOutFromGoogle(userEmail) {
-    // New Google Identity Services
-    if (window.google?.accounts?.id) {
-      try {
-        window.google.accounts.id.disableAutoSelect();
-        if (userEmail) {
-          await new Promise((resolve) => window.google.accounts.id.revoke(userEmail, resolve));
-        }
-      } catch (_) {}
-      return;
-    }
-    // Old gapi.auth2
-    if (window.gapi?.auth2) {
-      try {
-        const auth2 = window.gapi.auth2.getAuthInstance();
-        if (auth2) {
-          await auth2.signOut();
-          auth2.disconnect();
-        }
-      } catch (_) {}
-    }
-  }
-
-  // Logout function
   const logout = async () => {
     try {
-      // Attempt to sign out/revoke Google session
-      const email = (typeof user === 'object' && user?.email) ? user.email : localStorage.getItem('email');
+      const email = user?.email || localStorage.getItem('email') || '';
       await signOutFromGoogle(email);
-    } finally {
-      // Clear client tokens/state
-      try { sessionStorage.removeItem('token'); } catch {}
-      try { Cookies.remove('token'); } catch {}
-
-      // If you set Authorization on an axios instance, clear it
+      // If your backend clears httpOnly cookie
       try {
-        const { default: api } = await import('../lib/api.js');
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/auth/logout`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        // no-op on failure
+        await res?.text();
+      } catch (_) {}
+    } finally {
+      try { localStorage.removeItem('token'); } catch {}
+      try { localStorage.removeItem('user'); } catch {}
+      try { localStorage.removeItem('email'); } catch {}
+      try { sessionStorage.removeItem('token'); } catch {}
+      try { Cookies.removeItem('email'); } catch {}
+
+
+      // If you use a shared axios instance, clear its header
+      try {
+        const api = (await import('../lib/api.js')).default;
         if (api?.defaults?.headers?.common?.Authorization) {
           delete api.defaults.headers.common.Authorization;
         }
       } catch {}
 
-      // Update context state
-      try { setUser(null); } catch {}
-      try { setIsAuthenticated?.(false); } catch {}
-      // Optionally navigate to login
-      // navigate('/auth/login');
+      setUser(null);
+      setIsAuthenticated(false);
     }
   };
 
   return (
-    <AuthCtx.Provider value={{ user, loading, setUser, logout, fetchUser }}>
+    <AuthContext.Provider value={{ user, setUser, isAuthenticated, setIsAuthenticated, logout }}>
       {children}
-    </AuthCtx.Provider>
+    </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => useContext(AuthCtx);
+// Convenience hook
+export const useAuth = () => useContext(AuthContext);
+
+// Keep default export if other files import it as default
+export default AuthProvider;
