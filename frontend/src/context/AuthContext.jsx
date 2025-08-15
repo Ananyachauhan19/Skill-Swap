@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import Cookies from 'js-cookie';
-import api from '../lib/api';
+import React, { createContext, useContext, useEffect, useState } from "react";
+import api from "../lib/api";
 
 const AuthCtx = createContext(null);
 
@@ -8,85 +7,21 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Clear all authentication data
-  const clearAuthData = () => {
-    // Clear all cookies for all paths and domains
-    const cookieNames = Object.keys(Cookies.get());
-    cookieNames.forEach(cookieName => {
-      Cookies.remove(cookieName, { path: '/', domain: window.location.hostname });
-      Cookies.remove(cookieName, { path: '/' });
-      Cookies.remove(cookieName);
-    });
-    localStorage.clear();
-    sessionStorage.clear();
-  };
-
-  // Fetch authenticated user
-  const fetchUser = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/api/auth/me', {
-        withCredentials: true,
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-      const fetchedUser = response.data.user || null;
-      setUser(fetchedUser);
-      if (!fetchedUser) {
-        clearAuthData();
-      }
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-      clearAuthData();
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Initial fetch on mount
   useEffect(() => {
-    fetchUser();
+    api
+      .get("/api/auth/me")
+      .then((r) => setUser(r.data.user))
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
-
-  // Handle authChanged event
-  useEffect(() => {
-    const handleAuthChange = async () => {
-      clearAuthData();
-      setUser(null);
-      setLoading(true);
-      await fetchUser(); // Revalidate to confirm no session
-      window.dispatchEvent(new Event('authChanged')); // Ensure event loops
-    };
-
-    window.addEventListener('authChanged', handleAuthChange);
-    return () => window.removeEventListener('authChanged', handleAuthChange);
-  }, []);
-
-  // Logout function
-  const logout = async () => {
-    try {
-      // Attempt to invalidate backend session
-      await api.post('/api/auth/logout', {}, {
-        withCredentials: true,
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-    } catch (error) {
-      console.error('Logout API failed:', error);
-    }
-    // Clear all data regardless of API success
-    clearAuthData();
-    setUser(null);
-    setLoading(true);
-    await fetchUser(); // Revalidate to confirm session is dead
-    setLoading(false);
-    window.dispatchEvent(new Event('authChanged')); // Notify all components
-  };
 
   return (
-    <AuthCtx.Provider value={{ user, loading, setUser, logout, fetchUser }}>
+    <AuthCtx.Provider value={{ user, loading, setUser }}>
       {children}
     </AuthCtx.Provider>
   );
 }
 
 export const useAuth = () => useContext(AuthCtx);
+
+
