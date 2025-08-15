@@ -1,58 +1,105 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import socket from '../socket.js';
 
+/**
+ * VideoCall (polished)
+ * - Speaker device picker in a clean popover
+ * - Professional icon set (custom inline SVGs; crisp, consistent strokes)
+ * - Two-way chat & whiteboard with auto-open/auto-scroll syncing
+ * - Better error handling and track safety
+ * - End Call: red-only button, no “X” icon
+ * - Slight a11y lift: ARIA labels, titles, keyboard focus rings
+ * - Stable refs, controlled states, and defensive guards to reduce bugs
+ *
+ * NOTE:
+ *  - Adds socket events: 'whiteboard-toggle' + 'whiteboard-focus'
+ *  - If your server doesn’t relay these yet, just add passthroughs similar to your other events.
+ */
+
 const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
-  console.info('[DEBUG] VideoCall: Initializing for session:', sessionId, 'role:', userRole);
+  console.info('[DEBUG] VideoCall: Init session:', sessionId, 'role:', userRole);
+
+  // --- Core connection state
   const [isConnected, setIsConnected] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
+  const [isInitiator, setIsInitiator] = useState(false);
+
+  // --- Media toggles
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
-  const [isBackgroundBlur, setIsBackgroundBlur] = useState(false);
-  const [isInitiator, setIsInitiator] = useState(false);
+  const [isCameraSwitched, setIsCameraSwitched] = useState(false);
+  const [virtualBackground, setVirtualBackground] = useState('none'); // 'none' | 'blur'
+
+  // --- Whiteboard / annotations
   const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [isAnnotationsEnabled, setIsAnnotationsEnabled] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawingColor, setDrawingColor] = useState('#000000');
   const [brushSize, setBrushSize] = useState(3);
-  const [drawingTool, setDrawingTool] = useState('pen');
+  const [drawingTool, setDrawingTool] = useState('pen'); // 'pen' | 'highlighter' | 'eraser'
+
+  // --- Chat
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [showChat, setShowChat] = useState(false);
+
+  // --- Reactions
   const [reactions, setReactions] = useState([]);
+  const [showReactionsMenu, setShowReactionsMenu] = useState(false);
+
+  // --- Devices
   const [audioDevices, setAudioDevices] = useState([]);
   const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
-  const [isFullScreen, setIsFullScreen] = useState(true); // Changed to true for auto full screen
+  const [showSpeakerPicker, setShowSpeakerPicker] = useState(false);
+
+  // --- Layout / view
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'remote-full' | 'local-full'
+
+  // --- Timer / coins
   const [callStartTime, setCallStartTime] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [silverCoins, setSilverCoins] = useState(null);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [viewMode, setViewMode] = useState('grid');
-  const [showReactionsMenu, setShowReactionsMenu] = useState(false);
-  const [virtualBackground, setVirtualBackground] = useState('none');
-  const [isAnnotationsEnabled, setIsAnnotationsEnabled] = useState(false);
 
+  // --- Internal refs
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const screenVideoRef = useRef(null);
+  const videoContainerRef = useRef(null);
+
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const mediaRecorderRef = useRef(null);
+
+  // Whiteboard refs
   const canvasRef = useRef(null);
-  const annotationCanvasRef = useRef(null);
   const contextRef = useRef(null);
+  const annotationCanvasRef = useRef(null);
   const annotationContextRef = useRef(null);
   const lastPointRef = useRef(null);
-  const chatContainerRef = useRef(null);
-  const videoContainerRef = useRef(null);
-  const recordedChunksRef = useRef([]);
 
+  // Chat container ref
+  const chatContainerRef = useRef(null);
+
+  // Smooth scroll helper
+  const smoothScrollIntoView = (el) => {
+    if (!el) return;
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } catch {
+      el.scrollIntoView();
+    }
+  };
+
+  // Fullscreen listeners
   useEffect(() => {
-    const handleFullScreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
-    };
+    const handleFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', handleFullScreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullScreenChange);
     return () => {
@@ -61,183 +108,378 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     };
   }, []);
 
+  // Initial media + socket setup
   useEffect(() => {
-    // Auto-enter full screen when call starts
-    if (videoContainerRef.current && !document.fullscreenElement) {
-      if (videoContainerRef.current.requestFullscreen) {
-        videoContainerRef.current.requestFullscreen().catch(err => console.error('[DEBUG] Fullscreen request failed:', err));
-      } else if (videoContainerRef.current.webkitRequestFullscreen) {
-        videoContainerRef.current.webkitRequestFullscreen();
-      }
-    }
-  }, [isConnected]);
+    let mounted = true;
 
-  useEffect(() => {
-    console.info('[DEBUG] VideoCall: Setting up socket listeners for session:', sessionId);
-    const initializeCall = async () => {
+    const initialize = async () => {
       try {
+        // Request cam/mic
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' }, // Removed camera switch option
+          video: { facingMode: isCameraSwitched ? 'environment' : 'user' },
           audio: true,
         });
+        if (!mounted) return;
+
         setLocalStream(stream);
         localStreamRef.current = stream;
+
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
+
+        // Enumerate audio outputs
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const audioOutputs = devices.filter(device => device.kind === 'audiooutput');
+        const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
         setAudioDevices(audioOutputs);
-        if (audioOutputs.length > 0) {
-          setSelectedAudioDevice(audioOutputs[0].deviceId);
-        }
+
+        // Respect previously selected sink if present
+        const savedSinkId = localStorage.getItem('preferredSinkId');
+        const defaultSink = savedSinkId && audioOutputs.find(d => d.deviceId === savedSinkId)
+          ? savedSinkId
+          : (audioOutputs[0]?.deviceId || '');
+
+        setSelectedAudioDevice(defaultSink);
+
+        // Join room and wire listeners
         socket.emit('join-session', { sessionId, userRole, username });
-        console.info('[DEBUG] VideoCall: Joined session room:', sessionId);
-        socket.on('user-joined', handleUserJoined);
-        socket.on('offer', handleOffer);
-        socket.on('answer', handleAnswer);
-        socket.on('ice-candidate', handleIceCandidate);
-        socket.on('user-left', handleUserLeft);
+        console.info('[DEBUG] Joined session room:', sessionId);
+
+        const onUserJoined = async () => {
+          const pc = createPeerConnection();
+          try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            socket.emit('offer', { sessionId, offer });
+            setIsInitiator(true);
+          } catch (err) {
+            console.error('[DEBUG] Error creating offer:', err);
+          }
+        };
+
+        const onOffer = async (data) => {
+          const pc = createPeerConnection();
+          try {
+            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            socket.emit('answer', { sessionId, answer });
+          } catch (err) {
+            console.error('[DEBUG] Error in handleOffer:', err);
+          }
+        };
+
+        const onAnswer = async (data) => {
+          try {
+            await peerConnectionRef.current?.setRemoteDescription(
+              new RTCSessionDescription(data.answer)
+            );
+          } catch (err) {
+            console.error('[DEBUG] Error in handleAnswer:', err);
+          }
+        };
+
+        const onIceCandidate = async (data) => {
+          try {
+            if (data?.candidate) {
+              await peerConnectionRef.current?.addIceCandidate(
+                new RTCIceCandidate(data.candidate)
+              );
+            }
+          } catch (err) {
+            console.error('[DEBUG] Error adding ICE candidate:', err);
+          }
+        };
+
+        const onUserLeft = () => {
+          setRemoteStream(null);
+          if (peerConnectionRef.current) {
+            peerConnectionRef.current.close();
+            peerConnectionRef.current = null;
+          }
+          setCallStartTime(null);
+          setElapsedSeconds(0);
+        };
+
+        const onChat = (data) => {
+          setMessages(prev => [...prev, {
+            sender: data.username || 'Partner',
+            text: data.message,
+            timestamp: new Date()
+          }]);
+        };
+
+        const onReaction = (data) => {
+          setReactions(prev => [...prev, {
+            type: data.type,
+            username: data.username,
+            timestamp: Date.now()
+          }]);
+          // Auto-clear after 5s
+          setTimeout(() => {
+            setReactions(prev => prev.filter(r => Date.now() - r.timestamp < 5000));
+          }, 5000);
+        };
+
+        const onHoldStatus = (data) => {
+          // Keep your existing semantics; safeguarding here
+          if (data.username !== username) {
+            const newStream = data.isOnHold ? null : localStreamRef.current;
+            setRemoteStream(newStream);
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = newStream;
+            }
+          }
+        };
+
+        const onCoinUpdate = ({ silverCoins }) => {
+          setSilverCoins(Number(silverCoins ?? 0));
+        };
+
+        // Whiteboard sync events
+        const onWhiteboardToggle = ({ open }) => {
+          setShowWhiteboard(Boolean(open));
+          // Give React time to render before focusing/scrolling
+          setTimeout(() => {
+            if (open && canvasRef.current) smoothScrollIntoView(canvasRef.current);
+          }, 80);
+        };
+        const onWhiteboardFocus = () => {
+          setTimeout(() => {
+            if (canvasRef.current) smoothScrollIntoView(canvasRef.current);
+          }, 60);
+        };
+
+        socket.on('user-joined', onUserJoined);
+        socket.on('offer', onOffer);
+        socket.on('answer', onAnswer);
+        socket.on('ice-candidate', onIceCandidate);
+        socket.on('user-left', onUserLeft);
+
+        socket.on('chat-message', onChat);
+        socket.on('reaction', onReaction);
+        socket.on('hold-status', onHoldStatus);
+        socket.on('coin-update', onCoinUpdate);
+
+        // Whiteboard drawing and sync
         socket.on('whiteboard-draw', handleRemoteDraw);
         socket.on('whiteboard-clear', handleRemoteClear);
-        socket.on('chat-message', handleChatMessage);
-        socket.on('reaction', handleReaction);
-        socket.on('hold-status', handleHoldStatus);
-        socket.on('coin-update', ({ silverCoins }) => {
-          console.info('[DEBUG] Coin update received:', silverCoins);
-          setSilverCoins(silverCoins);
+        socket.on('whiteboard-toggle', onWhiteboardToggle);
+        socket.on('whiteboard-focus', onWhiteboardFocus);
+
+        socket.on('end-call', ({ sessionId: endedSessionId }) => {
+          if (endedSessionId === sessionId) handleEndCall();
         });
+
         setIsConnected(true);
       } catch (error) {
         console.error('[DEBUG] Error accessing media devices:', error);
         alert('Unable to access camera/microphone. Please check permissions.');
       }
     };
-    initializeCall();
-    socket.on('end-call', ({ sessionId: endedSessionId }) => {
-      if (endedSessionId === sessionId) {
-        handleEndCall();
-      }
-    });
+
+    initialize();
+
     return () => {
-      console.info('[DEBUG] VideoCall: Cleaning up socket listeners for session:', sessionId);
+      mounted = false;
+      console.info('[DEBUG] Cleanup listeners for session:', sessionId);
       cleanup();
       localStorage.removeItem('activeSession');
+
       socket.off('end-call');
+
+      socket.off('user-joined');
+      socket.off('offer');
+      socket.off('answer');
+      socket.off('ice-candidate');
+      socket.off('user-left');
+
       socket.off('chat-message');
       socket.off('reaction');
       socket.off('hold-status');
       socket.off('coin-update');
-    };
-  }, [sessionId, userRole, username]);
 
+      socket.off('whiteboard-draw');
+      socket.off('whiteboard-clear');
+      socket.off('whiteboard-toggle');
+      socket.off('whiteboard-focus');
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, userRole, username, isCameraSwitched]);
+
+  // Start the timer when both streams are present
   useEffect(() => {
     if (isConnected && localStream && remoteStream && !callStartTime) {
       setCallStartTime(Date.now());
       setElapsedSeconds(0);
     }
-  }, [isConnected, localStream, remoteStream]);
+  }, [isConnected, localStream, remoteStream, callStartTime]);
 
+  // Tick timer
   useEffect(() => {
-    let interval;
-    if (callStartTime) {
-      interval = setInterval(() => {
-        setElapsedSeconds(Math.floor((Date.now() - callStartTime) / 1000));
-      }, 1000);
-    }
-    return () => clearInterval(interval);
+    if (!callStartTime) return;
+    const id = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - callStartTime) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
   }, [callStartTime]);
 
-  useEffect(() => {
-    if (showWhiteboard && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      context.strokeStyle = drawingTool === 'eraser' ? '#FFFFFF' : drawingColor;
-      context.lineWidth = brushSize;
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      if (drawingTool === 'highlighter') {
-        context.globalAlpha = 0.5;
-      } else {
-        context.globalAlpha = 1;
-      }
-      contextRef.current = context;
-    }
-  }, [showWhiteboard, drawingColor, brushSize, drawingTool]);
-
-  useEffect(() => {
-    if (isScreenSharing && isAnnotationsEnabled && annotationCanvasRef.current && screenVideoRef.current) {
-      const canvas = annotationCanvasRef.current;
-      canvas.width = screenVideoRef.current.offsetWidth;
-      canvas.height = screenVideoRef.current.offsetHeight;
-      const context = canvas.getContext('2d');
-      context.strokeStyle = drawingTool === 'eraser' ? 'rgba(255,255,255,0)' : drawingColor;
-      context.lineWidth = brushSize;
-      context.lineCap = 'round';
-      context.lineJoin = 'round';
-      if (drawingTool === 'highlighter') {
-        context.globalAlpha = 0.5;
-      } else {
-        context.globalAlpha = 1;
-      }
-      annotationContextRef.current = context;
-    }
-  }, [isScreenSharing, isAnnotationsEnabled, drawingColor, brushSize, drawingTool]);
-
+  // Keep chat scrolled
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
 
+  // Simple virtual background option (blur)
   useEffect(() => {
-    if (localVideoRef.current && virtualBackground === 'blur') {
-      localVideoRef.current.style.filter = 'blur(5px)';
-    } else {
-      localVideoRef.current.style.filter = 'none';
-    }
+    if (!localVideoRef.current) return;
+    localVideoRef.current.style.filter = virtualBackground === 'blur' ? 'blur(5px)' : 'none';
   }, [virtualBackground]);
 
+  // Initialize (or refresh) whiteboard canvas when shown or settings change
+  useEffect(() => {
+    if (!showWhiteboard || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+
+    // Match CSS size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    // Pen settings
+    ctx.strokeStyle = drawingTool === 'eraser' ? '#FFFFFF' : drawingColor;
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = drawingTool === 'highlighter' ? 0.5 : 1;
+
+    contextRef.current = ctx;
+  }, [showWhiteboard, drawingColor, brushSize, drawingTool]);
+
+  // Annotation canvas on screen share
+  useEffect(() => {
+    if (!(isScreenSharing && isAnnotationsEnabled && annotationCanvasRef.current && screenVideoRef.current)) return;
+    const canvas = annotationCanvasRef.current;
+    canvas.width = screenVideoRef.current.offsetWidth;
+    canvas.height = screenVideoRef.current.offsetHeight;
+
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = drawingTool === 'eraser' ? 'rgba(255,255,255,0)' : drawingColor;
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = drawingTool === 'highlighter' ? 0.5 : 1;
+
+    annotationContextRef.current = ctx;
+  }, [isScreenSharing, isAnnotationsEnabled, drawingColor, brushSize, drawingTool]);
+
+  // === Peer connection helper
+  const createPeerConnection = useCallback(() => {
+    const configuration = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+      ],
+    };
+    const pc = new RTCPeerConnection(configuration);
+
+    // Add local tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        try {
+          pc.addTrack(track, localStreamRef.current);
+        } catch (e) {
+          console.warn('[DEBUG] addTrack failed:', e);
+        }
+      });
+    }
+
+    // Remote track
+    pc.ontrack = (event) => {
+      const [stream] = event.streams || [];
+      setRemoteStream(stream || null);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = stream || null;
+        // Apply sink choice if supported
+        applySinkId(remoteVideoRef.current, selectedAudioDevice);
+      }
+    };
+
+    // Relay candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit('ice-candidate', { sessionId, candidate: event.candidate });
+      }
+    };
+
+    peerConnectionRef.current = pc;
+    return pc;
+  }, [selectedAudioDevice, sessionId]);
+
+  // === Utilities
+
+  const applySinkId = async (videoEl, sinkId) => {
+    if (!videoEl) return;
+    // setSinkId is only for audio elements / media elements in supporting browsers
+    const canSet = typeof videoEl.setSinkId === 'function';
+    if (!canSet || !sinkId) return;
+    try {
+      await videoEl.setSinkId(sinkId);
+      localStorage.setItem('preferredSinkId', sinkId);
+    } catch (err) {
+      console.warn('[DEBUG] setSinkId failed:', err);
+    }
+  };
+
   const cleanup = () => {
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+    try {
+      // Stop local tracks
+      localStreamRef.current?.getTracks()?.forEach(t => t.stop());
+      screenStream?.getTracks()?.forEach(t => t.stop());
+
+      // Stop recorder
+      if (mediaRecorderRef.current && isRecording) {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {}
+      }
+
+      // Close PC
+      if (peerConnectionRef.current) {
+        try {
+          peerConnectionRef.current.close();
+        } catch {}
+        peerConnectionRef.current = null;
+      }
+
+      socket.emit('leave-session', { sessionId });
+
+      // Exit fullscreen if any
+      if (document.fullscreenElement) {
+        try { document.exitFullscreen(); } catch {}
+      }
+    } catch (e) {
+      console.warn('[DEBUG] cleanup issue:', e);
     }
-    if (screenStream) {
-      screenStream.getTracks().forEach(track => track.stop());
-    }
-    if (mediaRecorder) {
-      mediaRecorder.stop();
-    }
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-    socket.emit('leave-session', { sessionId });
-    socket.off('user-joined');
-    socket.off('offer');
-    socket.off('answer');
-    socket.off('ice-candidate');
-    socket.off('user-left');
-    socket.off('whiteboard-draw');
-    socket.off('whiteboard-clear');
-    socket.off('chat-message');
-    socket.off('reaction');
-    socket.off('hold-status');
-    socket.off('coin-update');
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    }
+  };
+
+  // === Whiteboard drawing handlers
+
+  const getCanvasCoords = (e, ref) => {
+    const canvas = ref.current;
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
+    return { x: clientX - rect.left, y: clientY - rect.top };
   };
 
   const startDrawing = (e, isAnnotation = false) => {
     const ref = isAnnotation ? annotationCanvasRef : canvasRef;
     const ctxRef = isAnnotation ? annotationContextRef : contextRef;
     if (!ctxRef.current || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const x = (e.clientX || e.touches[0].clientX) - rect.left;
-    const y = (e.clientY || e.touches[0].clientY) - rect.top;
+    const { x, y } = getCanvasCoords(e, ref);
     setIsDrawing(true);
     lastPointRef.current = { x, y };
     ctxRef.current.beginPath();
@@ -249,18 +491,21 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     const ref = isAnnotation ? annotationCanvasRef : canvasRef;
     const ctxRef = isAnnotation ? annotationContextRef : contextRef;
     if (!ctxRef.current || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const x = (e.clientX || e.touches[0].clientX) - rect.left;
-    const y = (e.clientY || e.touches[0].clientY) - rect.top;
-    ctxRef.current.strokeStyle = drawingTool === 'eraser' ? (isAnnotation ? 'rgba(255,255,255,0)' : '#FFFFFF') : drawingColor;
+
+    const { x, y } = getCanvasCoords(e, ref);
+
+    // Style (eraser clears by drawing transparent for annotation; white for board)
+    ctxRef.current.strokeStyle =
+      drawingTool === 'eraser'
+        ? (isAnnotation ? 'rgba(255,255,255,0)' : '#FFFFFF')
+        : drawingColor;
+
     ctxRef.current.lineWidth = brushSize;
-    if (drawingTool === 'highlighter') {
-      ctxRef.current.globalAlpha = 0.5;
-    } else {
-      ctxRef.current.globalAlpha = 1;
-    }
+    ctxRef.current.globalAlpha = drawingTool === 'highlighter' ? 0.5 : 1;
     ctxRef.current.lineTo(x, y);
     ctxRef.current.stroke();
+
+    // Broadcast stroke
     socket.emit('whiteboard-draw', {
       sessionId,
       fromX: lastPointRef.current.x,
@@ -272,6 +517,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       tool: drawingTool,
       isAnnotation,
     });
+
     lastPointRef.current = { x, y };
   };
 
@@ -282,21 +528,26 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
   const handleRemoteDraw = (data) => {
     const ctxRef = data.isAnnotation ? annotationContextRef : contextRef;
-    if (!ctxRef.current) return;
-    const context = ctxRef.current;
-    const originalColor = context.strokeStyle;
-    const originalSize = context.lineWidth;
-    const originalAlpha = context.globalAlpha;
-    context.strokeStyle = data.color === 'erase' ? 'rgba(255,255,255,0)' : data.color;
-    context.lineWidth = data.size;
-    context.globalAlpha = data.tool === 'highlighter' ? 0.5 : 1;
-    context.beginPath();
-    context.moveTo(data.fromX, data.fromY);
-    context.lineTo(data.toX, data.toY);
-    context.stroke();
-    context.strokeStyle = originalColor;
-    context.lineWidth = originalSize;
-    context.globalAlpha = originalAlpha;
+    const ref = data.isAnnotation ? annotationCanvasRef : canvasRef;
+    if (!ctxRef.current || !ref.current) return;
+
+    const ctx = ctxRef.current;
+    const prevColor = ctx.strokeStyle;
+    const prevSize = ctx.lineWidth;
+    const prevAlpha = ctx.globalAlpha;
+
+    ctx.strokeStyle = data.color === 'erase' ? 'rgba(255,255,255,0)' : data.color;
+    ctx.lineWidth = data.size;
+    ctx.globalAlpha = data.tool === 'highlighter' ? 0.5 : 1;
+
+    ctx.beginPath();
+    ctx.moveTo(data.fromX, data.fromY);
+    ctx.lineTo(data.toX, data.toY);
+    ctx.stroke();
+
+    ctx.strokeStyle = prevColor;
+    ctx.lineWidth = prevSize;
+    ctx.globalAlpha = prevAlpha;
   };
 
   const clearWhiteboard = (isAnnotation = false) => {
@@ -314,240 +565,152 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     ctxRef.current.clearRect(0, 0, ref.current.width, ref.current.height);
   };
 
-  const handleChatMessage = (data) => {
-    setMessages((prev) => [
-      ...prev,
-      { sender: data.username || 'Partner', text: data.message, timestamp: new Date() },
-    ]);
-  };
-
+  // === Chat
   const sendMessage = (e) => {
     e.preventDefault();
-    if (newMessage.trim()) {
-      socket.emit('chat-message', { sessionId, message: newMessage, username });
-      setMessages((prev) => [
-        ...prev,
-        { sender: username, text: newMessage, timestamp: new Date() },
-      ]);
-      setNewMessage('');
-    }
+    const msg = (newMessage || '').trim();
+    if (!msg) return;
+    socket.emit('chat-message', { sessionId, message: msg, username });
+    setMessages(prev => [...prev, { sender: username, text: msg, timestamp: new Date() }]);
+    setNewMessage('');
   };
 
-  const handleReaction = (data) => {
-    setReactions((prev) => [
-      ...prev,
-      { type: data.type, username: data.username, timestamp: Date.now() },
-    ]);
-    setTimeout(() => {
-      setReactions((prev) => prev.filter(r => Date.now() - r.timestamp < 5000));
-    }, 5000);
-  };
-
+  // === Reactions
   const sendReaction = (type) => {
     socket.emit('reaction', { sessionId, type, username });
-    setReactions((prev) => [
-      ...prev,
-      { type, username, timestamp: Date.now() },
-    ]);
+    setReactions(prev => [...prev, { type, username, timestamp: Date.now() }]);
     setTimeout(() => {
-      setReactions((prev) => prev.filter(r => Date.now() - r.timestamp < 5000));
+      setReactions(prev => prev.filter(r => Date.now() - r.timestamp < 5000));
     }, 5000);
     setShowReactionsMenu(false);
   };
 
-  const handleHoldStatus = (data) => {
-    if (data.username !== username) {
-      setRemoteStream(data.isOnHold ? null : localStreamRef.current);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = data.isOnHold ? null : localStreamRef.current;
-      }
-    }
-  };
-
-  const createPeerConnection = () => {
-    const configuration = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-      ],
-    };
-    const pc = new RTCPeerConnection(configuration);
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
-        pc.addTrack(track, localStreamRef.current);
-      });
-    }
-    pc.ontrack = (event) => {
-      setRemoteStream(event.streams[0]);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
-    };
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit('ice-candidate', { sessionId, candidate: event.candidate });
-      }
-    };
-    peerConnectionRef.current = pc;
-    return pc;
-  };
-
-  const handleUserJoined = async (data) => {
-    const pc = createPeerConnection();
-    try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socket.emit('offer', { sessionId, offer });
-      setIsInitiator(true);
-    } catch (error) {
-      console.error('[DEBUG] Error in handleUserJoined:', error);
-    }
-  };
-
-  const handleOffer = async (data) => {
-    const pc = createPeerConnection();
-    try {
-      await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-      socket.emit('answer', { sessionId, answer });
-    } catch (error) {
-      console.error('[DEBUG] Error in handleOffer:', error);
-    }
-  };
-
-  const handleAnswer = async (data) => {
-    try {
-      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
-    } catch (error) {
-      console.error('[DEBUG] Error in handleAnswer:', error);
-    }
-  };
-
-  const handleIceCandidate = async (data) => {
-    try {
-      await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
-    } catch (error) {
-      console.error('[DEBUG] Error in handleIceCandidate:', error);
-    }
-  };
-
-  const handleUserLeft = () => {
-    setRemoteStream(null);
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-    setCallStartTime(null);
-    setElapsedSeconds(0);
-  };
+  // === Call controls
 
   const handleEndCall = () => {
     socket.emit('end-call', { sessionId });
     cleanup();
     setCallStartTime(null);
     setElapsedSeconds(0);
-    if (onEndCall) {
-      onEndCall();
-    }
+    onEndCall && onEndCall();
   };
 
   const toggleMute = () => {
-    if (localStreamRef.current) {
-      const audioTrack = localStreamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
-      }
-    }
+    const audioTrack = localStreamRef.current?.getAudioTracks?.()[0];
+    if (!audioTrack) return;
+    audioTrack.enabled = !audioTrack.enabled;
+    setIsMuted(!audioTrack.enabled);
   };
 
   const toggleVideo = () => {
-    if (localStreamRef.current) {
-      const videoTrack = localStreamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOff(!videoTrack.enabled);
+    const videoTrack = localStreamRef.current?.getVideoTracks?.()[0];
+    if (!videoTrack) return;
+    videoTrack.enabled = !videoTrack.enabled;
+    setIsVideoOff(!videoTrack.enabled);
+  };
+
+  const switchCamera = async () => {
+    try {
+      setIsCameraSwitched(prev => !prev);
+      // Stop current tracks (safe guard)
+      localStreamRef.current?.getTracks?.().forEach(t => t.stop());
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: !isCameraSwitched ? 'environment' : 'user' },
+        audio: true,
+      });
+      setLocalStream(newStream);
+      localStreamRef.current = newStream;
+      if (localVideoRef.current) localVideoRef.current.srcObject = newStream;
+
+      // Replace video sender track
+      const videoTrack = newStream.getVideoTracks()[0];
+      const sender = peerConnectionRef.current
+        ?.getSenders()
+        ?.find(s => s.track?.kind === 'video');
+      if (sender && videoTrack) {
+        await sender.replaceTrack(videoTrack);
       }
+    } catch (err) {
+      console.error('[DEBUG] switchCamera error:', err);
     }
   };
 
-  const toggleSpeaker = () => {
-    setIsSpeakerOn(!isSpeakerOn);
+  const toggleSpeaker = async () => {
+    const newOn = !isSpeakerOn;
+    setIsSpeakerOn(newOn);
     if (remoteVideoRef.current) {
-      remoteVideoRef.current.muted = !isSpeakerOn;
+      remoteVideoRef.current.muted = !newOn;
     }
   };
 
   const changeAudioDevice = async (deviceId) => {
     setSelectedAudioDevice(deviceId);
     if (remoteVideoRef.current) {
-      try {
-        await remoteVideoRef.current.setSinkId(deviceId);
-      } catch (error) {
-        console.error('[DEBUG] Error changing audio device:', error);
-      }
+      await applySinkId(remoteVideoRef.current, deviceId);
     }
+    localStorage.setItem('preferredSinkId', deviceId);
+    setShowSpeakerPicker(false);
   };
 
   const toggleScreenShare = async () => {
     try {
       if (!isScreenSharing) {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: true,
-          audio: true,
-        });
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
         setScreenStream(stream);
         setIsScreenSharing(true);
+
         if (screenVideoRef.current) {
           screenVideoRef.current.srcObject = stream;
         }
-        if (peerConnectionRef.current) {
-          const videoTrack = stream.getVideoTracks()[0];
-          const sender = peerConnectionRef.current.getSenders().find(s => s.track?.kind === 'video');
-          if (sender) {
-            sender.replaceTrack(videoTrack);
-          }
+
+        // Replace outbound video
+        const videoTrack = stream.getVideoTracks()[0];
+        const sender = peerConnectionRef.current
+          ?.getSenders()
+          ?.find(s => s.track?.kind === 'video');
+        if (sender && videoTrack) {
+          await sender.replaceTrack(videoTrack);
         }
-        stream.getVideoTracks()[0].onended = () => {
-          stopScreenShare();
-        };
+
+        // Auto stop when user ends share
+        videoTrack.onended = () => stopScreenShare();
       } else {
         stopScreenShare();
       }
-    } catch (error) {
-      console.error('[DEBUG] Error in toggleScreenShare:', error);
+    } catch (err) {
+      console.error('[DEBUG] toggleScreenShare error:', err);
     }
   };
 
-  const stopScreenShare = () => {
-    if (screenStream) {
-      screenStream.getTracks().forEach(track => track.stop());
+  const stopScreenShare = async () => {
+    try {
+      screenStream?.getTracks()?.forEach(t => t.stop());
       setScreenStream(null);
       setIsScreenSharing(false);
       setIsAnnotationsEnabled(false);
-      if (screenVideoRef.current) {
-        screenVideoRef.current.srcObject = null;
+      if (screenVideoRef.current) screenVideoRef.current.srcObject = null;
+
+      // Restore local camera track
+      const videoTrack = localStreamRef.current?.getVideoTracks?.()[0];
+      const sender = peerConnectionRef.current
+        ?.getSenders()
+        ?.find(s => s.track?.kind === 'video');
+      if (sender && videoTrack) {
+        await sender.replaceTrack(videoTrack);
       }
-      if (peerConnectionRef.current && localStreamRef.current) {
-        const videoTrack = localStreamRef.current.getVideoTracks()[0];
-        const sender = peerConnectionRef.current.getSenders().find(s => s.track?.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(videoTrack);
-        }
-      }
+    } catch (err) {
+      console.error('[DEBUG] stopScreenShare error:', err);
     }
   };
 
   const toggleRecording = () => {
     if (!isRecording) {
-      if (localStreamRef.current) {
+      if (!localStreamRef.current) return;
+      try {
         const recorder = new MediaRecorder(localStreamRef.current);
         recordedChunksRef.current = [];
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            recordedChunksRef.current.push(event.data);
-          }
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) recordedChunksRef.current.push(e.data);
         };
         recorder.onstop = () => {
           const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
@@ -559,15 +722,17 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
           URL.revokeObjectURL(url);
         };
         recorder.start();
-        setMediaRecorder(recorder);
+        mediaRecorderRef.current = recorder;
         setIsRecording(true);
+      } catch (err) {
+        console.error('[DEBUG] MediaRecorder error:', err);
       }
     } else {
-      if (mediaRecorder) {
-        mediaRecorder.stop();
-        setMediaRecorder(null);
-        setIsRecording(false);
-      }
+      try {
+        mediaRecorderRef.current?.stop();
+      } catch {}
+      mediaRecorderRef.current = null;
+      setIsRecording(false);
     }
   };
 
@@ -576,141 +741,215 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   };
 
   const toggleFullScreen = () => {
+    const el = videoContainerRef.current;
+    if (!el) return;
     if (!isFullScreen) {
-      if (videoContainerRef.current.requestFullscreen) {
-        videoContainerRef.current.requestFullscreen();
-      } else if (videoContainerRef.current.webkitRequestFullscreen) {
-        videoContainerRef.current.webkitRequestFullscreen();
-      }
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
     }
   };
 
-  const makeRemoteFullScreen = () => {
-    setViewMode('remote-full');
+  const makeRemoteFullScreen = () => setViewMode('remote-full');
+  const makeLocalFullScreen = () => setViewMode('local-full');
+  const resetViewMode = () => setViewMode('grid');
+
+  const toggleAnnotations = () => setIsAnnotationsEnabled(prev => !prev);
+
+  // Whiteboard sync toggles
+  const toggleWhiteboard = () => {
+    const next = !showWhiteboard;
+    setShowWhiteboard(next);
+    socket.emit('whiteboard-toggle', { sessionId, open: next });
+    if (next) {
+      // Ask partner to focus/scroll too (and us)
+      setTimeout(() => {
+        smoothScrollIntoView(canvasRef.current);
+        socket.emit('whiteboard-focus', { sessionId });
+      }, 60);
+    }
   };
 
-  const makeLocalFullScreen = () => {
-    setViewMode('local-full');
+  // --- UI Icons (simple + consistent)
+  const Icon = {
+    Mic: ({ off = false, ...p }) => off ? (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p} aria-hidden="true">
+        <path d="M12 14a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Zm-7 0a7 7 0 0 0 14 0" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M4 4l16 16" stroke="currentColor" strokeWidth="2" />
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p} aria-hidden="true">
+        <path d="M12 14a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Zm-7 0a7 7 0 0 0 14 0" fill="none" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    ),
+    Cam: ({ off = false, ...p }) => off ? (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M3 7h10a2 2 0 0 1 2 2v1l4-2v8l-4-2v1a2 2 0 0 1-2 2H3z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M4 4l16 16" stroke="currentColor" strokeWidth="2"/></svg>
+    ) : (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M3 7h10a2 2 0 0 1 2 2v1l4-2v8l-4-2v1a2 2 0 0 1-2 2H3z" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
+    ),
+    Switch: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M8 6h10l-3-3m3 3-3 3M16 18H6l3 3m-3-3 3-3" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
+    ),
+    Speaker: ({ off = false, ...p }) => off ? (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M4 9v6h4l6 4V5L8 9H4z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M16 12h4" stroke="currentColor" strokeWidth="2"/></svg>
+    ) : (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M4 9v6h4l6 4V5L8 9H4z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M18 9a6 6 0 0 1 0 6" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
+    ),
+    Share: (p) => (
+      // professional screen-share icon
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}>
+        <path d="M3 5h18v10H3zM9.5 21h5" fill="none" stroke="currentColor" strokeWidth="2"/>
+        <path d="M12 13V7m0 0l-3 3m3-3 3 3" fill="none" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    ),
+    Record: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}>
+        <circle cx="12" cy="12" r="5" fill="currentColor"/>
+        <rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    ),
+    Board: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}>
+        <rect x="3" y="4" width="18" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="2"/>
+        <path d="M8 19l2-3m6 3l-2-3" stroke="currentColor" strokeWidth="2"/>
+        <path d="M7 8h6m-6 3h10" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    ),
+    Chat: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}>
+        <path d="M4 5h16v10H7l-3 3z" fill="none" stroke="currentColor" strokeWidth="2"/>
+        <path d="M8 9h.01M12 9h.01M16 9h.01" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    ),
+    Blur: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}>
+        <path d="M12 3c5 6 5 12 0 18-5-6-5-12 0-18z" fill="none" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    ),
+    Full: ({ on = false, ...p }) => on ? (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2"/></svg>
+    ) : (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M4 9V5h4M20 9V5h-4M4 15v4h4m12-4v4h-4" stroke="currentColor" strokeWidth="2"/></svg>
+    ),
+    End: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" {...p} aria-hidden="true">
+        <path d="M4 14c0-4.418 3.582-8 8-8s8 3.582 8 8" fill="none" stroke="currentColor" strokeWidth="2"/>
+        <path d="M7 14l-3 3m13-3l3 3" stroke="currentColor" strokeWidth="2"/>
+      </svg>
+    )
   };
 
-  const resetViewMode = () => {
-    setViewMode('grid');
-  };
-
-  const toggleAnnotations = () => {
-    setIsAnnotationsEnabled(!isAnnotationsEnabled);
-  };
-
+  // --- Render
   return (
-    <div className="fixed inset-0 bg-gray-900 flex flex-col h-screen w-screen overflow-hidden font-sans">
+    <div className="fixed inset-0 bg-gray-900 text-white flex flex-col h-screen w-screen overflow-hidden font-sans">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-center p-2 sm:p-4 bg-gray-800 text-white shadow-md">
-        <div className="text-sm sm:text-lg font-semibold mb-2 sm:mb-0">
+      <header className="flex flex-col sm:flex-row justify-between items-center p-4 bg-gray-800 shadow-md">
+        <div className="text-lg font-semibold mb-2 sm:mb-0">
           {callStartTime ? (
-            <span>
-              Call Time: {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:
+            <span aria-live="polite">
+              Call Time:&nbsp;
+              {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:
               {String(elapsedSeconds % 60).padStart(2, '0')}
             </span>
           ) : (
             <span>Waiting for connection...</span>
           )}
-          {silverCoins !== null && (
-            <span className="ml-2 sm:ml-4">Coins: {silverCoins.toFixed(2)}</span>
+          {typeof silverCoins === 'number' && (
+            <span className="ml-4" title="Your current coins">Coins: {silverCoins.toFixed(2)}</span>
           )}
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <h2 className="text-sm sm:text-lg">{username} ({userRole})</h2>
+
+        <div className="flex items-center gap-3">
+          <h2 className="text-base sm:text-lg">{username} <span className="opacity-70">({userRole})</span></h2>
+          {/* End Call: red only, no cross icon */}
           <button
             onClick={handleEndCall}
-            className="px-3 sm:px-4 py-1 sm:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 text-xs sm:text-base"
+            className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 active:bg-red-800 transition-colors font-semibold focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+            aria-label="End Call"
+            title="End Call"
           >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
             End Call
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden" ref={videoContainerRef}>
-        {/* Video and Controls Section */}
-        <div className="flex-1 p-2 sm:p-4 flex flex-col gap-2 sm:gap-4 overflow-y-auto">
+      {/* Main */}
+      <main className="flex flex-1 overflow-hidden" ref={videoContainerRef}>
+        {/* Video Area */}
+        <section className="flex-1 p-2 sm:p-6 flex flex-col gap-4 sm:gap-6 overflow-y-auto">
           {/* Video Grid */}
-          <div className={`grid gap-2 sm:gap-4 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-            <div className={`relative rounded-lg overflow-hidden shadow-lg ${viewMode === 'local-full' ? 'h-[80vh] sm:h-[85vh]' : viewMode === 'remote-full' ? 'hidden' : 'h-40 sm:h-80'}`}>
+          <div className={`grid gap-4 sm:gap-6 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
+            {/* Local */}
+            <div className={`relative rounded-xl overflow-hidden shadow-lg ${viewMode === 'local-full' ? 'h-[80vh]' : viewMode === 'remote-full' ? 'hidden' : 'h-48 sm:h-96'}`}>
               <video
                 ref={localVideoRef}
                 autoPlay
                 muted
                 playsInline
                 className="w-full h-full bg-gray-800 object-cover"
+                aria-label="Your video"
               />
-              <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black bg-opacity-60 text-white px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm">
+              <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded-md text-xs sm:text-sm">
                 You ({username})
               </div>
               <button
                 onClick={makeLocalFullScreen}
-                className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
-                title="Full Screen Self"
+                className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+                title="Focus on self"
+                aria-label="Focus on self video"
               >
-                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
+                <Icon.Full />
               </button>
               {viewMode !== 'grid' && (
                 <button
                   onClick={resetViewMode}
-                  className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
-                  title="Exit Full Screen"
+                  className="absolute top-2 left-2 p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+                  title="Exit Focus"
+                  aria-label="Exit focus mode"
                 >
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <Icon.Full on />
                 </button>
               )}
             </div>
-            <div className={`relative rounded-lg overflow-hidden shadow-lg ${viewMode === 'remote-full' ? 'h-[80vh] sm:h-[85vh]' : viewMode === 'local-full' ? 'hidden' : 'h-40 sm:h-80'}`}>
+
+            {/* Remote */}
+            <div className={`relative rounded-xl overflow-hidden shadow-lg ${viewMode === 'remote-full' ? 'h-[80vh]' : viewMode === 'local-full' ? 'hidden' : 'h-48 sm:h-96'}`}>
               <video
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
                 className="w-full h-full bg-gray-800 object-cover"
+                aria-label="Partner video"
               />
-              <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black bg-opacity-60 text-white px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs sm:text-sm">
+              <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded-md text-xs sm:text-sm">
                 Partner
               </div>
               <button
                 onClick={makeRemoteFullScreen}
-                className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
-                title="Full Screen Partner"
+                className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+                title="Focus on partner"
+                aria-label="Focus on partner video"
               >
-                <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
+                <Icon.Full />
               </button>
               {viewMode !== 'grid' && (
                 <button
                   onClick={resetViewMode}
-                  className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 bg-gray-700 text-white rounded-full hover:bg-gray-600"
-                  title="Exit Full Screen"
+                  className="absolute top-2 left-2 p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+                  title="Exit Focus"
+                  aria-label="Exit focus mode"
                 >
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <Icon.Full on />
                 </button>
               )}
+
               {!remoteStream && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-800 rounded-lg">
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
                   <div className="text-white text-center">
-                    <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-t-2 border-white mx-auto mb-2"></div>
-                    <p className="text-xs sm:text-sm">Waiting for partner...</p>
+                    <div className="animate-spin rounded-full h-9 w-9 border-t-2 border-white mx-auto mb-3"></div>
+                    <p className="text-sm sm:text-base">Waiting for partner...</p>
                   </div>
                 </div>
               )}
@@ -720,14 +959,15 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
           {/* Screen Share */}
           {isScreenSharing && (
             <div className="mt-2 sm:mt-4">
-              <h3 className="text-sm sm:text-base font-semibold text-white mb-1 sm:mb-2">Screen Share</h3>
-              <div className="relative rounded-lg overflow-hidden shadow-lg">
+              <h3 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3">Screen Share</h3>
+              <div className="relative rounded-xl overflow-hidden shadow-lg">
                 <video
                   ref={screenVideoRef}
                   autoPlay
                   muted
                   playsInline
-                  className="w-full h-40 sm:h-80 bg-gray-800 object-cover"
+                  className="w-full h-48 sm:h-96 bg-gray-800 object-cover"
+                  aria-label="Shared screen"
                 />
                 {isAnnotationsEnabled && (
                   <canvas
@@ -739,74 +979,88 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                     onTouchStart={(e) => startDrawing(e, true)}
                     onTouchMove={(e) => draw(e, true)}
                     onTouchEnd={stopDrawing}
-                    className="absolute top-0 left-0 w-full h-full cursor-crosshair"
+                    className="absolute inset-0 w-full h-full cursor-crosshair"
                     style={{ touchAction: 'none', pointerEvents: isAnnotationsEnabled ? 'auto' : 'none' }}
+                    aria-label="Screen annotations canvas"
                   />
                 )}
               </div>
-              {isScreenSharing && (
-                <div className="flex gap-2 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2">
+                <button
+                  onClick={toggleAnnotations}
+                  className={`px-3 py-1.5 rounded-md text-sm ${isAnnotationsEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-600'}`}
+                  aria-pressed={isAnnotationsEnabled}
+                  title={isAnnotationsEnabled ? 'Disable annotations' : 'Enable annotations'}
+                >
+                  {isAnnotationsEnabled ? 'Disable Annotations' : 'Enable Annotations'}
+                </button>
+                {isAnnotationsEnabled && (
                   <button
-                    onClick={toggleAnnotations}
-                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md ${isAnnotationsEnabled ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white'}`}
+                    onClick={() => clearWhiteboard(true)}
+                    className="px-3 py-1.5 rounded-md text-sm bg-red-600 hover:bg-red-700"
+                    title="Clear annotations"
                   >
-                    {isAnnotationsEnabled ? 'Disable Annotations' : 'Enable Annotations'}
+                    Clear Annotations
                   </button>
-                  {isAnnotationsEnabled && (
-                    <button
-                      onClick={() => clearWhiteboard(true)}
-                      className="px-2 sm:px-3 py-1 bg-red-500 text-white rounded-md text-xs sm:text-sm hover:bg-red-600"
-                    >
-                      Clear Annotations
-                    </button>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
           {/* Whiteboard */}
           {showWhiteboard && (
             <div className="mt-2 sm:mt-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-1 sm:mb-2 gap-2">
-                <h3 className="text-sm sm:text-base font-semibold text-white">Whiteboard</h3>
-                <div className="flex flex-wrap gap-2 sm:gap-3">
-                  <input
-                    type="color"
-                    value={drawingColor}
-                    onChange={(e) => setDrawingColor(e.target.value)}
-                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-md border cursor-pointer"
-                    title="Choose color"
-                  />
-                  <select
-                    value={brushSize}
-                    onChange={(e) => setBrushSize(Number(e.target.value))}
-                    className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 text-white rounded-md text-xs sm:text-sm focus:outline-none"
-                  >
-                    <option value={1}>1px</option>
-                    <option value={3}>3px</option>
-                    <option value={5}>5px</option>
-                    <option value={10}>10px</option>
-                    <option value={20}>20px</option>
-                  </select>
-                  <select
-                    value={drawingTool}
-                    onChange={(e) => setDrawingTool(e.target.value)}
-                    className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 text-white rounded-md text-xs sm:text-sm focus:outline-none"
-                  >
-                    <option value="pen">Pen</option>
-                    <option value="highlighter">Highlighter</option>
-                    <option value="eraser">Eraser</option>
-                  </select>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 sm:mb-3 gap-2">
+                <h3 className="text-base sm:text-lg font-semibold">Whiteboard</h3>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <label className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm opacity-80">Color</span>
+                    <input
+                      type="color"
+                      value={drawingColor}
+                      onChange={(e) => setDrawingColor(e.target.value)}
+                      className="w-8 h-8 rounded-md border cursor-pointer"
+                      title="Choose color"
+                      aria-label="Choose pen color"
+                    />
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm opacity-80">Size</span>
+                    <select
+                      value={brushSize}
+                      onChange={(e) => setBrushSize(Number(e.target.value))}
+                      className="px-2 py-1 bg-gray-700 rounded-md text-xs sm:text-sm focus:outline-none"
+                      aria-label="Brush size"
+                    >
+                      {[1,3,5,10,20].map(s => <option key={s} value={s}>{s}px</option>)}
+                    </select>
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm opacity-80">Tool</span>
+                    <select
+                      value={drawingTool}
+                      onChange={(e) => setDrawingTool(e.target.value)}
+                      className="px-2 py-1 bg-gray-700 rounded-md text-xs sm:text-sm focus:outline-none"
+                      aria-label="Drawing tool"
+                    >
+                      <option value="pen">Pen</option>
+                      <option value="highlighter">Highlighter</option>
+                      <option value="eraser">Eraser</option>
+                    </select>
+                  </label>
+
                   <button
-                    onClick={() => clearWhiteboard()}
-                    className="px-2 sm:px-3 py-0.5 sm:py-1 bg-red-500 text-white rounded-md text-xs sm:text-sm hover:bg-red-600 transition-colors"
+                    onClick={() => clearWhiteboard(false)}
+                    className="px-3 py-1.5 rounded-md text-xs sm:text-sm bg-red-600 hover:bg-red-700"
+                    title="Clear whiteboard"
                   >
                     Clear
                   </button>
                 </div>
               </div>
-              <div className="border-2 border-gray-300 rounded-lg overflow-hidden shadow-lg">
+              <div className="border-2 border-gray-700 rounded-xl overflow-hidden shadow-lg bg-white">
                 <canvas
                   ref={canvasRef}
                   onMouseDown={startDrawing}
@@ -816,225 +1070,238 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                   onTouchStart={startDrawing}
                   onTouchMove={draw}
                   onTouchEnd={stopDrawing}
-                  className="w-full h-[200px] sm:h-[400px] bg-white cursor-crosshair"
+                  className="w-full h-[300px] sm:h-[500px] cursor-crosshair"
                   style={{ touchAction: 'none' }}
+                  aria-label="Collaborative whiteboard canvas"
                 />
               </div>
             </div>
           )}
-        </div>
+        </section>
 
-        {/* Chat Section */}
+        {/* Chat Sidebar */}
         {showChat && (
-          <div className="w-full sm:w-72 md:w-80 bg-gray-800 p-2 sm:p-4 flex flex-col shadow-lg">
-            <div className="flex justify-between items-center mb-1 sm:mb-2">
-              <h3 className="text-sm sm:text-base font-semibold text-white">Chat</h3>
+          <aside className="w-full sm:w-80 md:w-96 bg-gray-800 p-4 sm:p-6 flex flex-col shadow-lg">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-base sm:text-lg font-semibold">Chat</h3>
               <button
                 onClick={() => setShowChat(false)}
-                className="p-1 sm:p-2 text-gray-400 hover:text-white"
-                title="Close Chat"
+                className="px-2 py-1 text-gray-300 hover:text-white rounded focus:outline-none focus:ring-2 focus:ring-white"
+                title="Close chat"
+                aria-label="Close chat panel"
               >
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                Close
               </button>
             </div>
+
             <div
               ref={chatContainerRef}
-              className="flex-1 bg-gray-700 rounded-lg p-2 sm:p-3 overflow-y-auto text-white text-xs sm:text-sm"
+              className="flex-1 bg-gray-700 rounded-lg p-3 overflow-y-auto text-white text-sm sm:text-base space-y-2"
+              aria-live="polite"
             >
-              {messages.map((msg, index) => (
-                <div
-                  key={index}
-                  className={`mb-2 sm:mb-3 p-2 sm:p-3 rounded-lg ${
-                    msg.sender === username ? 'bg-blue-600 ml-auto' : 'bg-gray-600'
-                  } max-w-[80%]`}
-                >
-                  <p className="text-xs sm:text-sm font-semibold">{msg.sender}</p>
-                  <p>{msg.text}</p>
-                  <p className="text-xs text-gray-300 mt-1">
-                    {new Date(msg.timestamp).toLocaleTimeString()}
-                  </p>
-                </div>
-              ))}
+              {messages.map((msg, i) => {
+                const mine = msg.sender === username;
+                return (
+                  <div
+                    key={`${i}-${msg.timestamp}`}
+                    className={`p-2 sm:p-3 rounded-lg max-w-[85%] ${mine ? 'bg-blue-600 ml-auto' : 'bg-gray-600'}`}
+                  >
+                    <p className="text-xs sm:text-sm font-semibold">{msg.sender}</p>
+                    <p>{msg.text}</p>
+                    <p className="text-[10px] text-gray-200 mt-1">
+                      {new Date(msg.timestamp).toLocaleTimeString()}
+                    </p>
+                  </div>
+                );
+              })}
+              {messages.length === 0 && (
+                <div className="text-center text-gray-300 text-sm">No messages yet</div>
+              )}
             </div>
-            <div className="mt-2 sm:mt-3 flex">
+
+            <form className="mt-3 flex" onSubmit={sendMessage}>
               <input
                 type="text"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1 px-2 sm:px-3 py-1 sm:py-2 bg-gray-600 text-white rounded-l-lg focus:outline-none text-xs sm:text-sm"
+                className="flex-1 px-3 py-2 bg-gray-600 text-white rounded-l-lg focus:outline-none"
+                aria-label="Chat message input"
               />
               <button
-                onClick={sendMessage}
-                className="px-2 sm:px-4 py-1 sm:py-2 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm"
+                type="submit"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-r-lg transition-colors font-semibold"
+                aria-label="Send message"
+                title="Send"
               >
                 Send
               </button>
-            </div>
-          </div>
+            </form>
+          </aside>
         )}
-      </div>
+      </main>
 
-      {/* Reactions */}
-      <div className="absolute top-1/4 right-2 sm:right-4 flex flex-col gap-2">
-        {reactions.map((reaction, index) => (
+      {/* Reactions (float) */}
+      <div className="pointer-events-none absolute top-1/4 right-2 sm:right-10 flex flex-col gap-2">
+        {reactions.map((r, idx) => (
           <div
-            key={index}
-            className="bg-gray-800 text-white px-2 py-1 rounded-full animate-bounce text-xs sm:text-sm"
+            key={`${r.username}-${r.timestamp}-${idx}`}
+            className="pointer-events-auto bg-gray-800/90 text-white px-2 py-1 rounded-full animate-bounce text-sm sm:text-base"
+            role="status"
           >
-            {reaction.type} {reaction.username}
+            {r.type} {r.username}
           </div>
         ))}
       </div>
 
-      {/* Controls Footer */}
-      <div className="flex flex-wrap justify-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-800 shadow-md overflow-x-auto">
+      {/* Controls */}
+      <footer className="flex flex-wrap justify-center gap-2 sm:gap-4 p-2 sm:p-4 bg-gray-800 shadow-md">
+        {/* Mute */}
         <button
           onClick={toggleMute}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
-            isMuted ? 'bg-red-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
-          }`}
-          title={isMuted ? 'Unmute' : 'Mute'}
+          className={`p-2 sm:p-3 rounded-full transition-colors ${isMuted ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+          title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+          aria-pressed={isMuted}
+          aria-label="Toggle microphone"
         >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {isMuted ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM16 12h2M6 18L18 6" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-            )}
-          </svg>
+          <Icon.Mic off={isMuted} />
         </button>
+
+        {/* Camera */}
         <button
           onClick={toggleVideo}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
-            isVideoOff ? 'bg-red-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
-          }`}
-          title={isVideoOff ? 'Turn On Video' : 'Turn Off Video'}
+          className={`p-2 sm:p-3 rounded-full transition-colors ${isVideoOff ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+          title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
+          aria-pressed={isVideoOff}
+          aria-label="Toggle camera"
         >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {isVideoOff ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2zm0 0l6-6m-6 6l6-6" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            )}
-          </svg>
+          <Icon.Cam off={isVideoOff} />
         </button>
+
+        {/* Switch Camera */}
+        <button
+          onClick={switchCamera}
+          className="p-2 sm:p-3 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
+          title="Switch camera"
+          aria-label="Switch camera"
+        >
+          <Icon.Switch />
+        </button>
+
+        {/* Speaker (with neat popover) */}
         <div className="relative">
           <button
             onClick={toggleSpeaker}
-            className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
-              isSpeakerOn ? 'bg-gray-600 text-white hover:bg-gray-700' : 'bg-red-600 text-white'
-            }`}
-            title={isSpeakerOn ? 'Mute Speaker' : 'Unmute Speaker'}
+            className={`p-2 sm:p-3 rounded-full transition-colors ${isSpeakerOn ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600'}`}
+            title={isSpeakerOn ? 'Mute speaker' : 'Unmute speaker'}
+            aria-pressed={!isSpeakerOn}
+            aria-label="Toggle speaker output"
           >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              {isSpeakerOn ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM16 12h2" />
-              )}
-            </svg>
+            <Icon.Speaker off={!isSpeakerOn} />
           </button>
-          {isSpeakerOn && audioDevices.length > 1 && (
-            <select
-              value={selectedAudioDevice}
-              onChange={(e) => changeAudioDevice(e.target.value)}
-              className="absolute left-0 top-8 sm:top-10 bg-gray-700 text-white rounded-md p-1 sm:p-2 text-xs sm:text-sm z-50"
+
+          {/* Speaker device picker trigger */}
+          {audioDevices.length > 0 && (
+            <button
+              onClick={() => setShowSpeakerPicker(prev => !prev)}
+              className="ml-1 p-2 sm:p-3 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
+              title="Choose speaker device"
+              aria-expanded={showSpeakerPicker}
+              aria-label="Open speaker device menu"
             >
-              {audioDevices.map((device) => (
-                <option key={device.deviceId} value={device.deviceId}>
-                  {device.label || `Speaker ${device.deviceId.slice(0, 4)}`}
-                </option>
-              ))}
-            </select>
+              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2"/>
+              </svg>
+            </button>
+          )}
+
+          {/* Popover */}
+          {showSpeakerPicker && (
+            <div className="absolute left-0 mt-2 w-56 bg-gray-900 border border-gray-700 rounded-lg shadow-xl z-50 p-2">
+              <p className="px-2 py-1 text-xs text-gray-300">Select speaker</p>
+              <div className="max-h-56 overflow-auto mt-1">
+                {audioDevices.map((d) => (
+                  <button
+                    key={d.deviceId}
+                    onClick={() => changeAudioDevice(d.deviceId)}
+                    className={`w-full text-left px-3 py-2 rounded hover:bg-gray-700 ${selectedAudioDevice === d.deviceId ? 'bg-gray-700' : ''}`}
+                    title={d.label || 'Speaker'}
+                  >
+                    {d.label || `Speaker ${d.deviceId.slice(0, 4)}`}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
-       <button
-  onClick={toggleScreenShare}
-  className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
-    isScreenSharing ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
-  }`}
-  title={isScreenSharing ? 'Stop Sharing' : 'Share Screen'}
->
-  <svg
-    className="w-4 h-4 sm:w-5 sm:h-5"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    {/* Monitor outline */}
-    <rect
-      x="3"
-      y="5"
-      width="18"
-      height="12"
-      rx="2"
-      ry="2"
-      strokeWidth="2"
-    />
-    {/* Upward arrow from center */}
-    <path
-      d="M12 17V9m0 0l-3 3m3-3l3 3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-    />
-  </svg>
-</button>
 
+        {/* Screen Share (new icon) */}
+        <button
+          onClick={toggleScreenShare}
+          className={`p-2 sm:p-3 rounded-full transition-colors ${isScreenSharing ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+          title={isScreenSharing ? 'Stop sharing screen' : 'Share screen'}
+          aria-pressed={isScreenSharing}
+          aria-label="Toggle screen sharing"
+        >
+          <Icon.Share />
+        </button>
+
+        {/* Recording */}
         <button
           onClick={toggleRecording}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
-            isRecording ? 'bg-red-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
-          }`}
-          title={isRecording ? 'Stop Recording' : 'Start Recording'}
+          className={`p-2 sm:p-3 rounded-full transition-colors ${isRecording ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+          title={isRecording ? 'Stop recording' : 'Start recording'}
+          aria-pressed={isRecording}
+          aria-label="Toggle recording"
         >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-          </svg>
+          <Icon.Record />
         </button>
+
+        {/* Whiteboard (two-way + auto-scroll) */}
         <button
-          onClick={() => setShowWhiteboard(!showWhiteboard)}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
-            showWhiteboard ? 'bg-green-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
-          }`}
-          title={showWhiteboard ? 'Hide Whiteboard' : 'Show Whiteboard'}
+          onClick={toggleWhiteboard}
+          className={`p-2 sm:p-3 rounded-full transition-colors ${showWhiteboard ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+          title={showWhiteboard ? 'Hide whiteboard' : 'Show whiteboard'}
+          aria-pressed={showWhiteboard}
+          aria-label="Toggle whiteboard"
         >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
+          <Icon.Board />
         </button>
+
+        {/* Chat */}
         <button
-          onClick={() => setShowChat(!showChat)}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
-            showChat ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
-          }`}
-          title={showChat ? 'Hide Chat' : 'Show Chat'}
+          onClick={() => setShowChat(prev => !prev)}
+          className={`p-2 sm:p-3 rounded-full transition-colors ${showChat ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+          title={showChat ? 'Hide chat' : 'Show chat'}
+          aria-pressed={showChat}
+          aria-label="Toggle chat"
         >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
+          <Icon.Chat />
         </button>
+
+        {/* Reactions */}
         <div className="relative">
           <button
-            onClick={() => setShowReactionsMenu(!showReactionsMenu)}
-            className="p-2 sm:p-3 rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-colors text-xs sm:text-sm"
-            title="Send Reaction"
+            onClick={() => setShowReactionsMenu(prev => !prev)}
+            className="p-2 sm:p-3 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
+            title="Send reaction"
+            aria-expanded={showReactionsMenu}
+            aria-label="Open reactions"
           >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+              <path d="M12 17a4 4 0 0 1-4-4M9 9h.01M15 9h.01" stroke="currentColor" strokeWidth="2" fill="none"/>
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" fill="none"/>
             </svg>
           </button>
+
           {showReactionsMenu && (
-            <div className="fixed top-2 left-1/2 transform -translate-x-1/2 bg-gray-700 text-white rounded-md p-2 sm:p-3 flex flex-row gap-2 z-[1000] shadow-lg">
+            <div className="fixed top-2 left-1/2 -translate-x-1/2 bg-gray-900 border border-gray-700 rounded-md p-2 sm:p-3 flex flex-row gap-2 z-[1000] shadow-lg">
               {['😊', '👍', '👏', '❤️', '😂', '😮', '😢', '😡'].map((emoji) => (
                 <button
                   key={emoji}
                   onClick={() => sendReaction(emoji)}
-                  className="p-1 sm:p-2 hover:bg-gray-600 rounded text-sm sm:text-base transition-colors"
+                  className="p-1 sm:p-2 rounded hover:bg-gray-700 text-base sm:text-lg transition-colors"
+                  aria-label={`Send ${emoji}`}
                 >
                   {emoji}
                 </button>
@@ -1042,42 +1309,36 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
             </div>
           )}
         </div>
-        <div className="relative">
-          <button
-            onClick={() => toggleBackground(virtualBackground === 'blur' ? 'none' : 'blur')}
-            className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
-              virtualBackground !== 'none' ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
-            }`}
-            title={virtualBackground !== 'none' ? 'Remove Background' : 'Apply Background Blur'}
-          >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </button>
-        </div>
+
+        {/* Background blur */}
+        <button
+          onClick={() => toggleBackground(virtualBackground === 'blur' ? 'none' : 'blur')}
+          className={`p-2 sm:p-3 rounded-full transition-colors ${virtualBackground !== 'none' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+          title={virtualBackground !== 'none' ? 'Remove background blur' : 'Apply background blur'}
+          aria-pressed={virtualBackground !== 'none'}
+          aria-label="Toggle background blur"
+        >
+          <Icon.Blur />
+        </button>
+
+        {/* Fullscreen */}
         <button
           onClick={toggleFullScreen}
-          className={`p-2 sm:p-3 rounded-full transition-colors text-xs sm:text-sm ${
-            isFullScreen ? 'bg-blue-600 text-white' : 'bg-gray-600 text-white hover:bg-gray-700'
-          }`}
-          title={isFullScreen ? 'Exit Full Screen' : 'Enter Full Screen'}
+          className={`p-2 sm:p-3 rounded-full transition-colors ${isFullScreen ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
+          title={isFullScreen ? 'Exit full screen' : 'Enter full screen'}
+          aria-pressed={isFullScreen}
+          aria-label="Toggle fullscreen"
         >
-          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {isFullScreen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7v4H4m16 0h-4V7m0 10h4v-4m-16 0v4h4" />
-            )}
-          </svg>
+          <Icon.Full on={isFullScreen} />
         </button>
-      </div>
+      </footer>
 
       {/* Session Info */}
       <div className="p-2 sm:p-3 text-center text-gray-400 text-xs sm:text-sm">
         <p>Your Role: {userRole}</p>
         <p>Status: {isConnected ? 'Connected' : 'Connecting...'}</p>
         {remoteStream && <p className="text-green-400">Partner Connected!</p>}
-        {showWhiteboard && <p className="text-blue-400">Whiteboard Active - Draw to collaborate!</p>}
+        {showWhiteboard && <p className="text-blue-400">Whiteboard Active — drawing sync is on.</p>}
       </div>
     </div>
   );
