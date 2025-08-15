@@ -93,7 +93,7 @@ export function AuthProvider({ children }) {
       await signOutFromGoogle(email);
       // If your backend clears httpOnly cookie
       try {
-        const res = await fetch(${import.meta.env.VITE_BACKEND_URL || ''}/api/auth/logout, {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || ''}/api/auth/logout`, {
           method: 'POST',
           credentials: 'include',
         });
@@ -132,4 +132,4 @@ export function AuthProvider({ children }) {
 export const useAuth = () => useContext(AuthContext);
 
 // Keep default export if other files import it as default
-export default AuthProvider;
+export default AuthProvider;
