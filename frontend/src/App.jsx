@@ -48,158 +48,133 @@ const appRoutes = [
   { path: '/register', element: <Register /> }, // Public route
   { 
     path: '/one-on-one', 
-    element: <ProtectedRoute redirectTo="/login"><OneOnOne /></ProtectedRoute> 
+    element: <ProtectedRoute><OneOnOne /></ProtectedRoute> 
   },
   { 
     path: '/discuss', 
-    element: <ProtectedRoute redirectTo="/login"><Discuss /></ProtectedRoute> 
+    element: <ProtectedRoute><Discuss /></ProtectedRoute> 
   },
   { 
     path: '/interview', 
-    element: <ProtectedRoute redirectTo="/login"><Interview /></ProtectedRoute> 
+    element: <ProtectedRoute><Interview /></ProtectedRoute> 
   },
   { 
     path: '/session', 
-    element: <ProtectedRoute redirectTo="/login"><Sessions /></ProtectedRoute> 
+    element: <ProtectedRoute><Sessions /></ProtectedRoute> 
   },
   { 
     path: '/session-requests', 
-    element: <ProtectedRoute redirectTo="/login"><SessionRequests /></ProtectedRoute> 
+    element: <ProtectedRoute><SessionRequests /></ProtectedRoute> 
   },
   { 
     path: '/testimonials', 
-    element: <ProtectedRoute redirectTo="/login"><Testimonial showAll={true} /></ProtectedRoute> 
+    element: <ProtectedRoute><Testimonial showAll={true} /></ProtectedRoute> 
   },
   { 
     path: '/your-profile', 
-    element: <ProtectedRoute redirectTo="/login"><Profile /></ProtectedRoute> 
+    element: <ProtectedRoute><Profile /></ProtectedRoute> 
   },
   { 
     path: '/createSession', 
-    element: <ProtectedRoute redirectTo="/login"><CreateSession /></ProtectedRoute> 
+    element: <ProtectedRoute><CreateSession /></ProtectedRoute> 
   },
   { 
     path: '/package', 
-    element: <ProtectedRoute redirectTo="/login"><Package /></ProtectedRoute> 
+    element: <ProtectedRoute><Package /></ProtectedRoute> 
   },
   { 
     path: '/learning-history', 
-    element: <ProtectedRoute redirectTo="/login"><HistoryPage /></ProtectedRoute> 
+    element: <ProtectedRoute><HistoryPage /></ProtectedRoute> 
   },
   { 
     path: '/help', 
-    element: <ProtectedRoute redirectTo="/login"><HelpSupportPage /></ProtectedRoute> 
+    element: <ProtectedRoute><HelpSupportPage /></ProtectedRoute> 
   },
   { 
     path: '/pro', 
-    element: <ProtectedRoute redirectTo="/login"><GoPro /></ProtectedRoute> 
+    element: <ProtectedRoute><GoPro /></ProtectedRoute> 
   },
   { 
     path: '/accountSettings', 
-    element: <ProtectedRoute redirectTo="/login"><AccountSettings /></ProtectedRoute> 
+    element: <ProtectedRoute><AccountSettings /></ProtectedRoute> 
   },
   { 
     path: '/StartSkillSwap', 
-    element: <ProtectedRoute redirectTo="/login"><StartSkillSwap /></ProtectedRoute> 
+    element: <ProtectedRoute><StartSkillSwap /></ProtectedRoute> 
   },
   { 
     path: '/report', 
-    element: <ProtectedRoute redirectTo="/login"><ReportPage /></ProtectedRoute> 
+    element: <ProtectedRoute><ReportPage /></ProtectedRoute> 
   },
   { 
     path: '/teaching-history', 
-    element: <ProtectedRoute redirectTo="/login"><TeachingHistory /></ProtectedRoute> 
+    element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> 
   },
   { 
     path: '/blog', 
-    element: <ProtectedRoute redirectTo="/login"><Blog /></ProtectedRoute> 
+    element: <ProtectedRoute><Blog /></ProtectedRoute> 
   },
   { 
     path: '/search', 
-    element: <ProtectedRoute redirectTo="/login"><SearchPage /></ProtectedRoute> 
+    element: <ProtectedRoute><SearchPage /></ProtectedRoute> 
   },
   { 
     path: '/admin', 
-    element: <ProtectedRoute redirectTo="/login" adminOnly><AdminPanel /></ProtectedRoute> 
+    element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> 
   },
   ...accountSettingsRoutes.map(route => ({
     ...route,
-    element: <ProtectedRoute redirectTo="/login">{route.element}</ProtectedRoute>
+    element: <ProtectedRoute>{route.element}</ProtectedRoute>
   })),
   {
     path: '/profile',
-    element: <ProtectedRoute redirectTo="/login"><PrivateProfile /></ProtectedRoute>,
+    element: <ProtectedRoute><PrivateProfile /></ProtectedRoute>,
     children: privateProfileRoutes.map(route => ({
       ...route,
-      element: <ProtectedRoute redirectTo="/login">{route.element}</ProtectedRoute>
+      element: <ProtectedRoute>{route.element}</ProtectedRoute>
     })),
   },
   {
     path: '/public-profile',
-    element: <ProtectedRoute redirectTo="/login"><PublicProfile /></ProtectedRoute>,
+    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>,
     children: publicProfileRoutes.map(route => ({
       ...route,
-      element: <ProtectedRoute redirectTo="/login">{route.element}</ProtectedRoute>
+      element: <ProtectedRoute>{route.element}</ProtectedRoute>
     })),
   },
   {
     path: '/profile/:username',
-    element: <ProtectedRoute redirectTo="/login"><PublicProfile /></ProtectedRoute>,
+    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>,
   },
 ];
-
-function useRegisterSocket() {
-  useEffect(() => {
-    const userCookie = Cookies.get('user');
-    let user = null;
-    if (userCookie && userCookie !== 'undefined') {
-      try {
-        user = JSON.parse(userCookie);
-      } catch (e) {
-        user = null;
-      }
-    }
-    if (user && user._id) {
-      socket.emit('register', user._id);
-    }
-  }, []);
-}
 
 function App() {
   const { user } = useAuth();
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isHomePage = location.pathname === '/home';
   const element = useRoutes(appRoutes);
 
-  // Register socket whenever user changes
-  React.useEffect(() => {
-    console.info('[DEBUG] App: User changed:', user && user._id);
+  // Register socket for authenticated users only
+  useEffect(() => {
     if (user && user._id) {
+      console.info('[DEBUG] App: User changed:', user._id);
       socket.emit('register', user._id);
-      console.info('[DEBUG] Socket register emitted for user:', user && user._id);
+      console.info('[DEBUG] Socket register emitted for user:', user._id);
     } else {
       console.info('[DEBUG] App: No user found in context');
     }
   }, [user]);
 
-  // Redirect to login for unauthenticated users trying to access protected routes from home
-  React.useEffect(() => {
-    if (!user && !isAuthPage && !isHomePage) {
-      navigate('/login', { state: { from: location.pathname } });
-    }
-  }, [user, location.pathname]);
-
   return (
     <ModalProvider>
       <ModalBodyScrollLock />
       <GlobalModals />
-      <Navbar /> {/* Show Navbar on all pages, but links are protected by ProtectedRoute */}
-      <div className={isHomePage ? '' : 'pt-8'}>
+      {!isAuthPage && <Navbar />}
+      <div className={location.pathname === '/home' ? '' : 'pt-8'}>
         {element}
-        {user && <CompleteProfile />} {/* Only render for authenticated users */}
+        {user && location.pathname !== '/login' && location.pathname !== '/register' && <CompleteProfile />}
       </div>
-      <Footer /> {/* Show Footer on all pages */}
+      {!isAuthPage && <Footer />}
     </ModalProvider>
   );
 }
