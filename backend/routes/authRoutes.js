@@ -60,17 +60,14 @@ router.get(
   async (req, res) => {
     try {
       const user = req.user;
-      if (!user || !user.email) return res.redirect('/api/auth/failure');
+      if (!user?.email) return res.redirect('/api/auth/failure');
 
       const token = generateToken(user);
 
-      const origin = req.get('origin') || req.get('referer') || '';
-      const frontendEnv =
-        process.env.FRONTEND_URL ||
-        (process.env.NODE_ENV === 'production' ? 'https://skillswaphub.in' : 'http://localhost:5173');
-
-      const frontendUrl =
-        origin && /^https?:\/\//i.test(origin) ? origin.replace(/\/+$/, '') : frontendEnv;
+      // Always use configured frontend; never trust Origin/Referer from Google
+      const frontendUrl = (process.env.FRONTEND_URL ||
+        (process.env.NODE_ENV === 'production' ? 'https://skillswaphub.in' : 'http://localhost:5173')
+      ).replace(/\/+$/, '');
 
       res.cookie('token', token, {
         httpOnly: true,
@@ -83,6 +80,7 @@ router.get(
 
       return res.redirect(`${frontendUrl}/home`);
     } catch (e) {
+      console.error('OAuth callback error:', e);
       return res.redirect('/api/auth/failure');
     }
   }
