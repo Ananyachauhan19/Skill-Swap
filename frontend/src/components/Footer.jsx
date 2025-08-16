@@ -199,7 +199,7 @@ const Footer = () => {
                   />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-extrabold text-blue-900 tracking-tight">SkillSwapHub</h1>
+                  <h1 className="text-2xl font-extrabold text-blue-900 tracking-tight">SkillSwap Hub</h1>
                   <p className="text-sm text-gray-800 leading-relaxed mt-1 max-w-xs">
                     Empowering people to learn, teach, and grow together
                   </p>

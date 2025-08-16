@@ -492,7 +492,7 @@ const Navbar = () => {
               className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-full shadow-md border-2 border-blue-900"
             />
             <span className="text-sm sm:text-base font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
-              SkillSwapHub
+              SkillSwap Hub
             </span>
           </div>
 
