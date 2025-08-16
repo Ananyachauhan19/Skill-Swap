@@ -58,9 +58,26 @@ router.post('/login/success', (req, res) => {
 
 // Logout route
 router.post('/logout', (req, res) => {
-  res.clearCookie('token', cookieOptions);
-  res.clearCookie('user', { ...cookieOptions, httpOnly: false });
-  return res.status(200).json({ message: 'Logged out' });
+  req.logout((err) => {
+    if (err) {
+      console.error('Passport logout error:', err);
+      return res.status(500).json({ message: 'Logout failed' });
+    }
+
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destruction error:', err);
+        return res.status(500).json({ message: 'Session destruction failed' });
+      }
+
+      // Clear all relevant cookies with matching options
+      res.clearCookie('connect.sid', cookieOptions); // Session cookie
+      res.clearCookie('token', cookieOptions);
+      res.clearCookie('user', { ...cookieOptions, httpOnly: false });
+
+      return res.status(200).json({ message: 'Logged out successfully' });
+    });
+  });
 });
 
 // Test endpoint to check cookies
