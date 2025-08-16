@@ -3,7 +3,7 @@ import { BACKEND_URL } from '../config';
 
 const api = axios.create({
   baseURL: BACKEND_URL,
-  withCredentials: true, // send cookie to api.skillswaphub.in
+  withCredentials: true, // ensure cookies flow both ways
 });
 
 export default api;
