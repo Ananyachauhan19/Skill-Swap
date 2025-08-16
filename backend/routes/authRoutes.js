@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-// FIX: import generateToken as default (not named)
 const generateToken = require('../utils/generateToken');
 const {
   register,
@@ -25,35 +24,64 @@ const sanitizeArrayFields = (data, validKeys) => {
   });
 };
 
+// Environment-based cookie configuration
+const isProd = process.env.NODE_ENV === 'production';
+const COOKIE_DOMAIN = isProd ? 'skillswaphub.in' : undefined; // No leading dot
+const cookieBase = {
+  path: '/',
+  httpOnly: true,
+  sameSite: isProd ? 'none' : 'lax', // Cross-site requires 'none' + secure in prod
+  secure: isProd,
+  domain: COOKIE_DOMAIN,
+};
+
 // Email-based routes
 router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
 
-const isProd = process.env.NODE_ENV === 'production';
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
-const cookieBase = {
-  path: '/',
-  httpOnly: true,
-  sameSite: isProd ? 'none' : 'lax', // cross-site requires 'none' + secure in prod
-  secure: isProd,
-  domain: COOKIE_DOMAIN, // omit in dev unless you set it when creating
-};
-
 // Example: after successful login, set cookie consistently
 router.post('/login/success', (req, res) => {
-  const { token } = req.body; // or from controller
+  const { token } = req.body;
   if (!token) return res.status(400).json({ message: 'No token' });
   res.cookie('token', token, { ...cookieBase, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.cookie('user', JSON.stringify(req.user), {
+    ...cookieBase,
+    httpOnly: false, // Allow frontend access
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
   return res.status(200).json({ ok: true });
 });
 
-// Logout: clear with the same options (must match path/domain/samesite/secure)
+// Logout route: Clear session and all relevant cookies
 router.post('/logout', (req, res) => {
-  res.clearCookie('token', cookieBase);
-  // If you also set a non-httpOnly 'user' cookie for UI convenience, clear that too:
-  res.clearCookie('user', { ...cookieBase, httpOnly: false });
-  return res.status(200).json({ message: 'Logged out' });
+  if (req.user) {
+    req.logout((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ message: 'Logout failed' });
+      }
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destruction error:', err);
+          return res.status(500).json({ message: 'Session destruction failed' });
+        }
+        // Clear session cookie
+        res.clearCookie('connect.sid', cookieBase);
+        // Clear token cookie
+        res.clearCookie('token', cookieBase);
+        // Clear user cookie (non-httpOnly for frontend access)
+        res.clearCookie('user', { ...cookieBase, httpOnly: false });
+        return res.status(200).json({ message: 'Logged out successfully' });
+      });
+    });
+  } else {
+    // Clear cookies even if no user is logged in
+    res.clearCookie('connect.sid', cookieBase);
+    res.clearCookie('token', cookieBase);
+    res.clearCookie('user', { ...cookieBase, httpOnly: false });
+    return res.status(200).json({ message: 'Logged out successfully' });
+  }
 });
 
 // Test endpoint to check cookies
@@ -61,14 +89,16 @@ router.get('/test-cookie', (req, res) => {
   console.log('Test Cookie - All cookies:', req.cookies);
   res.cookie('test', 'test-value', {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    domain: COOKIE_DOMAIN,
+    path: '/',
     maxAge: 24 * 60 * 60 * 1000
   });
   res.json({ message: 'Test cookie set', cookies: req.cookies });
 });
 
-// Google OAuth entry (force exact callback URL)
+// Google OAuth entry
 router.get(
   '/google',
   passport.authenticate('google', {
@@ -89,17 +119,18 @@ router.get(
 
       const token = generateToken(user);
 
-      // Always use configured frontend; never trust Origin/Referer from Google
+      // Consistent frontend URL
       const frontendUrl = (process.env.FRONTEND_URL ||
-        (process.env.NODE_ENV === 'production' ? 'https://skillswaphub.in' : 'http://localhost:5173')
+        (isProd ? 'https://skillswaphub.in' : 'http://localhost:5173')
       ).replace(/\/+$/, '');
 
       res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : undefined,
-        path: '/',
+        ...cookieBase,
+        maxAge: 24 * 60 * 60 * 1000
+      });
+      res.cookie('user', JSON.stringify(user), {
+        ...cookieBase,
+        httpOnly: false, // Allow frontend access
         maxAge: 24 * 60 * 60 * 1000
       });
 
@@ -111,7 +142,7 @@ router.get(
   }
 );
 
-// Failure route — returns only the message
+// Failure route
 router.get('/failure', (_req, res) => {
   res.status(400).json({ message: 'Google sign-in failed' });
 });
@@ -119,17 +150,29 @@ router.get('/failure', (_req, res) => {
 // LinkedIn OAuth
 router.get('/linkedin', passport.authenticate('linkedin'));
 router.get('/linkedin/callback', passport.authenticate('linkedin', {
-  failureRedirect: '/auth/failure'
+  failureRedirect: '/api/auth/failure'
 }), async (req, res) => {
   try {
     const user = req.user;
     const token = generateToken(user);
-    const origin = req.get('origin') || req.get('referer') || 'http://localhost:5173';
-    const frontendUrl = origin.includes('localhost') ? 'http://localhost:5173' : origin.replace(/\/$/, '');
-    res.redirect(`${frontendUrl}/home?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+    const frontendUrl = (process.env.FRONTEND_URL ||
+      (isProd ? 'https://skillswaphub.in' : 'http://localhost:5173')
+    ).replace(/\/+$/, '');
+    
+    res.cookie('token', token, {
+      ...cookieBase,
+      maxAge: 24 * 60 * 60 * 1000
+    });
+    res.cookie('user', JSON.stringify(user), {
+      ...cookieBase,
+      httpOnly: false,
+      maxAge: 24 * 60 * 60 * 1000
+    });
+    
+    res.redirect(`${frontendUrl}/home`);
   } catch (error) {
     console.error('LinkedIn OAuth error:', error);
-    res.redirect('/auth/failure');
+    res.redirect('/api/auth/failure');
   }
 });
 
@@ -137,16 +180,12 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
 router.get('/search', async (req, res) => {
   try {
     const { username } = req.query;
-    
     if (!username) {
       return res.status(400).json({ message: 'Username query parameter is required' });
     }
-    
-    // Search for users with usernames that contain the search query (case insensitive)
     const users = await User.find({
       username: { $regex: username, $options: 'i' }
     }).select('_id username firstName lastName profilePic').limit(10);
-    
     res.json({ users });
   } catch (error) {
     console.error('Error searching users:', error);
@@ -201,9 +240,9 @@ router.get('/user/profile', requireAuth, async (req, res) => {
 
 // Update user profile
 router.put('/user/profile', requireAuth, async (req, res) => {
-  const { 
-    firstName, lastName, bio, country, profilePic, education, experience, 
-    certificates, linkedin, website, github, twitter, skillsToTeach, 
+  const {
+    firstName, lastName, bio, country, profilePic, education, experience,
+    certificates, linkedin, website, github, twitter, skillsToTeach,
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
 
@@ -212,7 +251,6 @@ router.put('/user/profile', requireAuth, async (req, res) => {
   try {
     const updateData = {};
 
-    // Sanitize array fields to remove invalid keys
     if (education !== undefined) {
       updateData.education = sanitizeArrayFields(education, ['course', 'branch', 'college', 'city', 'passingYear']);
     }
@@ -223,7 +261,6 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       updateData.certificates = sanitizeArrayFields(certificates, ['name', 'issuer', 'date', 'url']);
     }
 
-    // Include other fields if provided
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
     if (bio !== undefined) updateData.bio = bio;
@@ -254,7 +291,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('Updated user profile:', { 
+    console.log('Updated user profile:', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -340,9 +377,9 @@ router.get('/profile', requireAuth, async (req, res) => {
 
 // Sync /api/user/profile update to /api/auth/user/profile
 router.put('/profile', requireAuth, async (req, res) => {
-  const { 
-    firstName, lastName, bio, country, profilePic, education, experience, 
-    certificates, linkedin, website, github, twitter, skillsToTeach, 
+  const {
+    firstName, lastName, bio, country, profilePic, education, experience,
+    certificates, linkedin, website, github, twitter, skillsToTeach,
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
 
@@ -351,7 +388,6 @@ router.put('/profile', requireAuth, async (req, res) => {
   try {
     const updateData = {};
 
-    // Sanitize array fields to remove invalid keys
     if (education !== undefined) {
       updateData.education = sanitizeArrayFields(education, ['course', 'branch', 'college', 'city', 'passingYear']);
     }
@@ -362,7 +398,6 @@ router.put('/profile', requireAuth, async (req, res) => {
       updateData.certificates = sanitizeArrayFields(certificates, ['name', 'issuer', 'date', 'url']);
     }
 
-    // Include other fields if provided
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
     if (bio !== undefined) updateData.bio = bio;
@@ -393,7 +428,7 @@ router.put('/profile', requireAuth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('Updated user profile (/profile):', { 
+    console.log('Updated user profile (/profile):', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -463,20 +498,19 @@ router.get('/coins', requireAuth, async (req, res) => {
 // Get user history/sessions
 router.get('/user/history', requireAuth, async (req, res) => {
   try {
-    // Mock history data (replace with actual implementation later)
     const mockHistory = [
-      { 
-        date: '2025-01-15', 
+      {
+        date: '2025-01-15',
         sessions: ['React Workshop', 'Node.js Q&A'],
         count: 2
       },
-      { 
-        date: '2025-01-14', 
+      {
+        date: '2025-01-14',
         sessions: ['JavaScript Basics'],
         count: 1
       },
-      { 
-        date: '2025-01-13', 
+      {
+        date: '2025-01-13',
         sessions: ['Python Tutorial', 'Data Structures'],
         count: 2
       }
@@ -491,7 +525,6 @@ router.get('/user/history', requireAuth, async (req, res) => {
 // Get user videos
 router.get('/videos', requireAuth, async (req, res) => {
   try {
-    // Mock videos data (replace with actual implementation later)
     const mockVideos = [
       {
         id: "1",
