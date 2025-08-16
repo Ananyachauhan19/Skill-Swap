@@ -8,7 +8,6 @@ import ModalBodyScrollLock from './ModalBodyScrollLock';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext.jsx';
 import socket from './socket';
-import Cookies from 'js-cookie';
 
 // pages...
 import Home from './user/Home';
@@ -87,7 +86,7 @@ const appRoutes = [
   },
   {
     path: '/profile/:username',
-    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>,
+    element: <PublicProfile />, // Public profile accessible without login
   },
 ];
 
@@ -100,33 +99,22 @@ function App() {
 
   // ---------------- SOCKET ----------------
   useEffect(() => {
-    const userCookie = Cookies.get('user');
-    let parsedUser = null;
-
-    if (userCookie && userCookie !== 'undefined') {
-      try {
-        parsedUser = JSON.parse(userCookie);
-      } catch (e) {
-        console.error('Failed to parse user cookie:', e);
-      }
+    if (!user || !user._id) {
+      console.info('[DEBUG] App: No valid user for socket registration');
+      return;
     }
 
-    if (parsedUser && parsedUser?._id && user && user?._id) {
-      socket.emit('register', user._id);
-      console.info('[DEBUG] Socket register emitted for user:', user._id);
-    } else {
-      console.info('[DEBUG] App: No valid user found for socket registration');
-    }
+    socket.emit('register', user._id);
+    console.info('[DEBUG] Socket register emitted for user:', user._id);
 
     return () => {
       socket.off('register');
     };
-  }, [user]);
+  }, [user?._id]); // Depend on user._id to prevent unnecessary runs
 
   // ---------------- LOGOUT HANDLER ----------------
   useEffect(() => {
     const handleAuthChange = () => {
-      // Rely on AuthProvider's logout for cookie and storage cleanup
       if (socket.connected) {
         socket.disconnect();
         console.info('[DEBUG] Socket disconnected on auth change');
@@ -145,7 +133,6 @@ function App() {
       const path = location.pathname;
       const isPublic = path === '/home' || path === '/login' || path === '/register' || path.startsWith('/profile/');
 
-      // If user not logged in and tries to access non-public route → redirect to /home
       if (!user && !isPublic) {
         navigate('/home', { replace: true });
       }
@@ -161,7 +148,7 @@ function App() {
         if (location.pathname !== '/home') {
           navigate('/home', { replace: true });
         }
-      }, 10000); // every 10 seconds
+      }, 10000);
     }
 
     return () => {

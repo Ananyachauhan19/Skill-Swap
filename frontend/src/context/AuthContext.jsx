@@ -10,29 +10,41 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const isProduction = process.env.NODE_ENV === 'production';
-  const cookieDomain = isProduction ? 'skillswaphub.in' : undefined; // No leading dot
+  const cookieDomain = isProduction ? 'skillswaphub.in' : undefined;
 
   // Clear client-side authentication data
   const clearAuthData = () => {
-    // Clear 'user' cookie with matching attributes
+    console.info('[DEBUG] Clearing auth data');
     Cookies.remove('user', {
       path: '/',
       domain: cookieDomain,
       secure: isProduction,
       sameSite: isProduction ? 'none' : 'lax'
     });
+    Cookies.remove('token', {
+      path: '/',
+      domain: cookieDomain,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax'
+    });
+    // Fallback: Try clearing without domain for robustness
+    Cookies.remove('user', { path: '/' });
+    Cookies.remove('token', { path: '/' });
     localStorage.clear();
     sessionStorage.clear();
+    console.info('[DEBUG] Cookies after clear:', Cookies.get());
   };
 
   // Fetch authenticated user
   const fetchUser = async () => {
     try {
+      console.info('[DEBUG] Fetching user from /api/auth/me');
       const response = await api.get('/api/auth/me', {
         withCredentials: true,
         headers: { 'Cache-Control': 'no-cache' }
       });
       const fetchedUser = response.data.user || null;
+      console.info('[DEBUG] Fetched user:', fetchedUser);
       if (fetchedUser) {
         setUser(fetchedUser);
         Cookies.set('user', JSON.stringify(fetchedUser), {
@@ -46,7 +58,7 @@ export function AuthProvider({ children }) {
         clearAuthData();
       }
     } catch (error) {
-      console.error('Failed to fetch user:', error);
+      console.error('[DEBUG] Failed to fetch user:', error.message, error.response?.data);
       setUser(null);
       clearAuthData();
     } finally {
@@ -62,6 +74,7 @@ export function AuthProvider({ children }) {
   // Handle authChanged event
   useEffect(() => {
     const handleAuthChange = async () => {
+      console.info('[DEBUG] authChanged event triggered');
       await fetchUser();
     };
     window.addEventListener('authChanged', handleAuthChange);
@@ -71,20 +84,18 @@ export function AuthProvider({ children }) {
   // Logout function
   const logout = async () => {
     try {
-      // Call backend logout endpoint
+      console.info('[DEBUG] Initiating logout');
       await api.post('/api/auth/logout', {}, { withCredentials: true });
-      // Clear Google OAuth session
+      console.info('[DEBUG] Backend logout successful');
       googleLogout();
-      // Clear client-side data
+      console.info('[DEBUG] Google logout called');
       clearAuthData();
-      // Update auth state
       setUser(null);
-      // Trigger authChanged event
       window.dispatchEvent(new Event('authChanged'));
     } catch (error) {
-      console.error('Logout failed:', error);
-      setUser(null);
+      console.error('[DEBUG] Logout failed:', error.message, error.response?.data);
       clearAuthData();
+      setUser(null);
       window.dispatchEvent(new Event('authChanged'));
     }
   };
