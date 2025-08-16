@@ -129,12 +129,15 @@ function App() {
     const handleAuthChange = () => {
       try { googleLogout(); } catch (_) {}
       try {
+        const isProduction = !window.location.hostname.includes('localhost'); // Detect prod env (adjust if needed for other dev setups)
+        const cookieDomain = isProduction ? '.skillswaphub.in' : undefined; // Match backend's production domain
+
         Object.keys(Cookies.get()).forEach((cookieName) => {
-          try {
-            Cookies.remove(cookieName, { path: '/', domain: window.location.hostname });
-            Cookies.remove(cookieName, { path: '/' });
-            Cookies.remove(cookieName);
-          } catch (_) {}
+          // Remove with production domain if applicable
+          Cookies.remove(cookieName, { path: '/', domain: cookieDomain });
+          // Fallback removals for safety (without domain, or with path only)
+          Cookies.remove(cookieName, { path: '/' });
+          Cookies.remove(cookieName);
         });
       } catch (_) {}
 
