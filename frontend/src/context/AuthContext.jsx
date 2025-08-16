@@ -12,24 +12,30 @@ export function AuthProvider({ children }) {
   // Flag to prevent /me re-fetch during logout
   const isLoggingOutRef = useRef(false);
 
-  // Define the actual cookie names used by your app
-  const cookieNames = ['user']; // Only non-HttpOnly cookie; connect.sid and token are server-cleared
+  // Define all cookie names used by the app
+  const cookieNames = ['connect.sid', 'token', 'user']; // Include all for defensive cleanup
   const isProduction = !window.location.hostname.includes('localhost');
   const cookieDomain = isProduction ? '.skillswaphub.in' : undefined;
 
   const clearAuthData = () => {
     try {
+      // Remove specific cookies with proper domain
       cookieNames.forEach((cookieName) => {
-        // Remove with production domain if applicable
         Cookies.remove(cookieName, { path: '/', domain: cookieDomain });
-        // Fallback removals for safety
         Cookies.remove(cookieName, { path: '/' });
         Cookies.remove(cookieName);
       });
 
-      // Clear only auth-related storage items (add specific keys if used)
-      localStorage.removeItem('auth_data'); // Replace with actual keys if any
-      sessionStorage.removeItem('auth_data'); // Replace with actual keys if any
+      // Fallback: Clear all cookies if specific removals fail
+      Object.keys(Cookies.get()).forEach((cookieName) => {
+        Cookies.remove(cookieName, { path: '/', domain: cookieDomain });
+        Cookies.remove(cookieName, { path: '/' });
+        Cookies.remove(cookieName);
+      });
+
+      // Clear auth-related storage (add specific keys if used)
+      localStorage.removeItem('auth_data');
+      sessionStorage.removeItem('auth_data');
     } catch (_) {
       // Ignore errors
     }
@@ -122,7 +128,7 @@ export function AuthProvider({ children }) {
         googleLogout();
       } catch (_) {}
 
-      // Client-side cleanup for non-HttpOnly cookies and storage
+      // Client-side cleanup
       clearAuthData();
       setUser(null);
 
@@ -134,14 +140,14 @@ export function AuthProvider({ children }) {
       setUser(null);
       window.dispatchEvent(new Event('authChanged'));
     } finally {
-      // Reset flag after a delay to ensure event handlers complete
+      // Reset flag after a delay
       setTimeout(() => {
         isLoggingOutRef.current = false;
-      }, 200); // Increased to 200ms for reliability
+      }, 200);
     }
   };
 
-  // Token refresh mechanism (if used)
+  // Token refresh mechanism
   useEffect(() => {
     if (!user) return;
 
@@ -149,9 +155,12 @@ export function AuthProvider({ children }) {
       try {
         await api.post('/api/auth/refresh', {}, { withCredentials: true });
         await fetchUser();
-      } catch (error/"Failed to fetch user: AxiosError: Request failed with status code 401") {
+      } catch (error) {
         console.error('Token refresh failed:', error);
-        await logout(); // Auto-logout on refresh failure
+        // Check for 401 specifically
+        if (error.response && error.response.status === 401) {
+          await logout(); // Auto-logout on unauthorized
+        }
       }
     }, 30 * 60 * 1000); // Every 30 minutes
 
