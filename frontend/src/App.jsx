@@ -1,15 +1,15 @@
 import React, { useEffect } from 'react';
+import { useLocation, useRoutes, Navigate, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { useLocation, useRoutes, Navigate, useNavigate } from 'react-router-dom';
 import { ModalProvider } from './context/ModalContext';
 import GlobalModals from './GlobalModals';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext.jsx';
-
 import socket from './socket';
 import Cookies from 'js-cookie';
+import { googleLogout } from '@react-oauth/google';
 
 import Home from './user/Home';
 import Login from './auth/Login';
@@ -39,13 +39,13 @@ import CompleteProfile from './user/myprofile/CompleteProfile';
 import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
 import AdminPanel from './admin/adminpanel';
-import { googleLogout } from '@react-oauth/google';
 
 const appRoutes = [
   { path: '/', element: <Navigate to="/home" replace /> },
   { path: '/home', element: <Home /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
+
   { path: '/one-on-one', element: <ProtectedRoute><OneOnOne /></ProtectedRoute> },
   { path: '/discuss', element: <ProtectedRoute><Discuss /></ProtectedRoute> },
   { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
@@ -65,10 +65,12 @@ const appRoutes = [
   { path: '/blog', element: <ProtectedRoute><Blog /></ProtectedRoute> },
   { path: '/search', element: <ProtectedRoute><SearchPage /></ProtectedRoute> },
   { path: '/admin', element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> },
+
   ...accountSettingsRoutes.map(route => ({
     ...route,
     element: <ProtectedRoute>{route.element}</ProtectedRoute>
   })),
+
   {
     path: '/profile',
     element: <ProtectedRoute><PrivateProfile /></ProtectedRoute>,
@@ -98,7 +100,7 @@ function App() {
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const element = useRoutes(appRoutes);
 
-  // Register socket
+  // Register socket after user loads
   useEffect(() => {
     const userCookie = Cookies.get('user');
     let parsedUser = null;
@@ -109,41 +111,63 @@ function App() {
         console.error('Failed to parse user cookie:', e);
       }
     }
-
-    if (parsedUser && parsedUser._id && user && user._id) {
+    if (parsedUser && parsedUser?._id && user && user?._id) {
       socket.emit('register', user._id);
       console.info('[DEBUG] Socket register emitted for user:', user._id);
     } else {
       console.info('[DEBUG] App: No valid user found for socket registration');
     }
-
     return () => {
       socket.off('register');
     };
   }, [user]);
 
-  // Handle authChanged event
+  // Global authChanged handler: full cleanup + redirect to /home (used on logout)
   useEffect(() => {
     const handleAuthChange = () => {
-      googleLogout();
-      Object.keys(Cookies.get()).forEach(cookieName => Cookies.remove(cookieName, { path: '/', domain: window.location.hostname }));
+      try {
+        googleLogout();
+      } catch (_) {}
+      try {
+        Object.keys(Cookies.get()).forEach((cookieName) => {
+          try {
+            Cookies.remove(cookieName, { path: '/', domain: window.location.hostname });
+            Cookies.remove(cookieName, { path: '/' });
+            Cookies.remove(cookieName);
+          } catch (_) {}
+        });
+      } catch (_) {}
       localStorage.clear();
       sessionStorage.clear();
-      socket.disconnect();
+      try {
+        socket.disconnect();
+      } catch (_) {}
+
       setUser(null);
-      navigate('/home', { replace: true });
+      navigate('/home', { replace: true }); // always land on /home after logout
     };
 
     window.addEventListener('authChanged', handleAuthChange);
     return () => window.removeEventListener('authChanged', handleAuthChange);
   }, [navigate, setUser]);
 
-  // Redirect to /login for protected routes
+  // Guard: if not logged in and trying to access anything except /home, /login, /register -> go to /login
   useEffect(() => {
-    if (!loading && !user && !isAuthPage && location.pathname !== '/home') {
-      navigate('/login', { replace: true });
+    if (!loading && !user) {
+      const path = location.pathname;
+      const isPublic = path === '/home' || path === '/login' || path === '/register';
+      if (!isPublic) {
+        navigate('/login', { replace: true });
+      }
     }
-  }, [user, loading, location.pathname, navigate, isAuthPage]);
+  }, [user, loading, location.pathname, navigate]);
+
+  // After successful login, always navigate to /home
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/home', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   if (loading) {
     return <div>Loading...</div>;
