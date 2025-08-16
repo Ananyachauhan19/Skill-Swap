@@ -124,7 +124,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             </span>
             <br />
             <span>
-              And <span className="text-black">Earn</span> While You Do!
+           <span className="text-black">Earn</span> While You Do!
             </span>
           </motion.h1>
           <motion.p
