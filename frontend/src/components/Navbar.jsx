@@ -210,6 +210,8 @@ function useSessionSocketNotifications(setNotifications) {
 
     socket.on('skillmate-request-approved', (data) => {
       const { skillMateRequest, approver, requester } = data;
+      const userCookie = Cookies.get('user');
+      const user = userCookie ? JSON.parse(userCookie) : null;
       const isRequester = user && user._id === requester._id;
       const otherUser = isRequester ? approver : requester;
 
@@ -232,6 +234,8 @@ function useSessionSocketNotifications(setNotifications) {
 
     socket.on('skillmate-request-rejected', (data) => {
       const { skillMateRequest, rejecter, requester } = data;
+      const userCookie = Cookies.get('user');
+      const user = userCookie ? JSON.parse(userCookie) : null;
       const isRequester = user && user._id === requester._id;
       const otherUser = isRequester ? rejecter : requester;
 
@@ -324,21 +328,51 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  // Enhanced login state detection
   useEffect(() => {
-    setIsLoggedIn(!!Cookies.get('user'));
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const handleAuthChange = () => {
-      setIsLoggedIn(!!Cookies.get('user'));
+    const checkLoginStatus = () => {
+      const userCookie = Cookies.get('user');
+      const newLoginState = !!userCookie;
+      if (newLoginState !== isLoggedIn) {
+        setIsLoggedIn(newLoginState);
+        // Trigger immediate coin fetch on login
+        if (newLoginState) {
+          fetch(`${BACKEND_URL}/api/auth/coins`, {
+            credentials: 'include',
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              setGoldenCoins(data.golden || 0);
+              setSilverCoins(data.silver || 0);
+            })
+            .catch(() => {
+              setGoldenCoins(0);
+              setSilverCoins(0);
+            });
+        }
+      }
     };
+
+    // Initial check
+    checkLoginStatus();
+
+    // Listen for storage and custom auth events
+    const handleAuthChange = () => {
+      checkLoginStatus();
+    };
+
+    // Poll for cookie changes (for cross-tab updates)
+    const cookiePoll = setInterval(checkLoginStatus, 500);
+
     window.addEventListener('storage', handleAuthChange);
     window.addEventListener('authChanged', handleAuthChange);
+
     return () => {
+      clearInterval(cookiePoll);
       window.removeEventListener('storage', handleAuthChange);
       window.removeEventListener('authChanged', handleAuthChange);
     };
-  }, []);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -376,6 +410,10 @@ const Navbar = () => {
 
   const handleLoginClick = () => {
     openLogin();
+    // Dispatch authChanged event after login attempt
+    setTimeout(() => {
+      window.dispatchEvent(new Event('authChanged'));
+    }, 500); // Small delay to allow cookie to be set
   };
 
   useEffect(() => {
@@ -474,7 +512,7 @@ const Navbar = () => {
                   isActive(path)
                     ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md'
                     : 'hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105'
-                }`}
+                } touch-manipulation`}
                 onClick={() => navigate(path)}
               >
                 {label}
@@ -556,7 +594,8 @@ const Navbar = () => {
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
                           <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
                             <span className="text-[10px] font-bold text-blue-900">G</span>
-                          </div>
+                          </div
+                          >
                           <span className="text-gray-800">Golden: {goldenCoins}</span>
                         </div>
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
