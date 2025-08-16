@@ -9,7 +9,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext.jsx';
 import socket from './socket';
 import Cookies from 'js-cookie';
-import { googleLogout } from '@react-oauth/google';
 
 // pages...
 import Home from './user/Home';
@@ -127,26 +126,13 @@ function App() {
   // ---------------- LOGOUT HANDLER ----------------
   useEffect(() => {
     const handleAuthChange = () => {
-      try { googleLogout(); } catch (_) {}
-      try {
-        const isProduction = !window.location.hostname.includes('localhost'); // Detect prod env (adjust if needed for other dev setups)
-        const cookieDomain = isProduction ? '.skillswaphub.in' : undefined; // Match backend's production domain
-
-        Object.keys(Cookies.get()).forEach((cookieName) => {
-          // Remove with production domain if applicable
-          Cookies.remove(cookieName, { path: '/', domain: cookieDomain });
-          // Fallback removals for safety (without domain, or with path only)
-          Cookies.remove(cookieName, { path: '/' });
-          Cookies.remove(cookieName);
-        });
-      } catch (_) {}
-
-      localStorage.clear();
-      sessionStorage.clear();
-      try { socket.disconnect(); } catch (_) {}
-
+      // Rely on AuthProvider's logout for cookie and storage cleanup
+      if (socket.connected) {
+        socket.disconnect();
+        console.info('[DEBUG] Socket disconnected on auth change');
+      }
       setUser(null);
-      navigate('/home', { replace: true }); // always land on /home after logout
+      navigate('/home', { replace: true });
     };
 
     window.addEventListener('authChanged', handleAuthChange);
@@ -157,9 +143,9 @@ function App() {
   useEffect(() => {
     if (!loading) {
       const path = location.pathname;
-      const isPublic = path === '/home' || path === '/login' || path === '/register';
+      const isPublic = path === '/home' || path === '/login' || path === '/register' || path.startsWith('/profile/');
 
-      // If user not logged in and tries to access anything else → back to /home
+      // If user not logged in and tries to access non-public route → redirect to /home
       if (!user && !isPublic) {
         navigate('/home', { replace: true });
       }

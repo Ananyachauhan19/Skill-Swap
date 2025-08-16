@@ -26,10 +26,16 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
 
   const handleLogout = async () => {
     try {
-      await logout();             // centralized logout (Google + backend + clear)
+      await logout(); // Calls AuthContext logout (handles backend /api/auth/logout, Google OAuth, and client-side cleanup)
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Proceed with navigation even if logout fails to avoid user being stuck
     } finally {
       onClose();
-      navigate('/home', { replace: true }); // always land on /home after logout
+      // Add slight delay to ensure backend cookie clearing is processed
+      setTimeout(() => {
+        navigate('/home', { replace: true });
+      }, 100);
     }
   };
 
