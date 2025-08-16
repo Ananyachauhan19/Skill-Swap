@@ -24,33 +24,24 @@ const skillMateRoutes = require('./routes/skillMateRoutes');
 const app = express();
 const server = http.createServer(app);
 
-const isProduction = process.env.NODE_ENV === 'production';
-const frontendUrl = isProduction ? 'https://skillswaphub.in' : 'http://localhost:5173';
-
 const io = socketIO(server, {
   cors: { 
-    origin: [frontendUrl, 'https://skill-swap-69nw.onrender.com'],
+    origin: ['http://localhost:5173', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
     credentials: true 
   },
 });
 
 app.use(cors({ 
-  origin: [frontendUrl, 'https://skill-swap-69nw.onrender.com'],
+  origin: ['http://localhost:5173', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
   credentials: true 
 }));
 app.use(express.json());
 app.use(cookieParser());
 
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'secret_key',
+  secret: 'secret_key',
   resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
-    domain: isProduction ? '.skillswaphub.in' : undefined,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+  saveUninitialized: false
 }));
 
 app.use(passport.initialize());
