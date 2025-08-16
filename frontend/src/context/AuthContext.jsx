@@ -9,23 +9,28 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // flag to prevent /me re-fetch during logout
+  // Flag to prevent /me re-fetch during logout
   const isLoggingOutRef = useRef(false);
 
+  // Assume your auth cookie name is 'auth_token' – replace with actual name if known.
+  // If not, you can keep broad removal but it's not ideal; try to specify.
+  const authCookieName = 'auth_token'; // Adjust based on your backend (e.g., 'jwt', 'sessionid')
+
   const clearAuthData = () => {
-    // Remove cookies in multiple ways to cover path/domain variations
-    const cookieNames = Object.keys(Cookies.get());
-    cookieNames.forEach((cookieName) => {
-      try {
-        Cookies.remove(cookieName, { path: '/', domain: window.location.hostname });
-        Cookies.remove(cookieName, { path: '/' });
-        Cookies.remove(cookieName);
-      } catch (_) {
-        // ignore
-      }
-    });
-    localStorage.clear();
-    sessionStorage.clear();
+    // Targeted cookie removal instead of clearing all
+    try {
+      Cookies.remove(authCookieName, { path: '/', domain: window.location.hostname });
+      Cookies.remove(authCookieName, { path: '/' });
+      Cookies.remove(authCookieName);
+    } catch (_) {
+      // Ignore errors
+    }
+
+    // Clear only auth-related storage items if any (add keys as needed)
+    localStorage.removeItem('auth_data'); // Example: replace with actual keys
+    sessionStorage.removeItem('auth_data'); // Example: replace with actual keys
+
+    // Avoid clearing entire storage to preserve other app data
   };
 
   const fetchUser = async () => {
@@ -51,14 +56,12 @@ export function AuthProvider({ children }) {
     fetchUser();
   }, []);
 
-  // Respond to global "authChanged" event:
-  // - If triggered by logout, skip /me fetch and just ensure user=null.
-  // - If triggered by login elsewhere, fetch the user.
+  // Respond to global "authChanged" event
   useEffect(() => {
     const handleAuthChange = async () => {
       if (isLoggingOutRef.current) {
         setUser(null);
-        return; // do NOT fetch during logout
+        return; // Skip fetch during logout
       }
       await fetchUser();
     };
@@ -66,29 +69,66 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('authChanged', handleAuthChange);
   }, []);
 
-  // Logout for both backend & Google OAuth
+  // Login function: Call backend login endpoint, then trigger auth change
+  // Assumes backend sets cookie/token on successful login
+  const login = async (credentials) => { // credentials: e.g., { email, password } or Google token
+    try {
+      setLoading(true);
+      const response = await api.post('/api/auth/login', credentials, { withCredentials: true });
+      // Assuming backend sets auth cookie/token here
+      setUser(response.data.user || null);
+      window.dispatchEvent(new Event('authChanged'));
+      return response.data;
+    } catch (error) {
+      console.error('Login failed:', error);
+      clearAuthData();
+      setUser(null);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Google-specific login (if using OAuth)
+  const googleLogin = async (googleCredential) => {
+    try {
+      setLoading(true);
+      const response = await api.post('/api/auth/google', { credential: googleCredential }, { withCredentials: true });
+      setUser(response.data.user || null);
+      window.dispatchEvent(new Event('authChanged'));
+      return response.data;
+    } catch (error) {
+      console.error('Google login failed:', error);
+      clearAuthData();
+      setUser(null);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Logout function
   const logout = async () => {
     try {
       isLoggingOutRef.current = true;
 
-      // backend logout
+      // Backend logout to invalidate server-side session/token
       try {
         await api.post("/api/auth/logout", {}, { withCredentials: true });
       } catch (e) {
-        // proceed even if backend call fails
-        console.warn('Backend logout failed or not reachable, proceeding with client cleanup.');
+        console.warn('Backend logout failed, proceeding with client cleanup.');
       }
 
-      // Google logout (safe to call even if not logged in with Google)
+      // Google logout if applicable
       try {
         googleLogout();
       } catch (_) {}
 
-      // client cleanup
+      // Client-side cleanup
       clearAuthData();
       setUser(null);
 
-      // notify app
+      // Notify other tabs/windows
       window.dispatchEvent(new Event('authChanged'));
     } catch (error) {
       console.error('Logout failed:', error);
@@ -96,15 +136,34 @@ export function AuthProvider({ children }) {
       clearAuthData();
       window.dispatchEvent(new Event('authChanged'));
     } finally {
-      // small delay ensures listeners handle the event before we allow fetches again
+      // Reset flag after a small delay to ensure event handlers run first
       setTimeout(() => {
         isLoggingOutRef.current = false;
-      }, 0);
+      }, 100); // Increased delay for reliability
     }
   };
 
+  // Optional: Token refresh mechanism (if your tokens expire)
+  // This runs periodically if user is logged in
+  useEffect(() => {
+    if (!user) return;
+
+    const refreshInterval = setInterval(async () => {
+      try {
+        await api.post('/api/auth/refresh', {}, { withCredentials: true });
+        // Assuming backend refreshes the token/cookie
+        await fetchUser(); // Re-fetch user to update state if needed
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        logout(); // Auto-logout on refresh failure
+      }
+    }, 30 * 60 * 1000); // Every 30 minutes – adjust based on token expiry
+
+    return () => clearInterval(refreshInterval);
+  }, [user]);
+
   return (
-    <AuthCtx.Provider value={{ user, loading, setUser, logout }}>
+    <AuthCtx.Provider value={{ user, loading, setUser, login, googleLogin, logout }}>
       {children}
     </AuthCtx.Provider>
   );
