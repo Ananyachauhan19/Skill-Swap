@@ -11,6 +11,7 @@ import socket from './socket';
 import Cookies from 'js-cookie';
 import { googleLogout } from '@react-oauth/google';
 
+// pages...
 import Home from './user/Home';
 import Login from './auth/Login';
 import Register from './auth/Register';
@@ -40,12 +41,12 @@ import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
 import AdminPanel from './admin/adminpanel';
 
+// ------------------ ROUTES ------------------
 const appRoutes = [
   { path: '/', element: <Navigate to="/home" replace /> },
   { path: '/home', element: <Home /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
-
   { path: '/one-on-one', element: <ProtectedRoute><OneOnOne /></ProtectedRoute> },
   { path: '/discuss', element: <ProtectedRoute><Discuss /></ProtectedRoute> },
   { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
@@ -65,12 +66,10 @@ const appRoutes = [
   { path: '/blog', element: <ProtectedRoute><Blog /></ProtectedRoute> },
   { path: '/search', element: <ProtectedRoute><SearchPage /></ProtectedRoute> },
   { path: '/admin', element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> },
-
   ...accountSettingsRoutes.map(route => ({
     ...route,
     element: <ProtectedRoute>{route.element}</ProtectedRoute>
   })),
-
   {
     path: '/profile',
     element: <ProtectedRoute><PrivateProfile /></ProtectedRoute>,
@@ -100,10 +99,11 @@ function App() {
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const element = useRoutes(appRoutes);
 
-  // Register socket after user loads
+  // ---------------- SOCKET ----------------
   useEffect(() => {
     const userCookie = Cookies.get('user');
     let parsedUser = null;
+
     if (userCookie && userCookie !== 'undefined') {
       try {
         parsedUser = JSON.parse(userCookie);
@@ -111,23 +111,23 @@ function App() {
         console.error('Failed to parse user cookie:', e);
       }
     }
+
     if (parsedUser && parsedUser?._id && user && user?._id) {
       socket.emit('register', user._id);
       console.info('[DEBUG] Socket register emitted for user:', user._id);
     } else {
       console.info('[DEBUG] App: No valid user found for socket registration');
     }
+
     return () => {
       socket.off('register');
     };
   }, [user]);
 
-  // Global authChanged handler: full cleanup + redirect to /home (used on logout)
+  // ---------------- LOGOUT HANDLER ----------------
   useEffect(() => {
     const handleAuthChange = () => {
-      try {
-        googleLogout();
-      } catch (_) {}
+      try { googleLogout(); } catch (_) {}
       try {
         Object.keys(Cookies.get()).forEach((cookieName) => {
           try {
@@ -137,11 +137,10 @@ function App() {
           } catch (_) {}
         });
       } catch (_) {}
+
       localStorage.clear();
       sessionStorage.clear();
-      try {
-        socket.disconnect();
-      } catch (_) {}
+      try { socket.disconnect(); } catch (_) {}
 
       setUser(null);
       navigate('/home', { replace: true }); // always land on /home after logout
@@ -151,23 +150,35 @@ function App() {
     return () => window.removeEventListener('authChanged', handleAuthChange);
   }, [navigate, setUser]);
 
-  // Guard: if not logged in and trying to access anything except /home, /login, /register -> go to /login
+  // ---------------- ACCESS CONTROL ----------------
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading) {
       const path = location.pathname;
       const isPublic = path === '/home' || path === '/login' || path === '/register';
-      if (!isPublic) {
-        navigate('/login', { replace: true });
+
+      // If user not logged in and tries to access anything else → back to /home
+      if (!user && !isPublic) {
+        navigate('/home', { replace: true });
       }
     }
   }, [user, loading, location.pathname, navigate]);
 
-  // After successful login, always navigate to /home
+  // ---------------- AUTO-HOME REDIRECT EVERY 10s (when logged out) ----------------
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/home', { replace: true });
+    let intervalId;
+
+    if (!loading && !user) {
+      intervalId = setInterval(() => {
+        if (location.pathname !== '/home') {
+          navigate('/home', { replace: true });
+        }
+      }, 10000); // every 10 seconds
     }
-  }, [user, loading, navigate]);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [user, loading, location.pathname, navigate]);
 
   if (loading) {
     return <div>Loading...</div>;
