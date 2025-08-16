@@ -30,25 +30,29 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
 
+const isProd = process.env.NODE_ENV === 'production';
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
+const cookieBase = {
+  path: '/',
+  httpOnly: true,
+  sameSite: isProd ? 'none' : 'lax', // cross-site requires 'none' + secure in prod
+  secure: isProd,
+  domain: COOKIE_DOMAIN, // omit in dev unless you set it when creating
+};
+
+// Example: after successful login, set cookie consistently
+router.post('/login/success', (req, res) => {
+  const { token } = req.body; // or from controller
+  if (!token) return res.status(400).json({ message: 'No token' });
+  res.cookie('token', token, { ...cookieBase, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  return res.status(200).json({ ok: true });
+});
+
+// Logout: clear with the same options (must match path/domain/samesite/secure)
 router.post('/logout', (req, res) => {
-  // Clear cookies set at login. Adjust names/options to match your login.
-  const isProd = process.env.NODE_ENV === 'production';
-
-  res.clearCookie('token', {
-    httpOnly: true,         // match how it was set
-    sameSite: 'lax',        // or 'none' if cross-site
-    secure: isProd,         // true in production with HTTPS
-    path: '/',              // must match the path used when setting
-    // domain: '.yourdomain.com', // include if you set domain on login
-  });
-
-  // If you also set a 'user' cookie, clear it too
-  res.clearCookie('user', {
-    sameSite: 'lax',
-    secure: isProd,
-    path: '/',
-  });
-
+  res.clearCookie('token', cookieBase);
+  // If you also set a non-httpOnly 'user' cookie for UI convenience, clear that too:
+  res.clearCookie('user', { ...cookieBase, httpOnly: false });
   return res.status(200).json({ message: 'Logged out' });
 });
 
