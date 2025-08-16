@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-// FIX: import generateToken as default (not named)
 const generateToken = require('../utils/generateToken');
 const {
   register,
@@ -25,111 +24,128 @@ const sanitizeArrayFields = (data, validKeys) => {
   });
 };
 
+const isProduction = process.env.NODE_ENV === 'production';
+const frontendUrl = isProduction ? 'https://skillswaphub.in' : 'http://localhost:5173';
+const apiUrl = isProduction ? 'https://api.skillswaphub.in' : 'http://localhost:5000';
+
+const cookieOptions = {
+  path: '/',
+  httpOnly: true,
+  sameSite: isProduction ? 'none' : 'lax',
+  secure: isProduction,
+  domain: isProduction ? '.skillswaphub.in' : undefined,
+  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+};
+
 // Email-based routes
 router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
 
-const isProd = process.env.NODE_ENV === 'production';
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
-const cookieBase = {
-  path: '/',
-  httpOnly: true,
-  sameSite: isProd ? 'none' : 'lax', // cross-site requires 'none' + secure in prod
-  secure: isProd,
-  domain: COOKIE_DOMAIN, // omit in dev unless you set it when creating
-};
-
-// Example: after successful login, set cookie consistently
+// Login success route
 router.post('/login/success', (req, res) => {
-  const { token } = req.body; // or from controller
+  const { token } = req.body;
   if (!token) return res.status(400).json({ message: 'No token' });
-  res.cookie('token', token, { ...cookieBase, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  
+  res.cookie('token', token, cookieOptions);
+  res.cookie('user', JSON.stringify(req.user), { 
+    ...cookieOptions, 
+    httpOnly: false 
+  });
+  
   return res.status(200).json({ ok: true });
 });
 
-// Logout: clear with the same options (must match path/domain/samesite/secure)
+// Logout route
 router.post('/logout', (req, res) => {
-  res.clearCookie('token', cookieBase);
-  // If you also set a non-httpOnly 'user' cookie for UI convenience, clear that too:
-  res.clearCookie('user', { ...cookieBase, httpOnly: false });
+  res.clearCookie('token', cookieOptions);
+  res.clearCookie('user', { ...cookieOptions, httpOnly: false });
   return res.status(200).json({ message: 'Logged out' });
 });
 
 // Test endpoint to check cookies
 router.get('/test-cookie', (req, res) => {
   console.log('Test Cookie - All cookies:', req.cookies);
-  res.cookie('test', 'test-value', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000
+  res.cookie('test', 'test-value', cookieOptions);
+  res.json({ 
+    message: 'Test cookie set',
+    cookies: req.cookies,
+    secure: req.secure,
+    host: req.get('host')
   });
-  res.json({ message: 'Test cookie set', cookies: req.cookies });
 });
 
-// Google OAuth entry (force exact callback URL)
-router.get(
-  '/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-    callbackURL: process.env.GOOGLE_CALLBACK,
-    prompt: 'select_account'
-  })
-);
+// Google OAuth routes
+router.get('/google', passport.authenticate('google', {
+  scope: ['profile', 'email'],
+  callbackURL: `${apiUrl}/api/auth/google/callback`,
+  prompt: 'select_account'
+}));
 
-// Google OAuth callback
-router.get(
-  '/google/callback',
-  passport.authenticate('google', { failureRedirect: '/api/auth/failure' }),
+router.get('/google/callback', 
+  passport.authenticate('google', { 
+    failureRedirect: `${frontendUrl}/login?error=google_failed` 
+  }),
   async (req, res) => {
     try {
       const user = req.user;
-      if (!user?.email) return res.redirect('/api/auth/failure');
+      if (!user?.email) {
+        return res.redirect(`${frontendUrl}/login?error=no_email`);
+      }
 
       const token = generateToken(user);
-
-      // Always use configured frontend; never trust Origin/Referer from Google
-      const frontendUrl = (process.env.FRONTEND_URL ||
-        (process.env.NODE_ENV === 'production' ? 'https://skillswaphub.in' : 'http://localhost:5173')
-      ).replace(/\/+$/, '');
-
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : undefined,
-        path: '/',
-        maxAge: 24 * 60 * 60 * 1000
+      
+      // Set cookies
+      res.cookie('token', token, cookieOptions);
+      res.cookie('user', JSON.stringify({
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        profilePic: user.profilePic
+      }), { 
+        ...cookieOptions, 
+        httpOnly: false 
       });
 
       return res.redirect(`${frontendUrl}/home`);
     } catch (e) {
       console.error('OAuth callback error:', e);
-      return res.redirect('/api/auth/failure');
+      return res.redirect(`${frontendUrl}/login?error=server_error`);
     }
   }
 );
 
-// Failure route — returns only the message
+// Failure route
 router.get('/failure', (_req, res) => {
   res.status(400).json({ message: 'Google sign-in failed' });
 });
 
-// LinkedIn OAuth
+// LinkedIn OAuth routes
 router.get('/linkedin', passport.authenticate('linkedin'));
 router.get('/linkedin/callback', passport.authenticate('linkedin', {
-  failureRedirect: '/auth/failure'
+  failureRedirect: `${frontendUrl}/login?error=linkedin_failed`
 }), async (req, res) => {
   try {
     const user = req.user;
     const token = generateToken(user);
-    const origin = req.get('origin') || req.get('referer') || 'http://localhost:5173';
-    const frontendUrl = origin.includes('localhost') ? 'http://localhost:5173' : origin.replace(/\/$/, '');
-    res.redirect(`${frontendUrl}/home?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+    
+    res.cookie('token', token, cookieOptions);
+    res.cookie('user', JSON.stringify({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      profilePic: user.profilePic
+    }), { 
+      ...cookieOptions, 
+      httpOnly: false 
+    });
+
+    res.redirect(`${frontendUrl}/home`);
   } catch (error) {
     console.error('LinkedIn OAuth error:', error);
-    res.redirect('/auth/failure');
+    res.redirect(`${frontendUrl}/login?error=server_error`);
   }
 });
 
@@ -142,7 +158,6 @@ router.get('/search', async (req, res) => {
       return res.status(400).json({ message: 'Username query parameter is required' });
     }
     
-    // Search for users with usernames that contain the search query (case insensitive)
     const users = await User.find({
       username: { $regex: username, $options: 'i' }
     }).select('_id username firstName lastName profilePic').limit(10);
@@ -463,7 +478,6 @@ router.get('/coins', requireAuth, async (req, res) => {
 // Get user history/sessions
 router.get('/user/history', requireAuth, async (req, res) => {
   try {
-    // Mock history data (replace with actual implementation later)
     const mockHistory = [
       { 
         date: '2025-01-15', 
@@ -491,7 +505,6 @@ router.get('/user/history', requireAuth, async (req, res) => {
 // Get user videos
 router.get('/videos', requireAuth, async (req, res) => {
   try {
-    // Mock videos data (replace with actual implementation later)
     const mockVideos = [
       {
         id: "1",
@@ -745,7 +758,16 @@ router.post('/live/:id/archive', requireAuth, async (req, res) => {
 
 // Return the logged-in user using the cookie JWT
 router.get('/me', requireAuth, (req, res) => {
-  res.json({ user: req.user });
+  res.json({ 
+    user: {
+      _id: req.user._id,
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      email: req.user.email,
+      profilePic: req.user.profilePic,
+      username: req.user.username
+    }
+  });
 });
 
 module.exports = router;
