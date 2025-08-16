@@ -23,9 +23,9 @@ const fetchUserProfile = async () => {
       profilePic: userData.profilePic || "https://placehold.co/100x100?text=User",
     };
   } catch (err) {
-    console.error("[DEBUG] Fetch user profile error:", err);
+    console.error("Fetch user profile error:", err);
     return {
-      fullName: "Professional",
+      fullName: "Professional", // Fallback data
       profilePic: "https://placehold.co/100x100?text=User",
     };
   }
@@ -62,27 +62,21 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
     "Discover courses to boost your career!",
   ];
 
-  // Set debugMode to false in production to rely on isLoggedIn
-  const debugMode = process.env.NODE_ENV === 'production' ? false : true;
+  // Debug mode: Force profile section to show for testing (set to false in production)
+  const debugMode = true; // Change to false to rely on actual isLoggedIn state
 
-  // Ensure isLoggedIn is a boolean
-  const isAuthenticated = isLoggedIn ?? false;
-
-  // Fetch user profile on mount if authenticated
+  // Fetch user profile on mount if logged in
   useEffect(() => {
-    console.info("[DEBUG] HeroSection useEffect triggered:", { isAuthenticated, debugMode });
-    if (isAuthenticated || debugMode) {
+    if (isLoggedIn || debugMode) {
       const loadUser = async () => {
         setLoading(true);
         setError(null);
         try {
           const data = await fetchUserProfile();
           setUser(data);
-          console.info("[DEBUG] User profile loaded:", data);
         } catch (err) {
           setError(err.message);
           setUser({ fullName: "Professional", profilePic: "https://placehold.co/100x100?text=User" });
-          console.info("[DEBUG] User profile fallback applied");
         } finally {
           setLoading(false);
         }
@@ -91,9 +85,8 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
     } else {
       setLoading(false);
       setUser(null);
-      console.info("[DEBUG] No user profile fetch (not authenticated)");
     }
-  }, [isAuthenticated, debugMode]);
+  }, [isLoggedIn]);
 
   // Cycle through prompts every 5 seconds
   useEffect(() => {
@@ -105,8 +98,8 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
 
   // Debugging logs
   useEffect(() => {
-    console.log("[DEBUG] HeroSection State:", { isLoggedIn, isAuthenticated, debugMode, user, loading, error });
-  }, [isLoggedIn, isAuthenticated, debugMode, user, loading, error]);
+    console.log("HeroSection State:", { isLoggedIn, debugMode, user, loading, error });
+  }, [isLoggedIn, user, loading, error]);
 
   return (
     <section className="relative z-10 min-h-[calc(100vh-80px)] w-full bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-hidden pt-16 sm:pt-3">
@@ -141,7 +134,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.
           </motion.p>
           <motion.div className="flex flex-wrap gap-2 justify-center lg:justify-start px-2 sm:px-0" variants={textVariants}>
-            {isAuthenticated || debugMode ? (
+            {(isLoggedIn || debugMode) ? (
               <motion.button
                 onClick={() => exploreRef?.current?.scrollIntoView({ behavior: "smooth" })}
                 className="bg-blue-900 text-white px-4 py-2 rounded-md font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
@@ -176,7 +169,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
 
         {/* Hero Image and Profile Section */}
         <div className="flex flex-col w-full lg:w-1/2 items-center justify-start gap-2 mt-12 lg:mt-16">
-          {(isAuthenticated || debugMode) && (
+          {(isLoggedIn || debugMode) && (
             <motion.div
               className="w-full max-w-full sm:max-w-[500px] md:max-w-[580px] bg-gradient-to-r from-blue-800 to-blue-600 rounded-lg shadow-xl border border-blue-200 px-4 py-3 z-20"
               variants={profileVariants}
