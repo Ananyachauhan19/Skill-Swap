@@ -26,13 +26,11 @@ const sanitizeArrayFields = (data, validKeys) => {
 
 // Environment-based cookie configuration
 const isProd = process.env.NODE_ENV === 'production';
-const COOKIE_DOMAIN = isProd ? 'skillswaphub.in' : undefined; // No leading dot
 const cookieBase = {
   path: '/',
   httpOnly: true,
-  sameSite: isProd ? 'none' : 'lax', // Cross-site requires 'none' + secure in prod
+  sameSite: isProd ? 'none' : 'lax',
   secure: isProd,
-  domain: COOKIE_DOMAIN,
 };
 
 // Email-based routes
@@ -42,12 +40,13 @@ router.post('/verify-otp', verifyOtp);
 
 // Example: after successful login, set cookie consistently
 router.post('/login/success', (req, res) => {
+  console.info('[DEBUG] /login/success called for user:', req.user?._id);
   const { token } = req.body;
   if (!token) return res.status(400).json({ message: 'No token' });
   res.cookie('token', token, { ...cookieBase, maxAge: 7 * 24 * 60 * 60 * 1000 });
   res.cookie('user', JSON.stringify(req.user), {
     ...cookieBase,
-    httpOnly: false, // Allow frontend access
+    httpOnly: false,
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
   return res.status(200).json({ ok: true });
@@ -55,44 +54,41 @@ router.post('/login/success', (req, res) => {
 
 // Logout route: Clear session and all relevant cookies
 router.post('/logout', (req, res) => {
+  console.info('[DEBUG] Logout initiated for session:', req.sessionID, 'user:', req.user?._id);
   if (req.user) {
     req.logout((err) => {
       if (err) {
-        console.error('Logout error:', err);
+        console.error('[DEBUG] Logout error:', err);
         return res.status(500).json({ message: 'Logout failed' });
       }
       req.session.destroy((err) => {
         if (err) {
-          console.error('Session destruction error:', err);
+          console.error('[DEBUG] Session destruction error:', err);
           return res.status(500).json({ message: 'Session destruction failed' });
         }
-        // Clear session cookie
+        console.info('[DEBUG] Session destroyed for user:', req.user?._id);
         res.clearCookie('connect.sid', cookieBase);
-        // Clear token cookie
         res.clearCookie('token', cookieBase);
-        // Clear user cookie (non-httpOnly for frontend access)
         res.clearCookie('user', { ...cookieBase, httpOnly: false });
+        console.info('[DEBUG] Cookies cleared');
         return res.status(200).json({ message: 'Logged out successfully' });
       });
     });
   } else {
-    // Clear cookies even if no user is logged in
+    console.info('[DEBUG] No user in session, clearing cookies');
     res.clearCookie('connect.sid', cookieBase);
     res.clearCookie('token', cookieBase);
     res.clearCookie('user', { ...cookieBase, httpOnly: false });
+    console.info('[DEBUG] Cookies cleared (no user)');
     return res.status(200).json({ message: 'Logged out successfully' });
   }
 });
 
 // Test endpoint to check cookies
 router.get('/test-cookie', (req, res) => {
-  console.log('Test Cookie - All cookies:', req.cookies);
+  console.info('[DEBUG] Test Cookie - All cookies:', req.cookies);
   res.cookie('test', 'test-value', {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? 'none' : 'lax',
-    domain: COOKIE_DOMAIN,
-    path: '/',
+    ...cookieBase,
     maxAge: 24 * 60 * 60 * 1000
   });
   res.json({ message: 'Test cookie set', cookies: req.cookies });
@@ -115,11 +111,10 @@ router.get(
   async (req, res) => {
     try {
       const user = req.user;
+      console.info('[DEBUG] Google callback for user:', user?._id);
       if (!user?.email) return res.redirect('/api/auth/failure');
 
       const token = generateToken(user);
-
-      // Consistent frontend URL
       const frontendUrl = (process.env.FRONTEND_URL ||
         (isProd ? 'https://skillswaphub.in' : 'http://localhost:5173')
       ).replace(/\/+$/, '');
@@ -130,13 +125,13 @@ router.get(
       });
       res.cookie('user', JSON.stringify(user), {
         ...cookieBase,
-        httpOnly: false, // Allow frontend access
+        httpOnly: false,
         maxAge: 24 * 60 * 60 * 1000
       });
 
       return res.redirect(`${frontendUrl}/home`);
     } catch (e) {
-      console.error('OAuth callback error:', e);
+      console.error('[DEBUG] OAuth callback error:', e);
       return res.redirect('/api/auth/failure');
     }
   }
@@ -154,11 +149,12 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
 }), async (req, res) => {
   try {
     const user = req.user;
+    console.info('[DEBUG] LinkedIn callback for user:', user?._id);
     const token = generateToken(user);
     const frontendUrl = (process.env.FRONTEND_URL ||
       (isProd ? 'https://skillswaphub.in' : 'http://localhost:5173')
     ).replace(/\/+$/, '');
-    
+
     res.cookie('token', token, {
       ...cookieBase,
       maxAge: 24 * 60 * 60 * 1000
@@ -168,10 +164,10 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
       httpOnly: false,
       maxAge: 24 * 60 * 60 * 1000
     });
-    
+
     res.redirect(`${frontendUrl}/home`);
   } catch (error) {
-    console.error('LinkedIn OAuth error:', error);
+    console.error('[DEBUG] LinkedIn OAuth error:', error);
     res.redirect('/api/auth/failure');
   }
 });
@@ -188,7 +184,7 @@ router.get('/search', async (req, res) => {
     }).select('_id username firstName lastName profilePic').limit(10);
     res.json({ users });
   } catch (error) {
-    console.error('Error searching users:', error);
+    console.error('[DEBUG] Error searching users:', error);
     res.status(500).json({ message: 'Server error while searching users' });
   }
 });
@@ -198,9 +194,10 @@ router.get('/user/profile', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password -otp -otpExpires');
     if (!user) {
+      console.info('[DEBUG] User not found for /user/profile:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
-    console.log('Fetched user profile:', {
+    console.info('[DEBUG] Fetched user profile:', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -233,7 +230,7 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       rank: user.rank
     });
   } catch (err) {
-    console.error('Profile fetch error:', err);
+    console.error('[DEBUG] Profile fetch error:', err);
     res.status(500).json({ message: 'Failed to fetch profile', error: err.message });
   }
 });
@@ -246,7 +243,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
 
-  console.log('Profile update request:', { firstName, lastName, bio, skillsToTeach, username });
+  console.info('[DEBUG] Profile update request:', { firstName, lastName, bio, skillsToTeach, username });
 
   try {
     const updateData = {};
@@ -279,7 +276,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     if (rank !== undefined) updateData.rank = rank;
     if (username !== undefined) updateData.username = username;
 
-    console.log('Updating user with data:', updateData);
+    console.info('[DEBUG] Updating user with data:', updateData);
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -288,10 +285,11 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     ).select('-password -otp -otpExpires');
 
     if (!user) {
+      console.info('[DEBUG] User not found for profile update:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('Updated user profile:', {
+    console.info('[DEBUG] Updated user profile:', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -325,7 +323,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       rank: user.rank
     });
   } catch (err) {
-    console.error('Profile update error:', err);
+    console.error('[DEBUG] Profile update error:', err);
     res.status(500).json({ message: 'Failed to update profile', error: err.message });
   }
 });
@@ -335,9 +333,10 @@ router.get('/profile', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password -otp -otpExpires');
     if (!user) {
+      console.info('[DEBUG] User not found for /profile:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
-    console.log('Fetched user profile (/profile):', {
+    console.info('[DEBUG] Fetched user profile (/profile):', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -370,7 +369,7 @@ router.get('/profile', requireAuth, async (req, res) => {
       rank: user.rank
     });
   } catch (err) {
-    console.error('Profile fetch error (/profile):', err);
+    console.error('[DEBUG] Profile fetch error (/profile):', err);
     res.status(500).json({ message: 'Failed to fetch profile', error: err.message });
   }
 });
@@ -383,7 +382,7 @@ router.put('/profile', requireAuth, async (req, res) => {
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
 
-  console.log('Profile update request (/profile):', { firstName, lastName, bio, skillsToTeach, username });
+  console.info('[DEBUG] Profile update request (/profile):', { firstName, lastName, bio, skillsToTeach, username });
 
   try {
     const updateData = {};
@@ -416,7 +415,7 @@ router.put('/profile', requireAuth, async (req, res) => {
     if (rank !== undefined) updateData.rank = rank;
     if (username !== undefined) updateData.username = username;
 
-    console.log('Updating user with data (/profile):', updateData);
+    console.info('[DEBUG] Updating user with data (/profile):', updateData);
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -425,10 +424,11 @@ router.put('/profile', requireAuth, async (req, res) => {
     ).select('-password -otp -otpExpires');
 
     if (!user) {
+      console.info('[DEBUG] User not found for profile update:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('Updated user profile (/profile):', {
+    console.info('[DEBUG] Updated user profile (/profile):', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -462,7 +462,7 @@ router.put('/profile', requireAuth, async (req, res) => {
       rank: user.rank
     });
   } catch (err) {
-    console.error('Profile update error (/profile):', err);
+    console.error('[DEBUG] Profile update error (/profile):', err);
     res.status(500).json({ message: 'Failed to update profile', error: err.message });
   }
 });
@@ -471,9 +471,13 @@ router.put('/profile', requireAuth, async (req, res) => {
 router.get('/user/public/:username', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username }).select('-password -otp -otpExpires -__v');
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      console.info('[DEBUG] User not found for /user/public/:username:', req.params.username);
+      return res.status(404).json({ message: 'User not found' });
+    }
     res.json(user);
   } catch (err) {
+    console.error('[DEBUG] Public profile fetch error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -483,6 +487,7 @@ router.get('/coins', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('goldCoins silverCoins');
     if (!user) {
+      console.info('[DEBUG] User not found for /coins:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
     res.json({
@@ -490,7 +495,7 @@ router.get('/coins', requireAuth, async (req, res) => {
       silver: user.silverCoins || 0
     });
   } catch (error) {
-    console.error('Coins error:', error);
+    console.error('[DEBUG] Coins error:', error);
     res.status(500).json({ error: 'Failed to fetch coins' });
   }
 });
@@ -517,7 +522,7 @@ router.get('/user/history', requireAuth, async (req, res) => {
     ];
     res.json({ history: mockHistory });
   } catch (error) {
-    console.error('History error:', error);
+    console.error('[DEBUG] History error:', error);
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
@@ -563,7 +568,7 @@ router.get('/videos', requireAuth, async (req, res) => {
     ];
     res.json({ videos: mockVideos });
   } catch (error) {
-    console.error('Videos error:', error);
+    console.error('[DEBUG] Videos error:', error);
     res.status(500).json({ error: 'Failed to fetch videos' });
   }
 });
@@ -590,7 +595,7 @@ router.post('/videos/upload', requireAuth, async (req, res) => {
     };
     res.json(mockVideo);
   } catch (error) {
-    console.error('Video upload error:', error);
+    console.error('[DEBUG] Video upload error:', error);
     res.status(500).json({ error: 'Failed to upload video' });
   }
 });
@@ -618,7 +623,7 @@ router.put('/videos/:id', requireAuth, async (req, res) => {
     };
     res.json(mockUpdatedVideo);
   } catch (error) {
-    console.error('Video update error:', error);
+    console.error('[DEBUG] Video update error:', error);
     res.status(500).json({ error: 'Failed to update video' });
   }
 });
@@ -629,7 +634,7 @@ router.delete('/videos/:id', requireAuth, async (req, res) => {
     const { id } = req.params;
     res.json({ message: 'Video deleted successfully', id });
   } catch (error) {
-    console.error('Video deletion error:', error);
+    console.error('[DEBUG] Video deletion error:', error);
     res.status(500).json({ error: 'Failed to delete video' });
   }
 });
@@ -640,7 +645,7 @@ router.post('/videos/:id/archive', requireAuth, async (req, res) => {
     const { id } = req.params;
     res.json({ message: 'Video archived successfully', id });
   } catch (error) {
-    console.error('Video archive error:', error);
+    console.error('[DEBUG] Video archive error:', error);
     res.status(500).json({ error: 'Failed to archive video' });
   }
 });
@@ -690,7 +695,7 @@ router.get('/live', requireAuth, async (req, res) => {
     ];
     res.json({ liveSessions: mockLiveSessions });
   } catch (error) {
-    console.error('Live sessions error:', error);
+    console.error('[DEBUG] Live sessions error:', error);
     res.status(500).json({ error: 'Failed to fetch live sessions' });
   }
 });
@@ -719,7 +724,7 @@ router.post('/live', requireAuth, async (req, res) => {
     };
     res.json(mockLiveSession);
   } catch (error) {
-    console.error('Live session creation error:', error);
+    console.error('[DEBUG] Live session creation error:', error);
     res.status(500).json({ error: 'Failed to create live session' });
   }
 });
@@ -749,7 +754,7 @@ router.put('/live/:id', requireAuth, async (req, res) => {
     };
     res.json(mockUpdatedLiveSession);
   } catch (error) {
-    console.error('Live session update error:', error);
+    console.error('[DEBUG] Live session update error:', error);
     res.status(500).json({ error: 'Failed to update live session' });
   }
 });
@@ -760,7 +765,7 @@ router.delete('/live/:id', requireAuth, async (req, res) => {
     const { id } = req.params;
     res.json({ message: 'Live session deleted successfully', id });
   } catch (error) {
-    console.error('Live session deletion error:', error);
+    console.error('[DEBUG] Live session deletion error:', error);
     res.status(500).json({ error: 'Failed to delete live session' });
   }
 });
@@ -771,13 +776,18 @@ router.post('/live/:id/archive', requireAuth, async (req, res) => {
     const { id } = req.params;
     res.json({ message: 'Live session archived successfully', id });
   } catch (error) {
-    console.error('Live session archive error:', error);
+    console.error('[DEBUG] Live session archive error:', error);
     res.status(500).json({ error: 'Failed to archive live session' });
   }
 });
 
 // Return the logged-in user using the cookie JWT
 router.get('/me', requireAuth, (req, res) => {
+  console.info('[DEBUG] /me called, session:', req.sessionID, 'user:', req.user?._id);
+  if (!req.sessionID || !req.user) {
+    console.info('[DEBUG] No valid session or user for /me');
+    return res.status(401).json({ message: 'No user logged in', user: null });
+  }
   res.json({ user: req.user });
 });
 
