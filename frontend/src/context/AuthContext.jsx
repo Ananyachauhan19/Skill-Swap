@@ -12,28 +12,32 @@ export function AuthProvider({ children }) {
   // Flag to prevent /me re-fetch during logout
   const isLoggingOutRef = useRef(false);
 
-  // Assume your auth cookie name is 'auth_token' – replace with actual name if known.
-  // If not, you can keep broad removal but it's not ideal; try to specify.
-  const authCookieName = 'auth_token'; // Adjust based on your backend (e.g., 'jwt', 'sessionid')
+  // Define the actual cookie names used by your app
+  const cookieNames = ['user']; // Only non-HttpOnly cookie; connect.sid and token are server-cleared
+  const isProduction = !window.location.hostname.includes('localhost');
+  const cookieDomain = isProduction ? '.skillswaphub.in' : undefined;
 
   const clearAuthData = () => {
-    // Targeted cookie removal instead of clearing all
     try {
-      Cookies.remove(authCookieName, { path: '/', domain: window.location.hostname });
-      Cookies.remove(authCookieName, { path: '/' });
-      Cookies.remove(authCookieName);
+      cookieNames.forEach((cookieName) => {
+        // Remove with production domain if applicable
+        Cookies.remove(cookieName, { path: '/', domain: cookieDomain });
+        // Fallback removals for safety
+        Cookies.remove(cookieName, { path: '/' });
+        Cookies.remove(cookieName);
+      });
+
+      // Clear only auth-related storage items (add specific keys if used)
+      localStorage.removeItem('auth_data'); // Replace with actual keys if any
+      sessionStorage.removeItem('auth_data'); // Replace with actual keys if any
     } catch (_) {
       // Ignore errors
     }
-
-    // Clear only auth-related storage items if any (add keys as needed)
-    localStorage.removeItem('auth_data'); // Example: replace with actual keys
-    sessionStorage.removeItem('auth_data'); // Example: replace with actual keys
-
-    // Avoid clearing entire storage to preserve other app data
   };
 
   const fetchUser = async () => {
+    if (isLoggingOutRef.current) return; // Skip fetch during logout
+
     try {
       const response = await api.get('/api/auth/me', {
         withCredentials: true,
@@ -70,12 +74,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   // Login function: Call backend login endpoint, then trigger auth change
-  // Assumes backend sets cookie/token on successful login
-  const login = async (credentials) => { // credentials: e.g., { email, password } or Google token
+  const login = async (credentials) => {
     try {
       setLoading(true);
       const response = await api.post('/api/auth/login', credentials, { withCredentials: true });
-      // Assuming backend sets auth cookie/token here
       setUser(response.data.user || null);
       window.dispatchEvent(new Event('authChanged'));
       return response.data;
@@ -89,7 +91,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Google-specific login (if using OAuth)
+  // Google-specific login
   const googleLogin = async (googleCredential) => {
     try {
       setLoading(true);
@@ -112,19 +114,15 @@ export function AuthProvider({ children }) {
     try {
       isLoggingOutRef.current = true;
 
-      // Backend logout to invalidate server-side session/token
-      try {
-        await api.post("/api/auth/logout", {}, { withCredentials: true });
-      } catch (e) {
-        console.warn('Backend logout failed, proceeding with client cleanup.');
-      }
+      // Call backend logout to clear HttpOnly cookies (connect.sid, token)
+      await api.post('/api/auth/logout', {}, { withCredentials: true });
 
-      // Google logout if applicable
+      // Google logout
       try {
         googleLogout();
       } catch (_) {}
 
-      // Client-side cleanup
+      // Client-side cleanup for non-HttpOnly cookies and storage
       clearAuthData();
       setUser(null);
 
@@ -132,32 +130,30 @@ export function AuthProvider({ children }) {
       window.dispatchEvent(new Event('authChanged'));
     } catch (error) {
       console.error('Logout failed:', error);
-      setUser(null);
       clearAuthData();
+      setUser(null);
       window.dispatchEvent(new Event('authChanged'));
     } finally {
-      // Reset flag after a small delay to ensure event handlers run first
+      // Reset flag after a delay to ensure event handlers complete
       setTimeout(() => {
         isLoggingOutRef.current = false;
-      }, 100); // Increased delay for reliability
+      }, 200); // Increased to 200ms for reliability
     }
   };
 
-  // Optional: Token refresh mechanism (if your tokens expire)
-  // This runs periodically if user is logged in
+  // Token refresh mechanism (if used)
   useEffect(() => {
     if (!user) return;
 
     const refreshInterval = setInterval(async () => {
       try {
         await api.post('/api/auth/refresh', {}, { withCredentials: true });
-        // Assuming backend refreshes the token/cookie
-        await fetchUser(); // Re-fetch user to update state if needed
-      } catch (error) {
+        await fetchUser();
+      } catch (error/"Failed to fetch user: AxiosError: Request failed with status code 401") {
         console.error('Token refresh failed:', error);
-        logout(); // Auto-logout on refresh failure
+        await logout(); // Auto-logout on refresh failure
       }
-    }, 30 * 60 * 1000); // Every 30 minutes – adjust based on token expiry
+    }, 30 * 60 * 1000); // Every 30 minutes
 
     return () => clearInterval(refreshInterval);
   }, [user]);
