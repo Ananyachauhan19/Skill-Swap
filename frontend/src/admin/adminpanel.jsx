@@ -276,7 +276,7 @@ const AdminPanel = () => {
                   required
                 />
               </div>
-             
+              
               <div className="pt-3">
                 <button
                   type="button"
@@ -390,7 +390,7 @@ const AdminPanel = () => {
                   required
                 />
               </div>
-           
+            
               <div className="pt-3">
                 <button
                   type="button"
