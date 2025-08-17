@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useLocation, useRoutes, Navigate, useNavigate } from 'react-router-dom';
+import { useLocation, useRoutes, Navigate, useNavigate, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { ModalProvider } from './context/ModalContext';
@@ -38,6 +38,7 @@ import CompleteProfile from './user/myprofile/CompleteProfile';
 import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
 import AdminPanel from './admin/adminpanel';
+import AdminRoute from './routes/AdminRoute';
 
 // ------------------ ROUTES ------------------
 const appRoutes = [
@@ -63,7 +64,17 @@ const appRoutes = [
   { path: '/teaching-history', element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> },
   { path: '/blog', element: <ProtectedRoute><Blog /></ProtectedRoute> },
   { path: '/search', element: <ProtectedRoute><SearchPage /></ProtectedRoute> },
-  { path: '/admin', element: <ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute> },
+  {
+    path: '/admin',
+    element: <AdminRoute />, // Use the dedicated AdminRoute component here
+    children: [
+      {
+        index: true, // This makes AdminPanel render at /admin
+        element: <AdminPanel />,
+      },
+      // You can add other admin-only sub-routes here later
+    ],
+  },
   ...accountSettingsRoutes.map(route => ({
     ...route,
     element: <ProtectedRoute>{route.element}</ProtectedRoute>
