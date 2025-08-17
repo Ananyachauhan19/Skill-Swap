@@ -20,6 +20,7 @@ const sessionRoutes = require('./routes/sessionRoutes');
 const sessionRequestRoutes = require('./routes/sessionRequestRoutes');
 const privateProfileRoutes = require('./routes/privateProfileRoutes');
 const skillMateRoutes = require('./routes/skillMateRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -55,6 +56,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/session-requests', sessionRequestRoutes);
 app.use('/api/skillmates', skillMateRoutes);
 app.use('/api', privateProfileRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);

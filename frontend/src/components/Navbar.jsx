@@ -9,8 +9,8 @@ import VideoCall from './VideoCall';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 
-// useSessionSocketNotifications remains unchanged
-function useSessionSocketNotifications(setNotifications) {
+// useSessionSocketNotifications hook for handling socket notifications
+function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
   useEffect(() => {
     const userCookie = Cookies.get('user');
     const user = userCookie ? JSON.parse(userCookie) : null;
@@ -21,108 +21,128 @@ function useSessionSocketNotifications(setNotifications) {
 
     socket.on('session-request-received', (data) => {
       const { sessionRequest, requester } = data;
-      setNotifications((prev) => [
-        {
-          type: 'session-request',
-          sessionRequest,
-          requester,
-          message: `New session request from ${requester.firstName} ${requester.lastName}`,
-          timestamp: Date.now(),
-          read: false,
-          onAccept: async () => {
-            try {
-              const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${sessionRequest._id}`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-              });
-              if (response.ok) {
-                socket.emit('session-request-response', {
-                  requestId: sessionRequest._id,
-                  action: 'approve',
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-request',
+            sessionRequest,
+            requester,
+            message: `New session request from ${requester.firstName} ${requester.lastName}`,
+            timestamp: Date.now(),
+            read: false,
+            onAccept: async () => {
+              try {
+                const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${sessionRequest._id}`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
                 });
-                return true;
+                if (response.ok) {
+                  socket.emit('session-request-response', {
+                    requestId: sessionRequest._id,
+                    action: 'approve',
+                  });
+                  return true;
+                }
+              } catch (error) {
+                return false;
               }
-            } catch (error) {
-              return false;
-            }
-          },
-          onReject: async () => {
-            try {
-              const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${sessionRequest._id}`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-              });
-              if (response.ok) {
-                socket.emit('session-request-response', {
-                  requestId: sessionRequest._id,
-                  action: 'reject',
+            },
+            onReject: async () => {
+              try {
+                const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${sessionRequest._id}`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
                 });
-                return true;
+                if (response.ok) {
+                  socket.emit('session-request-response', {
+                    requestId: sessionRequest._id,
+                    action: 'reject',
+                  });
+                  return true;
+                }
+              } catch (error) {
+                return false;
               }
-            } catch (error) {
-              return false;
-            }
+            },
           },
-        },
-        ...prev,
-      ]);
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-request-updated', (data) => {
       const { sessionRequest, action } = data;
-      setNotifications((prev) => [
-        {
-          type: 'session-request-response',
-          sessionRequest,
-          action,
-          message: `Your session request was ${action}ed by ${sessionRequest.tutor.firstName} ${sessionRequest.tutor.lastName}`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-request-response',
+            sessionRequest,
+            action,
+            message: `Your session request was ${action}ed by ${sessionRequest.tutor.firstName} ${sessionRequest.tutor.lastName}`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-requested', (session) => {
-      setNotifications((prev) => [
-        {
-          type: 'session-requested',
-          session,
-          sessionId: session._id,
-          message: `You have a new session request from ${session.requester?.name || session.requester?.firstName || 'a user'}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-requested',
+            session,
+            sessionId: session._id,
+            message: `You have a new session request from ${session.requester?.name || session.requester?.firstName || 'a user'}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-approved', (session) => {
-      setNotifications((prev) => [
-        {
-          type: 'session-approved',
-          session,
-          message: `Your session request was approved by ${session.creator?.firstName || 'the tutor'}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-approved',
+            session,
+            message: `Your session request was approved by ${session.creator?.firstName || 'the tutor'}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-rejected', (session) => {
-      setNotifications((prev) => [
-        {
-          type: 'session-rejected',
-          session,
-          message: `Your session request was rejected by ${session.creator?.firstName || 'the tutor'}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-rejected',
+            session,
+            message: `Your session request was rejected by ${session.creator?.firstName || 'the tutor'}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-started', (data) => {
@@ -157,99 +177,124 @@ function useSessionSocketNotifications(setNotifications) {
       };
       setNotifications((prev) => {
         const updated = [newNotification, ...prev];
+        localStorage.setItem('notifications', JSON.stringify(updated));
         return updated;
       });
     });
 
     socket.on('session-cancelled', (data) => {
-      setNotifications((prev) => [
-        {
-          type: 'session-cancelled',
-          session: data,
-          message: data.message || 'The user has cancelled the session.',
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-cancelled',
+            session: data,
+            message: data.message || 'The user has cancelled the session.',
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('skillmate-request-received', (data) => {
       const { skillMateRequest, requester } = data;
-      setNotifications((prev) => [
-        {
-          type: 'skillmate',
-          subtype: 'request',
-          requestId: skillMateRequest._id,
-          requesterName: `${requester.firstName} ${requester.lastName}`,
-          requesterUsername: requester.username,
-          message: `${requester.firstName} ${requester.lastName} wants to be your SkillMate.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'skillmate',
+            subtype: 'request',
+            requestId: skillMateRequest._id,
+            requesterName: `${requester.firstName} ${requester.lastName}`,
+            requesterUsername: requester.username,
+            message: `${requester.firstName} ${requester.lastName} wants to be your SkillMate.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('skillmate-request-sent', (data) => {
       const { skillMateRequest, recipient } = data;
-      setNotifications((prev) => [
-        {
-          type: 'skillmate',
-          subtype: 'sent',
-          requestId: skillMateRequest._id,
-          recipientName: `${recipient.firstName} ${recipient.lastName}`,
-          recipientUsername: recipient.username,
-          message: `You sent a SkillMate request to ${recipient.firstName} ${recipient.lastName}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'skillmate',
+            subtype: 'sent',
+            requestId: skillMateRequest._id,
+            recipientName: `${recipient.firstName} ${recipient.lastName}`,
+            recipientUsername: recipient.username,
+            message: `You sent a SkillMate request to ${recipient.firstName} ${recipient.lastName}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('skillmate-request-approved', (data) => {
       const { skillMateRequest, approver, requester } = data;
+      const userCookie = Cookies.get('user');
+      const user = userCookie ? JSON.parse(userCookie) : null;
       const isRequester = user && user._id === requester._id;
       const otherUser = isRequester ? approver : requester;
 
-      setNotifications((prev) => [
-        {
-          type: 'skillmate',
-          subtype: 'approved',
-          requestId: skillMateRequest._id,
-          otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
-          otherUserUsername: otherUser.username,
-          message: isRequester
-            ? `${approver.firstName} ${approver.lastName} accepted your SkillMate request.`
-            : `You accepted the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'skillmate',
+            subtype: 'approved',
+            requestId: skillMateRequest._id,
+            otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
+            otherUserUsername: otherUser.username,
+            message: isRequester
+              ? `${approver.firstName} ${approver.lastName} accepted your SkillMate request.`
+              : `You accepted the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('skillmate-request-rejected', (data) => {
       const { skillMateRequest, rejecter, requester } = data;
+      const userCookie = Cookies.get('user');
+      const user = userCookie ? JSON.parse(userCookie) : null;
       const isRequester = user && user._id === requester._id;
       const otherUser = isRequester ? rejecter : requester;
 
-      setNotifications((prev) => [
-        {
-          type: 'skillmate',
-          subtype: 'rejected',
-          requestId: skillMateRequest._id,
-          otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
-          otherUserUsername: otherUser.username,
-          message: isRequester
-            ? `${rejecter.firstName} ${rejecter.lastName} declined your SkillMate request.`
-            : `You declined the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'skillmate',
+            subtype: 'rejected',
+            requestId: skillMateRequest._id,
+            otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
+            otherUserUsername: otherUser.username,
+            message: isRequester
+              ? `${rejecter.firstName} ${rejecter.lastName} declined your SkillMate request.`
+              : `You declined the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     return () => {
@@ -265,7 +310,7 @@ function useSessionSocketNotifications(setNotifications) {
       socket.off('skillmate-request-approved');
       socket.off('skillmate-request-rejected');
     };
-  }, [setNotifications]);
+  }, [setNotifications, setActiveVideoCall]);
 }
 
 const Navbar = () => {
@@ -284,7 +329,7 @@ const Navbar = () => {
   const menuRef = useRef();
   const coinsRef = useRef();
 
-  // Load notifications from localStorage
+  // Load notifications from localStorage and sync with socket
   useEffect(() => {
     const savedNotifications = localStorage.getItem('notifications');
     if (savedNotifications) {
@@ -293,7 +338,14 @@ const Navbar = () => {
         setNotifications(parsed);
       } catch (error) {
         localStorage.removeItem('notifications');
+        setNotifications([]);
       }
+    }
+    // Trigger socket reconnect to ensure immediate notification sync
+    const userCookie = Cookies.get('user');
+    const user = userCookie ? JSON.parse(userCookie) : null;
+    if (user && user._id) {
+      socket.emit('register', user._id);
     }
   }, []);
 
@@ -324,21 +376,53 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  // Enhanced login state detection with fast polling
   useEffect(() => {
-    setIsLoggedIn(!!Cookies.get('user'));
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const handleAuthChange = () => {
-      setIsLoggedIn(!!Cookies.get('user'));
+    let lastCookie = Cookies.get('user');
+    const checkLoginStatus = async () => {
+      const userCookie = Cookies.get('user');
+      if (userCookie !== lastCookie) {
+        const newLoginState = !!userCookie;
+        setIsLoggedIn(newLoginState);
+        lastCookie = userCookie;
+        if (newLoginState) {
+          try {
+            const response = await fetch(`${BACKEND_URL}/api/auth/coins`, {
+              credentials: 'include',
+            });
+            const data = await response.json();
+            setGoldenCoins(data.golden || 0);
+            setSilverCoins(data.silver || 0);
+            // Re-register socket on login
+            const user = userCookie ? JSON.parse(userCookie) : null;
+            if (user && user._id) {
+              socket.emit('register', user._id);
+            }
+          } catch (error) {
+            setGoldenCoins(0);
+            setSilverCoins(0);
+          }
+        } else {
+          setGoldenCoins(0);
+          setSilverCoins(0);
+          setNotifications([]);
+        }
+      }
     };
+
+    checkLoginStatus();
+    const cookiePoll = setInterval(checkLoginStatus, 100); // Poll every 100ms
+    const handleAuthChange = () => checkLoginStatus();
+
     window.addEventListener('storage', handleAuthChange);
     window.addEventListener('authChanged', handleAuthChange);
+
     return () => {
+      clearInterval(cookiePoll);
       window.removeEventListener('storage', handleAuthChange);
       window.removeEventListener('authChanged', handleAuthChange);
     };
-  }, []);
+  }, [isLoggedIn]);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -356,9 +440,7 @@ const Navbar = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showProfileMenu, showCoinsDropdown]);
 
   const handleSearch = (e) => {
@@ -376,38 +458,53 @@ const Navbar = () => {
 
   const handleLoginClick = () => {
     openLogin();
+    setTimeout(() => {
+      window.dispatchEvent(new Event('authChanged'));
+    }, 100);
   };
 
   useEffect(() => {
     const handleRequestSent = (e) => {
-      setNotifications((prev) => [
-        { type: 'request', tutor: e.detail.tutor, onCancel: e.detail.onCancel },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          { type: 'request', tutor: e.detail.tutor, onCancel: e.detail.onCancel },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     };
     const handleAddSessionRequestNotification = (e) => {
-      setNotifications((prev) => [
-        {
-          type: 'session',
-          tutor: e.detail.tutor,
-          onAccept: e.detail.onAccept,
-          onReject: e.detail.onReject,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session',
+            tutor: e.detail.tutor,
+            onAccept: e.detail.onAccept,
+            onReject: e.detail.onReject,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     };
     const handleSessionRequestResponse = (e) => {
-      setNotifications((prev) => [
-        {
-          type: 'text',
-          message: `Your request to ${e.detail.tutor.name} has been ${e.detail.status}.`,
-        },
-        ...prev.filter(
-          (n) =>
-            !(n.type === 'request' && n.tutor && n.tutor.name === e.detail.tutor.name) &&
-            !(n.type === 'session' && n.tutor && n.tutor.name === e.detail.tutor.name),
-        ),
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'text',
+            message: `Your request to ${e.detail.tutor.name} has been ${e.detail.status}.`,
+          },
+          ...prev.filter(
+            (n) =>
+              !(n.type === 'request' && n.tutor && n.tutor.name === e.detail.tutor.name) &&
+              !(n.type === 'session' && n.tutor && n.tutor.name === e.detail.tutor.name),
+          ),
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     };
     window.addEventListener('requestSent', handleRequestSent);
     window.addEventListener('addSessionRequestNotification', handleAddSessionRequestNotification);
@@ -419,29 +516,13 @@ const Navbar = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    fetch(`${BACKEND_URL}/api/auth/coins`, {
-      credentials: 'include',
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setGoldenCoins(data.golden || 0);
-        setSilverCoins(data.silver || 0);
-      })
-      .catch(() => {
-        setGoldenCoins(0);
-        setSilverCoins(0);
-      });
-  }, [isLoggedIn]);
-
-  useSessionSocketNotifications(setNotifications);
+  useSessionSocketNotifications(setNotifications, setActiveVideoCall);
 
   const handleMobileMenu = () => setMenuOpen((open) => !open);
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full h-[56px] sm:h-[60px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-3 sm:px-4 py-2 shadow-lg border-b border-blue-200 z-50">
+      <nav className="fixed top-0 left-0 w-full h-[64px] sm:h-[72px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-3 sm:px-4 py-2 shadow-lg border-b border-blue-200 z-50">
         <div className="flex items-center justify-between max-w-7xl mx-auto h-full">
           {/* Logo */}
           <div
@@ -451,9 +532,9 @@ const Navbar = () => {
             <img
               src="/assets/skillswap-logo.webp"
               alt="SkillSwapHub Logo"
-              className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-full shadow-md border-2 border-blue-900"
+              className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-full shadow-md border-2 border-blue-900"
             />
-            <span className="text-sm sm:text-base font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
+            <span className="text-base sm:text-lg font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
               SkillSwapHub
             </span>
           </div>
@@ -474,7 +555,7 @@ const Navbar = () => {
                   isActive(path)
                     ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md'
                     : 'hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105'
-                }`}
+                } touch-manipulation`}
                 onClick={() => navigate(path)}
               >
                 {label}
@@ -492,7 +573,7 @@ const Navbar = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search SkillMate..."
-                  className="w-32 lg:w-48 pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
+                  className="w-48 lg:w-64 pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
                 />
                 <button
                   type="submit"
@@ -576,6 +657,7 @@ const Navbar = () => {
                   setNotifications={setNotifications}
                   iconSize="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5"
                   className="relative flex items-center justify-center"
+                  dropdownClassName="absolute right-[-10px] sm:right-0 mt-2 w-64 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50"
                 />
 
                 {/* Profile */}
@@ -603,7 +685,7 @@ const Navbar = () => {
               </>
             ) : (
               <button
-                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-800 rounded-full shadow-md hover:bg-blue-700 hover:scale-105 transition-all duration-300 font-nunito touch-manipulation"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-800 rounded-full shadow-md hover:bg-blue-700 hover:scale-105 transition-all duration-300 font-nunito touch-manipulation"
                 onClick={handleLoginClick}
                 aria-label="Login to SkillSwapHub"
               >

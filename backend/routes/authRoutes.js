@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-// FIX: import generateToken as default (not named)
 const generateToken = require('../utils/generateToken');
 const {
   register,
@@ -25,46 +24,77 @@ const sanitizeArrayFields = (data, validKeys) => {
   });
 };
 
+// Environment-based cookie configuration
+const isProd = process.env.NODE_ENV === 'production';
+const cookieBase = {
+  path: '/',
+  httpOnly: true,
+  sameSite: isProd ? 'none' : 'lax',
+  secure: isProd,
+};
+
 // Email-based routes
 router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
 
+// Example: after successful login, set cookie consistently
+router.post('/login/success', (req, res) => {
+  console.info('[DEBUG] /login/success called for user:', req.user?._id);
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ message: 'No token' });
+  res.cookie('token', token, { ...cookieBase, maxAge: 7 * 24 * 60 * 60 * 1000 });
+  res.cookie('user', JSON.stringify(req.user), {
+    ...cookieBase,
+    httpOnly: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  });
+  return res.status(200).json({ ok: true });
+});
+
+// Logout route: Clear session and all relevant cookies
 router.post('/logout', (req, res) => {
-  // Clear cookies set at login. Adjust names/options to match your login.
-  const isProd = process.env.NODE_ENV === 'production';
-
-  res.clearCookie('token', {
-    httpOnly: true,         // match how it was set
-    sameSite: 'lax',        // or 'none' if cross-site
-    secure: isProd,         // true in production with HTTPS
-    path: '/',              // must match the path used when setting
-    // domain: '.yourdomain.com', // include if you set domain on login
-  });
-
-  // If you also set a 'user' cookie, clear it too
-  res.clearCookie('user', {
-    sameSite: 'lax',
-    secure: isProd,
-    path: '/',
-  });
-
-  return res.status(200).json({ message: 'Logged out' });
+  console.info('[DEBUG] Logout initiated for session:', req.sessionID, 'user:', req.user?._id);
+  if (req.user) {
+    req.logout((err) => {
+      if (err) {
+        console.error('[DEBUG] Logout error:', err);
+        return res.status(500).json({ message: 'Logout failed' });
+      }
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('[DEBUG] Session destruction error:', err);
+          return res.status(500).json({ message: 'Session destruction failed' });
+        }
+        console.info('[DEBUG] Session destroyed for user:', req.user?._id);
+        res.clearCookie('connect.sid', cookieBase);
+        res.clearCookie('token', cookieBase);
+        res.clearCookie('user', { ...cookieBase, httpOnly: false });
+        console.info('[DEBUG] Cookies cleared');
+        return res.status(200).json({ message: 'Logged out successfully' });
+      });
+    });
+  } else {
+    console.info('[DEBUG] No user in session, clearing cookies');
+    res.clearCookie('connect.sid', cookieBase);
+    res.clearCookie('token', cookieBase);
+    res.clearCookie('user', { ...cookieBase, httpOnly: false });
+    console.info('[DEBUG] Cookies cleared (no user)');
+    return res.status(200).json({ message: 'Logged out successfully' });
+  }
 });
 
 // Test endpoint to check cookies
 router.get('/test-cookie', (req, res) => {
-  console.log('Test Cookie - All cookies:', req.cookies);
+  console.info('[DEBUG] Test Cookie - All cookies:', req.cookies);
   res.cookie('test', 'test-value', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    ...cookieBase,
     maxAge: 24 * 60 * 60 * 1000
   });
   res.json({ message: 'Test cookie set', cookies: req.cookies });
 });
 
-// Google OAuth entry (force exact callback URL)
+// Google OAuth entry
 router.get(
   '/google',
   passport.authenticate('google', {
@@ -81,33 +111,33 @@ router.get(
   async (req, res) => {
     try {
       const user = req.user;
+      console.info('[DEBUG] Google callback for user:', user?._id);
       if (!user?.email) return res.redirect('/api/auth/failure');
 
       const token = generateToken(user);
-
-      // Always use configured frontend; never trust Origin/Referer from Google
       const frontendUrl = (process.env.FRONTEND_URL ||
-        (process.env.NODE_ENV === 'production' ? 'https://skillswaphub.in' : 'http://localhost:5173')
+        (isProd ? 'https://skillswaphub.in' : 'http://localhost:5173')
       ).replace(/\/+$/, '');
 
       res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN : undefined,
-        path: '/',
+        ...cookieBase,
+        maxAge: 24 * 60 * 60 * 1000
+      });
+      res.cookie('user', JSON.stringify(user), {
+        ...cookieBase,
+        httpOnly: false,
         maxAge: 24 * 60 * 60 * 1000
       });
 
       return res.redirect(`${frontendUrl}/home`);
     } catch (e) {
-      console.error('OAuth callback error:', e);
+      console.error('[DEBUG] OAuth callback error:', e);
       return res.redirect('/api/auth/failure');
     }
   }
 );
 
-// Failure route — returns only the message
+// Failure route
 router.get('/failure', (_req, res) => {
   res.status(400).json({ message: 'Google sign-in failed' });
 });
@@ -115,17 +145,30 @@ router.get('/failure', (_req, res) => {
 // LinkedIn OAuth
 router.get('/linkedin', passport.authenticate('linkedin'));
 router.get('/linkedin/callback', passport.authenticate('linkedin', {
-  failureRedirect: '/auth/failure'
+  failureRedirect: '/api/auth/failure'
 }), async (req, res) => {
   try {
     const user = req.user;
+    console.info('[DEBUG] LinkedIn callback for user:', user?._id);
     const token = generateToken(user);
-    const origin = req.get('origin') || req.get('referer') || 'http://localhost:5173';
-    const frontendUrl = origin.includes('localhost') ? 'http://localhost:5173' : origin.replace(/\/$/, '');
-    res.redirect(`${frontendUrl}/home?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+    const frontendUrl = (process.env.FRONTEND_URL ||
+      (isProd ? 'https://skillswaphub.in' : 'http://localhost:5173')
+    ).replace(/\/+$/, '');
+
+    res.cookie('token', token, {
+      ...cookieBase,
+      maxAge: 24 * 60 * 60 * 1000
+    });
+    res.cookie('user', JSON.stringify(user), {
+      ...cookieBase,
+      httpOnly: false,
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
+    res.redirect(`${frontendUrl}/home`);
   } catch (error) {
-    console.error('LinkedIn OAuth error:', error);
-    res.redirect('/auth/failure');
+    console.error('[DEBUG] LinkedIn OAuth error:', error);
+    res.redirect('/api/auth/failure');
   }
 });
 
@@ -133,19 +176,15 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
 router.get('/search', async (req, res) => {
   try {
     const { username } = req.query;
-    
     if (!username) {
       return res.status(400).json({ message: 'Username query parameter is required' });
     }
-    
-    // Search for users with usernames that contain the search query (case insensitive)
     const users = await User.find({
       username: { $regex: username, $options: 'i' }
     }).select('_id username firstName lastName profilePic').limit(10);
-    
     res.json({ users });
   } catch (error) {
-    console.error('Error searching users:', error);
+    console.error('[DEBUG] Error searching users:', error);
     res.status(500).json({ message: 'Server error while searching users' });
   }
 });
@@ -155,9 +194,10 @@ router.get('/user/profile', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password -otp -otpExpires');
     if (!user) {
+      console.info('[DEBUG] User not found for /user/profile:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
-    console.log('Fetched user profile:', {
+    console.info('[DEBUG] Fetched user profile:', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -190,25 +230,24 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       rank: user.rank
     });
   } catch (err) {
-    console.error('Profile fetch error:', err);
+    console.error('[DEBUG] Profile fetch error:', err);
     res.status(500).json({ message: 'Failed to fetch profile', error: err.message });
   }
 });
 
 // Update user profile
 router.put('/user/profile', requireAuth, async (req, res) => {
-  const { 
-    firstName, lastName, bio, country, profilePic, education, experience, 
-    certificates, linkedin, website, github, twitter, skillsToTeach, 
+  const {
+    firstName, lastName, bio, country, profilePic, education, experience,
+    certificates, linkedin, website, github, twitter, skillsToTeach,
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
 
-  console.log('Profile update request:', { firstName, lastName, bio, skillsToTeach, username });
+  console.info('[DEBUG] Profile update request:', { firstName, lastName, bio, skillsToTeach, username });
 
   try {
     const updateData = {};
 
-    // Sanitize array fields to remove invalid keys
     if (education !== undefined) {
       updateData.education = sanitizeArrayFields(education, ['course', 'branch', 'college', 'city', 'passingYear']);
     }
@@ -219,7 +258,6 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       updateData.certificates = sanitizeArrayFields(certificates, ['name', 'issuer', 'date', 'url']);
     }
 
-    // Include other fields if provided
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
     if (bio !== undefined) updateData.bio = bio;
@@ -238,7 +276,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     if (rank !== undefined) updateData.rank = rank;
     if (username !== undefined) updateData.username = username;
 
-    console.log('Updating user with data:', updateData);
+    console.info('[DEBUG] Updating user with data:', updateData);
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -247,10 +285,11 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     ).select('-password -otp -otpExpires');
 
     if (!user) {
+      console.info('[DEBUG] User not found for profile update:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('Updated user profile:', { 
+    console.info('[DEBUG] Updated user profile:', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -284,7 +323,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       rank: user.rank
     });
   } catch (err) {
-    console.error('Profile update error:', err);
+    console.error('[DEBUG] Profile update error:', err);
     res.status(500).json({ message: 'Failed to update profile', error: err.message });
   }
 });
@@ -294,9 +333,10 @@ router.get('/profile', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password -otp -otpExpires');
     if (!user) {
+      console.info('[DEBUG] User not found for /profile:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
-    console.log('Fetched user profile (/profile):', {
+    console.info('[DEBUG] Fetched user profile (/profile):', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -329,25 +369,24 @@ router.get('/profile', requireAuth, async (req, res) => {
       rank: user.rank
     });
   } catch (err) {
-    console.error('Profile fetch error (/profile):', err);
+    console.error('[DEBUG] Profile fetch error (/profile):', err);
     res.status(500).json({ message: 'Failed to fetch profile', error: err.message });
   }
 });
 
 // Sync /api/user/profile update to /api/auth/user/profile
 router.put('/profile', requireAuth, async (req, res) => {
-  const { 
-    firstName, lastName, bio, country, profilePic, education, experience, 
-    certificates, linkedin, website, github, twitter, skillsToTeach, 
+  const {
+    firstName, lastName, bio, country, profilePic, education, experience,
+    certificates, linkedin, website, github, twitter, skillsToTeach,
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
 
-  console.log('Profile update request (/profile):', { firstName, lastName, bio, skillsToTeach, username });
+  console.info('[DEBUG] Profile update request (/profile):', { firstName, lastName, bio, skillsToTeach, username });
 
   try {
     const updateData = {};
 
-    // Sanitize array fields to remove invalid keys
     if (education !== undefined) {
       updateData.education = sanitizeArrayFields(education, ['course', 'branch', 'college', 'city', 'passingYear']);
     }
@@ -358,7 +397,6 @@ router.put('/profile', requireAuth, async (req, res) => {
       updateData.certificates = sanitizeArrayFields(certificates, ['name', 'issuer', 'date', 'url']);
     }
 
-    // Include other fields if provided
     if (firstName !== undefined) updateData.firstName = firstName;
     if (lastName !== undefined) updateData.lastName = lastName;
     if (bio !== undefined) updateData.bio = bio;
@@ -377,7 +415,7 @@ router.put('/profile', requireAuth, async (req, res) => {
     if (rank !== undefined) updateData.rank = rank;
     if (username !== undefined) updateData.username = username;
 
-    console.log('Updating user with data (/profile):', updateData);
+    console.info('[DEBUG] Updating user with data (/profile):', updateData);
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -386,10 +424,11 @@ router.put('/profile', requireAuth, async (req, res) => {
     ).select('-password -otp -otpExpires');
 
     if (!user) {
+      console.info('[DEBUG] User not found for profile update:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
 
-    console.log('Updated user profile (/profile):', { 
+    console.info('[DEBUG] Updated user profile (/profile):', {
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
@@ -423,7 +462,7 @@ router.put('/profile', requireAuth, async (req, res) => {
       rank: user.rank
     });
   } catch (err) {
-    console.error('Profile update error (/profile):', err);
+    console.error('[DEBUG] Profile update error (/profile):', err);
     res.status(500).json({ message: 'Failed to update profile', error: err.message });
   }
 });
@@ -432,9 +471,13 @@ router.put('/profile', requireAuth, async (req, res) => {
 router.get('/user/public/:username', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username }).select('-password -otp -otpExpires -__v');
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) {
+      console.info('[DEBUG] User not found for /user/public/:username:', req.params.username);
+      return res.status(404).json({ message: 'User not found' });
+    }
     res.json(user);
   } catch (err) {
+    console.error('[DEBUG] Public profile fetch error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -444,6 +487,7 @@ router.get('/coins', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('goldCoins silverCoins');
     if (!user) {
+      console.info('[DEBUG] User not found for /coins:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
     res.json({
@@ -451,7 +495,7 @@ router.get('/coins', requireAuth, async (req, res) => {
       silver: user.silverCoins || 0
     });
   } catch (error) {
-    console.error('Coins error:', error);
+    console.error('[DEBUG] Coins error:', error);
     res.status(500).json({ error: 'Failed to fetch coins' });
   }
 });
@@ -459,27 +503,26 @@ router.get('/coins', requireAuth, async (req, res) => {
 // Get user history/sessions
 router.get('/user/history', requireAuth, async (req, res) => {
   try {
-    // Mock history data (replace with actual implementation later)
     const mockHistory = [
-      { 
-        date: '2025-01-15', 
+      {
+        date: '2025-01-15',
         sessions: ['React Workshop', 'Node.js Q&A'],
         count: 2
       },
-      { 
-        date: '2025-01-14', 
+      {
+        date: '2025-01-14',
         sessions: ['JavaScript Basics'],
         count: 1
       },
-      { 
-        date: '2025-01-13', 
+      {
+        date: '2025-01-13',
         sessions: ['Python Tutorial', 'Data Structures'],
         count: 2
       }
     ];
     res.json({ history: mockHistory });
   } catch (error) {
-    console.error('History error:', error);
+    console.error('[DEBUG] History error:', error);
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
@@ -487,7 +530,6 @@ router.get('/user/history', requireAuth, async (req, res) => {
 // Get user videos
 router.get('/videos', requireAuth, async (req, res) => {
   try {
-    // Mock videos data (replace with actual implementation later)
     const mockVideos = [
       {
         id: "1",
@@ -526,7 +568,7 @@ router.get('/videos', requireAuth, async (req, res) => {
     ];
     res.json({ videos: mockVideos });
   } catch (error) {
-    console.error('Videos error:', error);
+    console.error('[DEBUG] Videos error:', error);
     res.status(500).json({ error: 'Failed to fetch videos' });
   }
 });
@@ -553,7 +595,7 @@ router.post('/videos/upload', requireAuth, async (req, res) => {
     };
     res.json(mockVideo);
   } catch (error) {
-    console.error('Video upload error:', error);
+    console.error('[DEBUG] Video upload error:', error);
     res.status(500).json({ error: 'Failed to upload video' });
   }
 });
@@ -581,7 +623,7 @@ router.put('/videos/:id', requireAuth, async (req, res) => {
     };
     res.json(mockUpdatedVideo);
   } catch (error) {
-    console.error('Video update error:', error);
+    console.error('[DEBUG] Video update error:', error);
     res.status(500).json({ error: 'Failed to update video' });
   }
 });
@@ -592,7 +634,7 @@ router.delete('/videos/:id', requireAuth, async (req, res) => {
     const { id } = req.params;
     res.json({ message: 'Video deleted successfully', id });
   } catch (error) {
-    console.error('Video deletion error:', error);
+    console.error('[DEBUG] Video deletion error:', error);
     res.status(500).json({ error: 'Failed to delete video' });
   }
 });
@@ -603,7 +645,7 @@ router.post('/videos/:id/archive', requireAuth, async (req, res) => {
     const { id } = req.params;
     res.json({ message: 'Video archived successfully', id });
   } catch (error) {
-    console.error('Video archive error:', error);
+    console.error('[DEBUG] Video archive error:', error);
     res.status(500).json({ error: 'Failed to archive video' });
   }
 });
@@ -653,7 +695,7 @@ router.get('/live', requireAuth, async (req, res) => {
     ];
     res.json({ liveSessions: mockLiveSessions });
   } catch (error) {
-    console.error('Live sessions error:', error);
+    console.error('[DEBUG] Live sessions error:', error);
     res.status(500).json({ error: 'Failed to fetch live sessions' });
   }
 });
@@ -682,7 +724,7 @@ router.post('/live', requireAuth, async (req, res) => {
     };
     res.json(mockLiveSession);
   } catch (error) {
-    console.error('Live session creation error:', error);
+    console.error('[DEBUG] Live session creation error:', error);
     res.status(500).json({ error: 'Failed to create live session' });
   }
 });
@@ -712,7 +754,7 @@ router.put('/live/:id', requireAuth, async (req, res) => {
     };
     res.json(mockUpdatedLiveSession);
   } catch (error) {
-    console.error('Live session update error:', error);
+    console.error('[DEBUG] Live session update error:', error);
     res.status(500).json({ error: 'Failed to update live session' });
   }
 });
@@ -723,7 +765,7 @@ router.delete('/live/:id', requireAuth, async (req, res) => {
     const { id } = req.params;
     res.json({ message: 'Live session deleted successfully', id });
   } catch (error) {
-    console.error('Live session deletion error:', error);
+    console.error('[DEBUG] Live session deletion error:', error);
     res.status(500).json({ error: 'Failed to delete live session' });
   }
 });
@@ -734,13 +776,18 @@ router.post('/live/:id/archive', requireAuth, async (req, res) => {
     const { id } = req.params;
     res.json({ message: 'Live session archived successfully', id });
   } catch (error) {
-    console.error('Live session archive error:', error);
+    console.error('[DEBUG] Live session archive error:', error);
     res.status(500).json({ error: 'Failed to archive live session' });
   }
 });
 
 // Return the logged-in user using the cookie JWT
 router.get('/me', requireAuth, (req, res) => {
+  console.info('[DEBUG] /me called, session:', req.sessionID, 'user:', req.user?._id);
+  if (!req.sessionID || !req.user) {
+    console.info('[DEBUG] No valid session or user for /me');
+    return res.status(401).json({ message: 'No user logged in', user: null });
+  }
   res.json({ user: req.user });
 });
 

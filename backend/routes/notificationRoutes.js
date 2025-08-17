@@ -1,13 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const requireAuth = require('../middleware/requireAuth');
 const Notification = require('../models/Notification');
 const SessionRequest = require('../models/SessionRequest');
 const SkillMate = require('../models/SkillMate');
 const ChatMessage = require('../models/Chat');
-const auth = require('../middleware/requireAuth');
 
-// Get notifications for the authenticated user
-router.get('/', auth, async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
     // Fetch notifications and populate requesterId
     let notifications = await Notification.find({ userId: req.user.id })
@@ -49,7 +48,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Mark a notification as read
-router.put('/:id/read', auth, async (req, res) => {
+router.put('/:id/read', requireAuth, async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
     if (!notification) {
@@ -68,7 +67,7 @@ router.put('/:id/read', auth, async (req, res) => {
 });
 
 // Clear all notifications for the user
-router.delete('/clear', auth, async (req, res) => {
+router.delete('/clear', requireAuth, async (req, res) => {
   try {
     await Notification.deleteMany({ userId: req.user.id });
     res.json({ message: 'All notifications cleared' });
