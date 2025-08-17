@@ -9,7 +9,7 @@ import VideoCall from './VideoCall';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 
-// useSessionSocketNotifications remains unchanged
+// useSessionSocketNotifications hook for handling socket notifications
 function useSessionSocketNotifications(setNotifications) {
   useEffect(() => {
     const userCookie = Cookies.get('user');
@@ -335,7 +335,6 @@ const Navbar = () => {
       const newLoginState = !!userCookie;
       if (newLoginState !== isLoggedIn) {
         setIsLoggedIn(newLoginState);
-        // Trigger immediate coin fetch on login
         if (newLoginState) {
           fetch(`${BACKEND_URL}/api/auth/coins`, {
             credentials: 'include',
@@ -353,16 +352,9 @@ const Navbar = () => {
       }
     };
 
-    // Initial check
     checkLoginStatus();
-
-    // Listen for storage and custom auth events
-    const handleAuthChange = () => {
-      checkLoginStatus();
-    };
-
-    // Poll for cookie changes (for cross-tab updates)
     const cookiePoll = setInterval(checkLoginStatus, 500);
+    const handleAuthChange = () => checkLoginStatus();
 
     window.addEventListener('storage', handleAuthChange);
     window.addEventListener('authChanged', handleAuthChange);
@@ -390,9 +382,7 @@ const Navbar = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showProfileMenu, showCoinsDropdown]);
 
   const handleSearch = (e) => {
@@ -410,10 +400,9 @@ const Navbar = () => {
 
   const handleLoginClick = () => {
     openLogin();
-    // Dispatch authChanged event after login attempt
     setTimeout(() => {
       window.dispatchEvent(new Event('authChanged'));
-    }, 500); // Small delay to allow cookie to be set
+    }, 500);
   };
 
   useEffect(() => {
@@ -479,7 +468,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full h-[56px] sm:h-[60px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-3 sm:px-4 py-2 shadow-lg border-b border-blue-200 z-50">
+      <nav className="fixed top-0 left-0 w-full h-[64px] sm:h-[72px] bg-gradient-to-br from-blue-50 to-blue-100 text-blue-900 px-3 sm:px-4 py-2 shadow-lg border-b border-blue-200 z-50">
         <div className="flex items-center justify-between max-w-7xl mx-auto h-full">
           {/* Logo */}
           <div
@@ -489,9 +478,9 @@ const Navbar = () => {
             <img
               src="/assets/skillswap-logo.webp"
               alt="SkillSwapHub Logo"
-              className="h-8 w-8 sm:h-9 sm:w-9 object-contain rounded-full shadow-md border-2 border-blue-900"
+              className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-full shadow-md border-2 border-blue-900"
             />
-            <span className="text-sm sm:text-base font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
+            <span className="text-base sm:text-lg font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
               SkillSwapHub
             </span>
           </div>
@@ -530,7 +519,7 @@ const Navbar = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search SkillMate..."
-                  className="w-32 lg:w-48 pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
+                  className="w-48 lg:w-64 pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
                 />
                 <button
                   type="submit"
@@ -594,8 +583,7 @@ const Navbar = () => {
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
                           <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
                             <span className="text-[10px] font-bold text-blue-900">G</span>
-                          </div
-                          >
+                          </div>
                           <span className="text-gray-800">Golden: {goldenCoins}</span>
                         </div>
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
@@ -642,7 +630,7 @@ const Navbar = () => {
               </>
             ) : (
               <button
-                className="px-3 py-1.5 text-xs font-medium text-white bg-blue-800 rounded-full shadow-md hover:bg-blue-700 hover:scale-105 transition-all duration-300 font-nunito touch-manipulation"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-800 rounded-full shadow-md hover:bg-blue-700 hover:scale-105 transition-all duration-300 font-nunito touch-manipulation"
                 onClick={handleLoginClick}
                 aria-label="Login to SkillSwapHub"
               >
