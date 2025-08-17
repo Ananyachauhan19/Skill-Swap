@@ -10,7 +10,7 @@ import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 
 // useSessionSocketNotifications hook for handling socket notifications
-function useSessionSocketNotifications(setNotifications) {
+function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
   useEffect(() => {
     const userCookie = Cookies.get('user');
     const user = userCookie ? JSON.parse(userCookie) : null;
@@ -21,108 +21,128 @@ function useSessionSocketNotifications(setNotifications) {
 
     socket.on('session-request-received', (data) => {
       const { sessionRequest, requester } = data;
-      setNotifications((prev) => [
-        {
-          type: 'session-request',
-          sessionRequest,
-          requester,
-          message: `New session request from ${requester.firstName} ${requester.lastName}`,
-          timestamp: Date.now(),
-          read: false,
-          onAccept: async () => {
-            try {
-              const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${sessionRequest._id}`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-              });
-              if (response.ok) {
-                socket.emit('session-request-response', {
-                  requestId: sessionRequest._id,
-                  action: 'approve',
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-request',
+            sessionRequest,
+            requester,
+            message: `New session request from ${requester.firstName} ${requester.lastName}`,
+            timestamp: Date.now(),
+            read: false,
+            onAccept: async () => {
+              try {
+                const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${sessionRequest._id}`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
                 });
-                return true;
+                if (response.ok) {
+                  socket.emit('session-request-response', {
+                    requestId: sessionRequest._id,
+                    action: 'approve',
+                  });
+                  return true;
+                }
+              } catch (error) {
+                return false;
               }
-            } catch (error) {
-              return false;
-            }
-          },
-          onReject: async () => {
-            try {
-              const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${sessionRequest._id}`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-              });
-              if (response.ok) {
-                socket.emit('session-request-response', {
-                  requestId: sessionRequest._id,
-                  action: 'reject',
+            },
+            onReject: async () => {
+              try {
+                const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${sessionRequest._id}`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
                 });
-                return true;
+                if (response.ok) {
+                  socket.emit('session-request-response', {
+                    requestId: sessionRequest._id,
+                    action: 'reject',
+                  });
+                  return true;
+                }
+              } catch (error) {
+                return false;
               }
-            } catch (error) {
-              return false;
-            }
+            },
           },
-        },
-        ...prev,
-      ]);
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-request-updated', (data) => {
       const { sessionRequest, action } = data;
-      setNotifications((prev) => [
-        {
-          type: 'session-request-response',
-          sessionRequest,
-          action,
-          message: `Your session request was ${action}ed by ${sessionRequest.tutor.firstName} ${sessionRequest.tutor.lastName}`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-request-response',
+            sessionRequest,
+            action,
+            message: `Your session request was ${action}ed by ${sessionRequest.tutor.firstName} ${sessionRequest.tutor.lastName}`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-requested', (session) => {
-      setNotifications((prev) => [
-        {
-          type: 'session-requested',
-          session,
-          sessionId: session._id,
-          message: `You have a new session request from ${session.requester?.name || session.requester?.firstName || 'a user'}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-requested',
+            session,
+            sessionId: session._id,
+            message: `You have a new session request from ${session.requester?.name || session.requester?.firstName || 'a user'}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-approved', (session) => {
-      setNotifications((prev) => [
-        {
-          type: 'session-approved',
-          session,
-          message: `Your session request was approved by ${session.creator?.firstName || 'the tutor'}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-approved',
+            session,
+            message: `Your session request was approved by ${session.creator?.firstName || 'the tutor'}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-rejected', (session) => {
-      setNotifications((prev) => [
-        {
-          type: 'session-rejected',
-          session,
-          message: `Your session request was rejected by ${session.creator?.firstName || 'the tutor'}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-rejected',
+            session,
+            message: `Your session request was rejected by ${session.creator?.firstName || 'the tutor'}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('session-started', (data) => {
@@ -157,55 +177,68 @@ function useSessionSocketNotifications(setNotifications) {
       };
       setNotifications((prev) => {
         const updated = [newNotification, ...prev];
+        localStorage.setItem('notifications', JSON.stringify(updated));
         return updated;
       });
     });
 
     socket.on('session-cancelled', (data) => {
-      setNotifications((prev) => [
-        {
-          type: 'session-cancelled',
-          session: data,
-          message: data.message || 'The user has cancelled the session.',
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session-cancelled',
+            session: data,
+            message: data.message || 'The user has cancelled the session.',
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('skillmate-request-received', (data) => {
       const { skillMateRequest, requester } = data;
-      setNotifications((prev) => [
-        {
-          type: 'skillmate',
-          subtype: 'request',
-          requestId: skillMateRequest._id,
-          requesterName: `${requester.firstName} ${requester.lastName}`,
-          requesterUsername: requester.username,
-          message: `${requester.firstName} ${requester.lastName} wants to be your SkillMate.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'skillmate',
+            subtype: 'request',
+            requestId: skillMateRequest._id,
+            requesterName: `${requester.firstName} ${requester.lastName}`,
+            requesterUsername: requester.username,
+            message: `${requester.firstName} ${requester.lastName} wants to be your SkillMate.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('skillmate-request-sent', (data) => {
       const { skillMateRequest, recipient } = data;
-      setNotifications((prev) => [
-        {
-          type: 'skillmate',
-          subtype: 'sent',
-          requestId: skillMateRequest._id,
-          recipientName: `${recipient.firstName} ${recipient.lastName}`,
-          recipientUsername: recipient.username,
-          message: `You sent a SkillMate request to ${recipient.firstName} ${recipient.lastName}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'skillmate',
+            subtype: 'sent',
+            requestId: skillMateRequest._id,
+            recipientName: `${recipient.firstName} ${recipient.lastName}`,
+            recipientUsername: recipient.username,
+            message: `You sent a SkillMate request to ${recipient.firstName} ${recipient.lastName}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('skillmate-request-approved', (data) => {
@@ -215,21 +248,25 @@ function useSessionSocketNotifications(setNotifications) {
       const isRequester = user && user._id === requester._id;
       const otherUser = isRequester ? approver : requester;
 
-      setNotifications((prev) => [
-        {
-          type: 'skillmate',
-          subtype: 'approved',
-          requestId: skillMateRequest._id,
-          otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
-          otherUserUsername: otherUser.username,
-          message: isRequester
-            ? `${approver.firstName} ${approver.lastName} accepted your SkillMate request.`
-            : `You accepted the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'skillmate',
+            subtype: 'approved',
+            requestId: skillMateRequest._id,
+            otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
+            otherUserUsername: otherUser.username,
+            message: isRequester
+              ? `${approver.firstName} ${approver.lastName} accepted your SkillMate request.`
+              : `You accepted the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     socket.on('skillmate-request-rejected', (data) => {
@@ -239,21 +276,25 @@ function useSessionSocketNotifications(setNotifications) {
       const isRequester = user && user._id === requester._id;
       const otherUser = isRequester ? rejecter : requester;
 
-      setNotifications((prev) => [
-        {
-          type: 'skillmate',
-          subtype: 'rejected',
-          requestId: skillMateRequest._id,
-          otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
-          otherUserUsername: otherUser.username,
-          message: isRequester
-            ? `${rejecter.firstName} ${rejecter.lastName} declined your SkillMate request.`
-            : `You declined the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
-          timestamp: Date.now(),
-          read: false,
-        },
-        ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'skillmate',
+            subtype: 'rejected',
+            requestId: skillMateRequest._id,
+            otherUserName: `${otherUser.firstName} ${otherUser.lastName}`,
+            otherUserUsername: otherUser.username,
+            message: isRequester
+              ? `${rejecter.firstName} ${rejecter.lastName} declined your SkillMate request.`
+              : `You declined the SkillMate request from ${requester.firstName} ${requester.lastName}.`,
+            timestamp: Date.now(),
+            read: false,
+          },
+          ...prev.filter((n) => !(n.type === 'skillmate' && n.subtype === 'request' && n.requestId === skillMateRequest._id)),
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     });
 
     return () => {
@@ -269,7 +310,7 @@ function useSessionSocketNotifications(setNotifications) {
       socket.off('skillmate-request-approved');
       socket.off('skillmate-request-rejected');
     };
-  }, [setNotifications]);
+  }, [setNotifications, setActiveVideoCall]);
 }
 
 const Navbar = () => {
@@ -288,7 +329,7 @@ const Navbar = () => {
   const menuRef = useRef();
   const coinsRef = useRef();
 
-  // Load notifications from localStorage
+  // Load notifications from localStorage and sync with socket
   useEffect(() => {
     const savedNotifications = localStorage.getItem('notifications');
     if (savedNotifications) {
@@ -297,7 +338,14 @@ const Navbar = () => {
         setNotifications(parsed);
       } catch (error) {
         localStorage.removeItem('notifications');
+        setNotifications([]);
       }
+    }
+    // Trigger socket reconnect to ensure immediate notification sync
+    const userCookie = Cookies.get('user');
+    const user = userCookie ? JSON.parse(userCookie) : null;
+    if (user && user._id) {
+      socket.emit('register', user._id);
     }
   }, []);
 
@@ -328,32 +376,42 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  // Enhanced login state detection
+  // Enhanced login state detection with fast polling
   useEffect(() => {
-    const checkLoginStatus = () => {
+    let lastCookie = Cookies.get('user');
+    const checkLoginStatus = async () => {
       const userCookie = Cookies.get('user');
-      const newLoginState = !!userCookie;
-      if (newLoginState !== isLoggedIn) {
+      if (userCookie !== lastCookie) {
+        const newLoginState = !!userCookie;
         setIsLoggedIn(newLoginState);
+        lastCookie = userCookie;
         if (newLoginState) {
-          fetch(`${BACKEND_URL}/api/auth/coins`, {
-            credentials: 'include',
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              setGoldenCoins(data.golden || 0);
-              setSilverCoins(data.silver || 0);
-            })
-            .catch(() => {
-              setGoldenCoins(0);
-              setSilverCoins(0);
+          try {
+            const response = await fetch(`${BACKEND_URL}/api/auth/coins`, {
+              credentials: 'include',
             });
+            const data = await response.json();
+            setGoldenCoins(data.golden || 0);
+            setSilverCoins(data.silver || 0);
+            // Re-register socket on login
+            const user = userCookie ? JSON.parse(userCookie) : null;
+            if (user && user._id) {
+              socket.emit('register', user._id);
+            }
+          } catch (error) {
+            setGoldenCoins(0);
+            setSilverCoins(0);
+          }
+        } else {
+          setGoldenCoins(0);
+          setSilverCoins(0);
+          setNotifications([]);
         }
       }
     };
 
     checkLoginStatus();
-    const cookiePoll = setInterval(checkLoginStatus, 500);
+    const cookiePoll = setInterval(checkLoginStatus, 100); // Poll every 100ms
     const handleAuthChange = () => checkLoginStatus();
 
     window.addEventListener('storage', handleAuthChange);
@@ -402,39 +460,51 @@ const Navbar = () => {
     openLogin();
     setTimeout(() => {
       window.dispatchEvent(new Event('authChanged'));
-    }, 500);
+    }, 100);
   };
 
   useEffect(() => {
     const handleRequestSent = (e) => {
-      setNotifications((prev) => [
-        { type: 'request', tutor: e.detail.tutor, onCancel: e.detail.onCancel },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          { type: 'request', tutor: e.detail.tutor, onCancel: e.detail.onCancel },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     };
     const handleAddSessionRequestNotification = (e) => {
-      setNotifications((prev) => [
-        {
-          type: 'session',
-          tutor: e.detail.tutor,
-          onAccept: e.detail.onAccept,
-          onReject: e.detail.onReject,
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'session',
+            tutor: e.detail.tutor,
+            onAccept: e.detail.onAccept,
+            onReject: e.detail.onReject,
+          },
+          ...prev,
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     };
     const handleSessionRequestResponse = (e) => {
-      setNotifications((prev) => [
-        {
-          type: 'text',
-          message: `Your request to ${e.detail.tutor.name} has been ${e.detail.status}.`,
-        },
-        ...prev.filter(
-          (n) =>
-            !(n.type === 'request' && n.tutor && n.tutor.name === e.detail.tutor.name) &&
-            !(n.type === 'session' && n.tutor && n.tutor.name === e.detail.tutor.name),
-        ),
-      ]);
+      setNotifications((prev) => {
+        const updated = [
+          {
+            type: 'text',
+            message: `Your request to ${e.detail.tutor.name} has been ${e.detail.status}.`,
+          },
+          ...prev.filter(
+            (n) =>
+              !(n.type === 'request' && n.tutor && n.tutor.name === e.detail.tutor.name) &&
+              !(n.type === 'session' && n.tutor && n.tutor.name === e.detail.tutor.name),
+          ),
+        ];
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
     };
     window.addEventListener('requestSent', handleRequestSent);
     window.addEventListener('addSessionRequestNotification', handleAddSessionRequestNotification);
@@ -446,23 +516,7 @@ const Navbar = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    fetch(`${BACKEND_URL}/api/auth/coins`, {
-      credentials: 'include',
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setGoldenCoins(data.golden || 0);
-        setSilverCoins(data.silver || 0);
-      })
-      .catch(() => {
-        setGoldenCoins(0);
-        setSilverCoins(0);
-      });
-  }, [isLoggedIn]);
-
-  useSessionSocketNotifications(setNotifications);
+  useSessionSocketNotifications(setNotifications, setActiveVideoCall);
 
   const handleMobileMenu = () => setMenuOpen((open) => !open);
 
@@ -603,6 +657,7 @@ const Navbar = () => {
                   setNotifications={setNotifications}
                   iconSize="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5"
                   className="relative flex items-center justify-center"
+                  dropdownClassName="absolute right-[-10px] sm:right-0 mt-2 w-64 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50"
                 />
 
                 {/* Profile */}
