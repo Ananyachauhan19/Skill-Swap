@@ -211,20 +211,6 @@ const OneOnOne = () => {
             />
           </div>
         </div>
-        <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mt-6 sm:mt-8">
-          {[
-            "Instant Doubt Solving",
-            "Personalized Guidance",
-            "Flexible Scheduling"
-          ].map((text, index) => (
-            <span
-              key={index}
-              className="inline-block bg-blue-100 text-blue-800 px-3 sm:px-4 py-2 rounded-full font-semibold text-xs sm:text-sm shadow-sm transition-transform duration-300 hover:scale-105 hover:bg-blue-200"
-            >
-              {text}
-            </span>
-          ))}
-        </div>
       </header>
       <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-12 sm:gap-16 px-4 sm:px-8 pb-16">
         <div className="py-6 sm:py-8">

@@ -128,7 +128,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             </span>
           </motion.h1>
           <motion.p
-            className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-full sm:max-w-md leading-relaxed text-center lg:text-left mx-auto lg:mx-0 px-2 sm:px-0"
+            className="text-xs sm:text-sm lg:text-base text-gray-600 max-w-full sm:max-w-md leading-relaxed text-center lg:text-left mx-auto lg:mx-0 px-2 sm:px-0"
             variants={textVariants}
           >
             SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.

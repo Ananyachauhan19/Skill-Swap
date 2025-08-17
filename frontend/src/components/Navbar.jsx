@@ -544,9 +544,9 @@ const Navbar = () => {
             {[
               { path: '/home', label: 'Home' },
               { path: '/one-on-one', label: '1-on-1' },
-              { path: '/discuss', label: 'Discuss' },
+              { path: '/discuss', label: 'GD' },
               { path: '/interview', label: 'Interview' },
-              { path: '/session', label: 'Session' },
+              // { path: '/session', label: 'Session' },
               { path: '/session-requests', label: 'Requests' },
             ].map(({ path, label }) => (
               <button
@@ -655,7 +655,7 @@ const Navbar = () => {
                 <Notifications
                   notifications={notifications}
                   setNotifications={setNotifications}
-                  iconSize="w-5 h-5 sm:w-6 sm:h-6 md:w-5 md:h-5"
+                  iconSize="w-4 h-4 sm:w-5 sm:h-5"
                   className="relative flex items-center justify-center"
                   dropdownClassName="absolute right-[-10px] sm:right-0 mt-2 w-64 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50"
                 />

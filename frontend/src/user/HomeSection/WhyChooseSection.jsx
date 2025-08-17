@@ -122,17 +122,6 @@ const WhyChooseSection = ({ isLoggedIn, openRegister }) => {
               </motion.div>
             ))}
           </div>
-          {!isLoggedIn && (
-            <motion.button
-              onClick={() => openRegister()}
-              className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-lg font-semibold text-sm sm:text-base shadow-md"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-            >
-              Join Now
-            </motion.button>
-          )}
         </motion.div>
         <motion.div
           className="lg:w-1/2 w-full mt-6 sm:mt-0"
