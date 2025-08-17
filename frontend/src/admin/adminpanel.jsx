@@ -276,20 +276,7 @@ const AdminPanel = () => {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Meeting Link
-                </label>
-                <input
-                  type="url"
-                  name="meetingLink"
-                  value={groupFormData.meetingLink}
-                  onChange={handleGroupInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  placeholder="https://meet.example.com/your-session"
-                  required
-                />
-              </div>
+             
               <div className="pt-3">
                 <button
                   type="button"
@@ -403,20 +390,7 @@ const AdminPanel = () => {
                   required
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Meeting Link
-                </label>
-                <input
-                  type="url"
-                  name="meetingLink"
-                  value={interviewFormData.meetingLink}
-                  onChange={handleInterviewInputChange}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
-                  placeholder="https://meet.example.com/your-interview"
-                  required
-                />
-              </div>
+           
               <div className="pt-3">
                 <button
                   type="button"
