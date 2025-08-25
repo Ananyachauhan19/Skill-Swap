@@ -27,13 +27,13 @@ const server = http.createServer(app);
 
 const io = socketIO(server, {
   cors: { 
-    origin: ['http://localhost:5173', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
+    origin: ['http://localhost:5174', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
     credentials: true 
   },
 });
 
 app.use(cors({ 
-  origin: ['http://localhost:5173', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
+  origin: ['http://localhost:5174', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
   credentials: true 
 }));
 app.use(express.json());
