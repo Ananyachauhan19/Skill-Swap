@@ -39,6 +39,13 @@ import Blog from "./user/company/Blog";
 import SearchPage from "./user/SearchPage";
 import AdminPanel from './admin/adminpanel';
 import AdminRoute from './routes/AdminRoute';
+import PrivacyPolicy from './PrivacyPolicy.jsx';
+import Community from './Community.jsx';
+import FAQ from './FAQ.jsx';
+import TermsConditions from './TermsConditions.jsx';
+import CookiesPolicy from './CookiesPolicy.jsx';
+import About from './About.jsx';
+import Career from './Career.jsx';
 
 // ------------------ ROUTES ------------------
 const appRoutes = [
@@ -46,6 +53,13 @@ const appRoutes = [
   { path: '/home', element: <Home /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
+  { path: '/privacy-policy', element: <PrivacyPolicy/>},
+  { path: '/community', element: <Community/>},
+  { path: '/about', element: <About/>},
+  { path: '/faq', element: <FAQ/>},
+  { path: '/terms-conditions', element: <TermsConditions/>},
+  { path: '/cookies', element: <CookiesPolicy/>},
+  { path: '/career', element: <Career/>},
   { path: '/one-on-one', element: <ProtectedRoute><OneOnOne /></ProtectedRoute> },
   { path: '/discuss', element: <ProtectedRoute><Discuss /></ProtectedRoute> },
   { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
@@ -142,7 +156,18 @@ function App() {
   useEffect(() => {
     if (!loading) {
       const path = location.pathname;
-      const isPublic = path === '/home' || path === '/login' || path === '/register' || path.startsWith('/profile/');
+      const isPublic =
+        path === '/home' ||
+        path === '/login' ||
+        path === '/register' ||
+        path === '/privacy-policy' ||
+        path === '/community' ||
+        path === '/about' ||
+        path === '/faq' ||
+        path === '/terms-conditions' ||
+        path === '/cookies' ||
+        path === '/career' ||
+        path.startsWith('/profile/');
 
       if (!user && !isPublic) {
         navigate('/home', { replace: true });

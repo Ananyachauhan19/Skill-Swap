@@ -81,13 +81,13 @@ const Footer = () => {
                 <h3 className="text-lg font-semibold text-blue-900 mb-3 pb-2 border-b-2 border-blue-300">Company</h3>
                 <ul className="space-y-3">
                   <li>
-                    <a href="/help" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
+                    <a href="/about" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                       About Us
                     </a>
                   </li>
                   <li>
-                    <a href="#" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
+                    <a href="/career" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                       Careers
                     </a>
@@ -99,7 +99,7 @@ const Footer = () => {
                     </a>
                   </li>
                   <li>
-                    <a href="#" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
+                    <a href="/community" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                       Community
                     </a>
@@ -124,7 +124,7 @@ const Footer = () => {
                     </a>
                   </li>
                   <li>
-                    <a href="/help" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
+                    <a href="/faq" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                       FAQs
                     </a>
@@ -137,19 +137,19 @@ const Footer = () => {
                 <h3 className="text-lg font-semibold text-blue-900 mb-3 pb-2 border-b-2 border-blue-300">Legal</h3>
                 <ul className="space-y-3">
                   <li>
-                    <a href="#" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
+                    <a href="/terms-conditions" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                       Terms of Service
                     </a>
                   </li>
                   <li>
-                    <a href="#" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
+                    <a href="/privacy-policy" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                       Privacy Policy
                     </a>
                   </li>
                   <li>
-                    <a href="#" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
+                    <a href="cookies" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                       Cookie Policy
                     </a>
