@@ -544,7 +544,7 @@ const Navbar = () => {
             {[
               { path: '/home', label: 'Home' },
               { path: '/one-on-one', label: '1-on-1' },
-              { path: '/discuss', label: 'GD' },
+              // { path: '/discuss', label: 'GD' },
               { path: '/interview', label: 'Interview' },
               // { path: '/session', label: 'Session' },
               { path: '/session-requests', label: 'Requests' },
@@ -634,12 +634,12 @@ const Navbar = () => {
                   {showCoinsDropdown && (
                     <div className="absolute right-0 mt-2 w-40 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50">
                       <div className="p-3 space-y-2 text-xs font-medium text-gray-700">
-                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
+                        {/* <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
                           <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
                             <span className="text-[10px] font-bold text-blue-900">G</span>
                           </div>
                           <span className="text-gray-800">Golden: {goldenCoins}</span>
-                        </div>
+                        </div> */}
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
                           <div className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
                             <span className="text-[10px] font-bold text-blue-900">S</span>
