@@ -42,6 +42,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   const [drawingColor, setDrawingColor] = useState('#000000');
   const [brushSize, setBrushSize] = useState(3);
   const [drawingTool, setDrawingTool] = useState('pen'); // 'pen' | 'highlighter' | 'eraser'
+  const [pages, setPages] = useState([{ number: 1, paths: [] }]);
+  const [currentPageNumber, setCurrentPageNumber] = useState(1);
+  const [currentPathId, setCurrentPathId] = useState(null);
 
   // --- Chat
   const [messages, setMessages] = useState([]);
@@ -80,12 +83,17 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   // Whiteboard refs
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
+  const whiteboardContainerRef = useRef(null);
   const annotationCanvasRef = useRef(null);
   const annotationContextRef = useRef(null);
-  const lastPointRef = useRef(null);
+  const isRemoteScrolling = useRef(false);
 
   // Chat container ref
   const chatContainerRef = useRef(null);
+
+  // Constants for whiteboard
+  const CANVAS_WIDTH = 2000;
+  const CANVAS_HEIGHT = 1500;
 
   // Smooth scroll helper
   const smoothScrollIntoView = (el) => {
@@ -96,6 +104,68 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       el.scrollIntoView();
     }
   };
+
+  // Current page memo
+  const currentPage = useMemo(() => pages.find(p => p.number === currentPageNumber) || pages[0], [pages, currentPageNumber]);
+
+  // Update paths helper
+  const updatePaths = useCallback((updater) => {
+    setPages(prev => prev.map(p => {
+      if (p.number !== currentPageNumber) return p;
+      const newPaths = updater(p.paths);
+      return { ...p, paths: newPaths };
+    }));
+  }, [currentPageNumber]);
+
+  // Distance to segment
+  const pointToSegmentDistance = (p, a, b) => {
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    if (dx === 0 && dy === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+    const t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy);
+    const tClamped = Math.max(0, Math.min(1, t));
+    const projX = a.x + tClamped * dx;
+    const projY = a.y + tClamped * dy;
+    return Math.hypot(p.x - projX, p.y - projY);
+  };
+
+  // Get hit path
+  const getHitPath = (x, y, paths) => {
+    let minDist = Infinity;
+    let hitId = null;
+    for (let i = paths.length - 1; i >= 0; i--) {
+      const path = paths[i];
+      for (let j = 1; j < path.points.length; j++) {
+        const dist = pointToSegmentDistance({ x, y }, path.points[j - 1], path.points[j]);
+        if (dist < Math.max(path.size / 2, 5) + 5) {
+          if (dist < minDist) {
+            minDist = dist;
+            hitId = path.id;
+          }
+        }
+      }
+    }
+    return hitId;
+  };
+
+  // Redraw whiteboard
+  const redraw = useCallback(() => {
+    const ctx = contextRef.current;
+    if (!ctx) return;
+    ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    (currentPage?.paths || []).forEach(path => {
+      if (path.points.length < 1) return;
+      ctx.strokeStyle = path.color;
+      ctx.lineWidth = path.size;
+      ctx.globalAlpha = path.tool === 'highlighter' ? 0.5 : 1;
+      ctx.beginPath();
+      ctx.moveTo(path.points[0].x, path.points[0].y);
+      for (let k = 1; k < path.points.length; k++) {
+        ctx.lineTo(path.points[k].x, path.points[k].y);
+      }
+      ctx.stroke();
+    });
+  }, [currentPage]);
 
   // Fullscreen listeners
   useEffect(() => {
@@ -250,6 +320,66 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
           }, 60);
         };
 
+        // Whiteboard scroll sync
+        const onWhiteboardScroll = (data) => {
+          const container = whiteboardContainerRef.current;
+          if (!container) return;
+          const { scrollX, scrollY } = data;
+          if (Math.abs(container.scrollLeft - scrollX) > 1 || Math.abs(container.scrollTop - scrollY) > 1) {
+            isRemoteScrolling.current = true;
+            container.scrollLeft = scrollX;
+            container.scrollTop = scrollY;
+          }
+        };
+
+        // New whiteboard events
+        const handleRemoteStartPath = (data) => {
+          const { pageNumber, pathId, tool, color, size, x, y } = data;
+          setPages(prev => prev.map(p => {
+            if (p.number !== pageNumber) return p;
+            return { ...p, paths: [...p.paths, { id: pathId, tool, color, size, points: [{ x, y }] }] };
+          }));
+        };
+
+        const handleRemoteAddPoint = (data) => {
+          const { pageNumber, pathId, x, y } = data;
+          setPages(prev => prev.map(p => {
+            if (p.number !== pageNumber) return p;
+            const newPaths = p.paths.map(path => {
+              if (path.id !== pathId) return path;
+              return { ...path, points: [...path.points, { x, y }] };
+            });
+            return { ...p, paths: newPaths };
+          }));
+        };
+
+        const handleRemoteRemovePath = (data) => {
+          const { pageNumber, pathId } = data;
+          setPages(prev => prev.map(p => {
+            if (p.number !== pageNumber) return p;
+            return { ...p, paths: p.paths.filter(path => path.id !== pathId) };
+          }));
+        };
+
+        const handleRemoteClearPage = (data) => {
+          const { pageNumber } = data;
+          setPages(prev => prev.map(p => p.number !== pageNumber ? p : { ...p, paths: [] }));
+        };
+
+        const handleRemoteAddPage = (data) => {
+          const { pageNumber } = data;
+          setPages(prev => {
+            if (prev.some(p => p.number === pageNumber)) return prev;
+            return [...prev, { number: pageNumber, paths: [] }];
+          });
+          setCurrentPageNumber(pageNumber);
+        };
+
+        const handleRemoteSwitchPage = (data) => {
+          const { pageNumber } = data;
+          setCurrentPageNumber(pageNumber);
+        };
+
         socket.on('user-joined', onUserJoined);
         socket.on('offer', onOffer);
         socket.on('answer', onAnswer);
@@ -261,15 +391,23 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
         socket.on('hold-status', onHoldStatus);
         socket.on('coin-update', onCoinUpdate);
 
-        // Whiteboard drawing and sync
-        socket.on('whiteboard-draw', handleRemoteDraw);
-        socket.on('whiteboard-clear', handleRemoteClear);
         socket.on('whiteboard-toggle', onWhiteboardToggle);
         socket.on('whiteboard-focus', onWhiteboardFocus);
+        socket.on('whiteboard-scroll', onWhiteboardScroll);
+
+        socket.on('whiteboard-start-path', handleRemoteStartPath);
+        socket.on('whiteboard-add-point', handleRemoteAddPoint);
+        socket.on('whiteboard-remove-path', handleRemoteRemovePath);
+        socket.on('whiteboard-clear-page', handleRemoteClearPage);
+        socket.on('whiteboard-add-page', handleRemoteAddPage);
+        socket.on('whiteboard-switch-page', handleRemoteSwitchPage);
 
         socket.on('end-call', ({ sessionId: endedSessionId }) => {
           if (endedSessionId === sessionId) handleEndCall();
         });
+
+        socket.on('annotation-draw', handleRemoteDraw); // Keep for annotations if separate
+        socket.on('annotation-clear', handleRemoteClear); // Assuming separate for annotations
 
         setIsConnected(true);
       } catch (error) {
@@ -299,10 +437,19 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       socket.off('hold-status');
       socket.off('coin-update');
 
-      socket.off('whiteboard-draw');
-      socket.off('whiteboard-clear');
       socket.off('whiteboard-toggle');
       socket.off('whiteboard-focus');
+      socket.off('whiteboard-scroll');
+
+      socket.off('whiteboard-start-path');
+      socket.off('whiteboard-add-point');
+      socket.off('whiteboard-remove-path');
+      socket.off('whiteboard-clear-page');
+      socket.off('whiteboard-add-page');
+      socket.off('whiteboard-switch-page');
+
+      socket.off('annotation-draw');
+      socket.off('annotation-clear');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, userRole, username, isCameraSwitched]);
@@ -343,19 +490,49 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
 
-    // Match CSS size
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    // Set large canvas size
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+    canvas.style.width = `${CANVAS_WIDTH}px`;
+    canvas.style.height = `${CANVAS_HEIGHT}px`;
 
-    // Pen settings
-    ctx.strokeStyle = drawingTool === 'eraser' ? '#FFFFFF' : drawingColor;
-    ctx.lineWidth = brushSize;
+    // Basic settings
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.globalAlpha = drawingTool === 'highlighter' ? 0.5 : 1;
 
     contextRef.current = ctx;
-  }, [showWhiteboard, drawingColor, brushSize, drawingTool]);
+
+    // Set cursor based on tool
+    canvas.style.cursor = drawingTool === 'eraser' ? 'pointer' : 'crosshair';
+
+    redraw();
+  }, [showWhiteboard, drawingTool, redraw]);
+
+  // Redraw on pages or current page change
+  useEffect(() => {
+    if (showWhiteboard) redraw();
+  }, [pages, currentPageNumber, showWhiteboard, redraw]);
+
+  // Whiteboard scroll sync emission
+  useEffect(() => {
+    if (!showWhiteboard || !whiteboardContainerRef.current) return;
+    const container = whiteboardContainerRef.current;
+
+    const handleScroll = () => {
+      if (isRemoteScrolling.current) {
+        isRemoteScrolling.current = false;
+        return;
+      }
+      socket.emit('whiteboard-scroll', {
+        sessionId,
+        scrollX: container.scrollLeft,
+        scrollY: container.scrollTop,
+      });
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [showWhiteboard, sessionId]);
 
   // Annotation canvas on screen share
   useEffect(() => {
@@ -466,69 +643,134 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
   // === Whiteboard drawing handlers
 
-  const getCanvasCoords = (e, ref) => {
+  const getCanvasCoords = (e, ref, containerRef = null) => {
     const canvas = ref.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
-    return { x: clientX - rect.left, y: clientY - rect.top };
+    const scrollX = containerRef?.current?.scrollLeft || 0;
+    const scrollY = containerRef?.current?.scrollTop || 0;
+    return { x: clientX - rect.left + scrollX, y: clientY - rect.top + scrollY };
   };
 
   const startDrawing = (e, isAnnotation = false) => {
-    const ref = isAnnotation ? annotationCanvasRef : canvasRef;
-    const ctxRef = isAnnotation ? annotationContextRef : contextRef;
-    if (!ctxRef.current || !ref.current) return;
-    const { x, y } = getCanvasCoords(e, ref);
+    if (isAnnotation) {
+      // Handle annotation start
+      const ctxRef = annotationContextRef;
+      const ref = annotationCanvasRef;
+      const containerRef = null;
+      if (!ctxRef.current || !ref.current) return;
+      const { x, y } = getCanvasCoords(e, ref, containerRef);
+      setIsDrawing(true);
+      ctxRef.current.beginPath();
+      ctxRef.current.moveTo(x, y);
+      socket.emit('annotation-draw', {
+        sessionId,
+        fromX: x,
+        fromY: y,
+        toX: x,
+        toY: y,
+        color: drawingTool === 'eraser' ? 'erase' : drawingColor,
+        size: brushSize,
+        tool: drawingTool,
+      });
+      return;
+    }
+
+    // Whiteboard vector start
+    if (drawingTool === 'eraser') return;
+    const ref = canvasRef;
+    const containerRef = whiteboardContainerRef;
+    if (!contextRef.current || !ref.current) return;
+    const { x, y } = getCanvasCoords(e, ref, containerRef);
+    const pathId = Date.now().toString() + Math.random().toString(36).slice(2);
+    const newPath = { id: pathId, tool: drawingTool, color: drawingColor, size: brushSize, points: [{ x, y }] };
+    updatePaths(prev => [...prev, newPath]);
+    setCurrentPathId(pathId);
     setIsDrawing(true);
-    lastPointRef.current = { x, y };
-    ctxRef.current.beginPath();
-    ctxRef.current.moveTo(x, y);
+    socket.emit('whiteboard-start-path', {
+      sessionId,
+      pageNumber: currentPageNumber,
+      pathId,
+      tool: drawingTool,
+      color: drawingColor,
+      size: brushSize,
+      x,
+      y,
+    });
   };
 
   const draw = (e, isAnnotation = false) => {
-    if (!isDrawing || !lastPointRef.current) return;
-    const ref = isAnnotation ? annotationCanvasRef : canvasRef;
-    const ctxRef = isAnnotation ? annotationContextRef : contextRef;
-    if (!ctxRef.current || !ref.current) return;
+    if (!isDrawing) return;
 
-    const { x, y } = getCanvasCoords(e, ref);
+    if (isAnnotation) {
+      // Handle annotation draw
+      const ctxRef = annotationContextRef;
+      const ref = annotationCanvasRef;
+      const containerRef = null;
+      if (!ctxRef.current || !ref.current) return;
+      const { x, y } = getCanvasCoords(e, ref, containerRef);
+      ctxRef.current.strokeStyle = drawingTool === 'eraser' ? 'rgba(255,255,255,0)' : drawingColor;
+      ctxRef.current.lineWidth = brushSize;
+      ctxRef.current.globalAlpha = drawingTool === 'highlighter' ? 0.5 : 1;
+      ctxRef.current.lineTo(x, y);
+      ctxRef.current.stroke();
+      socket.emit('annotation-draw', {
+        sessionId,
+        fromX: null, // No last point tracking for annotation
+        fromY: null,
+        toX: x,
+        toY: y,
+        color: drawingTool === 'eraser' ? 'erase' : drawingColor,
+        size: brushSize,
+        tool: drawingTool,
+      });
+      return;
+    }
 
-    // Style (eraser clears by drawing transparent for annotation; white for board)
-    ctxRef.current.strokeStyle =
-      drawingTool === 'eraser'
-        ? (isAnnotation ? 'rgba(255,255,255,0)' : '#FFFFFF')
-        : drawingColor;
-
-    ctxRef.current.lineWidth = brushSize;
-    ctxRef.current.globalAlpha = drawingTool === 'highlighter' ? 0.5 : 1;
-    ctxRef.current.lineTo(x, y);
-    ctxRef.current.stroke();
-
-    // Broadcast stroke
-    socket.emit('whiteboard-draw', {
+    // Whiteboard vector draw
+    if (drawingTool === 'eraser' || !currentPathId) return;
+    const ref = canvasRef;
+    const containerRef = whiteboardContainerRef;
+    if (!contextRef.current || !ref.current) return;
+    const { x, y } = getCanvasCoords(e, ref, containerRef);
+    updatePaths(prev => prev.map(path => path.id !== currentPathId ? path : { ...path, points: [...path.points, { x, y }] }));
+    socket.emit('whiteboard-add-point', {
       sessionId,
-      fromX: lastPointRef.current.x,
-      fromY: lastPointRef.current.y,
-      toX: x,
-      toY: y,
-      color: drawingTool === 'eraser' ? (isAnnotation ? 'erase' : '#FFFFFF') : drawingColor,
-      size: brushSize,
-      tool: drawingTool,
-      isAnnotation,
+      pageNumber: currentPageNumber,
+      pathId: currentPathId,
+      x,
+      y,
     });
-
-    lastPointRef.current = { x, y };
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = (isAnnotation = false) => {
     setIsDrawing(false);
-    lastPointRef.current = null;
+    if (!isAnnotation) setCurrentPathId(null);
+  };
+
+  const handleErase = (e) => {
+    if (drawingTool !== 'eraser') return;
+    const ref = canvasRef;
+    const containerRef = whiteboardContainerRef;
+    if (!ref.current) return;
+    const { x, y } = getCanvasCoords(e, ref, containerRef);
+    const hitId = getHitPath(x, y, currentPage?.paths || []);
+    if (hitId) {
+      updatePaths(prev => prev.filter(p => p.id !== hitId));
+      socket.emit('whiteboard-remove-path', {
+        sessionId,
+        pageNumber: currentPageNumber,
+        pathId: hitId,
+      });
+    }
   };
 
   const handleRemoteDraw = (data) => {
-    const ctxRef = data.isAnnotation ? annotationContextRef : contextRef;
-    const ref = data.isAnnotation ? annotationCanvasRef : canvasRef;
+    // Keep for annotations
+    const ctxRef = annotationContextRef;
+    const ref = annotationCanvasRef;
     if (!ctxRef.current || !ref.current) return;
 
     const ctx = ctxRef.current;
@@ -541,7 +783,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     ctx.globalAlpha = data.tool === 'highlighter' ? 0.5 : 1;
 
     ctx.beginPath();
-    ctx.moveTo(data.fromX, data.fromY);
+    ctx.moveTo(data.fromX || data.toX, data.fromY || data.toY);
     ctx.lineTo(data.toX, data.toY);
     ctx.stroke();
 
@@ -550,19 +792,39 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     ctx.globalAlpha = prevAlpha;
   };
 
-  const clearWhiteboard = (isAnnotation = false) => {
-    const ctxRef = isAnnotation ? annotationContextRef : contextRef;
-    const ref = isAnnotation ? annotationCanvasRef : canvasRef;
+  const handleRemoteClear = () => {
+    // For annotations
+    const ctxRef = annotationContextRef;
+    const ref = annotationCanvasRef;
     if (!ctxRef.current || !ref.current) return;
     ctxRef.current.clearRect(0, 0, ref.current.width, ref.current.height);
-    socket.emit('whiteboard-clear', { sessionId, isAnnotation });
   };
 
-  const handleRemoteClear = (data) => {
-    const ctxRef = data.isAnnotation ? annotationContextRef : contextRef;
-    const ref = data.isAnnotation ? annotationCanvasRef : canvasRef;
-    if (!ctxRef.current || !ref.current) return;
-    ctxRef.current.clearRect(0, 0, ref.current.width, ref.current.height);
+  const clearWhiteboard = (isAnnotation = false) => {
+    if (isAnnotation) {
+      const ctxRef = annotationContextRef;
+      const ref = annotationCanvasRef;
+      if (!ctxRef.current || !ref.current) return;
+      ctxRef.current.clearRect(0, 0, ref.current.width, ref.current.height);
+      socket.emit('annotation-clear', { sessionId });
+      return;
+    }
+    // Clear current page for whiteboard
+    updatePaths(() => []);
+    socket.emit('whiteboard-clear-page', { sessionId, pageNumber: currentPageNumber });
+  };
+
+  const addPage = () => {
+    const maxNum = Math.max(...pages.map(p => p.number), 0);
+    const newNum = maxNum + 1;
+    setPages([...pages, { number: newNum, paths: [] }]);
+    setCurrentPageNumber(newNum);
+    socket.emit('whiteboard-add-page', { sessionId, pageNumber: newNum });
+  };
+
+  const switchPage = (num) => {
+    setCurrentPageNumber(num);
+    socket.emit('whiteboard-switch-page', { sessionId, pageNumber: num });
   };
 
   // === Chat
@@ -974,11 +1236,11 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                     ref={annotationCanvasRef}
                     onMouseDown={(e) => startDrawing(e, true)}
                     onMouseMove={(e) => draw(e, true)}
-                    onMouseUp={stopDrawing}
-                    onMouseLeave={stopDrawing}
+                    onMouseUp={() => stopDrawing(true)}
+                    onMouseLeave={() => stopDrawing(true)}
                     onTouchStart={(e) => startDrawing(e, true)}
                     onTouchMove={(e) => draw(e, true)}
-                    onTouchEnd={stopDrawing}
+                    onTouchEnd={() => stopDrawing(true)}
                     className="absolute inset-0 w-full h-full cursor-crosshair"
                     style={{ touchAction: 'none', pointerEvents: isAnnotationsEnabled ? 'auto' : 'none' }}
                     aria-label="Screen annotations canvas"
@@ -1013,6 +1275,25 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 sm:mb-3 gap-2">
                 <h3 className="text-base sm:text-lg font-semibold">Whiteboard</h3>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <select
+                    value={currentPageNumber}
+                    onChange={(e) => switchPage(Number(e.target.value))}
+                    className="px-2 py-1 bg-gray-700 rounded-md text-xs sm:text-sm focus:outline-none"
+                    aria-label="Select page"
+                  >
+                    {pages.map(p => (
+                      <option key={p.number} value={p.number}>
+                        Page {p.number}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={addPage}
+                    className="px-3 py-1.5 rounded-md text-sm bg-green-600 hover:bg-green-700"
+                    title="Add new page"
+                  >
+                    + Add Page
+                  </button>
                   <label className="flex items-center gap-2">
                     <span className="text-xs sm:text-sm opacity-80">Color</span>
                     <input
@@ -1050,27 +1331,26 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
                       <option value="eraser">Eraser</option>
                     </select>
                   </label>
-
                   <button
-                    onClick={() => clearWhiteboard(false)}
-                    className="px-3 py-1.5 rounded-md text-xs sm:text-sm bg-red-600 hover:bg-red-700"
-                    title="Clear whiteboard"
+                    onClick={() => clearWhiteboard()}
+                    className="px-3 py-1.5 rounded-md text-sm bg-red-600 hover:bg-red-700"
+                    title="Clear page"
                   >
-                    Clear
+                    Clear Page
                   </button>
                 </div>
               </div>
-              <div className="border-2 border-gray-700 rounded-xl overflow-hidden shadow-lg bg-white">
+              <div ref={whiteboardContainerRef} className="overflow-auto w-full h-[300px] sm:h-[500px] bg-white border-2 border-gray-700 rounded-xl shadow-lg">
                 <canvas
                   ref={canvasRef}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  onTouchStart={startDrawing}
-                  onTouchMove={draw}
-                  onTouchEnd={stopDrawing}
-                  className="w-full h-[300px] sm:h-[500px] cursor-crosshair"
+                  onMouseDown={(e) => { startDrawing(e); handleErase(e); }}
+                  onMouseMove={(e) => draw(e)}
+                  onMouseUp={() => stopDrawing()}
+                  onMouseLeave={() => stopDrawing()}
+                  onTouchStart={(e) => { startDrawing(e); handleErase(e); }}
+                  onTouchMove={(e) => draw(e)}
+                  onTouchEnd={() => stopDrawing()}
+                  className="cursor-crosshair"
                   style={{ touchAction: 'none' }}
                   aria-label="Collaborative whiteboard canvas"
                 />
