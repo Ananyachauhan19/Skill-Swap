@@ -1,15 +1,15 @@
 import React, { useEffect } from 'react';
-import { useLocation, useRoutes, Navigate, useNavigate, Routes, Route } from 'react-router-dom';
+import { useLocation, useRoutes, Navigate, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { ModalProvider } from './context/ModalContext';
-import GlobalModals from './GlobalModals';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
+import GlobalModals from './GlobalModals';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext.jsx';
 import socket from './socket';
 
-// pages...
+// Pages
 import Home from './user/Home';
 import Login from './auth/Login';
 import Register from './auth/Register';
@@ -35,8 +35,8 @@ import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
 import CompleteProfile from './user/myprofile/CompleteProfile';
-import Blog from "./user/company/Blog";
-import SearchPage from "./user/SearchPage";
+import Blog from './user/company/Blog';
+import SearchPage from './user/SearchPage';
 import AdminPanel from './admin/adminpanel';
 import AdminRoute from './routes/AdminRoute';
 import PrivacyPolicy from './PrivacyPolicy.jsx';
@@ -47,19 +47,22 @@ import CookiesPolicy from './CookiesPolicy.jsx';
 import About from './About.jsx';
 import Career from './Career.jsx';
 
-// ------------------ ROUTES ------------------
+// Define routes
 const appRoutes = [
+  // Public routes (accessible without authentication)
   { path: '/', element: <Navigate to="/home" replace /> },
   { path: '/home', element: <Home /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
-  { path: '/privacy-policy', element: <PrivacyPolicy/>},
-  { path: '/community', element: <Community/>},
-  { path: '/about', element: <About/>},
-  { path: '/faq', element: <FAQ/>},
-  { path: '/terms-conditions', element: <TermsConditions/>},
-  { path: '/cookies', element: <CookiesPolicy/>},
-  { path: '/career', element: <Career/>},
+  { path: '/privacy-policy', element: <PrivacyPolicy /> },
+  { path: '/community', element: <Community /> },
+  { path: '/about', element: <About /> },
+  { path: '/faq', element: <FAQ /> },
+  { path: '/terms-conditions', element: <TermsConditions /> },
+  { path: '/cookies', element: <CookiesPolicy /> },
+  { path: '/career', element: <Career /> },
+  { path: '/profile/:username', element: <PublicProfile /> },
+  // Protected routes (require authentication)
   { path: '/one-on-one', element: <ProtectedRoute><OneOnOne /></ProtectedRoute> },
   { path: '/discuss', element: <ProtectedRoute><Discuss /></ProtectedRoute> },
   { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
@@ -80,25 +83,24 @@ const appRoutes = [
   { path: '/search', element: <ProtectedRoute><SearchPage /></ProtectedRoute> },
   {
     path: '/admin',
-    element: <AdminRoute />, // Use the dedicated AdminRoute component here
+    element: <AdminRoute />,
     children: [
       {
-        index: true, // This makes AdminPanel render at /admin
-        element: <AdminPanel />,
+        index: true,
+        element: <ProtectedRoute><AdminPanel /></ProtectedRoute>,
       },
-      // You can add other admin-only sub-routes here later
     ],
   },
   ...accountSettingsRoutes.map(route => ({
     ...route,
-    element: <ProtectedRoute>{route.element}</ProtectedRoute>
+    element: <ProtectedRoute>{route.element}</ProtectedRoute>,
   })),
   {
     path: '/profile',
     element: <ProtectedRoute><PrivateProfile /></ProtectedRoute>,
     children: privateProfileRoutes.map(route => ({
       ...route,
-      element: <ProtectedRoute>{route.element}</ProtectedRoute>
+      element: <ProtectedRoute>{route.element}</ProtectedRoute>,
     })),
   },
   {
@@ -106,14 +108,27 @@ const appRoutes = [
     element: <ProtectedRoute><PublicProfile /></ProtectedRoute>,
     children: publicProfileRoutes.map(route => ({
       ...route,
-      element: <ProtectedRoute>{route.element}</ProtectedRoute>
+      element: <ProtectedRoute>{route.element}</ProtectedRoute>,
     })),
   },
-  {
-    path: '/profile/:username',
-    element: <PublicProfile />, // Public profile accessible without login
-  },
 ];
+
+// Updated ProtectedRouteWithModal to redirect to login page
+function ProtectedRouteWithModal({ children }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!user) {
+    // Redirect to login page, preserving the intended destination
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+}
 
 function App() {
   const { user, loading, setUser } = useAuth();
@@ -122,7 +137,7 @@ function App() {
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const element = useRoutes(appRoutes);
 
-  // ---------------- SOCKET ----------------
+  // Socket connection for authenticated users
   useEffect(() => {
     if (!user || !user._id) {
       console.info('[DEBUG] App: No valid user for socket registration');
@@ -135,9 +150,9 @@ function App() {
     return () => {
       socket.off('register');
     };
-  }, [user?._id]); // Depend on user._id to prevent unnecessary runs
+  }, [user?._id]);
 
-  // ---------------- LOGOUT HANDLER ----------------
+  // Handle logout
   useEffect(() => {
     const handleAuthChange = () => {
       if (socket.connected) {
@@ -145,52 +160,12 @@ function App() {
         console.info('[DEBUG] Socket disconnected on auth change');
       }
       setUser(null);
-      navigate('/home', { replace: true });
+      navigate('/login', { replace: true }); // Redirect to login on logout
     };
 
     window.addEventListener('authChanged', handleAuthChange);
     return () => window.removeEventListener('authChanged', handleAuthChange);
   }, [navigate, setUser]);
-
-  // ---------------- ACCESS CONTROL ----------------
-  useEffect(() => {
-    if (!loading) {
-      const path = location.pathname;
-      const isPublic =
-        path === '/home' ||
-        path === '/login' ||
-        path === '/register' ||
-        path === '/privacy-policy' ||
-        path === '/community' ||
-        path === '/about' ||
-        path === '/faq' ||
-        path === '/terms-conditions' ||
-        path === '/cookies' ||
-        path === '/career' ||
-        path.startsWith('/profile/');
-
-      if (!user && !isPublic) {
-        navigate('/home', { replace: true });
-      }
-    }
-  }, [user, loading, location.pathname, navigate]);
-
-  // ---------------- AUTO-HOME REDIRECT EVERY 10s (when logged out) ----------------
-  useEffect(() => {
-    let intervalId;
-
-    if (!loading && !user) {
-      intervalId = setInterval(() => {
-        if (location.pathname !== '/home') {
-          navigate('/home', { replace: true });
-        }
-      }, 10000);
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [user, loading, location.pathname, navigate]);
 
   if (loading) {
     return <div>Loading...</div>;
