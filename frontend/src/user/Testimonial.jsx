@@ -62,7 +62,25 @@ const Testimonial = ({ showAll = false }) => {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    setLoading(false);
+    let active = true;
+    const load = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/testimonials?limit=50`);
+        if (!res.ok) throw new Error('Failed to fetch testimonials');
+        const data = await res.json();
+        if (!active) return;
+        setTestimonials(Array.isArray(data) && data.length ? data : DEMO_TESTIMONIALS);
+        setError(null);
+      } catch (e) {
+        // Fallback to demo if backend not available
+        setTestimonials(DEMO_TESTIMONIALS);
+        setError(null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    load();
+    return () => { active = false; };
   }, []);
 
   const ratingCounts = [5, 4, 3, 2, 1].map(star => testimonials.filter(t => Number(t.rating) === star).length);
