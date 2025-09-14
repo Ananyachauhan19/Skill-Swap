@@ -1,3 +1,4 @@
+    
 const User = require('./models/User');
 const SessionRequest = require('./models/SessionRequest');
 const Session = require('./models/Session');
@@ -547,7 +548,7 @@ module.exports = (io) => {
     // Handle session request
     socket.on('send-session-request', async (data) => {
       try {
-        const { tutorId, subject, topic, subtopic, message } = data;
+        const { tutorId, subject, topic, subtopic, message, question, questionImageUrl } = data;
         const requesterId = socket.userId;
 
         let requesterData = null;
@@ -589,6 +590,8 @@ module.exports = (io) => {
           topic,
           subtopic: subtopic || '',
           message: message || '',
+          questionText: question || '',
+          questionImageUrl: questionImageUrl || '',
           status: 'pending',
         });
 
@@ -641,6 +644,70 @@ module.exports = (io) => {
         console.error('[Session Request] Error:', error);
         socket.emit('session-request-error', { message: 'Failed to send session request' });
       }
+    });
+
+    // Image sharing relays inside a session
+    socket.on('shared-image', ({ sessionId, imageUrl }) => {
+      socket.to(sessionId).emit('shared-image', { imageUrl });
+    });
+    socket.on('remove-image', ({ sessionId }) => {
+      socket.to(sessionId).emit('remove-image');
+    });
+
+    // Late joiner: on demand re-send of shared image
+    socket.on('request-shared-image', async ({ sessionId }) => {
+      try {
+        const req = await SessionRequest.findById(sessionId).select('questionImageUrl');
+        if (req && req.questionImageUrl) {
+          socket.emit('shared-image', { imageUrl: req.questionImageUrl });
+        }
+      } catch (e) {
+        // ignore
+      }
+    });
+
+    // Extended whiteboard relays
+    socket.on('whiteboard-toggle', ({ sessionId, open }) => {
+      socket.to(sessionId).emit('whiteboard-toggle', { open });
+    });
+    socket.on('whiteboard-focus', ({ sessionId }) => {
+      socket.to(sessionId).emit('whiteboard-focus');
+    });
+    socket.on('whiteboard-scroll', ({ sessionId, scrollX, scrollY }) => {
+      socket.to(sessionId).emit('whiteboard-scroll', { scrollX, scrollY });
+    });
+    socket.on('whiteboard-start-path', (payload) => {
+      const { sessionId } = payload || {};
+      if (sessionId) socket.to(sessionId).emit('whiteboard-start-path', payload);
+    });
+    socket.on('whiteboard-add-point', (payload) => {
+      const { sessionId } = payload || {};
+      if (sessionId) socket.to(sessionId).emit('whiteboard-add-point', payload);
+    });
+    socket.on('whiteboard-remove-path', (payload) => {
+      const { sessionId } = payload || {};
+      if (sessionId) socket.to(sessionId).emit('whiteboard-remove-path', payload);
+    });
+    socket.on('whiteboard-clear-page', (payload) => {
+      const { sessionId } = payload || {};
+      if (sessionId) socket.to(sessionId).emit('whiteboard-clear-page', payload);
+    });
+    socket.on('whiteboard-add-page', (payload) => {
+      const { sessionId } = payload || {};
+      if (sessionId) socket.to(sessionId).emit('whiteboard-add-page', payload);
+    });
+    socket.on('whiteboard-switch-page', (payload) => {
+      const { sessionId } = payload || {};
+      if (sessionId) socket.to(sessionId).emit('whiteboard-switch-page', payload);
+    });
+
+    // Annotation relays
+    socket.on('annotation-draw', (payload) => {
+      const { sessionId } = payload || {};
+      if (sessionId) socket.to(sessionId).emit('annotation-draw', payload);
+    });
+    socket.on('annotation-clear', ({ sessionId }) => {
+      socket.to(sessionId).emit('annotation-clear');
     });
 
     // Handle session request response (approve/reject)
@@ -836,6 +903,16 @@ module.exports = (io) => {
       }
       sessionRooms.get(sessionId).add(socket.id);
       socket.to(sessionId).emit('user-joined', { sessionId, userRole, username });
+
+      // If this is a session request room and it has an image, share it to participants
+      try {
+        const req = await SessionRequest.findById(sessionId).select('questionImageUrl');
+        if (req && req.questionImageUrl) {
+          io.to(sessionId).emit('shared-image', { imageUrl: req.questionImageUrl });
+        }
+      } catch (e) {
+        // Not a request or no image; ignore
+      }
 
       const userIds = getUserIdsInSession(sessionId);
       if (userIds.length === 2 && !sessionTimers.has(sessionId)) {

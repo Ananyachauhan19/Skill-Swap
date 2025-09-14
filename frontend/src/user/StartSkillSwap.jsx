@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TutorCard from './oneononeSection/TutorCard';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as MotionComponent, AnimatePresence } from 'framer-motion';
 import socket from '../socket';
 import { useAuth } from '../context/AuthContext';
 import { BACKEND_URL } from '../config.js';
 import VideoCall from '../components/VideoCall.jsx';
+import { supabase, getPublicUrl } from '../lib/supabaseClient';
 
 const StartSkillSwap = () => {
   const navigate = useNavigate();
@@ -193,14 +194,14 @@ const StartSkillSwap = () => {
   };
   const [questionValue, setQuestionValue] = useState("");
   const [questionPhoto, setQuestionPhoto] = useState(null);
+  const [questionImageUrl, setQuestionImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [tutors, setTutors] = useState([]);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [showVideoModal, setShowVideoModal] = useState(false);
-  const [cancelledMessage, setCancelledMessage] = useState("");
-  const [sessionStarted, setSessionStarted] = useState(false);
+  const [, setShowVideoModal] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [showSessionButtons, setShowSessionButtons] = useState(false);
 
@@ -233,7 +234,6 @@ const StartSkillSwap = () => {
     });
 
     socket.on('session-started', (data) => {
-      setSessionStarted(true);
       setActiveSessionId(data.sessionId);
       setShowSessionButtons(true);
     });
@@ -241,14 +241,12 @@ const StartSkillSwap = () => {
     socket.on('end-call', ({ sessionId }) => {
       if (sessionId === activeSessionId) {
         setShowSessionButtons(false);
-        setSessionStarted(false);
         setActiveSessionId(null);
       }
     });
     socket.on('session-completed', ({ sessionId }) => {
       if (sessionId === activeSessionId) {
         setShowSessionButtons(false);
-        setSessionStarted(false);
         setActiveSessionId(null);
       }
     });
@@ -261,7 +259,7 @@ const StartSkillSwap = () => {
       socket.off('end-call');
       socket.off('session-completed');
     };
-  }, [user]);
+  }, [user, activeSessionId]);
 
   const handleFindTutor = () => {
     if (!courseValue || !unitValue || !topicValue) {
@@ -290,16 +288,47 @@ const StartSkillSwap = () => {
         topic: unitValue,
         subtopic: topicValue,
         question: questionValue,
+        questionImageUrl: questionImageUrl || '',
         questionPhoto: questionPhoto ? questionPhoto.name : null,
         message: `I would like to learn ${courseValue} - ${unitValue} - ${topicValue}${questionValue ? `: ${questionValue}` : ''}`,
       });
-    } catch (error) {
+    } catch {
       setError("Failed to send session request. Please try again.");
     }
   };
 
-  const handleFileChange = (e) => {
-    setQuestionPhoto(e.target.files[0]);
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0] || null;
+    setQuestionPhoto(file);
+    setQuestionImageUrl("");
+    if (!file) return;
+    try {
+      setUploading(true);
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const safeBase = file.name.replace(/\.[^/.]+$/, '').slice(0, 40).replace(/[^a-zA-Z0-9_-]/g, '_');
+      const ts = Date.now();
+      const uid = (user && user._id) ? user._id : 'anonymous';
+      const path = `${uid}/${ts}-${safeBase}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from('questions')
+  .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type });
+      if (upErr) throw upErr;
+      const publicUrl = getPublicUrl('questions', path);
+      setQuestionImageUrl(publicUrl || "");
+    } catch (err) {
+      console.error('Supabase upload failed:', err);
+      const msg = (err && (err.message || err.error_description)) || '';
+      if (/row-level security/i.test(msg) || /RLS/i.test(msg)) {
+        setError('Upload blocked by Supabase policy. Please add an INSERT policy for bucket "questions" (public insert).');
+      } else if (/Bucket not found/i.test(msg)) {
+        setError('Supabase bucket "questions" not found. Check bucket name and case.');
+      } else {
+        setError('Failed to upload image. You can still proceed without it.');
+      }
+      setQuestionImageUrl("");
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -338,7 +367,7 @@ const StartSkillSwap = () => {
               />
               <AnimatePresence>
                 {showDropdown && (
-                  <motion.ul
+                  <MotionComponent.ul
                     variants={dropdownVariants}
                     initial="hidden"
                     animate="visible"
@@ -346,7 +375,7 @@ const StartSkillSwap = () => {
                     className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2"
                   >
                     {courseList.map((s, idx) => (
-                      <motion.li
+                      <MotionComponent.li
                         key={idx}
                         className={`px-4 py-2.5 text-gray-600 hover:bg-blue-100/80 cursor-pointer text-base font-medium transition-all duration-300 ${highlightedCourseIdx === idx ? 'bg-blue-100/80' : ''}`}
                         onMouseDown={() => {
@@ -360,9 +389,9 @@ const StartSkillSwap = () => {
                         whileHover={{ scale: 1.02 }}
                       >
                         {s}
-                      </motion.li>
+                      </MotionComponent.li>
                     ))}
-                  </motion.ul>
+                  </MotionComponent.ul>
                 )}
               </AnimatePresence>
             </div>
@@ -389,7 +418,7 @@ const StartSkillSwap = () => {
               />
               <AnimatePresence>
                 {showUnitDropdown && courseValue && unitList.length > 0 && (
-                  <motion.ul
+                  <MotionComponent.ul
                     variants={dropdownVariants}
                     initial="hidden"
                     animate="visible"
@@ -397,7 +426,7 @@ const StartSkillSwap = () => {
                     className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2"
                   >
                     {unitDropdownList.map((u, idx) => (
-                      <motion.li
+                      <MotionComponent.li
                         key={idx}
                         className={`px-4 py-2.5 text-gray-600 hover:bg-blue-100/80 cursor-pointer text-base font-medium transition-all duration-300 ${highlightedUnitIdx === idx ? 'bg-blue-100/80' : ''}`}
                         onMouseDown={() => {
@@ -410,9 +439,9 @@ const StartSkillSwap = () => {
                         whileHover={{ scale: 1.02 }}
                       >
                         {u}
-                      </motion.li>
+                      </MotionComponent.li>
                     ))}
-                  </motion.ul>
+                  </MotionComponent.ul>
                 )}
               </AnimatePresence>
             </div>
@@ -438,7 +467,7 @@ const StartSkillSwap = () => {
               />
               <AnimatePresence>
                 {showTopicDropdown && unitValue && topicList.length > 0 && (
-                  <motion.ul
+                  <MotionComponent.ul
                     variants={dropdownVariants}
                     initial="hidden"
                     animate="visible"
@@ -446,7 +475,7 @@ const StartSkillSwap = () => {
                     className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2"
                   >
                     {topicDropdownList.map((t, idx) => (
-                      <motion.li
+                      <MotionComponent.li
                         key={idx}
                         className={`px-4 py-2.5 text-gray-600 hover:bg-blue-100/80 cursor-pointer text-base font-medium transition-all duration-300 ${highlightedTopicIdx === idx ? 'bg-blue-100/80' : ''}`}
                         onMouseDown={e => {
@@ -458,9 +487,9 @@ const StartSkillSwap = () => {
                         whileHover={{ scale: 1.02 }}
                       >
                         {t}
-                      </motion.li>
+                      </MotionComponent.li>
                     ))}
-                  </motion.ul>
+                  </MotionComponent.ul>
                 )}
               </AnimatePresence>
             </div>
@@ -489,6 +518,12 @@ const StartSkillSwap = () => {
               onChange={handleFileChange}
               className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all duration-300"
             />
+            {uploading && (
+              <p className="mt-2 text-sm text-blue-700">Uploading image…</p>
+            )}
+            {!uploading && questionImageUrl && (
+              <p className="mt-2 text-sm text-green-700 truncate">Image ready to share</p>
+            )}
           </div>
           <button
             onClick={handleFindTutor}

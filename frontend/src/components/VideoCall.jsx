@@ -15,72 +15,6 @@ import socket from '../socket.js';
 const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   console.info('[DEBUG] VideoCall: Init session:', sessionId, 'role:', userRole);
 
-  // --- Core connection state
-  const [isConnected, setIsConnected] = useState(false);
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
-  const [screenStream, setScreenStream] = useState(null);
-  const [isInitiator, setIsInitiator] = useState(false);
-
-  // --- Media toggles
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
-  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
-  const [isCameraSwitched, setIsCameraSwitched] = useState(false);
-  const [virtualBackground, setVirtualBackground] = useState('none'); // 'none' | 'blur'
-
-  // --- Whiteboard / annotations
-  const [showWhiteboard, setShowWhiteboard] = useState(false);
-  const [isAnnotationsEnabled, setIsAnnotationsEnabled] = useState(false);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [drawingColor, setDrawingColor] = useState('#000000');
-  const [brushSize, setBrushSize] = useState(3);
-  const [drawingTool, setDrawingTool] = useState('pen'); // 'pen' | 'highlighter' | 'eraser'
-  const [pages, setPages] = useState([{ number: 1, paths: [] }]);
-  const [currentPageNumber, setCurrentPageNumber] = useState(1);
-  const [currentPathId, setCurrentPathId] = useState(null);
-
-  // --- Image upload for question
-  const [sharedImage, setSharedImage] = useState(null); // URL or null
-  const [showImagePicker, setShowImagePicker] = useState(false);
-
-  // --- Chat
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [showChat, setShowChat] = useState(false);
-
-  // --- Reactions
-  const [reactions, setReactions] = useState([]);
-  const [showReactionsMenu, setShowReactionsMenu] = useState(false);
-
-  // --- Devices
-  const [audioDevices, setAudioDevices] = useState([]);
-  const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
-
-  // --- Layout / view
-  const [isFullScreen, setIsFullScreen] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'remote-full' | 'local-full'
-
-  // --- Timer / coins
-  const [callStartTime, setCallStartTime] = useState(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [silverCoins, setSilverCoins] = useState(null);
-
-  // --- Internal refs
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
-  const screenVideoRef = useRef(null);
-  const videoContainerRef = useRef(null);
-  const imageInputRef = useRef(null);
-
-  const peerConnectionRef = useRef(null);
-  const localStreamRef = useRef(null);
-  const recordedChunksRef = useRef([]);
-  const mediaRecorderRef = useRef(null);
-
-  // Whiteboard refs
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
   const whiteboardContainerRef = useRef(null);
@@ -90,6 +24,64 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
   // Chat container ref
   const chatContainerRef = useRef(null);
+
+  // Core media refs
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const screenVideoRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const videoContainerRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+
+  // Call/session state
+  const [isConnected, setIsConnected] = useState(false);
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteStream, setRemoteStream] = useState(null);
+  const [callStartTime, setCallStartTime] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [silverCoins, setSilverCoins] = useState(0);
+
+  // AV controls
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(true);
+  const [isCameraSwitched, setIsCameraSwitched] = useState(false);
+
+  // Screen share / recording / background / fullscreen
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [screenStream, setScreenStream] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [virtualBackground, setVirtualBackground] = useState('none');
+  const [isFullScreen, setIsFullScreen] = useState(false);
+
+  // Layout and features
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'local-full' | 'remote-full'
+  const [sharedImage, setSharedImage] = useState(null);
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [isAnnotationsEnabled, setIsAnnotationsEnabled] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+
+  // Whiteboard state
+  const [pages, setPages] = useState([{ number: 1, paths: [] }]);
+  const [currentPageNumber, setCurrentPageNumber] = useState(1);
+  const [currentPathId, setCurrentPathId] = useState(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawingTool, setDrawingTool] = useState('pen'); // 'pen' | 'highlighter' | 'eraser'
+  const [drawingColor, setDrawingColor] = useState('#22c55e');
+  const [brushSize, setBrushSize] = useState(3);
+
+  // Chat/reactions
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [reactions, setReactions] = useState([]);
+  const [showReactionsMenu, setShowReactionsMenu] = useState(false);
+
+  // Audio outputs
+  const [audioDevices, setAudioDevices] = useState([]);
+  const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
 
   // Constants for whiteboard
   const CANVAS_WIDTH = 2000;
@@ -211,9 +203,23 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
         setSelectedAudioDevice(defaultSink);
 
-        // Join room and wire listeners
+        // Wire critical listeners before joining to avoid race conditions
+        const onSharedImage = (data) => {
+          if (data && data.imageUrl) {
+            setSharedImage(data.imageUrl);
+          }
+        };
+        const onRemoveImage = () => {
+          setSharedImage(null);
+        };
+        socket.on('shared-image', onSharedImage);
+        socket.on('remove-image', onRemoveImage);
+
+        // Join room
         socket.emit('join-session', { sessionId, userRole, username });
         console.info('[DEBUG] Joined session room:', sessionId);
+        // Immediately request a re-sync of shared image in case initial emit was missed
+        socket.emit('request-shared-image', { sessionId });
 
         const onUserJoined = async () => {
           const pc = createPeerConnection();
@@ -221,7 +227,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             socket.emit('offer', { sessionId, offer });
-            setIsInitiator(true);
+            // setIsInitiator(true);
           } catch (err) {
             console.error('[DEBUG] Error creating offer:', err);
           }
@@ -382,17 +388,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
           redraw();
         };
 
-        // Image sharing
-        const onSharedImage = (data) => {
-          if (userRole === 'student' && data.imageUrl) {
-            setSharedImage(data.imageUrl);
-          }
-        };
-
-        const onRemoveImage = () => {
-          setSharedImage(null);
-        };
-
         socket.on('user-joined', onUserJoined);
         socket.on('offer', onOffer);
         socket.on('answer', onAnswer);
@@ -415,8 +410,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
         socket.on('whiteboard-add-page', handleRemoteAddPage);
         socket.on('whiteboard-switch-page', handleRemoteSwitchPage);
 
-        socket.on('shared-image', onSharedImage);
-        socket.on('remove-image', onRemoveImage);
+  // (shared-image listeners already attached above)
 
         socket.on('end-call', ({ sessionId: endedSessionId }) => {
           if (endedSessionId === sessionId) handleEndCall();
@@ -628,16 +622,18 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
       localStreamRef.current?.getTracks()?.forEach(t => t.stop());
       screenStream?.getTracks()?.forEach(t => t.stop());
       if (mediaRecorderRef.current && isRecording) {
-        try { mediaRecorderRef.current.stop(); } catch {}
+        try { mediaRecorderRef.current.stop(); } catch (e) { console.warn('[DEBUG] recorder stop failed:', e); }
       }
       if (peerConnectionRef.current) {
-        try { peerConnectionRef.current.close(); } catch {}
+        try { peerConnectionRef.current.close(); } catch (e) { console.warn('[DEBUG] pc close failed:', e); }
         peerConnectionRef.current = null;
       }
       socket.emit('leave-session', { sessionId });
- sharedImage && URL.revokeObjectURL(sharedImage);
+      if (sharedImage && typeof sharedImage === 'string' && sharedImage.startsWith('blob:')) {
+        try { URL.revokeObjectURL(sharedImage); } catch { /* noop */ }
+      }
       if (document.fullscreenElement) {
-        try { document.exitFullscreen(); } catch {}
+        try { document.exitFullscreen(); } catch (e) { console.warn('[DEBUG] exitFullscreen failed:', e); }
       }
     } catch (e) {
       console.warn('[DEBUG] cleanup issue:', e);
@@ -845,7 +841,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     const imageUrl = URL.createObjectURL(file);
     setSharedImage(imageUrl);
     socket.emit('shared-image', { sessionId, imageUrl });
-    setShowImagePicker(false);
+  // no-op: picker UI removed, image shared immediately
   };
 
   const removeSharedImage = () => {
@@ -932,13 +928,13 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     }
   };
 
-  const changeAudioDevice = async (deviceId) => {
-    setSelectedAudioDevice(deviceId);
-    if (remoteVideoRef.current) {
-      await applySinkId(remoteVideoRef.current, deviceId);
-    }
-    localStorage.setItem('preferredSinkId', deviceId);
-  };
+  // const changeAudioDevice = async (deviceId) => {
+  //   setSelectedAudioDevice(deviceId);
+  //   if (remoteVideoRef.current) {
+  //     await applySinkId(remoteVideoRef.current, deviceId);
+  //   }
+  //   localStorage.setItem('preferredSinkId', deviceId);
+  // };
 
   const toggleScreenShare = async () => {
     try {
@@ -1015,7 +1011,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     } else {
       try {
         mediaRecorderRef.current?.stop();
-      } catch {}
+      } catch (e) {
+        console.warn('[DEBUG] recorder stop failed:', e);
+      }
       mediaRecorderRef.current = null;
       setIsRecording(false);
     }
@@ -1202,68 +1200,80 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
             {/* Remote */}
             <div className={`relative rounded-xl overflow-hidden shadow-lg ${viewMode === 'remote-full' ? 'h-[60vh] sm:h-[80vh]' : viewMode === 'local-full' ? 'hidden' : 'h-40 sm:h-80'}`}>
-              {userRole === 'student' && sharedImage ? (
-                <div className="relative w-full h-full">
-                  <img
-                    src={sharedImage}
-                    alt="Teacher's shared question"
-                    className="w-full h-full object-contain bg-gray-800"
-                  />
-                  {userRole === 'teacher' && (
-                    <button
-                      onClick={removeSharedImage}
-                      className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 sm:p-2 bg-red-600 hover:bg-red-700 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
-                      title="Remove shared image"
-                      aria-label="Remove shared image"
-                    >
-                      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                        <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-full bg-gray-800 object-cover"
-                    aria-label="Partner video"
-                  />
-                  <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black/60 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs">
-                    Partner
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="w-full h-full bg-gray-800 object-cover"
+                aria-label="Partner video"
+              />
+              <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black/60 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs">
+                Partner
+              </div>
+              <button
+                onClick={makeRemoteFullScreen}
+                className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+                title="Focus on partner"
+                aria-label="Focus on partner video"
+              >
+                <Icon.Full />
+              </button>
+              {viewMode !== 'grid' && (
+                <button
+                  onClick={resetViewMode}
+                  className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+                  title="Exit Focus"
+                  aria-label="Exit focus mode"
+                >
+                  <Icon.Full on />
+                </button>
+              )}
+              {!remoteStream && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                  <div className="text-white text-center">
+                    <div className="animate-spin rounded-full h-6 sm:h-9 w-6 sm:w-9 border-t-2 border-white mx-auto mb-2 sm:mb-3"></div>
+                    <p className="text-xs sm:text-base">Waiting for partner...</p>
                   </div>
-                  <button
-                    onClick={makeRemoteFullScreen}
-                    className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
-                    title="Focus on partner"
-                    aria-label="Focus on partner video"
-                  >
-                    <Icon.Full />
-                  </button>
-                  {viewMode !== 'grid' && (
-                    <button
-                      onClick={resetViewMode}
-                      className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
-                      title="Exit Focus"
-                      aria-label="Exit focus mode"
-                    >
-                      <Icon.Full on />
-                    </button>
-                  )}
-                  {!remoteStream && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                      <div className="text-white text-center">
-                        <div className="animate-spin rounded-full h-6 sm:h-9 w-6 sm:w-9 border-t-2 border-white mx-auto mb-2 sm:mb-3"></div>
-                        <p className="text-xs sm:text-base">Waiting for partner...</p>
-                      </div>
-                    </div>
-                  )}
-                </>
+                </div>
               )}
             </div>
           </div>
+
+          {/* Shared image panel (below, so both videos stay visible) */}
+          {sharedImage && (
+            <div className="mt-2 sm:mt-3 w-full bg-gray-900 rounded-xl p-2 sm:p-3">
+              <div className="relative w-full h-44 sm:h-60 md:h-72 lg:h-80">
+                <img
+                  src={sharedImage}
+                  alt="Shared question"
+                  className="w-full h-full object-contain bg-gray-800 rounded-lg"
+                />
+                <a
+                  href={sharedImage}
+                  download
+                  target="_blank"
+                  rel="noreferrer"
+                  className="absolute bottom-2 right-2 px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded-md text-xs sm:text-sm"
+                  title="Download image"
+                  aria-label="Download shared image"
+                >
+                  Download
+                </a>
+                {userRole === 'tutor' && (
+                  <button
+                    onClick={removeSharedImage}
+                    className="absolute top-2 right-2 p-1 sm:p-2 bg-red-600 hover:bg-red-700 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
+                    title="Remove shared image"
+                    aria-label="Remove shared image"
+                  >
+                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Screen Share */}
           {isScreenSharing && (
@@ -1517,7 +1527,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
           </button>
           {audioDevices.length > 0 && (
             <button
-              onClick={() => setShowImagePicker(false)} // Close image picker if open
+              onClick={() => { /* device menu placeholder */ }} // Close image picker if open
               className="ml-0.5 sm:ml-1 p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
               title="Choose speaker device"
               aria-expanded={false}
@@ -1611,13 +1621,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
         >
           <Icon.Full on={isFullScreen} />
         </button>
-        {userRole === 'teacher' && (
+        {userRole === 'tutor' && (
           <div className="relative">
             <button
-              onClick={() => {
-                setShowImagePicker(true);
-                imageInputRef.current?.click();
-              }}
+              onClick={() => imageInputRef.current?.click()}
               className="p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
               title="Add question image"
               aria-label="Add question image"

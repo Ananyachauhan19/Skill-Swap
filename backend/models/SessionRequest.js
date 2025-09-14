@@ -27,6 +27,9 @@ const SessionRequestSchema = new mongoose.Schema({
     type: String, 
     default: '' 
   },
+  // Optional details about the question
+  questionText: { type: String, default: '' },
+  questionImageUrl: { type: String, default: '' },
   status: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected', 'active', 'completed', 'cancelled'],
