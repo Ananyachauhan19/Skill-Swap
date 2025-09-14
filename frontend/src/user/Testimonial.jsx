@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BACKEND_URL } from '../config.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, PlusCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const StarRating = ({ rating, size = 'text-blue-600 text-base' }) => (
   <span className={size}>
@@ -10,14 +11,45 @@ const StarRating = ({ rating, size = 'text-blue-600 text-base' }) => (
   </span>
 );
 
-const getProfilePic = (t) => {
-  if (t.profilePic) return t.profilePic;
-  const initials = t.username
+// Local Avatar renderer to avoid external service failures
+const Avatar = ({ name, src, size = 80 }) => {
+  const initials = (name || '?')
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
+    .slice(0, 2)
     .toUpperCase();
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=blue-100&color=blue-800&bold=true`;
+
+  const [imgOk, setImgOk] = useState(Boolean(src));
+
+  return (
+    <div
+      className="rounded-full overflow-hidden flex items-center justify-center border-2 border-blue-300"
+      style={{ width: size, height: size }}
+    >
+      {imgOk && src ? (
+        <img
+          src={src}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={() => setImgOk(false)}
+        />
+      ) : (
+        <div
+          className="w-full h-full flex items-center justify-center"
+          style={{
+            background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+            color: '#1e3a8a',
+            fontWeight: 700,
+            fontSize: Math.max(14, Math.floor(size / 2.6)),
+          }}
+        >
+          {initials}
+        </div>
+      )}
+    </div>
+  );
 };
 
 const DEMO_TESTIMONIALS = [
@@ -54,12 +86,21 @@ const DEMO_TESTIMONIALS = [
 ];
 
 const Testimonial = ({ showAll = false }) => {
+  const { user } = useAuth();
   const [testimonials, setTestimonials] = useState(DEMO_TESTIMONIALS);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ username: '', rating: 5, description: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Prefill form with authenticated user's name when available
+  useEffect(() => {
+    if (user) {
+      const displayName = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username || '';
+      setForm((f) => ({ ...f, username: displayName }));
+    }
+  }, [user]);
 
   useEffect(() => {
     let active = true;
@@ -101,7 +142,11 @@ const Testimonial = ({ showAll = false }) => {
       const res = await fetch(`${BACKEND_URL}/api/testimonials`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          // attach the user's profile picture if logged in
+          ...(user && user.profilePic ? { profilePic: user.profilePic } : {}),
+        }),
       });
       if (!res.ok) throw new Error('Failed to submit rating');
       const newTestimonial = await res.json();
@@ -263,11 +308,9 @@ const Testimonial = ({ showAll = false }) => {
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
                 className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center hover:shadow-xl transition-all duration-300 border border-blue-300"
               >
-                <img
-                  src={getProfilePic(t)}
-                  alt={t.username}
-                  className="w-20 h-20 rounded-full object-cover mb-3 border-2 border-blue-300"
-                />
+                <div className="mb-3">
+                  <Avatar name={t.username} src={t.profilePic} size={80} />
+                </div>
                 <div className="font-semibold text-blue-900 text-lg">{t.username}</div>
                 <StarRating rating={Number(t.rating)} size="text-blue-600 text-xl" />
                 <div className="text-gray-700 mt-3 text-center text-sm">{t.description}</div>
