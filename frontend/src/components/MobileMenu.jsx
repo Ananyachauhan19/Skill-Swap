@@ -6,7 +6,7 @@ const navLinks = [
   { path: '/one-on-one', label: '1-on-1' },
   { path: '/session', label: 'Session' },
   { path: '/session-requests', label: 'Requests' },
-  { path: '/discuss', label: 'Discuss' },
+  // { path: '/discuss', label: 'Discuss' },
   { path: '/interview', label: 'Interview' },
 ];
 
@@ -115,7 +115,7 @@ const MobileMenu = ({
       {isLoggedIn && (
         <div className="px-4 py-3 border-t border-blue-100">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
                 <defs>
                   <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -137,7 +137,7 @@ const MobileMenu = ({
                 <text x="12" y="15" fontSize="8" fill="#1e3a8a" textAnchor="middle" fontWeight="bold">S</text>
               </svg>
               <span className="text-sm font-semibold text-blue-800">Golden Coins: {goldenCoins}</span>
-            </div>
+            </div> */}
             <div className="flex items-center gap-2">
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
                 <defs>

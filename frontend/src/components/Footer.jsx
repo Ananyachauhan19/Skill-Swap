@@ -246,7 +246,7 @@ const Footer = () => {
 
             <div>
               {/* Social Media Icons */}
-              <div className="flex items-center gap-3 mt-4">
+              {/* <div className="flex items-center gap-3 mt-4">
                 {[
                   {
                     name: 'instagram',
@@ -284,7 +284,7 @@ const Footer = () => {
                     </svg>
                   </a>
                 ))}
-              </div>
+              </div> */}
 
               {/* Copyright */}
               <div className="text-gray-800 text-sm border-t border-blue-200 pt-4">
