@@ -42,13 +42,13 @@ const HomeHero = () => {
       bg: "bg-blue-50",
       path: "/interview",
     },
-    {
-      title: "Group Discussion",
-      subtitle: "Collaborative Growth",
-      icon: <FaComments className="text-3xl text-blue-800" />,
-      bg: "bg-blue-50",
-      path: "/discuss",
-    },
+    // {
+    //   title: "Group Discussion",
+    //   subtitle: "Collaborative Growth",
+    //   icon: <FaComments className="text-3xl text-blue-800" />,
+    //   bg: "bg-blue-50",
+    //   path: "/discuss",
+    // },
   ];
 
   const buttonVariants = {
