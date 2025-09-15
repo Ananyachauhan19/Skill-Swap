@@ -1,0 +1,1347 @@
+[
+  {
+    "course": "Mathematics",
+    "unit": "Algebra",
+    "topic": "Linear Equations"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Algebra",
+    "topic": "Quadratic Equations"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Algebra",
+    "topic": "Polynomials"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Calculus",
+    "topic": "Limits"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Calculus",
+    "topic": "Derivatives"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Calculus",
+    "topic": "Integrals"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Geometry",
+    "topic": "Triangles"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Geometry",
+    "topic": "Circles"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Geometry",
+    "topic": "Polygons"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Trigonometry",
+    "topic": "Sine"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Trigonometry",
+    "topic": "Cosine"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Trigonometry",
+    "topic": "Tangent"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Probability",
+    "topic": "Permutations"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Probability",
+    "topic": "Combinations"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Probability",
+    "topic": "Probability Distributions"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Statistics",
+    "topic": "Mean"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Statistics",
+    "topic": "Median"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Statistics",
+    "topic": "Mode"
+  },
+  {
+    "course": "Physics",
+    "unit": "Mechanics",
+    "topic": "Kinematics"
+  },
+  {
+    "course": "Physics",
+    "unit": "Mechanics",
+    "topic": "Dynamics"
+  },
+  {
+    "course": "Physics",
+    "unit": "Mechanics",
+    "topic": "Work & Energy"
+  },
+  {
+    "course": "Physics",
+    "unit": "Optics",
+    "topic": "Reflection"
+  },
+  {
+    "course": "Physics",
+    "unit": "Optics",
+    "topic": "Refraction"
+  },
+  {
+    "course": "Physics",
+    "unit": "Optics",
+    "topic": "Lenses"
+  },
+  {
+    "course": "Physics",
+    "unit": "Thermodynamics",
+    "topic": "Laws of Thermodynamics"
+  },
+  {
+    "course": "Physics",
+    "unit": "Thermodynamics",
+    "topic": "Heat Transfer"
+  },
+  {
+    "course": "Physics",
+    "unit": "Electromagnetism",
+    "topic": "Electric Fields"
+  },
+  {
+    "course": "Physics",
+    "unit": "Electromagnetism",
+    "topic": "Magnetism"
+  },
+  {
+    "course": "Physics",
+    "unit": "Electromagnetism",
+    "topic": "Circuits"
+  },
+  {
+    "course": "Physics",
+    "unit": "Modern Physics",
+    "topic": "Relativity"
+  },
+  {
+    "course": "Physics",
+    "unit": "Modern Physics",
+    "topic": "Quantum Mechanics"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Organic Chemistry",
+    "topic": "Hydrocarbons"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Organic Chemistry",
+    "topic": "Alcohols"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Organic Chemistry",
+    "topic": "Amines"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Organic Chemistry",
+    "topic": "Aldehydes"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Organic Chemistry",
+    "topic": "Ketones"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Organic Chemistry",
+    "topic": "Carboxylic Acids"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Inorganic Chemistry",
+    "topic": "Periodic Table"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Inorganic Chemistry",
+    "topic": "Coordination Compounds"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Inorganic Chemistry",
+    "topic": "Metals"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Inorganic Chemistry",
+    "topic": "Non-metals"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Inorganic Chemistry",
+    "topic": "Acids & Bases"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Physical Chemistry",
+    "topic": "Thermodynamics"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Physical Chemistry",
+    "topic": "Electrochemistry"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Physical Chemistry",
+    "topic": "Chemical Kinetics"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Physical Chemistry",
+    "topic": "Surface Chemistry"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Analytical Chemistry",
+    "topic": "Spectroscopy"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Analytical Chemistry",
+    "topic": "Chromatography"
+  },
+  {
+    "course": "Chemistry",
+    "unit": "Analytical Chemistry",
+    "topic": "Titration"
+  },
+  {
+    "course": "Biology",
+    "unit": "Botany",
+    "topic": "Plant Physiology"
+  },
+  {
+    "course": "Biology",
+    "unit": "Botany",
+    "topic": "Plant Anatomy"
+  },
+  {
+    "course": "Biology",
+    "unit": "Zoology",
+    "topic": "Animal Physiology"
+  },
+  {
+    "course": "Biology",
+    "unit": "Zoology",
+    "topic": "Animal Classification"
+  },
+  {
+    "course": "Biology",
+    "unit": "Genetics",
+    "topic": "Mendelian Genetics"
+  },
+  {
+    "course": "Biology",
+    "unit": "Genetics",
+    "topic": "DNA Structure"
+  },
+  {
+    "course": "Biology",
+    "unit": "Ecology",
+    "topic": "Ecosystems"
+  },
+  {
+    "course": "Biology",
+    "unit": "Ecology",
+    "topic": "Biodiversity"
+  },
+  {
+    "course": "Biology",
+    "unit": "Cell Biology",
+    "topic": "Cell Structure"
+  },
+  {
+    "course": "Biology",
+    "unit": "Cell Biology",
+    "topic": "Cell Division"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Data Structures",
+    "topic": "BST"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Data Structures",
+    "topic": "Heap"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Data Structures",
+    "topic": "Trie"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Data Structures",
+    "topic": "Hash Table"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Data Structures",
+    "topic": "Stack"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Data Structures",
+    "topic": "Queue"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Data Structures",
+    "topic": "Graph"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Algorithms",
+    "topic": "Dijkstra"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Algorithms",
+    "topic": "Floyd Warshall"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Algorithms",
+    "topic": "A* Search"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Algorithms",
+    "topic": "Kruskal"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Algorithms",
+    "topic": "Prim"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Algorithms",
+    "topic": "Bellman-Ford"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Algorithms",
+    "topic": "DFS"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Algorithms",
+    "topic": "BFS"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Operating Systems",
+    "topic": "Processes"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Operating Systems",
+    "topic": "Threads"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Operating Systems",
+    "topic": "Deadlock"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Operating Systems",
+    "topic": "Memory Management"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Databases",
+    "topic": "SQL"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Databases",
+    "topic": "Normalization"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Databases",
+    "topic": "Transactions"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Databases",
+    "topic": "Indexing"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Networking",
+    "topic": "OSI Model"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Networking",
+    "topic": "TCP/IP"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Networking",
+    "topic": "Routing"
+  },
+  {
+    "course": "English",
+    "unit": "Grammar",
+    "topic": "Tenses"
+  },
+  {
+    "course": "English",
+    "unit": "Grammar",
+    "topic": "Parts of Speech"
+  },
+  {
+    "course": "English",
+    "unit": "Grammar",
+    "topic": "Voice"
+  },
+  {
+    "course": "English",
+    "unit": "Literature",
+    "topic": "Poetry"
+  },
+  {
+    "course": "English",
+    "unit": "Literature",
+    "topic": "Drama"
+  },
+  {
+    "course": "English",
+    "unit": "Literature",
+    "topic": "Prose"
+  },
+  {
+    "course": "English",
+    "unit": "Writing Skills",
+    "topic": "Essay"
+  },
+  {
+    "course": "English",
+    "unit": "Writing Skills",
+    "topic": "Letter"
+  },
+  {
+    "course": "English",
+    "unit": "Writing Skills",
+    "topic": "Report"
+  },
+  {
+    "course": "English",
+    "unit": "Comprehension",
+    "topic": "Passage Analysis"
+  },
+  {
+    "course": "English",
+    "unit": "Comprehension",
+    "topic": "Summary"
+  },
+  {
+    "course": "Economics",
+    "unit": "Microeconomics",
+    "topic": "Demand"
+  },
+  {
+    "course": "Economics",
+    "unit": "Microeconomics",
+    "topic": "Supply"
+  },
+  {
+    "course": "Economics",
+    "unit": "Microeconomics",
+    "topic": "Elasticity"
+  },
+  {
+    "course": "Economics",
+    "unit": "Macroeconomics",
+    "topic": "GDP"
+  },
+  {
+    "course": "Economics",
+    "unit": "Macroeconomics",
+    "topic": "Inflation"
+  },
+  {
+    "course": "Economics",
+    "unit": "Macroeconomics",
+    "topic": "Unemployment"
+  },
+  {
+    "course": "Economics",
+    "unit": "International Economics",
+    "topic": "Trade"
+  },
+  {
+    "course": "Economics",
+    "unit": "International Economics",
+    "topic": "Exchange Rates"
+  },
+  {
+    "course": "Economics",
+    "unit": "Econometrics",
+    "topic": "Regression"
+  },
+  {
+    "course": "Economics",
+    "unit": "Econometrics",
+    "topic": "Time Series"
+  },
+  {
+    "course": "History",
+    "unit": "Ancient History",
+    "topic": "Indus Valley"
+  },
+  {
+    "course": "History",
+    "unit": "Ancient History",
+    "topic": "Egyptian Civilization"
+  },
+  {
+    "course": "History",
+    "unit": "Medieval History",
+    "topic": "Delhi Sultanate"
+  },
+  {
+    "course": "History",
+    "unit": "Medieval History",
+    "topic": "Mughal Empire"
+  },
+  {
+    "course": "History",
+    "unit": "Modern History",
+    "topic": "World Wars"
+  },
+  {
+    "course": "History",
+    "unit": "Modern History",
+    "topic": "Indian Independence"
+  },
+  {
+    "course": "History",
+    "unit": "World History",
+    "topic": "Renaissance"
+  },
+  {
+    "course": "History",
+    "unit": "World History",
+    "topic": "Industrial Revolution"
+  },
+  {
+    "course": "Geography",
+    "unit": "Physical Geography",
+    "topic": "Landforms"
+  },
+  {
+    "course": "Geography",
+    "unit": "Physical Geography",
+    "topic": "Climate"
+  },
+  {
+    "course": "Geography",
+    "unit": "Human Geography",
+    "topic": "Population"
+  },
+  {
+    "course": "Geography",
+    "unit": "Human Geography",
+    "topic": "Urbanization"
+  },
+  {
+    "course": "Geography",
+    "unit": "Cartography",
+    "topic": "Map Projections"
+  },
+  {
+    "course": "Geography",
+    "unit": "Cartography",
+    "topic": "GIS Basics"
+  },
+  {
+    "course": "Geography",
+    "unit": "GIS",
+    "topic": "Remote Sensing"
+  },
+  {
+    "course": "Geography",
+    "unit": "GIS",
+    "topic": "Spatial Analysis"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Cognitive Psychology",
+    "topic": "Memory"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Cognitive Psychology",
+    "topic": "Perception"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Developmental Psychology",
+    "topic": "Child Development"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Developmental Psychology",
+    "topic": "Adolescence"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Clinical Psychology",
+    "topic": "Disorders"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Clinical Psychology",
+    "topic": "Therapies"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Business Environment",
+    "topic": "Business Types"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Business Environment",
+    "topic": "Business Ethics"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Management",
+    "topic": "Leadership"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Management",
+    "topic": "Motivation"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Marketing",
+    "topic": "Market Research"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Marketing",
+    "topic": "Branding"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Finance",
+    "topic": "Accounting"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Finance",
+    "topic": "Investment"
+  },
+  {
+    "course": "Political Science",
+    "unit": "Political Theory",
+    "topic": "Democracy"
+  },
+  {
+    "course": "Political Science",
+    "unit": "Political Theory",
+    "topic": "Justice"
+  },
+  {
+    "course": "Political Science",
+    "unit": "Comparative Politics",
+    "topic": "Political Systems"
+  },
+  {
+    "course": "Political Science",
+    "unit": "Comparative Politics",
+    "topic": "Constitutions"
+  },
+  {
+    "course": "Political Science",
+    "unit": "International Relations",
+    "topic": "UN"
+  },
+  {
+    "course": "Political Science",
+    "unit": "International Relations",
+    "topic": "Globalization"
+  },
+  {
+    "course": "Sociology",
+    "unit": "Social Structure",
+    "topic": "Family"
+  },
+  {
+    "course": "Sociology",
+    "unit": "Social Structure",
+    "topic": "Caste"
+  },
+  {
+    "course": "Sociology",
+    "unit": "Social Change",
+    "topic": "Modernization"
+  },
+  {
+    "course": "Sociology",
+    "unit": "Social Change",
+    "topic": "Social Movements"
+  },
+  {
+    "course": "Sociology",
+    "unit": "Research Methods",
+    "topic": "Surveys"
+  },
+  {
+    "course": "Sociology",
+    "unit": "Research Methods",
+    "topic": "Fieldwork"
+  },
+  {
+    "course": "Accountancy",
+    "unit": "Financial Accounting",
+    "topic": "Balance Sheet"
+  },
+  {
+    "course": "Accountancy",
+    "unit": "Financial Accounting",
+    "topic": "Ledger"
+  },
+  {
+    "course": "Accountancy",
+    "unit": "Cost Accounting",
+    "topic": "Cost Sheet"
+  },
+  {
+    "course": "Accountancy",
+    "unit": "Cost Accounting",
+    "topic": "Budgeting"
+  },
+  {
+    "course": "Accountancy",
+    "unit": "Auditing",
+    "topic": "Internal Audit"
+  },
+  {
+    "course": "Accountancy",
+    "unit": "Auditing",
+    "topic": "External Audit"
+  },
+  {
+    "course": "Statistics",
+    "unit": "Descriptive Statistics",
+    "topic": "Mean"
+  },
+  {
+    "course": "Statistics",
+    "unit": "Descriptive Statistics",
+    "topic": "Variance"
+  },
+  {
+    "course": "Statistics",
+    "unit": "Inferential Statistics",
+    "topic": "Hypothesis Testing"
+  },
+  {
+    "course": "Statistics",
+    "unit": "Inferential Statistics",
+    "topic": "Confidence Intervals"
+  },
+  {
+    "course": "Statistics",
+    "unit": "Probability Theory",
+    "topic": "Random Variables"
+  },
+  {
+    "course": "Statistics",
+    "unit": "Probability Theory",
+    "topic": "Probability Distributions"
+  },
+  {
+    "course": "Law",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Arts",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Music",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Education",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Law",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Arts",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Music",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Education",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Law",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Arts",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Music",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Education",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Law",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Arts",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Music",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Education",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Law",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Arts",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Music",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Education",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Law",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Arts",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Music",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Education",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Law",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Arts",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Music",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Education",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Law",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Arts",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Music",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Education",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Law",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Arts",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Music",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Education",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Law",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Philosophy",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Arts",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Music",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Case Studies",
+    "topic": "Case Study"
+  },
+  {
+    "course": "Education",
+    "unit": "Applications",
+    "topic": "Applications"
+  },
+  {
+    "course": "Law",
+    "unit": "Fundamentals",
+    "topic": "Introduction"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Principles",
+    "topic": "Examples"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Advanced Concepts",
+    "topic": "Problems"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Behavioral Psychology",
+    "topic": "Classical Conditioning"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Behavioral Psychology",
+    "topic": "Operant Conditioning"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Cognitive Psychology",
+    "topic": "Attention"
+  },
+  {
+    "course": "Psychology",
+    "unit": "Cognitive Psychology",
+    "topic": "Problem Solving"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Entrepreneurship",
+    "topic": "Startup Funding"
+  },
+  {
+    "course": "Business Studies",
+    "unit": "Entrepreneurship",
+    "topic": "Business Models"
+  },
+  {
+    "course": "Political Science",
+    "unit": "Public Policy",
+    "topic": "Policy Analysis"
+  },
+  {
+    "course": "Political Science",
+    "unit": "Public Policy",
+    "topic": "Policy Implementation"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Artificial Intelligence",
+    "topic": "Neural Networks"
+  },
+  {
+    "course": "Computer Science",
+    "unit": "Artificial Intelligence",
+    "topic": "Natural Language Processing"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Number Theory",
+    "topic": "Prime Numbers"
+  },
+  {
+    "course": "Mathematics",
+    "unit": "Number Theory",
+    "topic": "Modular Arithmetic"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Anatomy",
+    "topic": "Human Skeleton"
+  },
+  {
+    "course": "Medicine",
+    "unit": "Anatomy",
+    "topic": "Muscular System"
+  },
+  {
+    "course": "Law",
+    "unit": "Criminal Law",
+    "topic": "Types of Crimes"
+  },
+  {
+    "course": "Law",
+    "unit": "Criminal Law",
+    "topic": "Punishments"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Civil Engineering",
+    "topic": "Structural Analysis"
+  },
+  {
+    "course": "Engineering",
+    "unit": "Civil Engineering",
+    "topic": "Construction Materials"
+  },
+  {
+    "course": "Arts",
+    "unit": "Painting",
+    "topic": "Watercolor Techniques"
+  },
+  {
+    "course": "Arts",
+    "unit": "Painting",
+    "topic": "Oil Painting"
+  },
+  {
+    "course": "Music",
+    "unit": "Music Theory",
+    "topic": "Scales"
+  },
+  {
+    "course": "Music",
+    "unit": "Music Theory",
+    "topic": "Chords"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Climate Change",
+    "topic": "Greenhouse Effect"
+  },
+  {
+    "course": "Environmental Science",
+    "unit": "Climate Change",
+    "topic": "Carbon Footprint"
+  },
+  {
+    "course": "Education",
+    "unit": "Pedagogy",
+    "topic": "Learning Theories"
+  },
+  {
+    "course": "Education",
+    "unit": "Pedagogy",
+    "topic": "Assessment Methods"
+  }
+]

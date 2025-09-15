@@ -520,10 +520,10 @@ const PackageHistory = () => {
     // Simulate API call with mock data
     setTimeout(() => {
       const mockData = [
-        { id: 1, name: "Gold Pro SkillCoin", coins: "50 Gold SkillCoin", value: "₹100", date: "2023-08-15", status: "completed", details: "Payment method: Credit Card · Transaction ID: TXN-789456" },
+        // { id: 1, name: "Gold Pro SkillCoin", coins: "50 Gold SkillCoin", value: "₹100", date: "2023-08-15", status: "completed", details: "Payment method: Credit Card · Transaction ID: TXN-789456" },
         { id: 2, name: "Silver Starter SkillCoin", coins: "1200 Silver SkillCoin", value: "₹270", date: "2023-07-10", status: "completed", details: "Payment method: PayPal · Transaction ID: TXN-123789" },
-        { id: 3, name: "Combo SkillCoin", coins: "100 Silver + 20 Gold SkillCoin", value: "₹60", date: "2023-06-05", status: "completed", details: "Payment method: UPI · Transaction ID: TXN-456123" },
-        { id: 4, name: "Gold Elite SkillCoin", coins: "180 Gold SkillCoin", value: "₹280", date: "2023-05-20", status: "completed", details: "Payment method: Credit Card · Transaction ID: TXN-987321" },
+        // { id: 3, name: "Combo SkillCoin", coins: "100 Silver + 20 Gold SkillCoin", value: "₹60", date: "2023-06-05", status: "completed", details: "Payment method: UPI · Transaction ID: TXN-456123" },
+        // { id: 4, name: "Gold Elite SkillCoin", coins: "180 Gold SkillCoin", value: "₹280", date: "2023-05-20", status: "completed", details: "Payment method: Credit Card · Transaction ID: TXN-987321" },
         { id: 5, name: "Combo Elite SkillCoin", coins: "1200 Silver + 240 Gold SkillCoin", value: "₹720", date: "2023-04-12", status: "cancelled", details: "Payment was refunded on 2023-04-15" },
       ];
       
