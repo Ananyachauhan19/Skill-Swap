@@ -16,7 +16,6 @@ const StartSkillSwap = () => {
   const [courseValue, setCourseValue] = useState("");
   const [unitValue, setUnitValue] = useState("");
   const [topicValue, setTopicValue] = useState("");
-  // Dropdown state for search bar
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
   const [showTopicDropdown, setShowTopicDropdown] = useState(false);

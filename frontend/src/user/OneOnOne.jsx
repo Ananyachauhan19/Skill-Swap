@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useRef } from 'react';
 import { BACKEND_URL } from '../config.js';
 import SearchBar from './oneononeSection/serachBar';

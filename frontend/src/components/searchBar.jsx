@@ -2,8 +2,6 @@ import React, { useState, useRef, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import coursesData from '../courses_300.json';
 
-
-
 const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitValue, topicValue, setTopicValue, onFindTutor }, ref) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
@@ -15,41 +13,51 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
   const unitInputRef = useRef();
   const topicInputRef = useRef();
 
+  // Normalize all entries to ensure all data is visible in dropdowns
   const courseSet = new Set();
-    coursesData.forEach(item => {
-      if (item.course) courseSet.add(item.course);
-    });
-    const STATIC_COURSES = Array.from(courseSet);
-    const STATIC_UNITS = {};
-    const STATIC_TOPICS = {};
-    coursesData.forEach(item => {
-      if (item.course && item.unit) {
-        if (!STATIC_UNITS[item.course]) STATIC_UNITS[item.course] = [];
-        if (!STATIC_UNITS[item.course].includes(item.unit)) STATIC_UNITS[item.course].push(item.unit);
-      }
-      if (item.unit && item.topic) {
-        if (!STATIC_TOPICS[item.unit]) STATIC_TOPICS[item.unit] = [];
-        if (!STATIC_TOPICS[item.unit].includes(item.topic)) STATIC_TOPICS[item.unit].push(item.topic);
-      }
-    });
+  const STATIC_UNITS = {};
+  const STATIC_TOPICS = {};
+  coursesData.forEach(item => {
+    // Defensive: handle both multi-line and any legacy flat entries
+    const course = item.course || '';
+    const unit = item.unit || '';
+    const topic = item.topic || '';
+    if (course) courseSet.add(course);
+    if (course && unit) {
+      if (!STATIC_UNITS[course]) STATIC_UNITS[course] = [];
+      if (!STATIC_UNITS[course].includes(unit)) STATIC_UNITS[course].push(unit);
+    }
+    if (unit && topic) {
+      if (!STATIC_TOPICS[unit]) STATIC_TOPICS[unit] = [];
+      if (!STATIC_TOPICS[unit].includes(topic)) STATIC_TOPICS[unit].push(topic);
+    }
+  });
+  const STATIC_COURSES = Array.from(courseSet);
 
   // Filtered lists
-  const filteredSuggestions = STATIC_COURSES.filter(
-    (s) => (courseValue || '').toLowerCase().includes((s || '').toLowerCase()) && (courseValue || '').trim() !== ''
-  );
-  const courseList = (courseValue || '').trim() === '' ? STATIC_COURSES : filteredSuggestions;
+  // Show all options if input is empty, otherwise filter
+  const filteredSuggestions = (courseValue || '').trim() === ''
+    ? STATIC_COURSES
+    : STATIC_COURSES.filter(
+        (s) => s.toLowerCase().includes((courseValue || '').toLowerCase())
+      );
+  const courseList = filteredSuggestions;
 
   const unitList = courseValue ? (STATIC_UNITS[courseValue] || []) : [];
-  const filteredUnitSuggestions = unitList.filter(
-    (u) => (unitValue || '').toLowerCase().includes((u || '').toLowerCase()) && (unitValue || '').trim() !== ''
-  );
-  const unitDropdownList = (unitValue || '').trim() === '' ? unitList : filteredUnitSuggestions;
+  const filteredUnitSuggestions = (unitValue || '').trim() === ''
+    ? unitList
+    : unitList.filter(
+        (u) => u.toLowerCase().includes((unitValue || '').toLowerCase())
+      );
+  const unitDropdownList = filteredUnitSuggestions;
 
   const topicList = unitValue ? (STATIC_TOPICS[unitValue] || []) : [];
-  const filteredTopicSuggestions = topicList.filter(
-    (t) => (topicValue || '').toLowerCase().includes((t || '').toLowerCase()) && (topicValue || '').trim() !== ''
-  );
-  const topicDropdownList = (topicValue || '').trim() === '' ? topicList : filteredTopicSuggestions;
+  const filteredTopicSuggestions = (topicValue || '').trim() === ''
+    ? topicList
+    : topicList.filter(
+        (t) => t.toLowerCase().includes((topicValue || '').toLowerCase())
+      );
+  const topicDropdownList = filteredTopicSuggestions;
 
   // Keyboard navigation for course
   const handleCourseKeyDown = (e) => {

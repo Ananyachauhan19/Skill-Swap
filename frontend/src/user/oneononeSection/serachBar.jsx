@@ -1,91 +1,26 @@
 import React, { useState, useRef, forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import coursesData from '../../../src/courses_300.json';
 
-// Static data for demo
-const STATIC_COURSES = [
-  'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'English',
-  'Economics', 'History', 'Geography', 'Psychology', 'Business Studies',
-  'Political Science', 'Sociology', 'Accountancy', 'Statistics',
-];
-const STATIC_UNITS = {
-  Mathematics: ['Algebra', 'Calculus', 'Geometry', 'Trigonometry', 'Probability', 'Statistics'],
-  Physics: ['Mechanics', 'Optics', 'Thermodynamics', 'Electromagnetism', 'Modern Physics'],
-  Chemistry: ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Analytical Chemistry'],
-  Biology: ['Botany', 'Zoology', 'Genetics', 'Ecology', 'Cell Biology'],
-  'Computer Science': ['Data Structures', 'Algorithms', 'Operating Systems', 'Databases', 'Networking'],
-  English: ['Grammar', 'Literature', 'Writing Skills', 'Comprehension'],
-  Economics: ['Microeconomics', 'Macroeconomics', 'International Economics', 'Econometrics'],
-  History: ['Ancient History', 'Medieval History', 'Modern History', 'World History'],
-  Geography: ['Physical Geography', 'Human Geography', 'Cartography', 'GIS'],
-  Psychology: ['Cognitive Psychology', 'Developmental Psychology', 'Clinical Psychology'],
-  'Business Studies': ['Business Environment', 'Management', 'Marketing', 'Finance'],
-  'Political Science': ['Political Theory', 'Comparative Politics', 'International Relations'],
-  Sociology: ['Social Structure', 'Social Change', 'Research Methods'],
-  Accountancy: ['Financial Accounting', 'Cost Accounting', 'Auditing'],
-  Statistics: ['Descriptive Statistics', 'Inferential Statistics', 'Probability Theory'],
-};
-const STATIC_TOPICS = {
-  Algebra: ['Linear Equations', 'Quadratic Equations', 'Polynomials'],
-  Calculus: ['Limits', 'Derivatives', 'Integrals'],
-  Geometry: ['Triangles', 'Circles', 'Polygons'],
-  Trigonometry: ['Sine', 'Cosine', 'Tangent'],
-  Probability: ['Permutations', 'Combinations', 'Probability Distributions'],
-  Statistics: ['Mean', 'Median', 'Mode'],
-  Mechanics: ['Kinematics', 'Dynamics', 'Work & Energy'],
-  Optics: ['Reflection', 'Refraction', 'Lenses'],
-  Thermodynamics: ['Laws of Thermodynamics', 'Heat Transfer'],
-  Electromagnetism: ['Electric Fields', 'Magnetism', 'Circuits'],
-  'Modern Physics': ['Relativity', 'Quantum Mechanics'],
-  'Organic Chemistry': ['Hydrocarbons', 'Alcohols', 'Amines', 'Aldehydes', 'Ketones', 'Carboxylic Acids'],
-  'Inorganic Chemistry': ['Periodic Table', 'Coordination Compounds', 'Metals', 'Non-metals', 'Acids & Bases'],
-  'Physical Chemistry': ['Thermodynamics', 'Electrochemistry', 'Chemical Kinetics', 'Surface Chemistry'],
-  'Analytical Chemistry': ['Spectroscopy', 'Chromatography', 'Titration'],
-  Botany: ['Plant Physiology', 'Plant Anatomy'],
-  Zoology: ['Animal Physiology', 'Animal Classification'],
-  Genetics: ['Mendelian Genetics', 'DNA Structure'],
-  Ecology: ['Ecosystems', 'Biodiversity'],
-  'Cell Biology': ['Cell Structure', 'Cell Division'],
-  'Data Structures': ['BST', 'Heap', 'Trie', 'Hash Table', 'Stack', 'Queue', 'Graph'],
-  Algorithms: ['Dijkstra', 'Floyd Warshall', 'A* Search', 'Kruskal', 'Prim', 'Bellman-Ford', 'DFS', 'BFS'],
-  'Operating Systems': ['Processes', 'Threads', 'Deadlock', 'Memory Management'],
-  Databases: ['SQL', 'Normalization', 'Transactions', 'Indexing'],
-  Networking: ['OSI Model', 'TCP/IP', 'Routing'],
-  Grammar: ['Tenses', 'Parts of Speech', 'Voice'],
-  Literature: ['Poetry', 'Drama', 'Prose'],
-  'Writing Skills': ['Essay', 'Letter', 'Report'],
-  Comprehension: ['Passage Analysis', 'Summary'],
-  Microeconomics: ['Demand', 'Supply', 'Elasticity'],
-  Macroeconomics: ['GDP', 'Inflation', 'Unemployment'],
-  'International Economics': ['Trade', 'Exchange Rates'],
-  Econometrics: ['Regression', 'Time Series'],
-  'Ancient History': ['Indus Valley', 'Egyptian Civilization'],
-  'Medieval History': ['Delhi Sultanate', 'Mughal Empire'],
-  'Modern History': ['World Wars', 'Indian Independence'],
-  'World History': ['Renaissance', 'Industrial Revolution'],
-  'Physical Geography': ['Landforms', 'Climate'],
-  'Human Geography': ['Population', 'Urbanization'],
-  Cartography: ['Map Projections', 'GIS Basics'],
-  GIS: ['Remote Sensing', 'Spatial Analysis'],
-  'Cognitive Psychology': ['Memory', 'Perception'],
-  'Developmental Psychology': ['Child Development', 'Adolescence'],
-  'Clinical Psychology': ['Disorders', 'Therapies'],
-  'Business Environment': ['Business Types', 'Business Ethics'],
-  Management: ['Leadership', 'Motivation'],
-  Marketing: ['Market Research', 'Branding'],
-  Finance: ['Accounting', 'Investment'],
-  'Political Theory': ['Democracy', 'Justice'],
-  'Comparative Politics': ['Political Systems', 'Constitutions'],
-  'International Relations': ['UN', 'Globalization'],
-  'Social Structure': ['Family', 'Caste'],
-  'Social Change': ['Modernization', 'Social Movements'],
-  'Research Methods': ['Surveys', 'Fieldwork'],
-  'Financial Accounting': ['Balance Sheet', 'Ledger'],
-  'Cost Accounting': ['Cost Sheet', 'Budgeting'],
-  Auditing: ['Internal Audit', 'External Audit'],
-  'Descriptive Statistics': ['Mean', 'Variance'],
-  'Inferential Statistics': ['Hypothesis Testing', 'Confidence Intervals'],
-  'Probability Theory': ['Random Variables', 'Probability Distributions'],
-};
+// Build dropdown data from courses_300.json
+const courseSet = new Set();
+const STATIC_UNITS = {};
+const STATIC_TOPICS = {};
+coursesData.forEach(item => {
+  const course = item.course || '';
+  const unit = item.unit || '';
+  const topic = item.topic || '';
+  if (course) courseSet.add(course);
+  if (course && unit) {
+    if (!STATIC_UNITS[course]) STATIC_UNITS[course] = [];
+    if (!STATIC_UNITS[course].includes(unit)) STATIC_UNITS[course].push(unit);
+  }
+  if (unit && topic) {
+    if (!STATIC_TOPICS[unit]) STATIC_TOPICS[unit] = [];
+    if (!STATIC_TOPICS[unit].includes(topic)) STATIC_TOPICS[unit].push(topic);
+  }
+});
+const STATIC_COURSES = Array.from(courseSet);
 
 
 // Add state for question description and photo
@@ -103,23 +38,29 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
   const [questionValue, setQuestionValue] = useState("");
   const [questionPhoto, setQuestionPhoto] = useState(null);
 
-  // Filtered lists
-  const filteredSuggestions = STATIC_COURSES.filter(
-    (s) => (courseValue || '').toLowerCase().includes((s || '').toLowerCase()) && (courseValue || '').trim() !== ''
-  );
-  const courseList = (courseValue || '').trim() === '' ? STATIC_COURSES : filteredSuggestions;
+  // Filtered lists (show all if input is empty)
+  const filteredSuggestions = (courseValue || '').trim() === ''
+    ? STATIC_COURSES
+    : STATIC_COURSES.filter(
+        (s) => s.toLowerCase().includes((courseValue || '').toLowerCase())
+      );
+  const courseList = filteredSuggestions;
 
   const unitList = courseValue ? (STATIC_UNITS[courseValue] || []) : [];
-  const filteredUnitSuggestions = unitList.filter(
-    (u) => (unitValue || '').toLowerCase().includes((u || '').toLowerCase()) && (unitValue || '').trim() !== ''
-  );
-  const unitDropdownList = (unitValue || '').trim() === '' ? unitList : filteredUnitSuggestions;
+  const filteredUnitSuggestions = (unitValue || '').trim() === ''
+    ? unitList
+    : unitList.filter(
+        (u) => u.toLowerCase().includes((unitValue || '').toLowerCase())
+      );
+  const unitDropdownList = filteredUnitSuggestions;
 
   const topicList = unitValue ? (STATIC_TOPICS[unitValue] || []) : [];
-  const filteredTopicSuggestions = topicList.filter(
-    (t) => (topicValue || '').toLowerCase().includes((t || '').toLowerCase()) && (topicValue || '').trim() !== ''
-  );
-  const topicDropdownList = (topicValue || '').trim() === '' ? topicList : filteredTopicSuggestions;
+  const filteredTopicSuggestions = (topicValue || '').trim() === ''
+    ? topicList
+    : topicList.filter(
+        (t) => t.toLowerCase().includes((topicValue || '').toLowerCase())
+      );
+  const topicDropdownList = filteredTopicSuggestions;
 
   // Keyboard navigation for course
   const handleCourseKeyDown = (e) => {
