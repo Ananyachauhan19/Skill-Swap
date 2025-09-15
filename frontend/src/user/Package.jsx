@@ -18,7 +18,7 @@ const Package = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: "easeOut" }}
           >
-            Premium <span className="text-yellow-400">Gold</span> & <span className="text-gray-300">Silver</span> SkillCoins
+            Premium <span className="text-gray-300">Silver</span> SkillCoins
           </motion.h1>
           <motion.p 
             className="text-base sm:text-lg md:text-xl text-blue-100 max-w-3xl mx-auto leading-relaxed font-nunito"
@@ -41,7 +41,7 @@ const Package = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 sm:h-6 w-5 sm:w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4 2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4 2 2 0 00-2-2H5z" />
                 </svg>
-                Gold & Silver SkillCoins
+                Silver SkillCoins
               </div>
             </div>
           </motion.div>
@@ -62,16 +62,16 @@ const BuyRedeemCoins = () => {
   const [selectedPackage, setSelectedPackage] = useState(null);
   
   const offers = [
-    {
-      id: 1,
-      name: 'Gold Pro SkillCoin',
-      coins: '50 Gold SkillCoin',
-      value: '₹100',
-      type: 'gold',
-      popular: true,
-      features: ['Premium features access', 'Priority support', 'Exclusive content'],
-      description: 'Perfect for users who want premium benefits with Gold SkillCoins'
-    },
+    // {
+    //   id: 1,
+    //   name: 'Gold Pro SkillCoin',
+    //   coins: '50 Gold SkillCoin',
+    //   value: '₹100',
+    //   type: 'gold',
+    //   popular: true,
+    //   features: ['Premium features access', 'Priority support', 'Exclusive content'],
+    //   description: 'Perfect for users who want premium benefits with Gold SkillCoins'
+    // },
     {
       id: 2,
       name: 'Silver Starter SkillCoin',
@@ -81,34 +81,34 @@ const BuyRedeemCoins = () => {
       features: ['Basic features access', 'Standard support'],
       description: 'Ideal for users who prefer Silver SkillCoins'
     },
-    {
-      id: 3,
-      name: 'Combo SkillCoin',
-      coins: '100 Silver + 20 Gold SkillCoin',
-      value: '₹60',
-      type: 'combo',
-      features: ['Silver + Gold benefits', 'Flexible usage'],
-      description: 'Best value for users who want both SkillCoin types'
-    },
-    {
-      id: 4,
-      name: 'Combo Elite SkillCoin',
-      coins: '1200 Silver + 240 Gold SkillCoin',
-      value: '₹720',
-      type: 'combo',
-      popular: true,
-      features: ['All premium features', 'VIP support', 'Exclusive events'],
-      description: 'Ultimate package for maximum benefits and savings'
-    },
-    {
-      id: 5,
-      name: 'Gold Elite SkillCoin',
-      coins: '180 Gold SkillCoin',
-      value: '₹280',
-      type: 'gold',
-      features: ['Extended premium access', 'Priority customer service'],
-      description: 'Great for users committed to Gold SkillCoins'
-    },
+    // {
+    //   id: 3,
+    //   name: 'Combo SkillCoin',
+    //   coins: '100 Silver + 20 Gold SkillCoin',
+    //   value: '₹60',
+    //   type: 'combo',
+    //   features: ['Silver + Gold benefits', 'Flexible usage'],
+    //   description: 'Best value for users who want both SkillCoin types'
+    // },
+    // {
+    //   id: 4,
+    //   name: 'Combo Elite SkillCoin',
+    //   coins: '1200 Silver + 240 Gold SkillCoin',
+    //   value: '₹720',
+    //   type: 'combo',
+    //   popular: true,
+    //   features: ['All premium features', 'VIP support', 'Exclusive events'],
+    //   description: 'Ultimate package for maximum benefits and savings'
+    // },
+    // {
+    //   id: 5,
+    //   name: 'Gold Elite SkillCoin',
+    //   coins: '180 Gold SkillCoin',
+    //   value: '₹280',
+    //   type: 'gold',
+    //   features: ['Extended premium access', 'Priority customer service'],
+    //   description: 'Great for users committed to Gold SkillCoins'
+    // },
     {
       id: 6,
       name: 'Silver Plus SkillCoin',
@@ -122,13 +122,13 @@ const BuyRedeemCoins = () => {
 
   const getPackageColor = (type) => {
     switch(type) {
-      case "gold": 
-        return {
-          bg: "bg-gradient-to-br from-yellow-50 to-yellow-100",
-          border: "border-yellow-300",
-          text: "text-yellow-700",
-          button: "from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
-        };
+      // case "gold": 
+      //   return {
+      //     bg: "bg-gradient-to-br from-yellow-50 to-yellow-100",
+      //     border: "border-yellow-300",
+      //     text: "text-yellow-700",
+      //     button: "from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
+      //   };
       case "silver": 
         return {
           bg: "bg-gradient-to-br from-gray-50 to-gray-100",
@@ -146,12 +146,20 @@ const BuyRedeemCoins = () => {
     }
   };
 
-  const getCoinIcon = (type) => {
-    return type === "gold" ? (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-        <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L11 6.477V5h2a1 1 0 110 2H9a1 1 0 010-2h1V3a1 1 0 011-1zm-6 8a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 019 21a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L5 12.477V11a1 1 0 011-1z" />
-      </svg>
-    ) : (
+  // const getCoinIcon = (type) => {
+  //   return type === "gold" ? (
+  //     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+  //       <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L11 6.477V5h2a1 1 0 110 2H9a1 1 0 010-2h1V3a1 1 0 011-1zm-6 8a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 019 21a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L5 12.477V11a1 1 0 011-1z" />
+  //     </svg>
+  //   ) : (
+  //     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+  //       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95a1 1 0 001.715 1.029z" clipRule="evenodd" />
+  //     </svg>
+  //   );
+  // };
+
+   const getCoinIcon = (type) => {
+    return (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95a1 1 0 001.715 1.029z" clipRule="evenodd" />
       </svg>
@@ -373,7 +381,7 @@ const BuyRedeemCoins = () => {
             </div>
             
             <div className="text-center md:text-left">
-              <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900 mb-2 font-lora">Gold Pro SkillCoin</h3>
+              {/* <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-blue-900 mb-2 font-lora">Gold Pro SkillCoin</h3>
               <div className="inline-flex items-center bg-blue-100 text-blue-800 px-3 sm:px-4 py-1 rounded-full mb-3 sm:mb-4 font-nunito text-sm sm:text-base">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -384,7 +392,7 @@ const BuyRedeemCoins = () => {
               <div className="flex items-center justify-center md:justify-start mb-3 sm:mb-4">
                 <span className="text-xl sm:text-2xl md:text-3xl font-bold text-yellow-600 mr-2">50</span>
                 <span className="text-base sm:text-lg md:text-xl text-blue-600 font-nunito">Gold SkillCoin Available</span>
-              </div>
+              </div> */}
               
               <div className="mb-4 sm:mb-6 bg-white bg-opacity-20 backdrop-blur-lg p-3 sm:p-4 rounded-lg">
                 <div className="flex justify-between mb-2">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import {Link} from 'react-router-dom';
 import { 
   ChevronDown, Users, Target, Heart, Lightbulb, Zap, 
   Globe, BookOpen, TrendingUp, Award, Star, Rocket, 
@@ -243,23 +244,7 @@ const About = () => {
               transition={{ duration: 0.7, delay: 0.8 }}
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
-              <motion.button 
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-3 bg-white text-blue-700 rounded-xl font-semibold flex items-center space-x-2 shadow-lg"
-              >
-                <span>Get Started</span>
-                <ArrowRight size={18} />
-              </motion.button>
               
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-3 border border-white text-white rounded-xl font-semibold flex items-center space-x-2"
-              >
-                <Play size={18} fill="white" />
-                <span>Watch Video</span>
-              </motion.button>
             </motion.div>
           </motion.div>
         </div>
@@ -814,7 +799,9 @@ const About = () => {
               whileTap={{ scale: 0.95 }}
               className="px-8 py-4 bg-white text-blue-700 rounded-xl font-semibold flex items-center justify-center space-x-2 shadow-lg"
             >
-              <span>Get Started Now</span>
+              <Link to="/home">
+                <span>Get Started</span>
+              </Link>
               <ArrowRight size={20} />
             </motion.button>
             <motion.button 
