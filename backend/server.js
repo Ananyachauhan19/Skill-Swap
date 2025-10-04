@@ -22,6 +22,7 @@ const privateProfileRoutes = require('./routes/privateProfileRoutes');
 const skillMateRoutes = require('./routes/skillMateRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const testimonialRoutes = require('./routes/testimonialRoutes');
+const interviewRoutes = require('./routes/interviewRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -62,6 +63,7 @@ app.use('/api/questions', questionRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/testimonials', testimonialRoutes);
+app.use('/api/interview', interviewRoutes);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {

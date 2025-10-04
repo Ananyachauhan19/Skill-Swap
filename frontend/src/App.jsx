@@ -31,6 +31,7 @@ import PublicProfile from './user/PublicProfile';
 import publicProfileRoutes from './user/publicProfile/publicProfileRoutes';
 import StartSkillSwap from './user/StartSkillSwap';
 import SessionRequests from './user/SessionRequests';
+import InterviewCallPage from './components/InterviewCallPage';
 import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
@@ -68,6 +69,7 @@ const appRoutes = [
   { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
   { path: '/session', element: <ProtectedRoute><Sessions /></ProtectedRoute> },
   { path: '/session-requests', element: <ProtectedRoute><SessionRequests /></ProtectedRoute> },
+  { path: '/interview-call/:sessionId', element: <ProtectedRoute><InterviewCallPage /></ProtectedRoute> },
   { path: '/testimonials', element: <ProtectedRoute><Testimonial showAll={true} /></ProtectedRoute> },
   { path: '/your-profile', element: <ProtectedRoute><Profile /></ProtectedRoute> },
   { path: '/createSession', element: <ProtectedRoute><CreateSession /></ProtectedRoute> },

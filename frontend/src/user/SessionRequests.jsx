@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import VideoCall from '../components/VideoCall';
 
 const SessionRequests = () => {
+  const [interviewRequests, setInterviewRequests] = useState({ received: [], sent: [] });
   const navigate = useNavigate();
   const { user } = useAuth();
   const [requests, setRequests] = useState({ received: [], sent: [] });
@@ -19,6 +20,7 @@ const SessionRequests = () => {
   const [activeSession, setActiveSession] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [cancelledMessage, setCancelledMessage] = useState('');
+  const [interviewBanner, setInterviewBanner] = useState(null); // { message, requestId }
 
   // Load active session from localStorage on component mount
   useEffect(() => {
@@ -60,11 +62,25 @@ const SessionRequests = () => {
   };
 
   useEffect(() => {
-    fetchSessionRequests();
-    fetchSkillMateRequests();
+  fetchSessionRequests();
+  fetchSkillMateRequests();
+  fetchInterviewRequests();
   }, []);
 
   // Save active session to localStorage whenever it changes
+  // Fetch interview requests
+  const fetchInterviewRequests = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        // Assume backend returns { received: [], sent: [] }
+        setInterviewRequests(data);
+      }
+    } catch (error) {
+      // ignore for now
+    }
+  };
   useEffect(() => {
     if (activeSession) {
       const sessionWithTimestamp = {
@@ -150,6 +166,28 @@ const SessionRequests = () => {
       }
     });
 
+    // Listen for general notifications; if interview related, refresh interview requests
+    socket.on('notification', (notification) => {
+      try {
+        if (!notification) return;
+        const t = notification.type || '';
+        if (t.startsWith('interview') || notification.requestId) {
+          fetchInterviewRequests();
+          fetchSessionRequests();
+        }
+        // Show inline banner to requester when their interview is scheduled/approved
+        if (t === 'interview-scheduled') {
+          // notification.userId is the recipient; ensure this notification is for this user
+          const notifUserId = String(notification.userId || notification.userId?._id || '');
+          if (user && String(user._id) === notifUserId) {
+            setInterviewBanner({ message: notification.message || 'Your interview has been scheduled', requestId: notification.requestId });
+            // auto-clear after 12 seconds
+            setTimeout(() => setInterviewBanner(null), 12000);
+          }
+        }
+      } catch (e) { /* ignore */ }
+    });
+
     return () => {
       socket.off('session-request-received');
       socket.off('session-started');
@@ -159,6 +197,7 @@ const SessionRequests = () => {
       socket.off('skillmate-request-received');
       socket.off('skillmate-request-approved');
       socket.off('skillmate-request-rejected');
+      socket.off('notification');
     };
   }, [user, activeSession]);
 
@@ -331,6 +370,53 @@ const SessionRequests = () => {
     }
   };
 
+  const handleJoinInterview = (request) => {
+    try {
+      const role = user && user._id === (request.assignedInterviewer?._id || request.assignedInterviewer) ? 'tutor' : 'student';
+      navigate(`/interview-call/${request._id}`);
+    } catch (e) {
+      console.error('Failed to join interview', e);
+      alert('Failed to join interview');
+    }
+  };
+
+  function ScheduleInterviewInline({ request, onScheduled }) {
+    const [date, setDate] = useState('');
+    const [time, setTime] = useState('');
+    const [loadingSchedule, setLoadingSchedule] = useState(false);
+
+    const submitSchedule = async () => {
+      if (!date || !time) return alert('Select date and time');
+      const dt = new Date(`${date}T${time}`);
+      setLoadingSchedule(true);
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/interview/schedule`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: request._id, scheduledAt: dt.toISOString() }),
+        });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.message || 'Failed to schedule');
+        alert('Interview scheduled');
+        onScheduled && onScheduled();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'Error scheduling');
+      } finally {
+        setLoadingSchedule(false);
+      }
+    };
+
+    return (
+      <div className="flex items-center space-x-2">
+        <input type="date" className="border px-2 py-1" value={date} onChange={e => setDate(e.target.value)} />
+        <input type="time" className="border px-2 py-1" value={time} onChange={e => setTime(e.target.value)} />
+        <button className="bg-blue-600 text-white px-3 py-1 rounded" onClick={submitSchedule} disabled={loadingSchedule}>{loadingSchedule ? 'Scheduling...' : 'Schedule'}</button>
+      </div>
+    );
+  }
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -341,10 +427,33 @@ const SessionRequests = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString();
+    if (!dateString) return '-';
+    try {
+      return new Date(dateString).toLocaleString();
+    } catch (e) {
+      return String(dateString);
+    }
   };
 
-  const SessionRequestCard = ({ request, isReceived }) => (
+  const SessionRequestCard = ({ request, isReceived }) => {
+    // defensive: compute display names safely across different request shapes
+    const getDisplayName = () => {
+      if (isReceived) {
+        // For received: requester is the person who requested (may be populated)
+        const r = request.requester || request.requesterId || request.requesterDetails;
+        if (r) return `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.username || 'User';
+        return 'User';
+      } else {
+        // For sent: may have tutor, recipient, assignedInterviewer
+        const t = request.tutor || request.recipient || request.assignedInterviewer || request.recipientDetails;
+        if (t) return `${t.firstName || ''} ${t.lastName || ''}`.trim() || t.username || 'User';
+        return 'User';
+      }
+    };
+
+    const displayName = getDisplayName();
+
+    return (
     <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-4">
@@ -353,10 +462,7 @@ const SessionRequests = () => {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-blue-900">
-              {isReceived
-                ? `${request.requester.firstName} ${request.requester.lastName}`
-                : `${request.tutor.firstName} ${request.tutor.lastName}`
-              }
+              {displayName}
             </h3>
             <p className="text-sm text-gray-600">
               {isReceived ? 'Requested from you' : 'Requested by you'}
@@ -398,6 +504,21 @@ const SessionRequests = () => {
           <span>{formatDate(request.createdAt)}</span>
         </div>
 
+        {/* Interview-specific scheduling and join handling */}
+        { (request.subject || request.topic || request.assignedInterviewer) && (
+          <div className="flex items-center space-x-2">
+            {request.status === 'assigned' && user && request.assignedInterviewer && (user._id === (request.assignedInterviewer._id || request.assignedInterviewer)) && (
+              <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
+            )}
+            {request.status === 'scheduled' && (
+              <div className="flex space-x-2 items-center">
+                <div className="text-sm text-gray-700">Scheduled: {request.scheduledAt ? formatDate(request.scheduledAt) : 'TBD'}</div>
+                <button className="bg-blue-900 text-white px-3 py-1 rounded" onClick={() => handleJoinInterview(request)}>Join Interview</button>
+              </div>
+            )}
+          </div>
+        )}
+
         {isReceived && request.status === 'pending' && (
           <div className="flex space-x-3">
             <button
@@ -419,6 +540,7 @@ const SessionRequests = () => {
       </div>
     </div>
   );
+  }
 
   const SkillMateRequestCard = ({ request, isReceived }) => (
     <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
@@ -520,6 +642,34 @@ const SessionRequests = () => {
           </div>
         )}
 
+        {interviewBanner && (
+          <div className="mb-8 bg-blue-100 border border-blue-300 text-blue-900 px-6 py-4 rounded-lg text-center flex items-center justify-between gap-4">
+            <div className="text-left">{interviewBanner.message}</div>
+            <div className="flex items-center gap-2">
+              <button
+                className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded"
+                onClick={() => {
+                  // find the request in interviewRequests or refetch
+                  const req = interviewRequests.sent.concat(interviewRequests.received).find(r => r._id === interviewBanner.requestId);
+                  if (req) {
+                    handleJoinInterview(req);
+                  } else {
+                    // fallback: refetch and then attempt join
+                    fetchInterviewRequests().then(() => {
+                      const r = interviewRequests.sent.concat(interviewRequests.received).find(x => x._id === interviewBanner.requestId);
+                      if (r) handleJoinInterview(r);
+                      else alert('Unable to find scheduled interview yet, please check requests.');
+                    });
+                  }
+                }}
+              >
+                Join Interview
+              </button>
+              <button className="px-3 py-2 rounded border" onClick={() => setInterviewBanner(null)}>Dismiss</button>
+            </div>
+          </div>
+        )}
+
         {activeSession && (
           <div className="mb-10 flex justify-center">
             <div className="bg-green-100 bg-opacity-80 backdrop-blur-sm border border-green-300 text-green-900 px-8 py-6 rounded-xl shadow-lg text-center max-w-md">
@@ -590,6 +740,22 @@ const SessionRequests = () => {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setRequestType('interview')}
+              className={`relative flex items-center space-x-2 py-3 px-6 text-lg font-semibold transition-all duration-300 ${
+                requestType === 'interview'
+                  ? 'text-blue-900 border-b-4 border-blue-900'
+                  : 'text-gray-600 hover:text-blue-900'
+              }`}
+            >
+              <FaUser className="text-lg" />
+              <span>Interview Requests</span>
+              {interviewRequests.received.filter(req => req.status === 'pending').length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs animate-pulse">
+                  {interviewRequests.received.filter(req => req.status === 'pending').length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -645,7 +811,7 @@ const SessionRequests = () => {
                 ))
               )
             )
-          ) : (
+          ) : requestType === 'skillmate' ? (
             activeTab === 'received' ? (
               skillMateRequests.received.length === 0 ? (
                 <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
@@ -671,7 +837,33 @@ const SessionRequests = () => {
                 ))
               )
             )
-          )}
+          ) : requestType === 'interview' ? (
+            activeTab === 'received' ? (
+              interviewRequests.received.length === 0 ? (
+                <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
+                  <FaUser className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-lg font-semibold text-blue-900">No Received Interview Requests</h3>
+                  <p className="mt-1 text-gray-600">You haven't received any interview requests yet.</p>
+                </div>
+              ) : (
+                interviewRequests.received.map((request) => (
+                  <SessionRequestCard key={request._id} request={request} isReceived={true} />
+                ))
+              )
+            ) : (
+              interviewRequests.sent.length === 0 ? (
+                <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
+                  <FaUser className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-lg font-semibold text-blue-900">No Sent Interview Requests</h3>
+                  <p className="mt-1 text-gray-600">You haven't sent any interview requests yet.</p>
+                </div>
+              ) : (
+                interviewRequests.sent.map((request) => (
+                  <SessionRequestCard key={request._id} request={request} isReceived={false} />
+                ))
+              )
+            )
+          ) : null}
         </div>
 
         <div className="mt-10 text-center">

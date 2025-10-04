@@ -1,5 +1,9 @@
 /* eslint-disable no-unused-vars */
 import React from "react";
+import { useState } from "react";
+import { useNavigate } from 'react-router-dom';
+import { BACKEND_URL } from "../config.js";
+import { useAuth } from "../context/AuthContext";
 import InterviewListSection from "./interviewSection/InterviewListSection";
 import PastInterviewSection from "./interviewSection/PastInterviewSection";
 import FAQSection from "./interviewSection/FAQ";
@@ -143,6 +147,134 @@ const Interview = () => {
     }
   };
 
+  // --- Request Interview modal state lifted into small components below ---
+
+
+function InlineRequestForm() {
+  const [subject, setSubject] = useState('');
+  const [topic, setTopic] = useState('');
+  const [subtopic, setSubtopic] = useState('');
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth() || {};
+
+  const handleSubmit = async () => {
+    if (!subject || !topic) return alert('Please provide subject and topic');
+    setLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/interview/create`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, topic, subtopic, message }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'Failed to request');
+      alert('Interview request submitted');
+      setSubject(''); setTopic(''); setSubtopic(''); setMessage('');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-md p-6 max-w-3xl mx-auto animate-slideUp border border-gray-200">
+      <h3 className="text-xl font-semibold text-blue-900 mb-3">Request a Mock Interview</h3>
+      <p className="text-sm text-gray-600 mb-4">Fill the form below and the admin will assign an interviewer.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input className="border px-3 py-2" placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} />
+        <input className="border px-3 py-2" placeholder="Topic" value={topic} onChange={e => setTopic(e.target.value)} />
+        <input className="border px-3 py-2 col-span-1 sm:col-span-2" placeholder="Subtopic (optional)" value={subtopic} onChange={e => setSubtopic(e.target.value)} />
+        <textarea className="border px-3 py-2 col-span-1 sm:col-span-2" placeholder="Message (optional)" value={message} onChange={e => setMessage(e.target.value)} />
+      </div>
+      <div className="mt-4 flex justify-end">
+        <button className="bg-blue-900 text-white px-4 py-2 rounded" onClick={handleSubmit} disabled={loading}>{loading ? 'Submitting...' : 'Submit Request'}</button>
+      </div>
+    </div>
+  );
+}
+
+function ScheduledInterviewSection() {
+  const [scheduled, setScheduled] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth() || {};
+  const navigate = useNavigate();
+
+  const fetchScheduled = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/interview/scheduled`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setScheduled(data || []);
+      }
+    } catch (e) {
+      console.error('Failed to fetch scheduled interviews', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => { fetchScheduled(); }, []);
+
+  if (loading) return (
+    <div className="text-center py-8">
+      <p className="text-gray-600">Loading scheduled interviews...</p>
+    </div>
+  );
+
+  // Filter to items that belong to current user (requester or assigned interviewer)
+  const visible = (scheduled || []).filter(s => {
+    if (!user) return false;
+    const uid = String(user._id);
+    const requesterId = s.requester?._id || s.requester;
+    const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+    return String(requesterId) === uid || String(assignedId) === uid;
+  });
+
+  return (
+    <section className="bg-white rounded-xl shadow p-6">
+      <h2 className="text-lg sm:text-2xl font-bold text-blue-900 mb-4 text-center">Your Scheduled Interviews</h2>
+      {visible.length === 0 ? (
+        <div className="text-center text-gray-600">You have no scheduled interviews.</div>
+      ) : (
+        <div className="space-y-4">
+          {visible.map(s => (
+            <div key={s._id} className="border rounded p-4 flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-blue-900">{s.subject} {s.topic ? `- ${s.topic}` : ''}</div>
+                {/* Show the other participant relative to current user: if current user is the assigned interviewer, show requester name; otherwise show assigned interviewer */}
+                <div className="text-sm text-gray-600">With: {(() => {
+                  try {
+                    const uid = String(user._id);
+                    const requesterId = s.requester?._id || s.requester;
+                    const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+                    let other = null;
+                    if (String(assignedId) === uid) {
+                      other = s.requester;
+                    } else {
+                      other = s.assignedInterviewer;
+                    }
+                    if (!other) return 'TBD';
+                    return other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
+                  } catch (e) {
+                    return 'TBD';
+                  }
+                })()}</div>
+                <div className="text-sm text-gray-600">When: {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString() : 'TBD'}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="bg-blue-900 text-white px-3 py-1 rounded" onClick={() => navigate('/session-requests')}>Go to Requests</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
   return (
     <div className="min-h-screen w-full bg-blue-50 transition-all duration-2000 pt-16 sm:pt-20">
       <header className="w-full max-w-7xl mx-auto text-center py-6 sm:py-10 px-4 sm:px-6 relative animate-slideUp">
@@ -172,22 +304,11 @@ const Interview = () => {
       </header>
       <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-8 sm:gap-12 px-4 sm:px-8 pb-16">
         <HowItWorks />
-        <div>
-          <h2 className="text-lg sm:text-2xl font-bold text-blue-900 mb-2 text-center animate-slideUp">Find Upcoming Interviews</h2>
-          <p className="text-xs sm:text-sm text-gray-600 mb-4 text-center animate-slideUp">
-            Start typing a job, course, branch, or session title.
-          </p>
-          <InterviewSearchBox
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            handleSearch={handleSearch}
-            handleInputKeyDown={handleInputKeyDown}
-            selectedJob={selectedJob}
-            setSelectedJob={setSelectedJob}
-            selectedCourse={selectedCourse}
-            setSelectedCourse={setSelectedCourse}
-          />
+        {/* Inline request form placed directly below HowItWorks as requested */}
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6">
+          <InlineRequestForm />
         </div>
+        <ScheduledInterviewSection />
         <div ref={interviewListRef}>
           <InterviewListSection filteredInterviews={filteredInterviews} />
         </div>
@@ -195,6 +316,8 @@ const Interview = () => {
         <FAQSection />
         <TopPerformersSection performers={performers} />
       </main>
+
+  {/* Inline form — no modal overlay */}
 
       <style jsx>{`
         @keyframes fadeIn {
