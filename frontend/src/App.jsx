@@ -7,6 +7,7 @@ import ModalBodyScrollLock from './ModalBodyScrollLock';
 import GlobalModals from './GlobalModals';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext.jsx';
+import RegisterInterviewer from './user/RegisterInterviewer.jsx';
 import socket from './socket';
 
 // Pages
@@ -40,6 +41,7 @@ import Blog from './user/company/Blog';
 import SearchPage from './user/SearchPage';
 import AdminPanel from './admin/adminpanel';
 import AdminRoute from './routes/AdminRoute';
+import InterviewerApplications from './admin/InterviewerApplications';
 import PrivacyPolicy from './PrivacyPolicy.jsx';
 import Community from './Community.jsx';
 import FAQ from './FAQ.jsx';
@@ -69,6 +71,7 @@ const appRoutes = [
   { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
   { path: '/session', element: <ProtectedRoute><Sessions /></ProtectedRoute> },
   { path: '/session-requests', element: <ProtectedRoute><SessionRequests /></ProtectedRoute> },
+  { path: '/register-interviewer', element: <RegisterInterviewer />} ,
   { path: '/interview-call/:sessionId', element: <ProtectedRoute><InterviewCallPage /></ProtectedRoute> },
   { path: '/testimonials', element: <ProtectedRoute><Testimonial showAll={true} /></ProtectedRoute> },
   { path: '/your-profile', element: <ProtectedRoute><Profile /></ProtectedRoute> },
@@ -90,6 +93,10 @@ const appRoutes = [
       {
         index: true,
         element: <ProtectedRoute><AdminPanel /></ProtectedRoute>,
+      },
+      {
+        path: 'applications',
+        element: <ProtectedRoute><InterviewerApplications /></ProtectedRoute>,
       },
     ],
   },

@@ -2,9 +2,8 @@ const mongoose = require('mongoose');
 
 const interviewRequestSchema = new mongoose.Schema({
   requester: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  subject: { type: String, required: true },
-  topic: { type: String, required: false },
-  subtopic: { type: String, required: false },
+  company: { type: String, required: true },
+  position: { type: String, required: true },
   message: { type: String, default: '' },
   status: {
     type: String,

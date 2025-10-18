@@ -47,6 +47,28 @@ export default function InterviewRequests() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user]);
 
+  // Applications (admin only)
+  const [applications, setApplications] = useState([]);
+  const loadApplications = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/interview/applications`, { credentials: 'include' });
+      if (!res.ok) return setApplications([]);
+      const data = await res.json();
+      setApplications(data || []);
+    } catch (e) {
+      console.error('failed to load apps', e);
+      setApplications([]);
+    }
+  };
+
+  useEffect(() => {
+    // load applications only if admin
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || '';
+    const isAdmin = user && user.email && adminEmail && user.email.toLowerCase() === adminEmail.toLowerCase();
+    if (isAdmin) loadApplications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
+
   const assign = async (requestId) => {
     const username = assignInput[requestId];
     if (!username) return alert('Enter interviewer username');
@@ -110,6 +132,13 @@ export default function InterviewRequests() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {/* Admin: Manage interviewer applications on the dedicated page */}
+      {user && user.email && import.meta.env.VITE_ADMIN_EMAIL && user.email.toLowerCase() === import.meta.env.VITE_ADMIN_EMAIL.toLowerCase() && (
+        <div className="mt-8">
+          <a className="text-blue-600 underline" href="/admin/applications">Go to Interviewer Applications</a>
+        </div>
       )}
     </div>
   );
