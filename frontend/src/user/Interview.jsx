@@ -151,27 +151,32 @@ const Interview = () => {
 
 
 function InlineRequestForm() {
-  const [subject, setSubject] = useState('');
-  const [topic, setTopic] = useState('');
-  const [subtopic, setSubtopic] = useState('');
+  const [company, setCompany] = useState('');
+  const [position, setPosition] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [matchedInterviewers, setMatchedInterviewers] = useState([]);
+  const [selectedInterviewer, setSelectedInterviewer] = useState('');
   const { user } = useAuth() || {};
+  const navigate = useNavigate();
 
   const handleSubmit = async () => {
-    if (!subject || !topic) return alert('Please provide subject and topic');
+    if (!company || !position) return alert('Please provide company and position');
     setLoading(true);
     try {
       const res = await fetch(`${BACKEND_URL}/api/interview/create`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, topic, subtopic, message }),
+        body: JSON.stringify({ company, position, message, assignedInterviewer: selectedInterviewer || undefined }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Failed to request');
+      let json = null;
+      try { json = await res.json(); } catch (_) { /* non-json response */ }
+      if (!res.ok) throw new Error((json && json.message) || (await res.text()) || 'Failed to request');
       alert('Interview request submitted');
-      setSubject(''); setTopic(''); setSubtopic(''); setMessage('');
+      setCompany(''); setPosition(''); setMessage('');
+      setMatchedInterviewers([]);
+      setSelectedInterviewer('');
     } catch (err) {
       console.error(err);
       alert(err.message || 'Error');
@@ -180,19 +185,80 @@ function InlineRequestForm() {
     }
   };
 
+  // Fetch matched interviewers when company changes
+  React.useEffect(() => {
+    const fetchMatched = async () => {
+      if (!company && !position) { setMatchedInterviewers([]); return; }
+      try {
+        const q = new URLSearchParams({ company: company || '', position: position || '' }).toString();
+        const res = await fetch(`${BACKEND_URL}/api/interview/interviewers?${q}`, { credentials: 'include' });
+        if (!res.ok) return setMatchedInterviewers([]);
+        const data = await res.json();
+        setMatchedInterviewers(data || []);
+      } catch (e) {
+        console.error('Failed to fetch interviewers', e);
+        setMatchedInterviewers([]);
+      }
+    };
+    const t = setTimeout(fetchMatched, 400);
+    return () => clearTimeout(t);
+  }, [company]);
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 max-w-3xl mx-auto animate-slideUp border border-gray-200">
       <h3 className="text-xl font-semibold text-blue-900 mb-3">Request a Mock Interview</h3>
       <p className="text-sm text-gray-600 mb-4">Fill the form below and the admin will assign an interviewer.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input className="border px-3 py-2" placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} />
-        <input className="border px-3 py-2" placeholder="Topic" value={topic} onChange={e => setTopic(e.target.value)} />
-        <input className="border px-3 py-2 col-span-1 sm:col-span-2" placeholder="Subtopic (optional)" value={subtopic} onChange={e => setSubtopic(e.target.value)} />
+        <input className="border px-3 py-2" placeholder="Company" value={company} onChange={e => setCompany(e.target.value)} />
+        <input className="border px-3 py-2" placeholder="Position" value={position} onChange={e => setPosition(e.target.value)} />
         <textarea className="border px-3 py-2 col-span-1 sm:col-span-2" placeholder="Message (optional)" value={message} onChange={e => setMessage(e.target.value)} />
       </div>
+
+      {matchedInterviewers && matchedInterviewers.length > 0 && (
+        <div className="mt-3">
+          <h4 className="text-sm font-semibold mb-2">Matched Interviewers (select one to request directly)</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {matchedInterviewers.map((m) => (
+              <div key={m.application._id} className={`p-2 border rounded flex items-center justify-between ${selectedInterviewer === String(m.user._id) ? 'bg-blue-50 border-blue-300' : ''}`}>
+                <div>
+                  <div className="font-semibold">{m.user?.firstName || m.user?.username} {m.user?.lastName || ''}</div>
+                  <div className="text-sm text-gray-600">{m.application.company} • {m.application.qualification}</div>
+                </div>
+                <div>
+                  <input type="radio" name="selectedInterviewer" value={m.user._id} checked={selectedInterviewer === String(m.user._id)} onChange={() => setSelectedInterviewer(String(m.user._id))} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="mt-4 flex justify-end">
         <button className="bg-blue-900 text-white px-4 py-2 rounded" onClick={handleSubmit} disabled={loading}>{loading ? 'Submitting...' : 'Submit Request'}</button>
       </div>
+    </div>
+  );
+}
+
+function RegisterInterviewerButton() {
+  const navigate = useNavigate();
+  const { user } = useAuth() || {};
+  // Ensure we refresh the auth state on mount in case approval happened elsewhere
+  React.useEffect(() => {
+    try {
+      window.dispatchEvent(new Event('authChanged'));
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+  // Show Approved status if user has been granted interviewer privileges
+  const isApproved = user && (user.role === 'interviewer' || user.role === 'both' || (Array.isArray(user.roles) && user.roles.includes('interviewer')));
+  return (
+    <div className="mt-4 text-center">
+      {isApproved ? (
+        <button className="bg-gray-300 text-gray-700 px-4 py-2 rounded mr-2 cursor-not-allowed" disabled>Approved Interviewer</button>
+      ) : (
+        <button className="bg-green-600 text-white px-4 py-2 rounded mr-2" onClick={() => navigate('/register-interviewer')}>Register as Interviewer</button>
+      )}
     </div>
   );
 }
@@ -279,19 +345,22 @@ function ScheduledInterviewSection() {
     <div className="min-h-screen w-full bg-blue-50 transition-all duration-2000 pt-16 sm:pt-20">
       <header className="w-full max-w-7xl mx-auto text-center py-6 sm:py-10 px-4 sm:px-6 relative animate-slideUp">
         <div className="relative flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
-          <div className="flex-1 text-left">
+            <div className="flex-1 text-left">
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-blue-900 mb-4 leading-tight">
               Master Your Interviews with Expert Guidance
             </h1>
             <p className="text-sm sm:text-lg md:text-xl text-gray-700 max-w-xl mb-6">
               Practice with industry professionals, get personalized feedback, and build confidence to ace your next interview.
             </p>
+            <div className="flex items-center gap-3">
             <button
               className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-sm sm:text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105"
               onClick={handleBookClick}
             >
               Book a Mock Interview
             </button>
+            <button className="w-full sm:w-auto bg-green-600 text-white px-6 py-3 rounded-full font-semibold text-sm sm:text-lg shadow-md hover:bg-green-700 transition-all duration-300" onClick={() => window.location.href = '/register-interviewer'}>Register as Interviewer</button>
+            </div>
           </div>
           <div className="flex-1 mt-6 md:mt-0">
             <img
@@ -319,7 +388,7 @@ function ScheduledInterviewSection() {
 
   {/* Inline form — no modal overlay */}
 
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from {
             opacity: 0;

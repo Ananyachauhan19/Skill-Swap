@@ -15,7 +15,7 @@ module.exports = (io) => {
   const sessionTimers = new Map();
 
   // Helper function to send notifications
-  const sendNotification = async (io, userId, type, message, sessionId, requestId, requesterId, requesterName, subject, topic, subtopic, messageId) => {
+  const sendNotification = async (io, userId, type, message, sessionId, requestId, requesterId, requesterName, subject, topic, subtopic, company, position, messageId) => {
     try {
       const notification = await Notification.create({
         userId,
@@ -25,9 +25,12 @@ module.exports = (io) => {
         requestId,
         requesterId,
         requesterName,
-        subject,
-        topic,
-        subtopic,
+        // keep old keys for compatibility, but also store company/position when provided
+        subject: subject || null,
+        topic: topic || null,
+        subtopic: subtopic || null,
+        company: company || null,
+        position: position || null,
         messageId,
         timestamp: Date.now(),
         read: false
@@ -44,9 +47,11 @@ module.exports = (io) => {
         requestId,
         requesterId,
         requesterName,
-        subject,
-        topic,
-        subtopic,
+        subject: subject || null,
+        topic: topic || null,
+        subtopic: subtopic || null,
+        company: company || null,
+        position: position || null,
         messageId,
         timestamp: notification.timestamp,
         read: false

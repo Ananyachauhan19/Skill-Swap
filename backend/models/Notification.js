@@ -15,6 +15,9 @@ const notificationSchema = new mongoose.Schema({
       'session-cancelled',
       'session-requested',
       'interview-requested',
+      'interviewer-application',
+      'interviewer-approved',
+      'interviewer-rejected',
       'interview-assigned',
       'interview-scheduled',
       'skillmate-requested',
@@ -56,6 +59,14 @@ const notificationSchema = new mongoose.Schema({
     default: null,
   },
   subtopic: {
+    type: String,
+    default: null,
+  },
+  company: {
+    type: String,
+    default: null,
+  },
+  position: {
     type: String,
     default: null,
   },

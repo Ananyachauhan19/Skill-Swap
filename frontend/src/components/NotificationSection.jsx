@@ -109,6 +109,15 @@ const NotificationSection = ({ userId }) => {
     socket.emit('join', userId);
     socket.on('notification', (notification) => {
       setNotifications((prev) => [notification, ...prev]);
+      try {
+        // If the notification implies the user's role changed (approved/rejected), trigger auth refresh
+        if (notification && notification.type && ['interviewer-approved', 'interviewer-rejected'].includes(notification.type)) {
+          // Dispatch a global event that AuthContext listens to and will refetch /api/auth/me
+          window.dispatchEvent(new Event('authChanged'));
+        }
+      } catch (e) {
+        console.error('Failed to trigger auth refresh from notification', e);
+      }
     });
     return () => {
       socket.off('notification');

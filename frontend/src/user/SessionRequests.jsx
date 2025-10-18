@@ -37,6 +37,67 @@ const SessionRequests = () => {
         localStorage.removeItem('activeSession');
       }
     }
+
+      // Interview-specific card (separate from SessionRequestCard to avoid changing session logic)
+      const InterviewRequestCard = ({ request, isReceived }) => {
+        return (
+          <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center space-x-4">
+                <div className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <FaUser className="text-blue-600 text-lg" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-900">{(request.requester && `${request.requester.firstName || ''} ${request.requester.lastName || ''}`) || (request.user && request.user.username) || 'User'}</h3>
+                  <p className="text-sm text-gray-600">{isReceived ? 'Interview requested from you' : 'Interview requested by you'}</p>
+                </div>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+              </span>
+            </div>
+
+            <div className="mb-4">
+              <div className="flex items-center space-x-2 mb-3">
+                <FaBook className="text-blue-500" />
+                <span className="font-semibold text-blue-900">Interview Details</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600">
+                <div><span className="font-medium">Company:</span> {request.company}</div>
+                <div><span className="font-medium">Position:</span> {request.position}</div>
+                <div><span className="font-medium">Interviewer:</span> {(request.assignedInterviewer && (request.assignedInterviewer.firstName || request.assignedInterviewer.username)) || 'TBD'}</div>
+              </div>
+              {request.message && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <span className="font-medium text-blue-900">Message:</span>
+                  <p className="text-sm text-gray-600 mt-1">{request.message}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <FaClock className="text-gray-400" />
+                <span>{formatDate(request.createdAt)}</span>
+              </div>
+
+              <div>
+                {request.status === 'assigned' && user && request.assignedInterviewer && (user._id === (request.assignedInterviewer._id || request.assignedInterviewer)) && (
+                  <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
+                )}
+                {request.status === 'scheduled' && (
+                  <div className="flex items-center space-x-2">
+                    <div className="text-sm text-gray-700">Scheduled: {request.scheduledAt ? formatDate(request.scheduledAt) : 'TBD'}</div>
+                    {user && (String(user._id) === String(request.requester?._id || request.requester) || String(user._id) === String((request.assignedInterviewer && (request.assignedInterviewer._id || request.assignedInterviewer)) || '')) && (
+                      <button className="bg-blue-900 text-white px-3 py-1 rounded" onClick={() => handleJoinInterview(request)}>Join Interview</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      };
     checkActiveSessionFromBackend();
   }, []);
 
@@ -513,7 +574,9 @@ const SessionRequests = () => {
             {request.status === 'scheduled' && (
               <div className="flex space-x-2 items-center">
                 <div className="text-sm text-gray-700">Scheduled: {request.scheduledAt ? formatDate(request.scheduledAt) : 'TBD'}</div>
-                <button className="bg-blue-900 text-white px-3 py-1 rounded" onClick={() => handleJoinInterview(request)}>Join Interview</button>
+                {user && (String(user._id) === String(request.requester?._id || request.requester) || String(user._id) === String((request.assignedInterviewer && (request.assignedInterviewer._id || request.assignedInterviewer)) || '')) && (
+                  <button className="bg-blue-900 text-white px-3 py-1 rounded" onClick={() => handleJoinInterview(request)}>Join Interview</button>
+                )}
               </div>
             )}
           </div>
@@ -605,6 +668,53 @@ const SessionRequests = () => {
     );
   }
 
+    // Interview request card (keeps UI simple and consistent with SessionRequestCard)
+    const InterviewRequestCard = ({ request, isReceived }) => {
+      const otherUser = isReceived
+        ? `${request.requester?.firstName || ''} ${request.requester?.lastName || ''}`.trim()
+        : `${request.assignedInterviewer?.firstName || ''} ${request.assignedInterviewer?.lastName || ''}`.trim();
+
+      return (
+        <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center space-x-4">
+              <div className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <FaUser className="text-blue-600 text-lg" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-blue-900">{otherUser || (isReceived ? 'Requester' : 'Interviewer')}</h3>
+                <p className="text-sm text-gray-600">{isReceived ? 'Interview requested' : 'Interview sent'}</p>
+              </div>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+            </span>
+          </div>
+
+          <div className="mb-3 text-sm text-gray-700">Company: <span className="font-medium">{request.company || '—'}</span> • Position: <span className="font-medium">{request.position || '—'}</span></div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3 text-sm text-gray-600">
+              <FaClock className="text-gray-400" />
+              <span>{request.scheduledAt ? formatDate(request.scheduledAt) : formatDate(request.createdAt)}</span>
+            </div>
+
+            <div>
+              {request.status === 'scheduled' && (
+                <button
+                  onClick={() => handleJoinInterview(request)}
+                  className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+                >
+                  <FaVideo className="text-xs" />
+                  <span>Join Interview</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
   const username = user ? user.username || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User' : 'User';
 
   return (
@@ -650,13 +760,13 @@ const SessionRequests = () => {
                 className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded"
                 onClick={() => {
                   // find the request in interviewRequests or refetch
-                  const req = interviewRequests.sent.concat(interviewRequests.received).find(r => r._id === interviewBanner.requestId);
+                  const req = ((interviewRequests?.sent || []).concat(interviewRequests?.received || [])).find(r => r._id === interviewBanner.requestId);
                   if (req) {
                     handleJoinInterview(req);
                   } else {
                     // fallback: refetch and then attempt join
                     fetchInterviewRequests().then(() => {
-                      const r = interviewRequests.sent.concat(interviewRequests.received).find(x => x._id === interviewBanner.requestId);
+                      const r = ((interviewRequests?.sent || []).concat(interviewRequests?.received || [])).find(x => x._id === interviewBanner.requestId);
                       if (r) handleJoinInterview(r);
                       else alert('Unable to find scheduled interview yet, please check requests.');
                     });
@@ -750,9 +860,9 @@ const SessionRequests = () => {
             >
               <FaUser className="text-lg" />
               <span>Interview Requests</span>
-              {interviewRequests.received.filter(req => req.status === 'pending').length > 0 && (
+              {(interviewRequests?.received || []).filter(req => req.status === 'pending').length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs animate-pulse">
-                  {interviewRequests.received.filter(req => req.status === 'pending').length}
+                  {(interviewRequests?.received || []).filter(req => req.status === 'pending').length}
                 </span>
               )}
             </button>
@@ -761,26 +871,44 @@ const SessionRequests = () => {
 
         <div className="mb-8">
           <div className="flex justify-center space-x-6 border-b border-gray-200 pb-2">
-            <button
-              onClick={() => setActiveTab('received')}
-              className={`relative py-2 px-4 text-base font-medium transition-all duration-300 ${
-                activeTab === 'received'
-                  ? 'text-blue-900 border-b-2 border-blue-900'
-                  : 'text-gray-600 hover:text-blue-900'
-              }`}
-            >
-              Received ({requestType === 'session' ? requests.received.length : skillMateRequests.received.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('sent')}
-              className={`relative py-2 px-4 text-base font-medium transition-all duration-300 ${
-                activeTab === 'sent'
-                  ? 'text-blue-900 border-b-2 border-blue-900'
-                  : 'text-gray-600 hover:text-blue-900'
-              }`}
-            >
-              Sent ({requestType === 'session' ? requests.sent.length : skillMateRequests.sent.length})
-            </button>
+            {(() => {
+              const receivedCount = requestType === 'session'
+                ? (requests.received || []).length
+                : requestType === 'skillmate'
+                  ? (skillMateRequests.received || []).length
+                  : (interviewRequests?.received || []).length;
+
+              const sentCount = requestType === 'session'
+                ? (requests.sent || []).length
+                : requestType === 'skillmate'
+                  ? (skillMateRequests.sent || []).length
+                  : (interviewRequests?.sent || []).length;
+
+              return (
+                <>
+                  <button
+                    onClick={() => setActiveTab('received')}
+                    className={`relative py-2 px-4 text-base font-medium transition-all duration-300 ${
+                      activeTab === 'received'
+                        ? 'text-blue-900 border-b-2 border-blue-900'
+                        : 'text-gray-600 hover:text-blue-900'
+                    }`}
+                  >
+                    Received ({receivedCount})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('sent')}
+                    className={`relative py-2 px-4 text-base font-medium transition-all duration-300 ${
+                      activeTab === 'sent'
+                        ? 'text-blue-900 border-b-2 border-blue-900'
+                        : 'text-gray-600 hover:text-blue-900'
+                    }`}
+                  >
+                    Sent ({sentCount})
+                  </button>
+                </>
+              );
+            })()}
           </div>
         </div>
 
@@ -839,27 +967,27 @@ const SessionRequests = () => {
             )
           ) : requestType === 'interview' ? (
             activeTab === 'received' ? (
-              interviewRequests.received.length === 0 ? (
+              (interviewRequests?.received || []).length === 0 ? (
                 <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
                   <FaUser className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-2 text-lg font-semibold text-blue-900">No Received Interview Requests</h3>
                   <p className="mt-1 text-gray-600">You haven't received any interview requests yet.</p>
                 </div>
               ) : (
-                interviewRequests.received.map((request) => (
-                  <SessionRequestCard key={request._id} request={request} isReceived={true} />
+                (interviewRequests?.received || []).map((request) => (
+                  <InterviewRequestCard key={request._id} request={request} isReceived={true} />
                 ))
               )
             ) : (
-              interviewRequests.sent.length === 0 ? (
+              (interviewRequests?.sent || []).length === 0 ? (
                 <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
                   <FaUser className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-2 text-lg font-semibold text-blue-900">No Sent Interview Requests</h3>
                   <p className="mt-1 text-gray-600">You haven't sent any interview requests yet.</p>
                 </div>
               ) : (
-                interviewRequests.sent.map((request) => (
-                  <SessionRequestCard key={request._id} request={request} isReceived={false} />
+                (interviewRequests?.sent || []).map((request) => (
+                  <InterviewRequestCard key={request._id} request={request} isReceived={false} />
                 ))
               )
             )
@@ -873,6 +1001,53 @@ const SessionRequests = () => {
           >
             Back to Home
           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Interview request card (keeps UI simple and consistent with SessionRequestCard)
+const InterviewRequestCard = ({ request, isReceived }) => {
+  const otherUser = isReceived
+    ? `${request.requester?.firstName || ''} ${request.requester?.lastName || ''}`.trim()
+    : `${request.assignedInterviewer?.firstName || ''} ${request.assignedInterviewer?.lastName || ''}`.trim();
+
+  return (
+    <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center space-x-4">
+          <div className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+            <FaUser className="text-blue-600 text-lg" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-blue-900">{otherUser || (isReceived ? 'Requester' : 'Interviewer')}</h3>
+            <p className="text-sm text-gray-600">{isReceived ? 'Interview requested' : 'Interview sent'}</p>
+          </div>
+        </div>
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+        </span>
+      </div>
+
+      <div className="mb-3 text-sm text-gray-700">Company: <span className="font-medium">{request.company || '—'}</span> • Position: <span className="font-medium">{request.position || '—'}</span></div>
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3 text-sm text-gray-600">
+          <FaClock className="text-gray-400" />
+          <span>{request.scheduledAt ? formatDate(request.scheduledAt) : formatDate(request.createdAt)}</span>
+        </div>
+
+        <div>
+          {request.status === 'scheduled' && (
+            <button
+              onClick={() => handleJoinInterview(request)}
+              className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+            >
+              <FaVideo className="text-xs" />
+              <span>Join Interview</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

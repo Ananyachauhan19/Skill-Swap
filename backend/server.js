@@ -52,7 +52,32 @@ app.use(passport.session());
 require('./socket')(io);
 app.set('io', io);
 
+// Serve uploaded files (resume uploads). Keep compatibility with both 'uploads' and 'Uploads' folders.
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
+
+// Ensure uploads/resumes folder exists to prevent multer write errors
+const fs = require('fs');
+const uploadsPath = path.join(__dirname, 'uploads', 'resumes');
+try {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+  console.info('[INFO] Ensured uploads directory exists:', uploadsPath);
+} catch (e) {
+  console.error('[ERROR] Failed to ensure uploads directory:', uploadsPath, e);
+}
+
+// Generic error handler that returns JSON for API consumers (avoids HTML error pages)
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500);
+  // If the request accepts JSON, return JSON
+  if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
+    return res.json({ message: err.message || 'Internal Server Error' });
+  }
+  // Fallback to plain text
+  return res.type('txt').send(err.message || 'Internal Server Error');
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/session-requests', sessionRequestRoutes);
@@ -64,6 +89,10 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/interview', interviewRoutes);
+
+// Backwards-compatible alias used in some frontend bundles
+const interviewCtrl = require('./controllers/interviewController');
+app.get('/api/interview-faqs', interviewCtrl.getFaqs);
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
