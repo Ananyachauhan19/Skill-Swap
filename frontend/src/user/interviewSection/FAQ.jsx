@@ -55,9 +55,10 @@ const FAQSection = () => {
   }
 
   return (
-    <section className="bg-white rounded-3xl p-4 sm:p-6 lg:p-10 shadow-lg overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col items-center gap-4 mb-8 sm:mb-10 pb-6 border-b-2 border-[#93c5fd]">
+    <section className="w-full bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe] overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Header */}
+        <div className="flex flex-col items-center gap-4 mb-8 sm:mb-10 pb-6 border-b-2 border-[#93c5fd]">
         <div className="flex items-center justify-center gap-2 sm:gap-3 w-full flex-wrap">
           <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1e3a8a] text-center">
@@ -110,6 +111,7 @@ const FAQSection = () => {
             )}
           </motion.div>
         ))}
+      </div>
       </div>
     </section>
   );

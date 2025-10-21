@@ -83,8 +83,8 @@ const PastInterviewsPreview = () => {
   const displayedInterviews = activeTab === 'recent' ? interviews.slice(0, 2) : interviews;
 
   return (
-    <section className="relative rounded-3xl mb-8 w-full max-w-7xl mx-auto overflow-hidden bg-white shadow-lg">
-      <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col gap-6 sm:gap-8">
+    <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe]">
+      <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col gap-6 sm:gap-8 max-w-7xl mx-auto">
         {/* Header with Tabs */}
         <div className="flex flex-col items-center gap-4 sm:gap-6">
           <div className="flex items-center justify-center gap-2 sm:gap-3 w-full flex-wrap">

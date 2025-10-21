@@ -56,8 +56,8 @@ const howItWorksSteps = [
 ];
 
 const HowItWorks = () => (
-  <section className="relative rounded-3xl mb-8 w-full max-w-7xl mx-auto overflow-hidden bg-white shadow-lg">
-    <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-12 sm:py-16 flex flex-col gap-8 sm:gap-10">
+  <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe]">
+    <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-12 sm:py-16 flex flex-col gap-8 sm:gap-10 max-w-7xl mx-auto">
       <div className="flex flex-col items-center gap-4 mb-4 sm:mb-6">
         <div className="flex items-center justify-center gap-3 w-full flex-wrap">
           <div className="w-8 sm:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
@@ -469,9 +469,10 @@ function ScheduledInterviewSection() {
   });
 
   return (
-    <section className="bg-white rounded-3xl p-4 sm:p-6 lg:p-10 shadow-lg overflow-hidden">
-      {/* Header with gradient background */}
-      <div className="flex flex-col items-center gap-4 mb-8 sm:mb-10 pb-6 border-b-2 border-[#3b82f6]/20">
+    <section className="w-full bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe] overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        {/* Header with gradient background */}
+        <div className="flex flex-col items-center gap-4 mb-8 sm:mb-10 pb-6 border-b-2 border-[#3b82f6]/20">
         <div className="flex items-center justify-center gap-2 sm:gap-3 w-full flex-wrap">
           <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1e3a8a] text-center">
@@ -571,7 +572,8 @@ function ScheduledInterviewSection() {
             </motion.div>
           ))}
         </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }
@@ -796,8 +798,8 @@ const Interview = () => {
         </motion.div>
       </section>
 
-      {/* Main Content Sections - Reordered */}
-      <main className="w-full max-w-7xl mx-auto flex flex-col gap-8 sm:gap-12 lg:gap-16 px-3 sm:px-6 py-8 sm:py-12 lg:py-16">
+      {/* Main Content Sections - Full Width */}
+      <main className="w-full flex flex-col">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -816,9 +818,14 @@ const Interview = () => {
           <PastInterviewsPreview />
         </motion.div>
 
-        <div>
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
           <TopInterviewers />
-        </div>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 40 }}
