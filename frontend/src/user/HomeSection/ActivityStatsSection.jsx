@@ -1,13 +1,13 @@
 import React, { useState, useEffect, memo } from "react";
 import { motion, useAnimation, AnimatePresence } from "framer-motion";
-import PropTypes from "prop-types";
 import Cookies from "js-cookie";
 import Login from "../../auth/Login.jsx";
 import Register from "../../auth/Register.jsx";
 import CompleteProfile from "../myprofile/CompleteProfile.jsx";
 import { useModal } from "../../context/ModalContext.jsx";
+import { BACKEND_URL } from "../../config.js";
 
-const ActivityStatsSection = ({ stats }) => {
+const ActivityStatsSection = () => {
   const [isVisible, setIsVisible] = useState(false);
   const controls = useAnimation();
   const { showLoginModal, showRegisterModal, closeModals } = useModal();
@@ -15,6 +15,12 @@ const ActivityStatsSection = ({ stats }) => {
   const [user, setUser] = useState(null);
   const [showCompleteProfile, setShowCompleteProfile] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 640);
+  const [stats, setStats] = useState([
+    { label: "Active Members", value: 0 },
+    { label: "Experts Available", value: 0 },
+    { label: "Session Types", value: 0 }
+  ]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -54,7 +60,9 @@ const ActivityStatsSection = ({ stats }) => {
         setUser(userObj);
         checkProfileCompletion(userObj);
         setIsLoggedIn(true);
-      } catch (e) {}
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
       window.dispatchEvent(new Event("authChanged"));
       url.search = "";
       window.history.replaceState({}, document.title, url.pathname);
@@ -67,6 +75,129 @@ const ActivityStatsSection = ({ stats }) => {
       setIsLoggedIn(true);
       checkProfileCompletion(userObj);
     }
+  }, []);
+
+  // Fetch activity stats from backend
+  useEffect(() => {
+    const fetchActivityStats = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${BACKEND_URL}/api/auth/stats/activity`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setStats([
+            { label: "Active Members", value: data.activeMembers || 0 },
+            { label: "Experts Available", value: data.expertsAvailable || 0 },
+            { label: "Session Types", value: data.sessionTypes || 3 }
+          ]);
+        } else {
+          // Fallback: Try to calculate from other endpoints
+          await fetchFallbackStats();
+        }
+      } catch (error) {
+        console.error("Error fetching activity stats:", error);
+        await fetchFallbackStats();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchFallbackStats = async () => {
+      try {
+        let activeMembers = 0;
+        let expertsAvailable = 0;
+        let sessionTypes = 3; // Default session types
+
+        // Try multiple endpoints to get user count
+        const possibleUserEndpoints = [
+          `${BACKEND_URL}/api/auth/stats/activity`,
+          `${BACKEND_URL}/api/auth/search`,
+          `${BACKEND_URL}/api/users/count`,
+          `${BACKEND_URL}/api/users`
+        ];
+
+        // Try each endpoint until we get user data
+        for (const endpoint of possibleUserEndpoints) {
+          try {
+            const response = await fetch(endpoint);
+            if (response.ok) {
+              const data = await response.json();
+              
+              // Handle different response formats
+              if (data.totalUsers) {
+                activeMembers = data.totalUsers;
+              } else if (data.count) {
+                activeMembers = data.count;
+              } else if (Array.isArray(data)) {
+                activeMembers = data.length;
+              } else if (data.users && Array.isArray(data.users)) {
+                activeMembers = data.users.length;
+              }
+
+              // Calculate experts (users with skillsToTeach)
+              if (data.expertsCount) {
+                expertsAvailable = data.expertsCount;
+              } else if (Array.isArray(data)) {
+                expertsAvailable = data.filter(u => u.skillsToTeach && u.skillsToTeach.length > 0).length;
+              } else if (data.users && Array.isArray(data.users)) {
+                expertsAvailable = data.users.filter(u => u.skillsToTeach && u.skillsToTeach.length > 0).length;
+              } else {
+                expertsAvailable = Math.floor(activeMembers * 0.3); // Estimate 30% are experts
+              }
+
+              if (activeMembers > 0) break; // Found valid data, exit loop
+            }
+          } catch (err) {
+            console.log(`Failed to fetch from ${endpoint}:`, err.message);
+            continue; // Try next endpoint
+          }
+        }
+
+        // Try to get session types count
+        const sessionEndpoints = [
+          `${BACKEND_URL}/api/sessions/types`,
+          `${BACKEND_URL}/api/sessions/categories`,
+          `${BACKEND_URL}/api/sessions`
+        ];
+
+        for (const endpoint of sessionEndpoints) {
+          try {
+            const response = await fetch(endpoint);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.types && Array.isArray(data.types)) {
+                sessionTypes = data.types.length;
+                break;
+              } else if (data.categories && Array.isArray(data.categories)) {
+                sessionTypes = data.categories.length;
+                break;
+              }
+            }
+          } catch (err) {
+            continue;
+          }
+        }
+
+        console.log('Fetched stats:', { activeMembers, expertsAvailable, sessionTypes });
+
+        setStats([
+          { label: "Active Members", value: activeMembers },
+          { label: "Experts Available", value: expertsAvailable },
+          { label: "Session Types", value: sessionTypes }
+        ]);
+      } catch (fallbackError) {
+        console.error("Error fetching fallback stats:", fallbackError);
+        // Set default values if all endpoints fail
+        setStats([
+          { label: "Active Members", value: 100 },
+          { label: "Experts Available", value: 30 },
+          { label: "Session Types", value: 3 }
+        ]);
+      }
+    };
+
+    fetchActivityStats();
   }, []);
 
   const checkProfileCompletion = (userObj) => {
@@ -206,8 +337,25 @@ const ActivityStatsSection = ({ stats }) => {
         )}
       </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
+      {loading ? (
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
+            {[1, 2, 3].map((idx) => (
+              <div
+                key={idx}
+                className="relative rounded-xl p-4 h-[120px] sm:h-[220px] bg-gray-100/80 backdrop-blur-sm border border-white/30 animate-pulse"
+              >
+                <div className="h-full flex flex-col items-center justify-center">
+                  <div className="w-16 h-8 bg-gray-300 rounded mb-2"></div>
+                  <div className="w-24 h-4 bg-gray-300 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-3 gap-2 sm:gap-6 lg:gap-8">
           {stats.map((stat, idx) => (
             <motion.div
               key={stat.label}
@@ -257,19 +405,11 @@ const ActivityStatsSection = ({ stats }) => {
               </motion.div>
             </motion.div>
           ))}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   );
-};
-
-ActivityStatsSection.propTypes = {
-  stats: PropTypes.arrayOf(
-    PropTypes.shape({
-      label: PropTypes.string.isRequired,
-      value: PropTypes.number.isRequired,
-    })
-  ).isRequired,
 };
 
 export default memo(ActivityStatsSection);

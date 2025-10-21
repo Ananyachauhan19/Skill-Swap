@@ -49,6 +49,9 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
           <button className="text-left px-4 py-2 hover:bg-blue-50 rounded" onClick={() => go('/profile')}>
             Profile
           </button>
+          <button className="text-left px-4 py-2 hover:bg-blue-50 rounded" onClick={() => go('/your-interviews')}>
+            Your Interviews
+          </button>
           <button className="text-left px-4 py-2 hover:bg-blue-50 rounded" onClick={() => go('/createSession')}>
             Schedule Sessions
           </button>

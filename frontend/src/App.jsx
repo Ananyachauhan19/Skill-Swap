@@ -49,6 +49,7 @@ import TermsConditions from './TermsConditions.jsx';
 import CookiesPolicy from './CookiesPolicy.jsx';
 import About from './About.jsx';
 import Career from './Career.jsx';
+import YourInterviews from './user/YourInterviews';
 
 // Define routes
 const appRoutes = [
@@ -69,6 +70,7 @@ const appRoutes = [
   { path: '/one-on-one', element: <ProtectedRoute><OneOnOne /></ProtectedRoute> },
   { path: '/discuss', element: <ProtectedRoute><Discuss /></ProtectedRoute> },
   { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
+  { path: '/your-interviews', element: <ProtectedRoute><YourInterviews /></ProtectedRoute> },
   { path: '/session', element: <ProtectedRoute><Sessions /></ProtectedRoute> },
   { path: '/session-requests', element: <ProtectedRoute><SessionRequests /></ProtectedRoute> },
   { path: '/register-interviewer', element: <RegisterInterviewer />} ,

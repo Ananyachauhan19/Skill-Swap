@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaBriefcase, FaUserFriends, FaComments, FaChalkboardTeacher, FaUsers } from "react-icons/fa";
+import { FaBriefcase, FaUserFriends, FaComments } from "react-icons/fa";
 import { motion } from "framer-motion";
 import HeroSection from "./HomeSection/HeroSection";
 import ExploreOpportunitiesSection from "./HomeSection/ExploreOpportunitiesSection";
@@ -13,12 +13,6 @@ import LetsStartSection from "./HomeSection/LetsStartSection";
 const HomeHero = () => {
   const navigate = useNavigate();
   const exploreRef = React.useRef(null);
-
-  const stats = [
-    { icon: <FaChalkboardTeacher className="text-5xl text-blue-800" />, value: 18200, label: "Active Members" },
-    { icon: <FaUsers className="text-5xl text-blue-800" />, value: 4500, label: "Experts Available" },
-    { icon: <FaComments className="text-5xl text-blue-800" />, value: 50, label: "Session Types" },
-  ];
 
   const featureTabs = [
     {
@@ -85,7 +79,7 @@ const HomeHero = () => {
       <motion.div initial="visible" animate="visible">
         <HeroSection navigate={navigate} buttonVariants={buttonVariants} exploreRef={exploreRef} />
         <ExploreOpportunitiesSection featureTabs={featureTabs} tabVariants={tabVariants} navigate={navigate} exploreRef={exploreRef} />
-        <ActivityStatsSection stats={stats} />
+        <ActivityStatsSection />
         <TopPerformersSection />
         <WhoAreWeSection navigate={navigate} />
         <WhyChooseSection navigate={navigate} />

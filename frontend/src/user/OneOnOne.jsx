@@ -15,64 +15,83 @@ const HowItWorks = () => {
   };
 
   return (
-    <section className="relative bg-gradient-to-br from-white to-blue-50 rounded-2xl shadow-2xl p-4 sm:p-6 flex flex-col gap-6 border border-blue-200 mb-8 animate-slideUp w-full max-w-7xl mx-auto box-border">
-      <h2 className="text-xl sm:text-3xl font-extrabold text-blue-900 text-center flex items-center justify-center gap-2 sm:gap-3">
-        <svg
-          className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth="2"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        How It Works
-      </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {[
-          {
-            icon: <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />,
-            title: "Search for an Expert",
-            desc: "Select course, unit, or topic."
-          },
-          {
-            icon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" />,
-            title: "Connect & Learn",
-            desc: "Get real-time guidance."
-          },
-          {
-            icon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 2c-2.761 0-5 2.239-5 5h10c0-2.761-2.239-5-5-5z" />,
-            title: "Silver Coin System",
-            desc: "0.25 rupees per minute."
-          },
-          {
-            icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-3-6v12" />,
-            title: "Example",
-            desc: "40 min = 10 Coins\n60 min = 15 Coins"
-          }
-        ].map((item, index) => (
-          <div
-            key={index}
-            className="flex flex-col items-center justify-center text-center p-3 sm:p-4 bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:bg-blue-50 border border-blue-100 cursor-pointer aspect-square"
-            onClick={() => handleCardClick(index)}
-          >
-            <div className={`bg-blue-600 text-white rounded-full p-2 sm:p-3 mb-2 sm:mb-3 transform transition-transform duration-300 ${clickedIndex === index ? 'scale-110 rotate-12' : ''}`}>
-              <svg
-                className="w-4 h-4 sm:w-6 sm:h-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                {item.icon}
-              </svg>
-            </div>
-            <h3 className="text-sm sm:text-lg font-semibold text-blue-900 leading-tight">{item.title}</h3>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1 sm:mt-2 whitespace-pre-line line-clamp-3">{item.desc}</p>
+    <section className="relative rounded-3xl mb-8 w-full max-w-7xl mx-auto overflow-hidden bg-white shadow-xl">
+      <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-12 sm:py-16 flex flex-col gap-8 sm:gap-10">
+        <div className="flex flex-col items-center gap-4 mb-4 sm:mb-6">
+          <div className="flex items-center justify-center gap-3 w-full flex-wrap">
+            <div className="w-8 sm:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-[#1e3a8a] text-center">
+              🚀 How It Works
+            </h2>
+            <div className="w-8 sm:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
           </div>
-        ))}
+          <p className="text-center text-gray-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto px-2">
+            Connect with expert tutors and accelerate your learning journey
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+          {[
+            {
+              emoji: "🔍",
+              title: "Search Expert",
+              desc: "Select course, unit, or topic to find the perfect tutor",
+              bgGradient: "from-[#3b82f6] to-[#2563eb]",
+              lightBg: "from-[#dbeafe] to-[#bfdbfe]",
+              borderColor: "border-[#93c5fd]",
+            },
+            {
+              emoji: "🎓",
+              title: "Connect & Learn",
+              desc: "Get real-time guidance from experienced tutors",
+              bgGradient: "from-[#2563eb] to-[#1e40af]",
+              lightBg: "from-[#bfdbfe] to-[#93c5fd]",
+              borderColor: "border-[#60a5fa]",
+            },
+            {
+              emoji: "💰",
+              title: "Silver Coin System",
+              desc: "Pay 0.25 rupees per minute of learning",
+              bgGradient: "from-[#1e40af] to-[#1e3a8a]",
+              lightBg: "from-[#93c5fd] to-[#60a5fa]",
+              borderColor: "border-[#3b82f6]",
+            },
+            {
+              emoji: "⏱️",
+              title: "Example",
+              desc: "40 min = 10 Coins\n60 min = 15 Coins",
+              bgGradient: "from-[#3b82f6] to-[#2563eb]",
+              lightBg: "from-[#dbeafe] to-[#bfdbfe]",
+              borderColor: "border-[#60a5fa]",
+            }
+          ].map((item, index) => (
+            <div
+              key={index}
+              onClick={() => handleCardClick(index)}
+              className={`group relative flex flex-col items-center text-center p-5 sm:p-6 bg-white rounded-2xl border-2 ${item.borderColor} transition-all duration-300 hover:shadow-lg overflow-hidden cursor-pointer`}
+            >
+              <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${item.bgGradient}`}></div>
+
+              <div 
+                className={`relative z-10 flex items-center justify-center w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-gradient-to-br ${item.lightBg} mb-4 transition-all duration-300 shadow-md text-2xl ${
+                  clickedIndex === index ? 'scale-110 rotate-12' : 'group-hover:scale-110'
+                }`}
+              >
+                {item.emoji}
+              </div>
+
+              <h3 className="relative z-10 text-lg sm:text-xl font-bold text-[#1e3a8a] mb-2">
+                {item.title}
+              </h3>
+
+              <p className="relative z-10 text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                {item.desc}
+              </p>
+
+              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${item.bgGradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 rounded-b-2xl`}></div>
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -83,9 +102,6 @@ const OneOnOne = () => {
   const [unit, setUnit] = useState('');
   const [topic, setTopic] = useState('');
   const [showTutors, setShowTutors] = useState(false);
-  const [sessionRequestedTutor, setSessionRequestedTutor] = useState(null);
-  const [pendingSession, setPendingSession] = useState(null);
-  const [requestSentTutor, setRequestSentTutor] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -98,7 +114,31 @@ const OneOnOne = () => {
       setCourse(course || '');
       setUnit(unit || '');
       setTopic(topic || '');
-      handleFindTutor();
+      const fetchData = async () => {
+        setLoading(true);
+        setShowTutors(true);
+        try {
+          const queryParams = new URLSearchParams();
+          if (course) queryParams.append('subject', course);
+          if (unit) queryParams.append('topic', unit);
+          if (topic) queryParams.append('subtopic', topic);
+          const token = localStorage.getItem('token');
+          const res = await fetch(`${BACKEND_URL}/api/sessions/search?${queryParams.toString()}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setSearchResults(data);
+          } else {
+            setSearchResults([]);
+          }
+        } catch {
+          setSearchResults([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchData();
     }
   }, [location.state]);
 
@@ -124,7 +164,7 @@ const OneOnOne = () => {
 
       const data = await res.json();
       setSearchResults(data);
-    } catch (err) {
+    } catch {
       setSearchResults([]);
     } finally {
       setLoading(false);
@@ -148,71 +188,96 @@ const OneOnOne = () => {
 
       if (!res.ok) throw new Error('Failed to send session request');
 
-      setSessionRequestedTutor(session.creator);
-      setPendingSession({ tutor: session.creator });
-      setRequestSentTutor(session.creator);
-
       alert('Session request sent successfully!');
-    } catch (error) {
+    } catch {
       alert('Failed to send session request.');
     }
   };
 
-  const handleCloseRequestSent = () => {
-    setRequestSentTutor(null);
-  };
-
-  const handleAcceptSession = () => {
-    alert(`Session with ${pendingSession.tutor.name} accepted! (Demo)`);
-    setPendingSession(null);
-    setSessionRequestedTutor(null);
-    setRequestSentTutor(null);
-  };
-
-  const handleRejectSession = () => {
-    setPendingSession(null);
-    setSessionRequestedTutor(null);
-    setRequestSentTutor(null);
-  };
-
   return (
-    <div className="min-h-screen w-full bg-blue-50 transition-all duration-2000 pt-16 sm:pt-20">
-      <header className="w-full max-w-7xl mx-auto text-center py-6 sm:py-10 px-4 sm:px-6 relative animate-slideUp">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
-          <div className="flex-1 text-left">
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-blue-900 mb-4 leading-tight">
-              Connect with Experts for Personalized Learning
-            </h1>
-            <p className="text-sm sm:text-lg md:text-xl text-gray-700 max-w-xl mb-6">
-              Instantly connect with subject experts, get your doubts solved, and accelerate your learning.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <button
-                className="w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-full font-semibold text-sm sm:text-lg shadow-md hover:bg-blue-700 transition-all duration-300 hover:scale-105"
-                onClick={() => window.location.href = '/createSession'}
-              >
-                Create a Session
-              </button>
-              <button
-                className="w-full sm:w-auto bg-white text-blue-700 border border-blue-600 px-6 py-3 rounded-full font-semibold text-sm sm:text-lg shadow-md hover:bg-blue-50 transition-all duration-300 hover:scale-105"
-                onClick={() => navigate('/startskillswap')}
-              >
-                Start SkillSwap
-              </button>
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe]">
+      {/* Hero Section */}
+      <section className="relative min-h-[75vh] w-full flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-6 sm:pb-8">
+        {/* Background decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12">
+            {/* Left Content */}
+            <div className="flex-1 text-center lg:text-left space-y-6">
+              <div className="inline-block">
+                <span className="px-4 py-2 bg-blue-100 text-[#1e3a8a] rounded-full text-sm font-semibold">
+                  🎓 One-on-One Learning Platform
+                </span>
+              </div>
+              
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#1e3a8a] leading-tight">
+                Connect with Experts for
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#3b82f6] to-[#2563eb] mt-2">
+                  Personalized Learning
+                </span>
+              </h1>
+              
+              <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto lg:mx-0">
+                Instantly connect with subject experts, get your doubts solved in real-time, and accelerate your learning journey.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
+                <button
+                  onClick={() => window.location.href = '/createSession'}
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-xl font-bold text-base hover:shadow-2xl transition-all hover:scale-105 transform"
+                >
+                  📝 Create a Session
+                </button>
+                <button
+                  onClick={() => navigate('/startskillswap')}
+                  className="w-full sm:w-auto px-8 py-4 bg-white text-[#1e3a8a] border-2 border-[#3b82f6] rounded-xl font-bold text-base hover:bg-blue-50 transition-all hover:scale-105 transform shadow-md"
+                >
+                  🔄 Start SkillSwap
+                </button>
+              </div>
+            </div>
+
+            {/* Right Illustration */}
+            <div className="flex-1 relative">
+              <div className="relative w-full max-w-md mx-auto">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/20 to-[#2563eb]/20 rounded-3xl blur-2xl"></div>
+                <img
+                  src="/assets/expert-connect-illustration.webp"
+                  alt="Expert Connect"
+                  className="relative w-full h-auto object-contain drop-shadow-2xl"
+                />
+              </div>
             </div>
           </div>
-          <div className="flex-1 mt-6 md:mt-0">
-            <img
-              src="/assets/expert-connect-illustration.webp"
-              alt="Expert Connect Illustration"
-              className="w-full max-w-xs sm:max-w-md mx-auto object-contain"
-            />
+        </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 text-gray-600">
+          <span className="text-xs sm:text-sm font-medium">Scroll to explore</span>
+          <div className="w-6 h-10 border-2 border-[#2563eb] rounded-full flex items-start justify-center p-1">
+            <div className="w-1.5 h-3 bg-[#2563eb] rounded-full animate-bounce"></div>
           </div>
         </div>
-      </header>
-      <main className="flex-1 w-full max-w-7xl mx-auto flex flex-col gap-12 sm:gap-16 px-4 sm:px-8 pb-16">
-        <div className="py-6 sm:py-8">
-          <h2 className="text-lg sm:text-2xl font-bold text-blue-900 mb-6 text-center animate-slideUp">Find Your Expert</h2>
+      </section>
+
+      {/* Main Content */}
+      <main className="w-full max-w-7xl mx-auto flex flex-col gap-12 sm:gap-16 px-4 sm:px-8 py-8 sm:py-12 lg:py-16">
+        {/* Search Section */}
+        <section className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl overflow-hidden">
+          <div className="flex flex-col items-center gap-4 mb-8 pb-6 border-b-2 border-[#3b82f6]/20">
+            <div className="flex items-center justify-center gap-3 w-full flex-wrap">
+              <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1e3a8a] text-center">
+                🔍 Find Your Expert
+              </h2>
+              <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
+            </div>
+          </div>
+
           <SearchBar
             ref={searchBarRef}
             courseValue={course}
@@ -224,126 +289,68 @@ const OneOnOne = () => {
             onFindTutor={handleFindTutor}
             id="oneonone-search-bar"
           />
+
           {showTutors && (
-            <div className="flex flex-col gap-6 sm:gap-8 mt-6 sm:mt-8 animate-slideUp">
+            <div className="flex flex-col gap-6 mt-8">
               {loading ? (
-                <p className="text-center text-blue-600">Searching...</p>
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#3b82f6] border-t-transparent mb-4"></div>
+                  <p className="text-gray-600 text-lg font-semibold">Searching for experts...</p>
+                </div>
               ) : Array.isArray(searchResults) && searchResults.length === 0 ? (
-                <p className="text-center text-gray-500">No pending sessions found.</p>
+                <div className="text-center py-16">
+                  <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-5xl">🔍</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-[#1e3a8a] mb-2">No Sessions Found</h3>
+                  <p className="text-gray-600 mb-6">Try adjusting your search criteria or create a new session</p>
+                  <button
+                    onClick={() => window.location.href = '/createSession'}
+                    className="px-8 py-4 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-xl font-bold hover:shadow-2xl transition-all hover:scale-105"
+                  >
+                    📝 Create Session
+                  </button>
+                </div>
               ) : Array.isArray(searchResults) ? (
-                searchResults.map((session, idx) => (
-                  <TutorCard
-                    key={idx}
-                    tutor={{
-                      name: `${session.creator?.firstName ?? ''} ${session.creator?.lastName ?? ''}`.trim() || 'Unknown',
-                      profilePic: '/default-user.png',
-                      date: session.date,
-                      time: session.time,
-                      skills: [session.subject, session.topic, session.subtopic].filter(Boolean),
-                      status: `${session.status}` === 'pending' ? '🟢 Available' : `🔴 Busy (${session.status})`,
-                      rating: 4.5,
-                    }}
-                    onRequestSession={() => handleRequestSession(session)}
-                  />
-                ))
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-[#1e3a8a]">
+                      Found {searchResults.length} {searchResults.length === 1 ? 'Expert' : 'Experts'}
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {searchResults.map((session, idx) => (
+                      <TutorCard
+                        key={idx}
+                        tutor={{
+                          name: `${session.creator?.firstName ?? ''} ${session.creator?.lastName ?? ''}`.trim() || 'Unknown',
+                          profilePic: session.creator?.profilePic || '/default-user.png',
+                          date: session.date,
+                          time: session.time,
+                          skills: [session.subject, session.topic, session.subtopic].filter(Boolean),
+                          status: `${session.status}` === 'pending' ? '🟢 Available' : `🔴 Busy (${session.status})`,
+                          rating: session.creator?.rating || 4.5,
+                        }}
+                        onRequestSession={() => handleRequestSession(session)}
+                      />
+                    ))}
+                  </div>
+                </>
               ) : (
-                <p className="text-red-600">Unexpected response format.</p>
+                <div className="text-center py-12">
+                  <p className="text-red-600 text-lg font-semibold">⚠️ Unexpected response format</p>
+                </div>
               )}
             </div>
           )}
-        </div>
+        </section>
+
+        {/* How It Works */}
         <HowItWorks />
+
+        {/* Top Performers */}
         <TopPerformersSection />
       </main>
-
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-out;
-        }
-        .animate-slideUp {
-          animation: slideUp 0.5s ease-out;
-        }
-        /* Prevent overflow on mobile */
-        html, body {
-          overflow-x: hidden;
-          width: 100%;
-        }
-        /* Responsive adjustments for mobile */
-        @media (max-width: 640px) {
-          .grid-cols-2 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-          }
-          .aspect-square {
-            aspect-ratio: 1 / 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 0.75rem;
-            overflow: hidden;
-          }
-          .text-xl {
-            font-size: 1.25rem;
-          }
-          .text-lg {
-            font-size: 1rem;
-          }
-          .text-sm {
-            font-size: 0.75rem;
-          }
-          .text-xs {
-            font-size: 0.65rem;
-          }
-          .p-3 {
-            padding: 0.75rem;
-          }
-          .p-2 {
-            padding: 0.5rem;
-          }
-          .mb-2 {
-            margin-bottom: 0.5rem;
-          }
-          .mt-1 {
-            margin-top: 0.25rem;
-          }
-          .w-4 {
-            width: 1rem;
-            height: 1rem;
-          }
-          .max-w-xs {
-            max-width: 18rem;
-          }
-          .line-clamp-3 {
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-          }
-          .leading-tight {
-            line-height: 1.2;
-          }
-        }
-      `}</style>
     </div>
   );
 };

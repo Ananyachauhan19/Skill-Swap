@@ -1,72 +1,100 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { FaCalendarAlt, FaStar, FaUser } from 'react-icons/fa';
 import { BACKEND_URL } from '../../config.js';
+import { useAuth } from '../../context/AuthContext';
 
 const PastInterviewSection = () => {
-  const [sessions, setSessions] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+  const { user } = useAuth() || {};
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    fetch(`${BACKEND_URL}/api/interview/past`)
-      .then(res => {
+    let mounted = true;
+    async function fetchPast() {
+      setLoading(true); setError('');
+      try {
+        // Derive past completed interviews for the current user from requests endpoint
+        const res = await fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' });
         if (!res.ok) throw new Error('Failed to fetch past interviews');
-        return res.json();
-      })
-      .then(data => setSessions(Array.isArray(data) ? data : []))
-      .catch(() => setError('Could not load past interviews.'))
-      .finally(() => setLoading(false));
-  }, []);
+        const data = await res.json();
+        if (!mounted) return;
+        const list = Array.isArray(data) ? data : [...(data.sent || []), ...(data.received || [])];
+        const completed = list.filter(iv => iv.status === 'completed');
+        completed.sort((a, b) => new Date(b.scheduledAt || b.updatedAt || 0) - new Date(a.scheduledAt || a.updatedAt || 0));
+        setItems(completed);
+      } catch (e) {
+        console.error('PastInterviewSection fetch error:', e);
+        if (!mounted) return;
+        setError('Could not load past interviews.');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    if (user) fetchPast(); else setLoading(false);
+    return () => { mounted = false; };
+  }, [user]);
+
+  if (loading) {
+    return (
+      <section className="bg-white rounded-3xl shadow-lg p-6 sm:p-8 border border-blue-200">
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+          <p className="text-gray-600 mt-4">Loading your past interviews...</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (!user || error || items.length === 0) return null;
 
   return (
-    <section className="w-full flex flex-col items-center py-12 bg-blue-50">
-      <h3 className="text-2xl sm:text-3xl font-bold text-blue-900 mb-8 text-center">Past Mock Interview Sessions</h3>
-      {loading ? (
-        <div className="text-blue-700 text-lg font-semibold py-12 text-center">Loading...</div>
-      ) : error ? (
-        <div className="text-red-600 text-lg font-semibold py-12 text-center">{error}</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-center w-full max-w-7xl px-4">
-          {sessions.length === 0 ? (
-            <div className="col-span-full text-gray-500 text-center">No past interviews found.</div>
-          ) : (
-            sessions.map(session => (
-              <div
-                key={session.id}
-                className="bg-white rounded-xl shadow-md p-6 flex flex-col w-full max-w-xs border border-blue-200 relative transition-all duration-300 hover:shadow-lg hover:scale-105"
-              >
-                <div className="flex items-center mb-3">
-                  <picture>
-                    <source srcSet={session.expert.profilePic ? `${session.expert.profilePic.replace('.jpg', '.webp')}` : ''} type="image/webp" />
-                    <img
-                      src={session.expert.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(session.expert.name)}&background=DBEAFE&color=1E40AF&bold=true`}
-                      alt={session.expert.name}
-                      className="w-12 h-12 rounded-full object-cover border border-blue-200"
-                    />
-                  </picture>
-                  <div className="ml-3">
-                    <div className="font-semibold text-blue-900 text-base">{session.expert.name}</div>
-                    <div className="text-sm text-gray-700">{new Date(session.date).toLocaleDateString()}</div>
-                  </div>
+    <section className="bg-white rounded-3xl shadow-lg p-6 sm:p-8 border border-blue-200">
+      <div className="flex items-center justify-center gap-3 mb-6">
+        <div className="w-12 h-1 bg-gradient-to-r from-transparent via-blue-600 to-transparent rounded-full"></div>
+        <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 text-center">Your Past Interviews</h2>
+        <div className="w-12 h-1 bg-gradient-to-r from-transparent via-blue-600 to-transparent rounded-full"></div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {items.map((iv) => {
+          const youAreInterviewer = String(iv.assignedInterviewer?._id || iv.assignedInterviewer) === String(user?._id);
+          const other = youAreInterviewer ? iv.requester : iv.assignedInterviewer;
+          const name = `${other?.firstName || other?.username || 'User'} ${other?.lastName || ''}`.trim();
+          const avatar = other?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=DBEAFE&color=1E40AF&bold=true`;
+          return (
+            <div key={iv._id} className="bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-2xl p-6 shadow-md">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="text-lg font-bold text-blue-900">{iv.company || 'Interview Session'}</h3>
+                  <p className="text-sm text-gray-600">{iv.position || 'Position'}</p>
                 </div>
-                <div className="text-gray-700 text-sm mb-2 flex items-center gap-2">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                  </svg>
-                  {session.attendees} Attendee
-                </div>
-                <div className="text-gray-700 text-sm">
-                  <svg className="w-5 h-5 text-blue-600 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  {session.experience}
+                <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 border border-green-200">Completed</span>
+              </div>
+              <div className="flex items-center gap-3 mb-2">
+                <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover border border-blue-200" />
+                <div>
+                  <p className="text-xs text-gray-500">{youAreInterviewer ? 'Interviewee' : 'Interviewer'}</p>
+                  <p className="text-sm font-semibold text-blue-900">{name}</p>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      )}
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <FaCalendarAlt className="text-blue-600" />
+                <span>{iv.scheduledAt ? new Date(iv.scheduledAt).toLocaleString() : 'N/A'}</span>
+              </div>
+              {iv.rating && (
+                <div className="flex items-center gap-1 mt-3 pt-3 border-t border-blue-100">
+                  <FaStar className="text-yellow-500" />
+                  {[...Array(5)].map((_, i) => (
+                    <FaStar key={i} className={i < iv.rating ? 'text-yellow-500' : 'text-gray-300'} size={14} />
+                  ))}
+                  <span className="text-xs text-gray-600 ml-2">{iv.rating}/5</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 };

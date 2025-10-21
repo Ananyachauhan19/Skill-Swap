@@ -781,6 +781,31 @@ router.post('/live/:id/archive', requireAuth, async (req, res) => {
   }
 });
 
+// Get activity stats (total users, experts, session types)
+router.get('/stats/activity', async (req, res) => {
+  try {
+    // Count total registered users
+    const totalUsers = await User.countDocuments();
+    
+    // Count users who have skills to teach (experts)
+    const expertsCount = await User.countDocuments({
+      skillsToTeach: { $exists: true, $ne: [], $not: { $size: 0 } }
+    });
+
+    // Session types available (hardcoded for now, can be dynamic from DB)
+    const sessionTypes = 3; // 1-on-1, Live/Recorded, Interview
+
+    res.json({
+      activeMembers: totalUsers,
+      expertsAvailable: expertsCount,
+      sessionTypes: sessionTypes
+    });
+  } catch (error) {
+    console.error('Error fetching activity stats:', error);
+    res.status(500).json({ error: 'Failed to fetch activity stats' });
+  }
+});
+
 // Return the logged-in user using the cookie JWT
 router.get('/me', requireAuth, (req, res) => {
   console.info('[DEBUG] /me called, session:', req.sessionID, 'user:', req.user?._id);

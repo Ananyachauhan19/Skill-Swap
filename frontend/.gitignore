@@ -27,3 +27,14 @@ dist-ssr
 .env
 .env.test
 src/.env
+
+# Documentation files (auto-generated summaries)
+COLOR_DESIGN_GUIDE.md
+IMPLEMENTATION_COMPLETE.md
+INTERVIEW_API_ENDPOINTS.md
+MOBILE_TESTING_GUIDE.md
+QUICK_REFERENCE.md
+REDESIGN_SUMMARY.md
+VISUAL_SUMMARY.md
+*_SUMMARY.md
+*_GUIDE.md
