@@ -82,7 +82,7 @@ const SessionRequests = () => {
               </div>
 
               <div>
-                {request.status === 'assigned' && user && request.assignedInterviewer && (user._id === (request.assignedInterviewer._id || request.assignedInterviewer)) && (
+                {request.status === 'pending' && user && request.assignedInterviewer && (user._id === (request.assignedInterviewer._id || request.assignedInterviewer)) && (
                   <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
                 )}
                 {request.status === 'scheduled' && (
@@ -568,7 +568,7 @@ const SessionRequests = () => {
         {/* Interview-specific scheduling and join handling */}
         { (request.subject || request.topic || request.assignedInterviewer) && (
           <div className="flex items-center space-x-2">
-            {request.status === 'assigned' && user && request.assignedInterviewer && (user._id === (request.assignedInterviewer._id || request.assignedInterviewer)) && (
+            {request.status === 'pending' && user && request.assignedInterviewer && (user._id === (request.assignedInterviewer._id || request.assignedInterviewer)) && (
               <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
             )}
             {request.status === 'scheduled' && (
@@ -674,6 +674,25 @@ const SessionRequests = () => {
         ? `${request.requester?.firstName || ''} ${request.requester?.lastName || ''}`.trim()
         : `${request.assignedInterviewer?.firstName || ''} ${request.assignedInterviewer?.lastName || ''}`.trim();
 
+      // Debug: Check if schedule UI should show
+      const isPending = request.status === 'pending';
+      const hasAssignedInterviewer = !!request.assignedInterviewer;
+      const assignedInterviewerId = request.assignedInterviewer?._id || request.assignedInterviewer;
+      const currentUserId = user?._id;
+      const isAssignedInterviewer = currentUserId && assignedInterviewerId && String(currentUserId) === String(assignedInterviewerId);
+      
+      console.log('[DEBUG InterviewRequestCard INNER]', {
+        requestId: request._id,
+        status: request.status,
+        isPending,
+        hasAssignedInterviewer,
+        assignedInterviewerId,
+        currentUserId,
+        isAssignedInterviewer,
+        isReceived,
+        shouldShowScheduleUI: isPending && isAssignedInterviewer && isReceived
+      });
+
       return (
         <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
           <div className="flex items-start justify-between mb-4">
@@ -700,14 +719,23 @@ const SessionRequests = () => {
             </div>
 
             <div>
+              {/* Allow assigned interviewer to schedule when status is 'pending' */}
+              {isPending && isAssignedInterviewer && isReceived && (
+                <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
+              )}
+
+              {/* Show join button when scheduled */}
               {request.status === 'scheduled' && (
-                <button
-                  onClick={() => handleJoinInterview(request)}
-                  className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
-                >
-                  <FaVideo className="text-xs" />
-                  <span>Join Interview</span>
-                </button>
+                <div className="flex space-x-2 items-center">
+                  <div className="text-sm text-gray-700">Scheduled: {request.scheduledAt ? formatDate(request.scheduledAt) : 'TBD'}</div>
+                  <button
+                    onClick={() => handleJoinInterview(request)}
+                    className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+                  >
+                    <FaVideo className="text-xs" />
+                    <span>Join Interview</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -1013,6 +1041,25 @@ const InterviewRequestCard = ({ request, isReceived }) => {
     ? `${request.requester?.firstName || ''} ${request.requester?.lastName || ''}`.trim()
     : `${request.assignedInterviewer?.firstName || ''} ${request.assignedInterviewer?.lastName || ''}`.trim();
 
+  // Debug: Check if schedule UI should show
+  const isPending = request.status === 'pending';
+  const hasAssignedInterviewer = !!request.assignedInterviewer;
+  const assignedInterviewerId = request.assignedInterviewer?._id || request.assignedInterviewer;
+  const currentUserId = user?._id;
+  const isAssignedInterviewer = currentUserId && assignedInterviewerId && String(currentUserId) === String(assignedInterviewerId);
+  
+  console.log('[DEBUG InterviewRequestCard]', {
+    requestId: request._id,
+    status: request.status,
+    isPending,
+    hasAssignedInterviewer,
+    assignedInterviewerId,
+    currentUserId,
+    isAssignedInterviewer,
+    isReceived,
+    shouldShowScheduleUI: isPending && isAssignedInterviewer && isReceived
+  });
+
   return (
     <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
       <div className="flex items-start justify-between mb-4">
@@ -1039,14 +1086,25 @@ const InterviewRequestCard = ({ request, isReceived }) => {
         </div>
 
         <div>
+          {/* Allow assigned interviewer to schedule when status is 'pending' and they are the assigned interviewer */}
+          {isPending && isAssignedInterviewer && isReceived && (
+            <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
+          )}
+
+          {/* Show join button when scheduled — visible to requester and assigned interviewer */}
           {request.status === 'scheduled' && (
-            <button
-              onClick={() => handleJoinInterview(request)}
-              className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
-            >
-              <FaVideo className="text-xs" />
-              <span>Join Interview</span>
-            </button>
+            <div className="flex space-x-2 items-center">
+              <div className="text-sm text-gray-700">Scheduled: {request.scheduledAt ? formatDate(request.scheduledAt) : 'TBD'}</div>
+              {user && (String(user._id) === String(request.requester?._id || request.requester) || String(user._id) === String((request.assignedInterviewer && (request.assignedInterviewer._id || request.assignedInterviewer)) || '')) && (
+                <button
+                  onClick={() => handleJoinInterview(request)}
+                  className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+                >
+                  <FaVideo className="text-xs" />
+                  <span>Join Interview</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>

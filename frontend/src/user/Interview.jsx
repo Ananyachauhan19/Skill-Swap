@@ -214,8 +214,10 @@ function BookInterviewModal({ isOpen, onClose }) {
                 />
               </div>
 
+
+
               <div>
-                <label className="block text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                <label className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
                   <FaComment />
                   Additional Message (Optional)
                 </label>

@@ -4,6 +4,8 @@ const Notification = require('../models/Notification');
 const InterviewerApplication = require('../models/InterviewerApplication');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 
 // simple multer setup for resume uploads (stores in /uploads/resumes)
 const storage = multer.diskStorage({
@@ -29,8 +31,11 @@ exports.submitRequest = async (req, res) => {
       company,
       position,
       message: message || '',
-      status: assignedInterviewer ? 'assigned' : 'pending',
+      // Status stays 'pending' even when user selects an interviewer - interviewer must schedule to confirm
+      status: 'pending',
       assignedInterviewer: assignedInterviewer || null,
+      // scheduledAt must only be set by the assigned interviewer via the schedule API
+      scheduledAt: null,
     });
 
     await reqDoc.save();
@@ -335,7 +340,8 @@ exports.assignInterviewer = async (req, res) => {
     if (!interviewer) return res.status(404).json({ message: 'Interviewer username not found' });
 
     reqDoc.assignedInterviewer = interviewer._id;
-    reqDoc.status = 'assigned';
+    // Keep status as 'pending' - interviewer must schedule to confirm
+    reqDoc.status = 'pending';
     await reqDoc.save();
 
     await reqDoc.populate('requester', 'username firstName lastName');
@@ -368,6 +374,16 @@ exports.assignInterviewer = async (req, res) => {
 exports.scheduleInterview = async (req, res) => {
   try {
     const { requestId, scheduledAt } = req.body; // scheduledAt should be ISO date string
+    console.info(`[DEBUG] scheduleInterview called by user ${req.user && req.user._id ? req.user._id.toString() : 'unknown'} for request ${requestId} with scheduledAt=${scheduledAt}`);
+    // ensure logs directory exists and append a persistent record
+    try {
+      const logsDir = path.join(__dirname, '..', 'logs');
+      if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+      const line = `${new Date().toISOString()} | user=${req.user && req.user._id ? req.user._id.toString() : 'unknown'} | request=${requestId} | scheduledAt=${scheduledAt}${os.EOL}`;
+      fs.appendFileSync(path.join(logsDir, 'schedule.log'), line);
+    } catch (logErr) {
+      console.error('[DEBUG] failed to write schedule.log', logErr);
+    }
     const reqDoc = await InterviewRequest.findById(requestId);
     if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
 
@@ -398,6 +414,22 @@ exports.scheduleInterview = async (req, res) => {
     });
 
     if (io) io.to(reqDoc.requester._id.toString()).emit('notification', notification);
+
+    // Also notify the assigned interviewer (confirmation)
+    try {
+      const notifInterviewer = await Notification.create({
+        userId: reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer,
+        type: 'interview-scheduled-confirmation',
+        message: `You scheduled the interview for ${reqDoc.scheduledAt ? reqDoc.scheduledAt.toString() : 'TBD'}`,
+        requestId: reqDoc._id,
+        company: reqDoc.company,
+        position: reqDoc.position,
+        timestamp: Date.now(),
+      });
+      if (io && reqDoc.assignedInterviewer) io.to((reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer).toString()).emit('notification', notifInterviewer);
+    } catch (e) {
+      console.error('[DEBUG] failed to create interviewer confirmation notification', e);
+    }
 
     res.json({ message: 'Interview scheduled', request: reqDoc });
   } catch (err) {
