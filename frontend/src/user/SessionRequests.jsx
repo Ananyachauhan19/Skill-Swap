@@ -537,20 +537,14 @@ const SessionRequests = () => {
             <div className="text-sm text-gray-700 space-y-2">
               {request.subject && (
                 <div className="flex items-start gap-2">
-                  <span className="font-semibold text-blue-700 min-w-[60px]">Class:</span>
+                  <span className="font-semibold text-blue-700 min-w-[60px]">Subject:</span>
                   <span className="text-gray-900">{request.subject}</span>
                 </div>
               )}
               {request.topic && (
                 <div className="flex items-start gap-2">
-                  <span className="font-semibold text-blue-700 min-w-[60px]">Subject:</span>
-                  <span className="text-gray-900">{request.topic}</span>
-                </div>
-              )}
-              {request.subtopic && (
-                <div className="flex items-start gap-2">
                   <span className="font-semibold text-blue-700 min-w-[60px]">Topic:</span>
-                  <span className="text-gray-900">{request.subtopic}</span>
+                  <span className="text-gray-900">{request.topic}</span>
                 </div>
               )}
             </div>

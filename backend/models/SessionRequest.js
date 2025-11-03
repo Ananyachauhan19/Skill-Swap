@@ -19,10 +19,6 @@ const SessionRequestSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
-  subtopic: { 
-    type: String, 
-    required: true 
-  },
   message: { 
     type: String, 
     default: '' 

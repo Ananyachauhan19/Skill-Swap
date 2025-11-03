@@ -58,10 +58,6 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
-  subtopic: {
-    type: String,
-    default: null,
-  },
   company: {
     type: String,
     default: null,

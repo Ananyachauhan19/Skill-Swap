@@ -22,7 +22,6 @@ const userSchema = new mongoose.Schema({
     {
       subject: { type: String, required: false },
       topic: { type: String, required: false },
-      subtopic: { type: String, required: false },
     },
   ],
   skillsToLearn: [{ type: String, default: [], required: false }],

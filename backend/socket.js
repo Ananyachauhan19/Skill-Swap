@@ -15,7 +15,7 @@ module.exports = (io) => {
   const sessionTimers = new Map();
 
   // Helper function to send notifications
-  const sendNotification = async (io, userId, type, message, sessionId, requestId, requesterId, requesterName, subject, topic, subtopic, company, position, messageId) => {
+  const sendNotification = async (io, userId, type, message, sessionId, requestId, requesterId, requesterName, subject, topic, company, position, messageId) => {
     try {
       const notification = await Notification.create({
         userId,
@@ -28,7 +28,6 @@ module.exports = (io) => {
         // keep old keys for compatibility, but also store company/position when provided
         subject: subject || null,
         topic: topic || null,
-        subtopic: subtopic || null,
         company: company || null,
         position: position || null,
         messageId,
@@ -49,7 +48,6 @@ module.exports = (io) => {
         requesterName,
         subject: subject || null,
         topic: topic || null,
-        subtopic: subtopic || null,
         company: company || null,
         position: position || null,
         messageId,
@@ -486,7 +484,7 @@ module.exports = (io) => {
     // Handle session creation (only for teachers)
     socket.on('create-session', async (data) => {
       try {
-        const { subject, topic, subtopic, description, date, time } = data;
+        const { subject, topic, description, date, time } = data;
         const creatorId = socket.userId;
 
         let creatorData = null;
@@ -512,8 +510,7 @@ module.exports = (io) => {
         const hasMatchingSkill = creatorData.skillsToTeach.some(skill => {
           const subjectMatch = skill.subject === subject;
           const topicMatch = !topic || skill.topic === topic;
-          const subtopicMatch = !subtopic || skill.subtopic === subtopic;
-          return subjectMatch && topicMatch && subtopicMatch;
+          return subjectMatch && topicMatch;
         });
 
         if (!hasMatchingSkill) {
@@ -526,7 +523,6 @@ module.exports = (io) => {
           creator: creatorId,
           subject,
           topic,
-          subtopic: subtopic || '',
           description: description || '',
           date,
           time,
@@ -542,7 +538,7 @@ module.exports = (io) => {
           session
         });
 
-        console.log(`[Session Create] Session created by ${creatorData.firstName} for ${subject}${subtopic ? ` (${subtopic})` : ''}`);
+        console.log(`[Session Create] Session created by ${creatorData.firstName} for ${subject} - ${topic}`);
 
       } catch (error) {
         console.error('[Session Create] Error:', error);
@@ -553,8 +549,10 @@ module.exports = (io) => {
     // Handle session request
     socket.on('send-session-request', async (data) => {
       try {
-        const { tutorId, subject, topic, subtopic, message, question, questionImageUrl } = data;
+        const { tutorId, subject, topic, message, question, questionImageUrl } = data;
         const requesterId = socket.userId;
+
+        console.log('[Session Request] Data received:', { tutorId, subject, topic, requesterId });
 
         let requesterData = null;
         for (const [socketId, userData] of onlineUsers.entries()) {
@@ -565,6 +563,7 @@ module.exports = (io) => {
         }
 
         if (!requesterData) {
+          console.error('[Session Request] Requester not found in onlineUsers:', requesterId);
           socket.emit('session-request-error', { message: 'User not found' });
           return;
         }
@@ -572,6 +571,7 @@ module.exports = (io) => {
         // Check if tutor exists
         const tutor = await User.findById(tutorId).select('firstName lastName profilePic');
         if (!tutor) {
+          console.error('[Session Request] Tutor not found:', tutorId);
           socket.emit('session-request-error', { message: 'Tutor not found' });
           return;
         }
@@ -583,6 +583,7 @@ module.exports = (io) => {
           status: 'pending',
         });
         if (existingRequest) {
+          console.log('[Session Request] Existing pending request found');
           socket.emit('session-request-error', { message: 'You already have a pending request with this tutor' });
           return;
         }
@@ -593,21 +594,22 @@ module.exports = (io) => {
           tutor: tutorId,
           subject,
           topic,
-          subtopic: subtopic || '',
           message: message || '',
           questionText: question || '',
           questionImageUrl: questionImageUrl || '',
           status: 'pending',
         });
 
+        console.log('[Session Request] Saving session request:', sessionRequest);
         await sessionRequest.save();
+        console.log('[Session Request] Session request saved successfully:', sessionRequest._id);
 
         await sessionRequest.populate('requester', 'firstName lastName profilePic');
         await sessionRequest.populate('tutor', 'firstName lastName profilePic');
 
         // Send notification to tutor
         const requesterName = `${requesterData.firstName} ${requesterData.lastName}`;
-        const notificationMessage = `${requesterName} has requested a session on ${subject}${subtopic ? ` (${subtopic})` : ''}. Please approve or reject.`;
+        const notificationMessage = `${requesterName} has requested a session on ${subject} - ${topic}. Please approve or reject.`;
         await sendNotification(
           io,
           tutorId,
@@ -618,8 +620,7 @@ module.exports = (io) => {
           requesterId,
           requesterName,
           subject,
-          topic,
-          subtopic
+          topic
         );
 
         // Emit real-time event if tutor is online
@@ -740,7 +741,7 @@ module.exports = (io) => {
 
         // Send notification to requester
         const tutorName = `${sessionRequest.tutor.firstName} ${sessionRequest.tutor.lastName}`;
-        const notificationMessage = `${tutorName} has ${action}d your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+        const notificationMessage = `${tutorName} has ${action}d your session request on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
         await sendNotification(
           io,
           sessionRequest.requester._id,
@@ -751,8 +752,7 @@ module.exports = (io) => {
           tutorId,
           tutorName,
           sessionRequest.subject,
-          sessionRequest.topic,
-          sessionRequest.subtopic
+          sessionRequest.topic
         );
 
         let requesterSocketId = null;
@@ -814,7 +814,10 @@ module.exports = (io) => {
     // Find online tutors based on skills
     socket.on('find-tutors', async (searchCriteria) => {
       try {
-        const { subject, topic, subtopic } = searchCriteria;
+        // Frontend sends: subject (Class), topic (Subject), subtopic (Topic)
+        // But teachers register with: subject (Subject), topic (Topic)
+        // So we need to map: searchCriteria.topic -> teacher.subject, searchCriteria.subtopic -> teacher.topic
+        const { subject: classValue, topic: subjectValue, subtopic: topicValue } = searchCriteria;
         const matchingTutors = [];
 
         const norm = (s) => (s || '').trim().toLowerCase();
@@ -833,13 +836,11 @@ module.exports = (io) => {
             onlineUsers.set(socketId, userData);
           }
 
+          // Match teacher's skills (subject, topic) with learner's search (topic=subject, subtopic=topic)
           const hasMatchingSkill = userSkills.some(skill => {
-            const subjectMatch = !subject || norm(skill.subject) === norm(subject);
-            const topicMatch = !topic || norm(skill.topic) === norm(topic);
-            // If tutor has no subtopic recorded, still treat as match when subject/topic match
-            const subtopicMatch =
-              !subtopic || !skill.subtopic || norm(skill.subtopic) === norm(subtopic);
-            return subjectMatch && topicMatch && subtopicMatch;
+            const subjectMatch = !subjectValue || norm(skill.subject) === norm(subjectValue);
+            const topicMatch = !topicValue || norm(skill.topic) === norm(topicValue);
+            return subjectMatch && topicMatch;
           });
 
           if (hasMatchingSkill) {
@@ -930,7 +931,6 @@ module.exports = (io) => {
               requester: session.requester,
               subject: session.subject,
               topic: session.topic,
-              subtopic: session.subtopic,
               description: session.message,
               status: 'active'
             });
@@ -1076,14 +1076,13 @@ module.exports = (io) => {
           io,
           session.creator._id,
           'session-cancelled',
-          `${requesterName} has cancelled the session on ${session.subject}${session.subtopic ? ` (${session.subtopic})` : ''}.`,
+          `${requesterName} has cancelled the session on ${session.subject} - ${session.topic}.`,
           session._id,
           null,
           session.requester ? session.requester._id : null,
           requesterName,
           session.subject,
-          session.topic,
-          session.subtopic
+          session.topic
         );
 
         const payload = {

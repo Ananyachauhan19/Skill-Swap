@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const { sendOtpEmail } = require('../utils/sendMail');
 
 exports.register = async (req, res) => {
-  const { firstName, lastName, email, phone, gender, password, username, skillsToTeach, skillsToLearn } = req.body;
+  const { firstName, lastName, email, phone, gender, password, username, role, skillsToTeach, skillsToLearn } = req.body;
   const userExists = await User.findOne({ email });
   if (userExists) return res.status(400).json({ message: 'Email already registered' });
   const usernameExists = await User.findOne({ username });
@@ -13,7 +13,7 @@ exports.register = async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
   const user = await User.create({
     firstName, lastName, email, phone, gender, password: hashedPassword,
-    username, skillsToTeach, skillsToLearn,
+    username, role, skillsToTeach, skillsToLearn,
     silverCoins: 100,
     goldCoins: 0,
   });
@@ -105,8 +105,22 @@ exports.verifyOtp = async (req, res) => {
     maxAge: 24 * 60 * 60 * 1000, // 1 day
   });
 
+  // Explicitly select fields to ensure role is included
+  const userPayload = {
+    _id: user._id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    username: user.username,
+    email: user.email,
+    role: user.role,
+    skillsToTeach: user.skillsToTeach,
+    skillsToLearn: user.skillsToLearn,
+    silverCoins: user.silverCoins,
+    goldCoins: user.goldCoins,
+    isAdmin,
+  };
 
-  return res.status(200).json({ message: 'Login successful', user: { ...user.toObject(), isAdmin } });
+  return res.status(200).json({ message: 'Login successful', user: userPayload });
 };
 
 // Add logout controller
@@ -145,8 +159,8 @@ exports.profile = async (req, res) => {
           return res.status(400).json({ message: 'At least one teaching skill is required for teacher or both roles' });
         }
         for (const skill of skillsToTeach) {
-          if (!skill.subject || !skill.topic || !skill.subtopic) {
-            return res.status(400).json({ message: 'Each teaching skill must include subject, topic, and subtopic' });
+          if (!skill.subject || !skill.topic) {
+            return res.status(400).json({ message: 'Each teaching skill must include subject and topic' });
           }
         }
       }

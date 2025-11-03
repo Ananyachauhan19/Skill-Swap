@@ -266,13 +266,12 @@ const StartSkillSwap = () => {
       setSuccessMessage("");
       socket.emit('send-session-request', {
         tutorId: tutor.userId,
-        subject: courseValue,
-        topic: unitValue,
-        subtopic: topicValue,
+        subject: unitValue,      // Subject (Math, Physics, etc.)
+        topic: topicValue,       // Topic (Algebra, Mechanics, etc.)
         question: questionValue,
         questionImageUrl: questionImageUrl || '',
         questionPhoto: questionPhoto ? questionPhoto.name : null,
-        message: `I would like to learn ${courseValue} - ${unitValue} - ${topicValue}${questionValue ? `: ${questionValue}` : ''}`,
+        message: `I would like to learn ${unitValue} - ${topicValue}${questionValue ? `: ${questionValue}` : ''}`,
       });
     } catch {
       setError("Failed to send session request. Please try again.");

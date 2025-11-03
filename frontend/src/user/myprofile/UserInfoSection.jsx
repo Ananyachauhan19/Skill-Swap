@@ -1,6 +1,6 @@
 import React from 'react';
 import { Edit2, Save, XCircle, Plus, Trash2 } from 'lucide-react';
-import { STATIC_COURSES, STATIC_UNITS, STATIC_TOPICS } from '../../constants/teachingData';
+import { STATIC_COURSES, STATIC_UNITS } from '../../constants/teachingData';
 
 const UserInfoSection = ({
   profile,
@@ -135,26 +135,13 @@ const UserInfoSection = ({
                         </option>
                       ))}
                     </select>
-                    <select
-                      className="border rounded px-2 py-1 text-xs"
-                      value={s.subtopic || ''}
-                      onChange={(e) => handleArrayChange('skillsToTeach', i, e.target.value, 'subtopic')}
-                      disabled={!s.topic}
-                    >
-                      <option value="">Select Subtopic</option>
-                      {(STATIC_TOPICS[s.topic] || []).map((subtopic) => (
-                        <option key={subtopic} value={subtopic}>
-                          {subtopic}
-                        </option>
-                      ))}
-                    </select>
                     <button onClick={() => handleArrayRemove('skillsToTeach', i)} className="text-red-500 hover:text-red-700">
                       <Trash2 size={16} />
                     </button>
                   </div>
                 ))}
                 <button
-                  onClick={() => handleArrayAdd('skillsToTeach', { subject: '', topic: '', subtopic: '' })}
+                  onClick={() => handleArrayAdd('skillsToTeach', { subject: '', topic: '' })}
                   className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs mt-1"
                 >
                   <Plus size={14} /> Add Skill
@@ -242,7 +229,7 @@ const UserInfoSection = ({
                 {(profile.skillsToTeach || []).length > 0 ? (
                   profile.skillsToTeach.map((s, i) => (
                     <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
-                      {s.subject} {s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
+                      {s.subject} {s.topic ? `> ${s.topic}` : ''}
                     </li>
                   ))
                 ) : (

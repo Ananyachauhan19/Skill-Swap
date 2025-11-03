@@ -8,7 +8,7 @@ const requireAuth = require('../middleware/requireAuth');
 
 router.get('/search', async (req, res) => {
   try {
-    const { subject, topic, subtopic } = req.query;
+    const { subject, topic } = req.query;
 
     const filter = {
       status: 'pending',
@@ -16,7 +16,6 @@ router.get('/search', async (req, res) => {
 
     if (subject) filter.subject = subject;
     if (topic) filter.topic = topic;
-    if (subtopic) filter.subtopic = subtopic;
 
     const sessions = await Session.find(filter)
     .populate('creator', 'firstName lastName') // This replaces the ObjectId with the user object { _id, name }
@@ -34,9 +33,9 @@ router.get('/search', async (req, res) => {
 router.post('/', requireAuth, async (req, res) => {
   try {
     console.log('Session creation - req.user:', req.user); // Debug log
-    const { subject, topic,subtopic,description, date, time } = req.body;
+    const { subject, topic, description, date, time } = req.body;
     const session = await Session.create({
-      subject, topic, subtopic,description, date, time,
+      subject, topic, description, date, time,
       creator: req.user._id
     });
     res.status(201).json(session);
@@ -51,8 +50,7 @@ router.get('/', async (req, res) => {
   const query = search ? {
     $or: [
       { subject: { $regex: search, $options: 'i' } },
-      { topic: { $regex: search, $options: 'i' } },
-       { subtopic: { $regex: search, $options: 'i' } }
+      { topic: { $regex: search, $options: 'i' } }
     ]
   } : {};
   const sessions = await Session.find(query).populate('creator', 'name email');
@@ -251,7 +249,6 @@ router.post('/:id/start', requireAuth, async (req, res) => {
         creator: session.creator,
         subject: session.subject,
         topic: session.topic,
-        subtopic: session.subtopic,
         message: 'Your session has started! Click Join to start the video call or Cancel to decline.'
       });
     }

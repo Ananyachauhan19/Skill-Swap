@@ -19,7 +19,6 @@ const validateSessionRequest = [
   body('tutorId').isMongoId().withMessage('Invalid tutor ID'),
   body('subject').trim().notEmpty().withMessage('Subject is required'),
   body('topic').trim().notEmpty().withMessage('Topic is required'),
-  body('subtopic').trim().optional(),
   body('message').trim().optional(),
 ];
 
@@ -69,7 +68,7 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
   }
 
   try {
-    const { tutorId, subject, topic, subtopic, message } = req.body;
+    const { tutorId, subject, topic, message } = req.body;
     const requesterId = req.user._id;
 
     // Check if tutor exists
@@ -94,7 +93,6 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
       tutor: tutorId,
       subject,
       topic,
-      subtopic: subtopic || '',
       message: message || '',
       status: 'pending',
     });
@@ -108,7 +106,7 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
     // Send notification to tutor
     const io = req.app.get('io');
     const requesterName = `${req.user.firstName} ${req.user.lastName}`;
-    const notificationMessage = `${requesterName} has requested a session on ${subject}${subtopic ? ` (${subtopic})` : ''}.`;
+    const notificationMessage = `${requesterName} has requested a session on ${subject} - ${topic}.`;
     await sendNotification(
       io,
       tutor._id,
@@ -261,7 +259,7 @@ router.post('/approve/:requestId', requireAuth, requestLimiter, validateRequestI
     // Send notification to requester
     const io = req.app.get('io');
     const tutorName = `${req.user.firstName} ${req.user.lastName}`;
-    const notificationMessage = `${tutorName} has approved your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    const notificationMessage = `${tutorName} has approved your session request on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
     await sendNotification(
       io,
       sessionRequest.requester._id,
@@ -317,7 +315,7 @@ router.post('/reject/:requestId', requireAuth, requestLimiter, validateRequestId
     // Send notification to requester
     const io = req.app.get('io');
     const tutorName = `${req.user.firstName} ${req.user.lastName}`;
-    const notificationMessage = `${tutorName} has rejected your session request on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    const notificationMessage = `${tutorName} has rejected your session request on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
     await sendNotification(
       io,
       sessionRequest.requester._id,
@@ -373,7 +371,7 @@ router.post('/start/:requestId', requireAuth, requestLimiter, validateRequestId,
     // Send notification to requester
     const io = req.app.get('io');
     const tutorName = `${req.user.firstName} ${req.user.lastName}`;
-    const notificationMessage = `${tutorName} has started your session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    const notificationMessage = `${tutorName} has started your session on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
     await sendNotification(
       io,
       sessionRequest.requester._id,
@@ -440,7 +438,7 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
 
     // Send notification to recipient
     const io = req.app.get('io');
-    const notificationMessage = `${completer.firstName} ${completer.lastName} has completed the session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    const notificationMessage = `${completer.firstName} ${completer.lastName} has completed the session on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
     await sendNotification(
       io,
       recipient._id,
@@ -494,7 +492,7 @@ router.post('/cancel/:requestId', requireAuth, requestLimiter, validateRequestId
     // Send notification to tutor
     const io = req.app.get('io');
     const requesterName = `${req.user.firstName} ${req.user.lastName}`;
-    const notificationMessage = `${requesterName} has cancelled the session on ${sessionRequest.subject}${sessionRequest.subtopic ? ` (${sessionRequest.subtopic})` : ''}.`;
+    const notificationMessage = `${requesterName} has cancelled the session on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
     await sendNotification(
       io,
       sessionRequest.tutor._id,
@@ -553,7 +551,6 @@ router.get('/learning-history', requireAuth, async (req, res) => {
         coinsSpent: session.coinsSpent, // Actual coins spent
         subject: session.subject,
         topic: session.topic,
-        subtopic: session.subtopic,
         rating: session.rating,
         notes: session.message || ''
       });
@@ -610,7 +607,6 @@ router.get('/teaching-history', requireAuth, async (req, res) => {
         coinsSpent: session.coinsSpent, // Actual coins spent
         subject: session.subject,
         topic: session.topic,
-        subtopic: session.subtopic,
         rating: session.rating,
         notes: session.message || ''
       });
@@ -672,7 +668,6 @@ router.get('/all-coin-history', requireAuth, async (req, res) => {
       coinsSpent: session.coinsSpent,
       subject: session.subject,
       topic: session.topic,
-      subtopic: session.subtopic,
       rating: session.rating,
       notes: session.message || ''
     }));
@@ -690,7 +685,6 @@ router.get('/all-coin-history', requireAuth, async (req, res) => {
       coinsSpent: session.coinsSpent, // This is actually earned for teaching
       subject: session.subject,
       topic: session.topic,
-      subtopic: session.subtopic,
       rating: session.rating,
       notes: session.message || ''
     }));

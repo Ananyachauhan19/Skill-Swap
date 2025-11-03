@@ -5,8 +5,10 @@ import Fuse from 'fuse.js';
 import VideoCall from '../components/VideoCall';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
+import { useAuth } from '../context/AuthContext.jsx'; // Import useAuth
 
 const CreateSession = () => {
+  const { user: currentUser } = useAuth(); // Use useAuth hook
   const cardRef = useRef(null);
   const [form, setForm] = useState({
     subject: '',
@@ -30,6 +32,7 @@ const CreateSession = () => {
   const [startingSession, setStartingSession] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  // const [currentUser, setCurrentUser] = useState(null); // Remove this line
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
 
@@ -37,6 +40,49 @@ const CreateSession = () => {
   const [classes, setClasses] = useState([]);
   const [subjectsByClass, setSubjectsByClass] = useState({});
   const [topicsBySubject, setTopicsBySubject] = useState({});
+
+  // Derived skill lists for teacher
+  const tutorSubjects = useMemo(() => {
+    if (currentUser?.role !== 'teacher') return [];
+    return [...new Set(userSkills.map(skill => skill.subject))].filter(Boolean);
+  }, [userSkills, currentUser]);
+
+  const tutorTopicsBySubject = useMemo(() => {
+    if (currentUser?.role !== 'teacher') return {};
+    return userSkills.reduce((acc, skill) => {
+      if (skill.subject && skill.topic) {
+        if (!acc[skill.subject]) {
+          acc[skill.subject] = [];
+        }
+        acc[skill.subject].push(skill.topic);
+      }
+      return acc;
+    }, {});
+  }, [userSkills, currentUser]);
+
+  // Get available classes based on teacher's skills
+  const availableClasses = useMemo(() => {
+    if (currentUser?.role !== 'teacher' || !userSkills.length) return [];
+    
+    // Get all classes that have subjects and topics matching teacher's skills
+    const classSet = new Set();
+    
+    userSkills.forEach(skill => {
+      // Find classes that contain this subject and topic combination
+      Object.entries(subjectsByClass).forEach(([className, subjects]) => {
+        if (subjects.includes(skill.subject)) {
+          // Check if this subject has the topic in the Google Sheet
+          const topicsForSubject = topicsBySubject[skill.subject] || [];
+          if (topicsForSubject.includes(skill.topic)) {
+            classSet.add(className);
+          }
+        }
+      });
+    });
+    
+    return Array.from(classSet);
+  }, [userSkills, currentUser, subjectsByClass, topicsBySubject]);
+
 
   // Fetch skills list from Google Sheet
   useEffect(() => {
@@ -80,17 +126,11 @@ const CreateSession = () => {
 
   // Get current user and skills from cookies
   useEffect(() => {
-    const userCookie = Cookies.get('user');
-    if (userCookie) {
-      try {
-        const user = JSON.parse(userCookie);
-        setCurrentUser(user);
-        setUserSkills(user.skillsToTeach || []);
-      } catch (error) {
-        console.error('Error parsing user cookie:', error);
-      }
+    if (currentUser) {
+      setUserSkills(currentUser.skillsToTeach || []);
     }
-  }, []);
+  }, [currentUser]);
+
 
   // Load active session from localStorage on component mount
   useEffect(() => {
@@ -169,76 +209,73 @@ const CreateSession = () => {
 
   // Initialize Fuse.js instances for fuzzy search
   const fuseClasses = useMemo(() => {
-    const classesData = userSkills.length > 0 
-      ? [...new Set(userSkills.map(skill => skill.subject))].filter(s => classes.includes(s))
-      : classes;
-    return new Fuse(classesData, {
+    const classList = currentUser?.role === 'teacher' ? availableClasses : classes;
+    return new Fuse(classList, {
       threshold: 0.3,
       distance: 100,
       keys: ['']
     });
-  }, [classes, userSkills]);
+  }, [availableClasses, classes, currentUser]);
 
   const fuseSubjects = useMemo(() => {
-    if (!form.subject || !subjectsByClass[form.subject]) return null;
-    const subjectList = userSkills.length > 0 
-      ? [...new Set(userSkills.filter(skill => skill.subject === form.subject).map(skill => skill.topic))].filter(t => subjectsByClass[form.subject]?.includes(t))
-      : subjectsByClass[form.subject];
-    return new Fuse(subjectList, {
+    if (currentUser?.role !== 'teacher') return null;
+    return new Fuse(tutorSubjects, {
       threshold: 0.3,
       distance: 100,
       keys: ['']
     });
-  }, [form.subject, subjectsByClass, userSkills]);
+  }, [tutorSubjects, currentUser]);
 
   const fuseTopics = useMemo(() => {
-    if (!form.topic || !topicsBySubject[form.topic]) return null;
-    const topicList = userSkills.length > 0
-      ? [...new Set(userSkills.filter(skill => skill.subject === form.subject && skill.topic === form.topic).map(skill => skill.subtopic))].filter(t => topicsBySubject[form.topic]?.includes(t))
-      : topicsBySubject[form.topic];
+    if (currentUser?.role !== 'teacher' || !form.topic || !tutorTopicsBySubject[form.topic]) return null;
+    const topicList = tutorTopicsBySubject[form.topic] || [];
     return new Fuse(topicList, {
       threshold: 0.3,
       distance: 100,
       keys: ['']
     });
-  }, [form.topic, form.subject, topicsBySubject, userSkills]);
+  }, [form.topic, tutorTopicsBySubject, currentUser]);
+
 
   // Filter using Fuse.js fuzzy search
   const courseList = useMemo(() => {
-    const baseList = userSkills.length > 0 
-      ? [...new Set(userSkills.map(skill => skill.subject))].filter(s => classes.includes(s))
-      : classes;
+    const baseList = currentUser?.role === 'teacher' ? availableClasses : classes;
     if ((form.subject || '').trim() === '') return baseList;
     if (!fuseClasses) return baseList;
     const results = fuseClasses.search(form.subject);
     return results.map(result => result.item);
-  }, [form.subject, classes, userSkills, fuseClasses]);
+  }, [form.subject, availableClasses, classes, fuseClasses, currentUser]);
 
   const unitDropdownList = useMemo(() => {
-    const unitList = form.subject && subjectsByClass[form.subject] 
-      ? (userSkills.length > 0 
-          ? [...new Set(userSkills.filter(skill => skill.subject === form.subject).map(skill => skill.topic))].filter(t => subjectsByClass[form.subject]?.includes(t))
-          : subjectsByClass[form.subject])
-      : [];
-    if ((form.topic || '').trim() === '') return unitList;
-    if (!fuseSubjects) return unitList;
+    if (currentUser?.role !== 'teacher') return [];
+    const baseList = tutorSubjects;
+    if ((form.topic || '').trim() === '') return baseList;
+    if (!fuseSubjects) return baseList;
     const results = fuseSubjects.search(form.topic);
     return results.map(result => result.item);
-  }, [form.topic, form.subject, subjectsByClass, userSkills, fuseSubjects]);
+  }, [form.topic, tutorSubjects, fuseSubjects, currentUser]);
 
   const topicDropdownList = useMemo(() => {
-    const topicList = form.topic && topicsBySubject[form.topic]
-      ? (userSkills.length > 0
-          ? [...new Set(userSkills.filter(skill => skill.subject === form.subject && skill.topic === form.topic).map(skill => skill.subtopic))].filter(t => topicsBySubject[form.topic]?.includes(t))
-          : topicsBySubject[form.topic])
-      : [];
-    if ((form.subtopic || '').trim() === '') return topicList;
-    if (!fuseTopics) return topicList;
+    if (currentUser?.role !== 'teacher' || !form.topic) return [];
+    const baseList = tutorTopicsBySubject[form.topic] || [];
+    if ((form.subtopic || '').trim() === '') return baseList;
+    if (!fuseTopics) return baseList;
     const results = fuseTopics.search(form.subtopic);
     return results.map(result => result.item);
-  }, [form.subtopic, form.topic, form.subject, topicsBySubject, userSkills, fuseTopics]);
+  }, [form.subtopic, form.topic, tutorTopicsBySubject, fuseTopics, currentUser]);
 
-  // Filter class suggestions - OLD CODE REMOVED
+
+  // Helper computed values for dropdown lists
+  const unitList = useMemo(() => {
+    if (currentUser?.role !== 'teacher') return [];
+    return tutorSubjects;
+  }, [tutorSubjects, currentUser]);
+
+  const topicList = useMemo(() => {
+    if (currentUser?.role !== 'teacher' || !form.topic) return [];
+    return tutorTopicsBySubject[form.topic] || [];
+  }, [form.topic, tutorTopicsBySubject, currentUser]);
+
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -268,20 +305,19 @@ const CreateSession = () => {
     e.preventDefault();
 
     // Check if user is a learner
-    if (currentUser?.role === 'learner') {
-      alert('Please add a skill if you want to create a session.');
+    if (currentUser?.role !== 'teacher') {
+      alert('Only teachers can create sessions. Please register as a teacher and add skills to your profile.');
       return;
     }
 
     // Check if user has the selected skill
     const hasSkill = userSkills.some(skill =>
-      skill.subject === form.subject &&
-      (!form.topic || skill.topic === form.topic) &&
-      (!form.subtopic || skill.subtopic === form.subtopic)
+      skill.subject === form.topic &&
+      skill.topic === form.subtopic
     );
 
     if (!hasSkill) {
-      alert('You can only create sessions for your registered skills.');
+      alert('You can only create sessions for your registered skills (Subject and Topic).');
       return;
     }
 
@@ -504,7 +540,7 @@ const CreateSession = () => {
       alert('Session started! The approved user has been notified.');
       
       // Start video call for creator
-      const role = 'tutor';
+      const role = 'teacher';
       const newActiveSession = { sessionId: session._id, role };
       setActiveSession(newActiveSession);
       setShowVideoModal(true); // Show video modal when starting
@@ -595,6 +631,7 @@ const CreateSession = () => {
           </div>
         </div>
       ))}
+
     </div>
   );
 
@@ -625,9 +662,9 @@ const CreateSession = () => {
                   Schedule Another
                 </button>
               </div>
-            ) : currentUser?.role === 'learner' ? (
+            ) : currentUser?.role !== 'teacher' ? (
               <div className="text-center animate-fade-in">
-                <p className="text-red-600 font-semibold mb-4 font-nunito">Please add a skill if you want to create a session.</p>
+                <p className="text-red-600 font-semibold mb-4 font-nunito">Only teachers can create sessions. Please add skills to your profile to begin.</p>
               </div>
             ) : (
               <form className="flex flex-col gap-5" onSubmit={handleSubmit} autoComplete="off">
@@ -663,7 +700,7 @@ const CreateSession = () => {
                   />
                   {showCourseDropdown && (
                     <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
-                      {courseList.map((s, idx) => (
+                      {courseList.length > 0 ? courseList.map((s, idx) => (
                         <li
                           key={idx}
                           className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedCourseIdx === idx ? 'bg-blue-200' : ''}`}
@@ -675,7 +712,7 @@ const CreateSession = () => {
                         >
                           {s}
                         </li>
-                      ))}
+                      )) : <li className="px-4 py-2 text-gray-500">No classes found.</li>}
                     </ul>
                   )}
                 </div>
@@ -686,7 +723,7 @@ const CreateSession = () => {
                     name="topic"
                     value={form.topic}
                     onChange={e => { handleChange(e); setShowUnitDropdown(true); setHighlightedUnitIdx(-1); }}
-                    onFocus={() => { if (form.subject && unitList.length) setShowUnitDropdown(true); }}
+                    onFocus={() => { if (form.subject) setShowUnitDropdown(true); }}
                     onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
                     onKeyDown={e => {
                       if (!showUnitDropdown || unitDropdownList.length === 0) return;
@@ -708,11 +745,11 @@ const CreateSession = () => {
                     className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     required
                     autoComplete="off"
-                    disabled={!form.subject || !unitList.length}
+                    disabled={!form.subject || unitList.length === 0}
                   />
-                  {showUnitDropdown && form.subject && unitList.length > 0 && (
+                  {showUnitDropdown && form.subject && (
                     <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
-                      {unitDropdownList.map((u, idx) => (
+                      {unitDropdownList.length > 0 ? unitDropdownList.map((u, idx) => (
                         <li
                           key={idx}
                           className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedUnitIdx === idx ? 'bg-blue-200' : ''}`}
@@ -724,7 +761,7 @@ const CreateSession = () => {
                         >
                           {u}
                         </li>
-                      ))}
+                      )) : <li className="px-4 py-2 text-gray-500">No matching subjects found in your skills.</li>}
                     </ul>
                   )}
                 </div>
@@ -757,11 +794,11 @@ const CreateSession = () => {
                     className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     required={!!form.topic}
                     autoComplete="off"
-                    disabled={!form.topic}
+                    disabled={!form.topic || topicList.length === 0}
                   />
-                  {showSubtopicDropdown && topicList.length > 0 && (
+                  {showSubtopicDropdown && form.topic && (
                     <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
-                      {topicDropdownList.map((t, idx) => (
+                      {topicDropdownList.length > 0 ? topicDropdownList.map((t, idx) => (
                         <li
                           key={idx}
                           className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedSubtopicIdx === idx ? 'bg-blue-200' : ''}`}
@@ -773,7 +810,7 @@ const CreateSession = () => {
                         >
                           {t}
                         </li>
-                      ))}
+                      )) : <li className="px-4 py-2 text-gray-500">No matching topics found for this subject in your skills.</li>}
                     </ul>
                   )}
                 </div>
@@ -950,6 +987,7 @@ const CreateSession = () => {
                     </div>
                   </li>
                 ))}
+
               </ul>
             ) : (
               <div className="text-gray-500 text-center text-lg mt-10 font-nunito animate-fade-in">No sessions scheduled yet.</div>
