@@ -86,19 +86,26 @@ const StartSkillSwap = () => {
     return results.map(result => result.item);
   }, [courseValue, classes, fuseClasses]);
 
+  // Base lists for enabling/disabling inputs
+  const unitList = useMemo(() => {
+    return courseValue ? (subjectsByClass[courseValue] || []) : [];
+  }, [courseValue, subjectsByClass]);
+
+  const topicList = useMemo(() => {
+    return unitValue ? (topicsBySubject[unitValue] || []) : [];
+  }, [unitValue, topicsBySubject]);
+
   const unitDropdownList = useMemo(() => {
-    const unitList = courseValue ? (subjectsByClass[courseValue] || []) : [];
     if ((unitValue || '').trim() === '') return unitList;
     const results = fuseSubjects.search(unitValue);
     return results.map(result => result.item);
-  }, [unitValue, courseValue, subjectsByClass, fuseSubjects]);
+  }, [unitValue, unitList, fuseSubjects]);
 
   const topicDropdownList = useMemo(() => {
-    const topicList = unitValue ? (topicsBySubject[unitValue] || []) : [];
     if ((topicValue || '').trim() === '') return topicList;
     const results = fuseTopics.search(topicValue);
     return results.map(result => result.item);
-  }, [topicValue, unitValue, topicsBySubject, fuseTopics]);
+  }, [topicValue, topicList, fuseTopics]);
 
   // Filtered lists for dropdowns - OLD CODE REMOVED
 

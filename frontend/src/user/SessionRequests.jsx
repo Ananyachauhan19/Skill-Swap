@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaCheck, FaTimes, FaClock, FaUser, FaBook, FaPlay, FaVideo, FaUserFriends, FaHandshake } from 'react-icons/fa';
+import { 
+  FaCheck, 
+  FaTimes, 
+  FaClock, 
+  FaUser, 
+  FaPlay, 
+  FaVideo, 
+  FaUserFriends, 
+  FaHandshake,
+  FaHome,
+  FaBars
+} from 'react-icons/fa';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket';
 import { useAuth } from '../context/AuthContext';
@@ -15,14 +26,14 @@ const SessionRequests = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('received');
-  const [requestType, setRequestType] = useState('session'); // 'session' or 'skillmate'
+  const [requestType, setRequestType] = useState('session');
   const [readyToStartSession, setReadyToStartSession] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [cancelledMessage, setCancelledMessage] = useState('');
-  const [interviewBanner, setInterviewBanner] = useState(null); // { message, requestId }
+  const [interviewBanner, setInterviewBanner] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  // Load active session from localStorage on component mount
   useEffect(() => {
     const savedActiveSession = localStorage.getItem('activeSession');
     if (savedActiveSession) {
@@ -33,85 +44,24 @@ const SessionRequests = () => {
         } else {
           localStorage.removeItem('activeSession');
         }
-      } catch (error) {
+      } catch {
         localStorage.removeItem('activeSession');
       }
     }
-
-      // Interview-specific card (separate from SessionRequestCard to avoid changing session logic)
-      const InterviewRequestCard = ({ request, isReceived }) => {
-        return (
-          <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-4">
-                <div className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <FaUser className="text-blue-600 text-lg" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-900">{(request.requester && `${request.requester.firstName || ''} ${request.requester.lastName || ''}`) || (request.user && request.user.username) || 'User'}</h3>
-                  <p className="text-sm text-gray-600">{isReceived ? 'Interview requested from you' : 'Interview requested by you'}</p>
-                </div>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-                {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-              </span>
-            </div>
-
-            <div className="mb-4">
-              <div className="flex items-center space-x-2 mb-3">
-                <FaBook className="text-blue-500" />
-                <span className="font-semibold text-blue-900">Interview Details</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600">
-                <div><span className="font-medium">Company:</span> {request.company}</div>
-                <div><span className="font-medium">Position:</span> {request.position}</div>
-                <div><span className="font-medium">Interviewer:</span> {(request.assignedInterviewer && (request.assignedInterviewer.firstName || request.assignedInterviewer.username)) || 'TBD'}</div>
-              </div>
-              {request.message && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                  <span className="font-medium text-blue-900">Message:</span>
-                  <p className="text-sm text-gray-600 mt-1">{request.message}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <FaClock className="text-gray-400" />
-                <span>{formatDate(request.createdAt)}</span>
-              </div>
-
-              <div>
-                {request.status === 'pending' && user && request.assignedInterviewer && (user._id === (request.assignedInterviewer._id || request.assignedInterviewer)) && (
-                  <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
-                )}
-                {request.status === 'scheduled' && (
-                  <div className="flex items-center space-x-2">
-                    <div className="text-sm text-gray-700">Scheduled: {request.scheduledAt ? formatDate(request.scheduledAt) : 'TBD'}</div>
-                    {user && (String(user._id) === String(request.requester?._id || request.requester) || String(user._id) === String((request.assignedInterviewer && (request.assignedInterviewer._id || request.assignedInterviewer)) || '')) && (
-                      <button className="bg-blue-900 text-white px-3 py-1 rounded" onClick={() => handleJoinInterview(request)}>Join Interview</button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-      };
     checkActiveSessionFromBackend();
   }, []);
 
-  // Check for active sessions from backend
   const checkActiveSessionFromBackend = async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/session-requests/active`, {
-        credentials: 'include'
+        credentials: 'include',
       });
       if (response.ok) {
         const data = await response.json();
-        if (data.activeSession &&
-            ((data.activeSession.status && data.activeSession.status === 'active') ||
-             (data.activeSession.sessionRequest && data.activeSession.sessionRequest.status === 'active'))
+        if (
+          data.activeSession &&
+          ((data.activeSession.status && data.activeSession.status === 'active') ||
+            (data.activeSession.sessionRequest && data.activeSession.sessionRequest.status === 'active'))
         ) {
           setActiveSession(data.activeSession);
         } else {
@@ -119,71 +69,51 @@ const SessionRequests = () => {
           localStorage.removeItem('activeSession');
         }
       }
-    } catch (error) {}
+    } catch {
+      // Silent fail
+    }
   };
 
   useEffect(() => {
-  fetchSessionRequests();
-  fetchSkillMateRequests();
-  fetchInterviewRequests();
+    fetchSessionRequests();
+    fetchSkillMateRequests();
+    fetchInterviewRequests();
   }, []);
 
-  // Save active session to localStorage whenever it changes
-  // Fetch interview requests
-  const fetchInterviewRequests = async () => {
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' });
-      if (response.ok) {
-        const data = await response.json();
-        // Assume backend returns { received: [], sent: [] }
-        setInterviewRequests(data);
-      }
-    } catch (error) {
-      // ignore for now
-    }
-  };
   useEffect(() => {
     if (activeSession) {
       const sessionWithTimestamp = {
         ...activeSession,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
       localStorage.setItem('activeSession', JSON.stringify(sessionWithTimestamp));
-      console.info('[DEBUG] SessionRequests: Saved active session to localStorage:', sessionWithTimestamp);
     } else {
       localStorage.removeItem('activeSession');
-      console.info('[DEBUG] SessionRequests: Removed active session from localStorage');
     }
   }, [activeSession]);
 
-  // Socket event handlers
   useEffect(() => {
     if (!user || !user._id) return;
 
     socket.emit('register', user._id);
 
-    socket.on('session-request-received', (data) => {
-      console.info('[DEBUG] SessionRequests: New request received:', data);
+    socket.on('session-request-received', () => {
       fetchSessionRequests();
     });
 
-    socket.on('skillmate-request-received', (data) => {
-      console.info('[DEBUG] SessionRequests: New SkillMate request received:', data);
+    socket.on('skillmate-request-received', () => {
       fetchSkillMateRequests();
     });
 
-    socket.on('skillmate-request-approved', (data) => {
-      console.info('[DEBUG] SessionRequests: SkillMate request approved:', data);
+    socket.on('skillmate-request-approved', () => {
       fetchSkillMateRequests();
     });
 
-    socket.on('skillmate-request-rejected', (data) => {
-      console.info('[DEBUG] SessionRequests: SkillMate request rejected:', data);
+    socket.on('skillmate-request-rejected', () => {
       fetchSkillMateRequests();
     });
 
     socket.on('session-started', (data) => {
-      console.info('[DEBUG] SessionRequests: session-started event received:', data);
       let role = null;
       if (user && data.tutor && user._id === data.tutor._id) role = 'tutor';
       if (user && data.requester && user._id === data.requester._id) role = 'student';
@@ -191,12 +121,11 @@ const SessionRequests = () => {
         const newActiveSession = {
           sessionId: data.sessionId,
           sessionRequest: data.sessionRequest,
-          role
+          role,
         };
         setActiveSession(newActiveSession);
         setShowVideoModal(false);
         setReadyToStartSession(null);
-        console.info('[DEBUG] SessionRequests: activeSession set for role:', role);
       }
     });
 
@@ -206,7 +135,7 @@ const SessionRequests = () => {
       setReadyToStartSession(null);
       localStorage.removeItem('activeSession');
       setCancelledMessage(data.message || 'Session was cancelled.');
-      setTimeout(() => setCancelledMessage(""), 5000);
+      setTimeout(() => setCancelledMessage(''), 5000);
     });
 
     socket.on('end-call', ({ sessionId }) => {
@@ -227,7 +156,6 @@ const SessionRequests = () => {
       }
     });
 
-    // Listen for general notifications; if interview related, refresh interview requests
     socket.on('notification', (notification) => {
       try {
         if (!notification) return;
@@ -236,17 +164,19 @@ const SessionRequests = () => {
           fetchInterviewRequests();
           fetchSessionRequests();
         }
-        // Show inline banner to requester when their interview is scheduled/approved
         if (t === 'interview-scheduled') {
-          // notification.userId is the recipient; ensure this notification is for this user
           const notifUserId = String(notification.userId || notification.userId?._id || '');
           if (user && String(user._id) === notifUserId) {
-            setInterviewBanner({ message: notification.message || 'Your interview has been scheduled', requestId: notification.requestId });
-            // auto-clear after 12 seconds
+            setInterviewBanner({
+              message: notification.message || 'Your interview has been scheduled',
+              requestId: notification.requestId,
+            });
             setTimeout(() => setInterviewBanner(null), 12000);
           }
         }
-      } catch (e) { /* ignore */ }
+      } catch {
+        // Silent fail
+      }
     });
 
     return () => {
@@ -265,16 +195,31 @@ const SessionRequests = () => {
   const fetchSessionRequests = async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/session-requests/all`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (response.ok) {
         const data = await response.json();
-        setRequests(data);
+        
+        // Filter to show only requests from the last 2 days
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        
+        const filterRecent = (requests) => {
+          return requests.filter(req => {
+            const requestDate = new Date(req.createdAt || req.requestedAt);
+            return requestDate >= twoDaysAgo;
+          });
+        };
+        
+        setRequests({
+          received: filterRecent(data.received || []),
+          sent: filterRecent(data.sent || [])
+        });
       } else {
         setError('Failed to fetch session requests');
       }
-    } catch (error) {
+    } catch {
       setError('Failed to fetch session requests');
     } finally {
       setLoading(false);
@@ -284,11 +229,11 @@ const SessionRequests = () => {
   const fetchSkillMateRequests = async () => {
     try {
       const receivedResponse = await fetch(`${BACKEND_URL}/api/skillmates/requests/received`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       const sentResponse = await fetch(`${BACKEND_URL}/api/skillmates/requests/sent`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (receivedResponse.ok && sentResponse.ok) {
@@ -297,13 +242,38 @@ const SessionRequests = () => {
 
         setSkillMateRequests({
           received: receivedData,
-          sent: sentData
+          sent: sentData,
         });
-      } else {
-        console.error('Failed to fetch SkillMate requests');
       }
-    } catch (error) {
-      console.error('Error fetching SkillMate requests:', error);
+    } catch {
+      // Silent fail
+    }
+  };
+
+  const fetchInterviewRequests = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Filter to show only requests from the last 2 days
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+        
+        const filterRecent = (requests) => {
+          return requests.filter(req => {
+            const requestDate = new Date(req.createdAt || req.requestedAt);
+            return requestDate >= twoDaysAgo;
+          });
+        };
+        
+        setInterviewRequests({
+          received: filterRecent(data.received || []),
+          sent: filterRecent(data.sent || [])
+        });
+      }
+    } catch {
+      // Silent fail
     }
   };
 
@@ -313,23 +283,21 @@ const SessionRequests = () => {
         const response = await fetch(`${BACKEND_URL}/api/session-requests/approve/${requestId}`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
 
         if (response.ok) {
-          const approvedRequest = requests.received.find(req => req._id === requestId);
+          const approvedRequest = requests.received.find((req) => req._id === requestId);
           if (approvedRequest) {
             setReadyToStartSession(approvedRequest);
           }
           fetchSessionRequests();
-        } else {
-          setError('Failed to approve session request');
         }
       } else if (type === 'skillmate') {
         socket.emit('approve-skillmate-request', { requestId });
         fetchSkillMateRequests();
       }
-    } catch (error) {
+    } catch {
       setError(`Failed to approve ${type} request`);
     }
   };
@@ -340,19 +308,17 @@ const SessionRequests = () => {
         const response = await fetch(`${BACKEND_URL}/api/session-requests/reject/${requestId}`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
 
         if (response.ok) {
           fetchSessionRequests();
-        } else {
-          setError('Failed to reject session request');
         }
       } else if (type === 'skillmate') {
         socket.emit('reject-skillmate-request', { requestId });
         fetchSkillMateRequests();
       }
-    } catch (error) {
+    } catch {
       setError(`Failed to reject ${type} request`);
     }
   };
@@ -363,20 +329,18 @@ const SessionRequests = () => {
         const response = await fetch(`${BACKEND_URL}/api/session-requests/start/${readyToStartSession._id}`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
         if (response.ok) {
           const data = await response.json();
           setActiveSession({
             sessionId: data.sessionRequest._id,
             sessionRequest: data.sessionRequest,
-            role: 'tutor'
+            role: 'tutor',
           });
           setShowVideoModal(true);
-        } else {
-          setError('Failed to start session');
         }
-      } catch (error) {
+      } catch {
         setError('Failed to start session');
       }
     }
@@ -388,17 +352,15 @@ const SessionRequests = () => {
         const response = await fetch(`${BACKEND_URL}/api/session-requests/cancel/${activeSession.sessionId}`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
         if (response.ok) {
           setActiveSession(null);
           setReadyToStartSession(null);
           setShowVideoModal(false);
           localStorage.removeItem('activeSession');
-        } else {
-          setError('Failed to cancel session');
         }
-      } catch (error) {
+      } catch {
         setError('Failed to cancel session');
       }
     }
@@ -410,17 +372,15 @@ const SessionRequests = () => {
         const response = await fetch(`${BACKEND_URL}/api/session-requests/complete/${activeSession.sessionId}`, {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/json' }
+          headers: { 'Content-Type': 'application/json' },
         });
         if (response.ok) {
           setActiveSession(null);
           setReadyToStartSession(null);
           setShowVideoModal(false);
           localStorage.removeItem('activeSession');
-        } else {
-          setError('Failed to complete session');
         }
-      } catch (error) {
+      } catch {
         setError('Failed to complete session');
       }
     } else {
@@ -433,7 +393,6 @@ const SessionRequests = () => {
 
   const handleJoinInterview = (request) => {
     try {
-      const role = user && user._id === (request.assignedInterviewer?._id || request.assignedInterviewer) ? 'tutor' : 'student';
       navigate(`/interview-call/${request._id}`);
     } catch (e) {
       console.error('Failed to join interview', e);
@@ -441,7 +400,43 @@ const SessionRequests = () => {
     }
   };
 
-  function ScheduleInterviewInline({ request, onScheduled }) {
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      return new Date(dateString).toLocaleString();
+    } catch {
+      return String(dateString);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getDisplayName = (request, isReceived) => {
+    if (isReceived) {
+      const r = request.requester || request.requesterId || request.requesterDetails;
+      if (r) return `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.username || 'User';
+      return 'User';
+    } else {
+      const t = request.tutor || request.recipient || request.assignedInterviewer || request.recipientDetails;
+      if (t) return `${t.firstName || ''} ${t.lastName || ''}`.trim() || t.username || 'User';
+      return 'User';
+    }
+  };
+
+  const ScheduleInterviewInline = ({ request, onScheduled }) => {
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
     const [loadingSchedule, setLoadingSchedule] = useState(false);
@@ -470,643 +465,702 @@ const SessionRequests = () => {
     };
 
     return (
-      <div className="flex items-center space-x-2">
-        <input type="date" className="border px-2 py-1" value={date} onChange={e => setDate(e.target.value)} />
-        <input type="time" className="border px-2 py-1" value={time} onChange={e => setTime(e.target.value)} />
-        <button className="bg-blue-600 text-white px-3 py-1 rounded" onClick={submitSchedule} disabled={loadingSchedule}>{loadingSchedule ? 'Scheduling...' : 'Schedule'}</button>
+      <div className="flex items-center gap-2 flex-wrap">
+        <input
+          type="date"
+          className="border-2 border-gray-200 px-3 py-2 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+        <input
+          type="time"
+          className="border-2 border-gray-200 px-3 py-2 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+        />
+        <button
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          onClick={submitSchedule}
+          disabled={loadingSchedule}
+        >
+          {loadingSchedule ? 'Scheduling...' : 'Schedule'}
+        </button>
       </div>
     );
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    try {
-      return new Date(dateString).toLocaleString();
-    } catch (e) {
-      return String(dateString);
-    }
-  };
-
-  const SessionRequestCard = ({ request, isReceived }) => {
-    // defensive: compute display names safely across different request shapes
-    const getDisplayName = () => {
-      if (isReceived) {
-        // For received: requester is the person who requested (may be populated)
-        const r = request.requester || request.requesterId || request.requesterDetails;
-        if (r) return `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.username || 'User';
-        return 'User';
-      } else {
-        // For sent: may have tutor, recipient, assignedInterviewer
-        const t = request.tutor || request.recipient || request.assignedInterviewer || request.recipientDetails;
-        if (t) return `${t.firstName || ''} ${t.lastName || ''}`.trim() || t.username || 'User';
-        return 'User';
-      }
-    };
-
-    const displayName = getDisplayName();
-
-    return (
-    <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-4">
-          <div className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <FaUser className="text-blue-600 text-lg" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-blue-900">
-              {displayName}
-            </h3>
-            <p className="text-sm text-gray-600">
-              {isReceived ? 'Requested from you' : 'Requested by you'}
-            </p>
-          </div>
-        </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-        </span>
-      </div>
-
-      <div className="mb-4">
-        <div className="flex items-center space-x-2 mb-3">
-          <FaBook className="text-blue-500" />
-          <span className="font-semibold text-blue-900">Subject Details</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600">
-          <div>
-            <span className="font-medium">Class:</span> {request.subject}
-          </div>
-          <div>
-            <span className="font-medium">Subject:</span> {request.topic}
-          </div>
-          <div>
-            <span className="font-medium">Topic:</span> {request.subtopic}
-          </div>
-        </div>
-        {request.message && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <span className="font-medium text-blue-900">Message:</span>
-            <p className="text-sm text-gray-600 mt-1">{request.message}</p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2 text-sm text-gray-600">
-          <FaClock className="text-gray-400" />
-          <span>{formatDate(request.createdAt)}</span>
-        </div>
-
-        {/* Interview-specific scheduling and join handling */}
-        { (request.subject || request.topic || request.assignedInterviewer) && (
-          <div className="flex items-center space-x-2">
-            {request.status === 'pending' && user && request.assignedInterviewer && (user._id === (request.assignedInterviewer._id || request.assignedInterviewer)) && (
-              <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
-            )}
-            {request.status === 'scheduled' && (
-              <div className="flex space-x-2 items-center">
-                <div className="text-sm text-gray-700">Scheduled: {request.scheduledAt ? formatDate(request.scheduledAt) : 'TBD'}</div>
-                {user && (String(user._id) === String(request.requester?._id || request.requester) || String(user._id) === String((request.assignedInterviewer && (request.assignedInterviewer._id || request.assignedInterviewer)) || '')) && (
-                  <button className="bg-blue-900 text-white px-3 py-1 rounded" onClick={() => handleJoinInterview(request)}>Join Interview</button>
-                )}
-              </div>
+  const RequestCard = ({ request, isReceived, type }) => (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="flex items-start justify-between mb-5">
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${
+            type === 'skillmate' 
+              ? 'bg-gradient-to-br from-purple-500 to-purple-600' 
+              : 'bg-gradient-to-br from-blue-500 to-blue-600'
+          }`}>
+            {type === 'skillmate' ? (
+              <FaUserFriends className="text-white text-xl" />
+            ) : (
+              <FaUser className="text-white text-xl" />
             )}
           </div>
-        )}
-
-        {isReceived && request.status === 'pending' && (
-          <div className="flex space-x-3">
-            <button
-              onClick={() => handleApprove(request._id)}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 transition-all duration-300"
-            >
-              <FaCheck className="text-xs" />
-              <span>Approve</span>
-            </button>
-            <button
-              onClick={() => handleReject(request._id)}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 transition-all duration-300"
-            >
-              <FaTimes className="text-xs" />
-              <span>Reject</span>
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-  }
-
-  const SkillMateRequestCard = ({ request, isReceived }) => (
-    <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-4">
-          <div className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <FaUserFriends className="text-blue-600 text-lg" />
-          </div>
           <div>
-            <h3 className="text-lg font-semibold text-blue-900">
-              {isReceived
-                ? `${request.requester.firstName || ''} ${request.requester.lastName || ''}`
-                : `${request.recipient.firstName || ''} ${request.recipient.lastName || ''}`
-              }
-            </h3>
-            <p className="text-sm text-gray-600">
-              {isReceived ? 'Wants to be your SkillMate' : 'SkillMate request sent'}
-            </p>
-          </div>
-        </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2 text-sm text-gray-600">
-          <FaClock className="text-gray-400" />
-          <span>{formatDate(request.createdAt)}</span>
-        </div>
-
-        {isReceived && request.status === 'pending' && (
-          <div className="flex space-x-3">
-            <button
-              onClick={() => handleApprove(request._id, 'skillmate')}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 transition-all duration-300"
-            >
-              <FaCheck className="text-xs" />
-              <span>Approve</span>
-            </button>
-            <button
-              onClick={() => handleReject(request._id, 'skillmate')}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-1 transition-all duration-300"
-            >
-              <FaTimes className="text-xs" />
-              <span>Reject</span>
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-cream-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading requests...</p>
-        </div>
-      </div>
-    );
-  }
-
-    // Interview request card (keeps UI simple and consistent with SessionRequestCard)
-    const InterviewRequestCard = ({ request, isReceived }) => {
-      const otherUser = isReceived
-        ? `${request.requester?.firstName || ''} ${request.requester?.lastName || ''}`.trim()
-        : `${request.assignedInterviewer?.firstName || ''} ${request.assignedInterviewer?.lastName || ''}`.trim();
-
-      // Debug: Check if schedule UI should show
-      const isPending = request.status === 'pending';
-      const hasAssignedInterviewer = !!request.assignedInterviewer;
-      const assignedInterviewerId = request.assignedInterviewer?._id || request.assignedInterviewer;
-      const currentUserId = user?._id;
-      const isAssignedInterviewer = currentUserId && assignedInterviewerId && String(currentUserId) === String(assignedInterviewerId);
-      
-      console.log('[DEBUG InterviewRequestCard INNER]', {
-        requestId: request._id,
-        status: request.status,
-        isPending,
-        hasAssignedInterviewer,
-        assignedInterviewerId,
-        currentUserId,
-        isAssignedInterviewer,
-        isReceived,
-        shouldShowScheduleUI: isPending && isAssignedInterviewer && isReceived
-      });
-
-      return (
-        <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center space-x-4">
-              <div className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <FaUser className="text-blue-600 text-lg" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-blue-900">{otherUser || (isReceived ? 'Requester' : 'Interviewer')}</h3>
-                <p className="text-sm text-gray-600">{isReceived ? 'Interview requested' : 'Interview sent'}</p>
-              </div>
-            </div>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-            </span>
-          </div>
-
-          <div className="mb-3 text-sm text-gray-700">Company: <span className="font-medium">{request.company || '—'}</span> • Position: <span className="font-medium">{request.position || '—'}</span></div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 text-sm text-gray-600">
-              <FaClock className="text-gray-400" />
-              <span>{request.scheduledAt ? formatDate(request.scheduledAt) : formatDate(request.createdAt)}</span>
-            </div>
-
-            <div>
-              {/* Allow assigned interviewer to schedule when status is 'pending' */}
-              {isPending && isAssignedInterviewer && isReceived && (
-                <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
+            <h3 className="text-lg font-bold text-gray-900">{getDisplayName(request, isReceived)}</h3>
+            <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+              {isReceived ? (
+                <>
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  Requested from you
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                  Requested by you
+                </>
               )}
+            </p>
+          </div>
+        </div>
+        <span className={`px-4 py-2 rounded-xl text-xs font-bold shadow-sm ${getStatusColor(request.status)}`}>
+          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+        </span>
+      </div>
 
-              {/* Show join button when scheduled */}
-              {request.status === 'scheduled' && (
-                <div className="flex space-x-2 items-center">
-                  <div className="text-sm text-gray-700">Scheduled: {request.scheduledAt ? formatDate(request.scheduledAt) : 'TBD'}</div>
-                  <button
-                    onClick={() => handleJoinInterview(request)}
-                    className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
-                  >
-                    <FaVideo className="text-xs" />
-                    <span>Join Interview</span>
-                  </button>
+      {(request.subject || request.topic || type === 'skillmate') && (
+        <div className="mb-4 p-4 bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-xl border border-gray-100">
+          {type === 'skillmate' ? (
+            <p className="text-sm text-gray-700 font-medium flex items-center gap-2">
+              <FaHandshake className="text-purple-600" />
+              Connection request for skill sharing
+            </p>
+          ) : (
+            <div className="text-sm text-gray-700 space-y-2">
+              {request.subject && (
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold text-blue-700 min-w-[60px]">Class:</span>
+                  <span className="text-gray-900">{request.subject}</span>
+                </div>
+              )}
+              {request.topic && (
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold text-blue-700 min-w-[60px]">Subject:</span>
+                  <span className="text-gray-900">{request.topic}</span>
+                </div>
+              )}
+              {request.subtopic && (
+                <div className="flex items-start gap-2">
+                  <span className="font-semibold text-blue-700 min-w-[60px]">Topic:</span>
+                  <span className="text-gray-900">{request.subtopic}</span>
                 </div>
               )}
             </div>
+          )}
+          {request.message && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-sm text-gray-600 italic flex items-start gap-2">
+                <span className="text-blue-500 text-lg">"</span>
+                <span>{request.message}</span>
+                <span className="text-blue-500 text-lg">"</span>
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+            <FaClock className="text-blue-600" size={14} />
+          </div>
+          <span className="font-medium">{formatDate(request.createdAt)}</span>
+        </div>
+
+        <div className="flex gap-2">
+          {isReceived && request.status === 'pending' && (
+            <>
+              <button
+                onClick={() => handleApprove(request._id, type)}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
+              >
+                <FaCheck size={14} /> Approve
+              </button>
+              <button
+                onClick={() => handleReject(request._id, type)}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
+              >
+                <FaTimes size={14} /> Reject
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const InterviewRequestCard = ({ request, isReceived }) => {
+    const isPending = request.status === 'pending';
+    const isAssignedInterviewer =
+      user &&
+      request.assignedInterviewer &&
+      String(user._id) === String(request.assignedInterviewer._id || request.assignedInterviewer);
+
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+        <div className="flex items-start justify-between mb-5">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <FaUser className="text-white text-xl" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">
+                {isReceived
+                  ? `${request.requester?.firstName || ''} ${request.requester?.lastName || ''}`.trim()
+                  : `${request.assignedInterviewer?.firstName || ''} ${request.assignedInterviewer?.lastName || ''}`.trim()}
+              </h3>
+              <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+                {isReceived ? 'Interview requested' : 'Interview sent'}
+              </p>
+            </div>
+          </div>
+          <span className={`px-4 py-2 rounded-xl text-xs font-bold shadow-sm ${getStatusColor(request.status)}`}>
+            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+          </span>
+        </div>
+
+        <div className="mb-4 p-4 bg-gradient-to-br from-gray-50 to-indigo-50/30 rounded-xl border border-gray-100 space-y-2">
+          <div className="flex items-start gap-2">
+            <span className="font-semibold text-indigo-700 min-w-[80px]">Company:</span>
+            <span className="text-gray-900 font-medium">{request.company || '—'}</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="font-semibold text-indigo-700 min-w-[80px]">Position:</span>
+            <span className="text-gray-900 font-medium">{request.position || '—'}</span>
+          </div>
+          {request.message && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-sm text-gray-600 italic flex items-start gap-2">
+                <span className="text-indigo-500 text-lg">"</span>
+                <span>{request.message}</span>
+                <span className="text-indigo-500 text-lg">"</span>
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+              <FaClock className="text-indigo-600" size={14} />
+            </div>
+            <span className="font-medium">{formatDate(request.scheduledAt || request.createdAt)}</span>
+          </div>
+
+          <div className="flex gap-2">
+            {isPending && isAssignedInterviewer && isReceived && (
+              <ScheduleInterviewInline
+                request={request}
+                onScheduled={() => {
+                  fetchInterviewRequests();
+                  fetchSessionRequests();
+                }}
+              />
+            )}
+            {request.status === 'scheduled' && (
+              <button
+                onClick={() => handleJoinInterview(request)}
+                className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
+              >
+                <FaVideo size={14} /> Join Interview
+              </button>
+            )}
           </div>
         </div>
-      );
-    };
+      </div>
+    );
+  };
 
   const username = user ? user.username || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User' : 'User';
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center pt-20">
+        <div className="text-center">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-200 border-t-blue-700 mx-auto shadow-lg"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <FaUserFriends className="text-blue-600 text-2xl animate-pulse" />
+            </div>
+          </div>
+          <h3 className="mt-6 text-xl font-bold text-gray-900">Loading Requests</h3>
+          <p className="text-gray-600 mt-2">Please wait while we fetch your data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-cream-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-10 text-center">
-          <h1 className="text-4xl font-bold text-blue-900 mb-3">Manage Your Requests</h1>
-          <p className="text-lg text-gray-600">View and manage your Session and SkillMate requests</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 pt-20">
+      <div className="flex relative">
+        {/* Sidebar - Sticky positioning (scrolls up when footer appears) */}
+        <div
+          className={`${
+            sidebarOpen ? 'w-64' : 'w-0'
+          } bg-gradient-to-br from-blue-50 to-indigo-50 text-gray-800 transition-all duration-300 sticky top-20 self-start z-40 overflow-hidden shadow-2xl border-r border-blue-100 hidden md:block`}
+          style={{ 
+            height: 'calc(100vh - 80px)',
+            maxHeight: 'calc(100vh - 80px)'
+          }}
+        >
+          {/* Sidebar Header - Fixed */}
+          <div className="p-6 border-b border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <h2 className="text-xl font-bold flex items-center gap-3 text-gray-900">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition">
+                <FaHome className="text-white" size={18} />
+              </div>
+              <span className="bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent">
+                Requests Hub
+              </span>
+            </h2>
+          </div>
+
+          {/* Navigation Buttons - Fixed (No Scroll) */}
+          <nav className="p-4 space-y-3">
+            <button
+              onClick={() => {
+                setRequestType('session');
+                setActiveTab('received');
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                requestType === 'session'
+                  ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-[1.02]'
+                  : 'hover:bg-gray-50 hover:translate-x-1 text-blue-900'
+              }`}
+            >
+              <div className={`p-2 rounded-lg ${requestType === 'session' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
+                <FaVideo className={`text-base ${requestType === 'session' ? 'text-white' : 'text-blue-900'}`} />
+              </div>
+              <span className="font-medium text-sm">Session Requests</span>
+              {requests.received.filter((req) => req.status === 'pending').length > 0 && (
+                <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse text-white">
+                  {requests.received.filter((req) => req.status === 'pending').length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setRequestType('skillmate');
+                setActiveTab('received');
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                requestType === 'skillmate'
+                  ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-[1.02]'
+                  : 'hover:bg-gray-50 hover:translate-x-1 text-blue-900'
+              }`}
+            >
+              <div className={`p-2 rounded-lg ${requestType === 'skillmate' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
+                <FaHandshake className={`text-base ${requestType === 'skillmate' ? 'text-white' : 'text-blue-900'}`} />
+              </div>
+              <span className="font-medium text-sm">SkillMate Requests</span>
+              {skillMateRequests.received.filter((req) => req.status === 'pending').length > 0 && (
+                <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse text-white">
+                  {skillMateRequests.received.filter((req) => req.status === 'pending').length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
+                setRequestType('interview');
+                setActiveTab('received');
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                requestType === 'interview'
+                  ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-[1.02]'
+                  : 'hover:bg-gray-50 hover:translate-x-1 text-blue-900'
+              }`}
+            >
+              <div className={`p-2 rounded-lg ${requestType === 'interview' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
+                <FaUser className={`text-base ${requestType === 'interview' ? 'text-white' : 'text-blue-900'}`} />
+              </div>
+              <span className="font-medium text-sm">Interview Requests</span>
+              {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length > 0 && (
+                <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse text-white">
+                  {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length}
+                </span>
+              )}
+            </button>
+          </nav>
         </div>
 
-        {error && (
-          <div className="mb-8 bg-red-100 border border-red-300 text-red-800 px-6 py-4 rounded-lg text-center">
-            {error}
-          </div>
+        {/* Mobile Sidebar - Fixed overlay */}
+        {sidebarOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-60 md:hidden z-30 backdrop-blur-sm"
+              onClick={() => setSidebarOpen(false)}
+            ></div>
+            <div
+              className="fixed left-0 top-20 bottom-0 w-64 bg-white text-gray-800 z-40 shadow-2xl border-r border-gray-200 md:hidden overflow-y-auto"
+            >
+              {/* Sidebar Header */}
+              <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                <h2 className="text-xl font-bold flex items-center gap-3 text-gray-900">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg">
+                    <FaHome className="text-white" size={18} />
+                  </div>
+                  <span className="bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent">
+                    Requests Hub
+                  </span>
+                </h2>
+              </div>
+
+              {/* Navigation Buttons */}
+              <nav className="p-4 space-y-3">
+                <button
+                  onClick={() => {
+                    setRequestType('session');
+                    setActiveTab('received');
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                    requestType === 'session'
+                      ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg'
+                      : 'hover:bg-gray-50 text-blue-900'
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${requestType === 'session' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
+                    <FaVideo className={`text-base ${requestType === 'session' ? 'text-white' : 'text-blue-900'}`} />
+                  </div>
+                  <span className="font-medium text-sm">Session Requests</span>
+                  {requests.received.filter((req) => req.status === 'pending').length > 0 && (
+                    <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold text-white">
+                      {requests.received.filter((req) => req.status === 'pending').length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setRequestType('skillmate');
+                    setActiveTab('received');
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                    requestType === 'skillmate'
+                      ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg'
+                      : 'hover:bg-gray-50 text-blue-900'
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${requestType === 'skillmate' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
+                    <FaHandshake className={`text-base ${requestType === 'skillmate' ? 'text-white' : 'text-blue-900'}`} />
+                  </div>
+                  <span className="font-medium text-sm">SkillMate Requests</span>
+                  {skillMateRequests.received.filter((req) => req.status === 'pending').length > 0 && (
+                    <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold text-white">
+                      {skillMateRequests.received.filter((req) => req.status === 'pending').length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setRequestType('interview');
+                    setActiveTab('received');
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                    requestType === 'interview'
+                      ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg'
+                      : 'hover:bg-gray-50 text-blue-900'
+                  }`}
+                >
+                  <div className={`p-2 rounded-lg ${requestType === 'interview' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
+                    <FaUser className={`text-base ${requestType === 'interview' ? 'text-white' : 'text-blue-900'}`} />
+                  </div>
+                  <span className="font-medium text-sm">Interview Requests</span>
+                  {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length > 0 && (
+                    <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold text-white">
+                      {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length}
+                    </span>
+                  )}
+                </button>
+              </nav>
+            </div>
+          </>
         )}
 
-        {readyToStartSession && (
-          <div className="mb-10 flex justify-center">
-            <div className="bg-green-100 bg-opacity-80 backdrop-blur-sm border border-green-300 text-green-900 px-8 py-6 rounded-xl shadow-lg text-center max-w-md">
-              <p className="text-lg font-semibold mb-4">Session Approved! Ready to start?</p>
+        {/* Main Content - Scrollable */}
+        <div className="flex-1 transition-all duration-300">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="md:hidden mb-6 p-3 text-white bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 rounded-xl shadow-lg flex items-center gap-2 transition-all hover:scale-105"
+          >
+            <FaBars size={20} />
+            <span className="font-medium">Menu</span>
+          </button>
+
+          {/* Page Header */}
+          <div className="mb-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-8 shadow-xl">
+            <div>
+              <h1 className="text-4xl font-bold text-white flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                  <FaUserFriends className="text-white" size={24} />
+                </div>
+                Manage Your Requests
+              </h1>
+              <p className="text-blue-100 mt-3 text-lg">
+                View and manage all your session, skill mate, and interview requests in one place
+              </p>
+            </div>
+          </div>          {/* Error Message */}
+          {error && (
+            <div className="mb-6 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-xl shadow-md flex items-center gap-3">
+              <FaTimes className="text-red-500 text-xl" />
+              <span className="font-medium">{error}</span>
+            </div>
+          )}
+
+          {/* Session Ready Banner */}
+          {readyToStartSession && (
+            <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 px-6 py-5 rounded-xl shadow-lg flex items-center justify-between animate-fadeIn">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center shadow-md">
+                  <FaCheck className="text-white text-xl" />
+                </div>
+                <div>
+                  <p className="font-bold text-green-900 text-lg">Session Approved!</p>
+                  <p className="text-green-700 text-sm mt-1">Your session is ready to start. Click the button to begin.</p>
+                </div>
+              </div>
               <button
-                className="bg-blue-900 hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-all duration-300"
+                className="bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all transform hover:scale-105 shadow-lg"
                 onClick={handleStartSession}
               >
-                <FaPlay className="text-sm" />
-                <span>Start Session</span>
+                <FaPlay size={16} /> Start Session
               </button>
             </div>
-          </div>
-        )}
+          )}
 
-        {cancelledMessage && (
-          <div className="mb-8 bg-red-100 border border-red-300 text-red-800 px-6 py-4 rounded-lg text-center">
-            {cancelledMessage}
-          </div>
-        )}
+          {/* Cancelled Message */}
+          {cancelledMessage && (
+            <div className="mb-6 bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-500 px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 animate-fadeIn">
+              <FaTimes className="text-red-500 text-2xl" />
+              <span className="text-red-800 font-medium">{cancelledMessage}</span>
+            </div>
+          )}
 
-        {interviewBanner && (
-          <div className="mb-8 bg-blue-100 border border-blue-300 text-blue-900 px-6 py-4 rounded-lg text-center flex items-center justify-between gap-4">
-            <div className="text-left">{interviewBanner.message}</div>
-            <div className="flex items-center gap-2">
+          {/* Interview Banner */}
+          {interviewBanner && (
+            <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-900 px-6 py-5 rounded-xl shadow-lg flex items-center justify-between animate-fadeIn">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-blue-900 rounded-xl flex items-center justify-center shadow-md">
+                  <FaVideo className="text-white text-xl" />
+                </div>
+                <span className="text-blue-900 font-semibold text-lg">{interviewBanner.message}</span>
+              </div>
               <button
-                className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded"
-                onClick={() => {
-                  // find the request in interviewRequests or refetch
-                  const req = ((interviewRequests?.sent || []).concat(interviewRequests?.received || [])).find(r => r._id === interviewBanner.requestId);
-                  if (req) {
-                    handleJoinInterview(req);
-                  } else {
-                    // fallback: refetch and then attempt join
-                    fetchInterviewRequests().then(() => {
-                      const r = ((interviewRequests?.sent || []).concat(interviewRequests?.received || [])).find(x => x._id === interviewBanner.requestId);
-                      if (r) handleJoinInterview(r);
-                      else alert('Unable to find scheduled interview yet, please check requests.');
-                    });
-                  }
-                }}
+                className="bg-white hover:bg-gray-50 text-blue-900 px-5 py-2 rounded-lg font-medium border border-blue-900 transition-all hover:shadow-md"
+                onClick={() => setInterviewBanner(null)}
               >
-                Join Interview
+                Dismiss
               </button>
-              <button className="px-3 py-2 rounded border" onClick={() => setInterviewBanner(null)}>Dismiss</button>
             </div>
-          </div>
-        )}
+          )}
 
-        {activeSession && (
-          <div className="mb-10 flex justify-center">
-            <div className="bg-green-100 bg-opacity-80 backdrop-blur-sm border border-green-300 text-green-900 px-8 py-6 rounded-xl shadow-lg text-center max-w-md">
-              <p className="text-lg font-semibold mb-4">Your session is ready!</p>
-              <div className="flex gap-4 justify-center">
+          {/* Active Session Banner */}
+          {activeSession && (
+            <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 px-6 py-5 rounded-xl shadow-lg flex items-center justify-between animate-fadeIn">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center shadow-md">
+                    <FaVideo className="text-white text-xl" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-white"></div>
+                </div>
+                <div>
+                  <p className="font-bold text-green-900 text-lg">Your session is live!</p>
+                  <p className="text-green-700 text-sm mt-1">Join the video call to start your session</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
                 <button
-                  className="bg-blue-900 hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-all duration-300"
+                  className="bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
                   onClick={() => setShowVideoModal(true)}
                 >
-                  <FaVideo className="text-sm" />
-                  <span>Join Session</span>
+                  <FaVideo size={16} /> Join Session
                 </button>
                 {activeSession.role === 'student' && (
                   <button
-                    className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300"
+                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg"
                     onClick={handleCancelSession}
                   >
-                    Cancel Session
+                    Cancel
                   </button>
                 )}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {showVideoModal && activeSession && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-            <VideoCall
-              sessionId={activeSession.sessionId}
-              userRole={activeSession.role}
-              onEndCall={handleEndCall}
-              username={username}
-            />
-          </div>
-        )}
+          {showVideoModal && activeSession && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+              <VideoCall
+                sessionId={activeSession.sessionId}
+                userRole={activeSession.role}
+                onEndCall={handleEndCall}
+                username={username}
+              />
+            </div>
+          )}
 
-        <div className="mb-8">
-          <div className="flex justify-center space-x-6 border-b-2 border-gray-200 pb-2">
-            <button
-              onClick={() => setRequestType('session')}
-              className={`relative flex items-center space-x-2 py-3 px-6 text-lg font-semibold transition-all duration-300 ${
-                requestType === 'session'
-                  ? 'text-blue-900 border-b-4 border-blue-900'
-                  : 'text-gray-600 hover:text-blue-900'
-              }`}
-            >
-              <FaVideo className="text-lg" />
-              <span>Session Requests</span>
-              {requests.received.filter(req => req.status === 'pending').length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs animate-pulse">
-                  {requests.received.filter(req => req.status === 'pending').length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setRequestType('skillmate')}
-              className={`relative flex items-center space-x-2 py-3 px-6 text-lg font-semibold transition-all duration-300 ${
-                requestType === 'skillmate'
-                  ? 'text-blue-900 border-b-4 border-blue-900'
-                  : 'text-gray-600 hover:text-blue-900'
-              }`}
-            >
-              <FaHandshake className="text-lg" />
-              <span>SkillMate Requests</span>
-              {skillMateRequests.received.filter(req => req.status === 'pending').length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs animate-pulse">
-                  {skillMateRequests.received.filter(req => req.status === 'pending').length}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setRequestType('interview')}
-              className={`relative flex items-center space-x-2 py-3 px-6 text-lg font-semibold transition-all duration-300 ${
-                requestType === 'interview'
-                  ? 'text-blue-900 border-b-4 border-blue-900'
-                  : 'text-gray-600 hover:text-blue-900'
-              }`}
-            >
-              <FaUser className="text-lg" />
-              <span>Interview Requests</span>
-              {(interviewRequests?.received || []).filter(req => req.status === 'pending').length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs animate-pulse">
-                  {(interviewRequests?.received || []).filter(req => req.status === 'pending').length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <div className="flex justify-center space-x-6 border-b border-gray-200 pb-2">
-            {(() => {
-              const receivedCount = requestType === 'session'
-                ? (requests.received || []).length
-                : requestType === 'skillmate'
-                  ? (skillMateRequests.received || []).length
-                  : (interviewRequests?.received || []).length;
-
-              const sentCount = requestType === 'session'
-                ? (requests.sent || []).length
-                : requestType === 'skillmate'
-                  ? (skillMateRequests.sent || []).length
-                  : (interviewRequests?.sent || []).length;
-
-              return (
-                <>
-                  <button
-                    onClick={() => setActiveTab('received')}
-                    className={`relative py-2 px-4 text-base font-medium transition-all duration-300 ${
-                      activeTab === 'received'
-                        ? 'text-blue-900 border-b-2 border-blue-900'
-                        : 'text-gray-600 hover:text-blue-900'
-                    }`}
-                  >
-                    Received ({receivedCount})
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('sent')}
-                    className={`relative py-2 px-4 text-base font-medium transition-all duration-300 ${
-                      activeTab === 'sent'
-                        ? 'text-blue-900 border-b-2 border-blue-900'
-                        : 'text-gray-600 hover:text-blue-900'
-                    }`}
-                  >
-                    Sent ({sentCount})
-                  </button>
-                </>
-              );
-            })()}
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          {requestType === 'session' ? (
-            activeTab === 'received' ? (
-              requests.received.length === 0 ? (
-                <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
-                  <FaClock className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-lg font-semibold text-blue-900">No Received Session Requests</h3>
-                  <p className="mt-1 text-gray-600">You haven't received any session requests yet.</p>
+          {/* Tabs */}
+          <div className="mb-8">
+            <div className="bg-white rounded-xl shadow-md p-2 inline-flex gap-2 border border-gray-100">
+              <button
+                onClick={() => setActiveTab('received')}
+                className={`px-6 py-3 font-semibold rounded-lg transition-all duration-200 ${
+                  activeTab === 'received'
+                    ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-105'
+                    : 'text-gray-600 hover:text-blue-900 hover:bg-blue-50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span>Received</span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    activeTab === 'received'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-blue-900/10 text-blue-900'
+                  }`}>
+                    {requestType === 'session'
+                      ? requests.received.length
+                      : requestType === 'skillmate'
+                        ? skillMateRequests.received.length
+                        : (interviewRequests?.received || []).length}
+                  </span>
                 </div>
-              ) : (
-                requests.received.map((request) => (
-                  <SessionRequestCard key={request._id} request={request} isReceived={true} />
-                ))
-              )
-            ) : (
-              requests.sent.length === 0 ? (
-                <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
-                  <FaClock className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-lg font-semibold text-blue-900">No Sent Session Requests</h3>
-                  <p className="mt-1 text-gray-600">You haven't sent any session requests yet.</p>
+              </button>
+              <button
+                onClick={() => setActiveTab('sent')}
+                className={`px-6 py-3 font-semibold rounded-lg transition-all duration-200 ${
+                  activeTab === 'sent'
+                    ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-105'
+                    : 'text-gray-600 hover:text-blue-900 hover:bg-blue-50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <span>Sent</span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    activeTab === 'sent'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-blue-900/10 text-blue-900'
+                  }`}>
+                    {requestType === 'session'
+                      ? requests.sent.length
+                      : requestType === 'skillmate'
+                        ? skillMateRequests.sent.length
+                        : (interviewRequests?.sent || []).length}
+                  </span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {requestType === 'session' ? (
+              activeTab === 'received' ? (
+                requests.received.length === 0 ? (
+                  <div className="text-center py-20 bg-gradient-to-br from-white to-blue-50 rounded-2xl border-2 border-dashed border-blue-200 shadow-sm">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
+                      <FaClock className="text-white text-4xl" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">No Received Session Requests</h3>
+                    <p className="text-gray-600 text-lg">You haven't received any session requests yet.</p>
+                    <p className="text-gray-500 text-sm mt-2">New requests will appear here when they arrive</p>
+                  </div>
+                ) : (
+                  requests.received.map((request) => (
+                    <RequestCard key={request._id} request={request} isReceived={true} type="session" />
+                  ))
+                )
+              ) : requests.sent.length === 0 ? (
+                <div className="text-center py-20 bg-gradient-to-br from-white to-blue-50 rounded-2xl border-2 border-dashed border-blue-200 shadow-sm">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
+                    <FaVideo className="text-white text-4xl" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">No Sent Session Requests</h3>
+                  <p className="text-gray-600 text-lg">You haven't sent any session requests yet.</p>
+                  <p className="text-gray-500 text-sm mt-2">Start requesting sessions with tutors!</p>
                 </div>
               ) : (
                 requests.sent.map((request) => (
-                  <SessionRequestCard key={request._id} request={request} isReceived={false} />
+                  <RequestCard key={request._id} request={request} isReceived={false} type="session" />
                 ))
               )
-            )
-          ) : requestType === 'skillmate' ? (
-            activeTab === 'received' ? (
-              skillMateRequests.received.length === 0 ? (
-                <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
-                  <FaUserFriends className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-lg font-semibold text-blue-900">No Received SkillMate Requests</h3>
-                  <p className="mt-1 text-gray-600">You haven't received any SkillMate requests yet.</p>
-                </div>
-              ) : (
-                skillMateRequests.received.map((request) => (
-                  <SkillMateRequestCard key={request._id} request={request} isReceived={true} />
-                ))
-              )
-            ) : (
-              skillMateRequests.sent.length === 0 ? (
-                <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
-                  <FaUserFriends className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-lg font-semibold text-blue-900">No Sent SkillMate Requests</h3>
-                  <p className="mt-1 text-gray-600">You haven't sent any SkillMate requests yet.</p>
+            ) : requestType === 'skillmate' ? (
+              activeTab === 'received' ? (
+                skillMateRequests.received.length === 0 ? (
+                  <div className="text-center py-20 bg-gradient-to-br from-white to-purple-50 rounded-2xl border-2 border-dashed border-purple-200 shadow-sm">
+                    <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
+                      <FaUserFriends className="text-white text-4xl" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-2">No Received SkillMate Requests</h3>
+                    <p className="text-gray-600 text-lg">You haven't received any SkillMate requests yet.</p>
+                    <p className="text-gray-500 text-sm mt-2">Connect with others to share skills</p>
+                  </div>
+                ) : (
+                  skillMateRequests.received.map((request) => (
+                    <RequestCard key={request._id} request={request} isReceived={true} type="skillmate" />
+                  ))
+                )
+              ) : skillMateRequests.sent.length === 0 ? (
+                <div className="text-center py-20 bg-gradient-to-br from-white to-purple-50 rounded-2xl border-2 border-dashed border-purple-200 shadow-sm">
+                  <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
+                    <FaHandshake className="text-white text-4xl" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">No Sent SkillMate Requests</h3>
+                  <p className="text-gray-600 text-lg">You haven't sent any SkillMate requests yet.</p>
+                  <p className="text-gray-500 text-sm mt-2">Find SkillMates to connect with!</p>
                 </div>
               ) : (
                 skillMateRequests.sent.map((request) => (
-                  <SkillMateRequestCard key={request._id} request={request} isReceived={false} />
+                  <RequestCard key={request._id} request={request} isReceived={false} type="skillmate" />
                 ))
               )
-            )
-          ) : requestType === 'interview' ? (
-            activeTab === 'received' ? (
+            ) : activeTab === 'received' ? (
               (interviewRequests?.received || []).length === 0 ? (
-                <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
-                  <FaUser className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-lg font-semibold text-blue-900">No Received Interview Requests</h3>
-                  <p className="mt-1 text-gray-600">You haven't received any interview requests yet.</p>
+                <div className="text-center py-20 bg-gradient-to-br from-white to-indigo-50 rounded-2xl border-2 border-dashed border-indigo-200 shadow-sm">
+                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
+                    <FaUser className="text-white text-4xl" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">No Received Interview Requests</h3>
+                  <p className="text-gray-600 text-lg">You haven't received any interview requests yet.</p>
+                  <p className="text-gray-500 text-sm mt-2">Interview requests will appear here</p>
                 </div>
               ) : (
                 (interviewRequests?.received || []).map((request) => (
                   <InterviewRequestCard key={request._id} request={request} isReceived={true} />
                 ))
               )
-            ) : (
-              (interviewRequests?.sent || []).length === 0 ? (
-                <div className="text-center py-16 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
-                  <FaUser className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-lg font-semibold text-blue-900">No Sent Interview Requests</h3>
-                  <p className="mt-1 text-gray-600">You haven't sent any interview requests yet.</p>
+            ) : (interviewRequests?.sent || []).length === 0 ? (
+              <div className="text-center py-20 bg-gradient-to-br from-white to-indigo-50 rounded-2xl border-2 border-dashed border-indigo-200 shadow-sm">
+                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
+                  <FaVideo className="text-white text-4xl" />
                 </div>
-              ) : (
-                (interviewRequests?.sent || []).map((request) => (
-                  <InterviewRequestCard key={request._id} request={request} isReceived={false} />
-                ))
-              )
-            )
-          ) : null}
-        </div>
-
-        <div className="mt-10 text-center">
-          <button
-            onClick={() => navigate('/')}
-            className="bg-blue-900 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-lg hover:bg-blue-800 transition-all duration-300 hover:scale-105"
-          >
-            Back to Home
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Interview request card (keeps UI simple and consistent with SessionRequestCard)
-const InterviewRequestCard = ({ request, isReceived }) => {
-  const otherUser = isReceived
-    ? `${request.requester?.firstName || ''} ${request.requester?.lastName || ''}`.trim()
-    : `${request.assignedInterviewer?.firstName || ''} ${request.assignedInterviewer?.lastName || ''}`.trim();
-
-  // Debug: Check if schedule UI should show
-  const isPending = request.status === 'pending';
-  const hasAssignedInterviewer = !!request.assignedInterviewer;
-  const assignedInterviewerId = request.assignedInterviewer?._id || request.assignedInterviewer;
-  const currentUserId = user?._id;
-  const isAssignedInterviewer = currentUserId && assignedInterviewerId && String(currentUserId) === String(assignedInterviewerId);
-  
-  console.log('[DEBUG InterviewRequestCard]', {
-    requestId: request._id,
-    status: request.status,
-    isPending,
-    hasAssignedInterviewer,
-    assignedInterviewerId,
-    currentUserId,
-    isAssignedInterviewer,
-    isReceived,
-    shouldShowScheduleUI: isPending && isAssignedInterviewer && isReceived
-  });
-
-  return (
-    <div className="bg-white bg-opacity-80 backdrop-blur-sm border border-gray-200 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center space-x-4">
-          <div className="relative w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <FaUser className="text-blue-600 text-lg" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-blue-900">{otherUser || (isReceived ? 'Requester' : 'Interviewer')}</h3>
-            <p className="text-sm text-gray-600">{isReceived ? 'Interview requested' : 'Interview sent'}</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">No Sent Interview Requests</h3>
+                <p className="text-gray-600 text-lg">You haven't sent any interview requests yet.</p>
+                <p className="text-gray-500 text-sm mt-2">Request mock interviews to practice!</p>
+              </div>
+            ) : (
+              (interviewRequests?.sent || []).map((request) => (
+                <InterviewRequestCard key={request._id} request={request} isReceived={false} />
+              ))
+            )}
           </div>
         </div>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
-          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-        </span>
       </div>
-
-      <div className="mb-3 text-sm text-gray-700">Company: <span className="font-medium">{request.company || '—'}</span> • Position: <span className="font-medium">{request.position || '—'}</span></div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3 text-sm text-gray-600">
-          <FaClock className="text-gray-400" />
-          <span>{request.scheduledAt ? formatDate(request.scheduledAt) : formatDate(request.createdAt)}</span>
-        </div>
-
-        <div>
-          {/* Allow assigned interviewer to schedule when status is 'pending' and they are the assigned interviewer */}
-          {isPending && isAssignedInterviewer && isReceived && (
-            <ScheduleInterviewInline request={request} onScheduled={() => { fetchInterviewRequests(); fetchSessionRequests(); }} />
-          )}
-
-          {/* Show join button when scheduled — visible to requester and assigned interviewer */}
-          {request.status === 'scheduled' && (
-            <div className="flex space-x-2 items-center">
-              <div className="text-sm text-gray-700">Scheduled: {request.scheduledAt ? formatDate(request.scheduledAt) : 'TBD'}</div>
-              {user && (String(user._id) === String(request.requester?._id || request.requester) || String(user._id) === String((request.assignedInterviewer && (request.assignedInterviewer._id || request.assignedInterviewer)) || '')) && (
-                <button
-                  onClick={() => handleJoinInterview(request)}
-                  className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
-                >
-                  <FaVideo className="text-xs" />
-                  <span>Join Interview</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

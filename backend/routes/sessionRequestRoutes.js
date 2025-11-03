@@ -515,4 +515,199 @@ router.post('/cancel/:requestId', requireAuth, requestLimiter, validateRequestId
   }
 });
 
+/**
+ * @route GET /api/session-requests/learning-history
+ * @desc Get learning history (sessions where user was a student, older than 2 days)
+ * @access Private
+ */
+router.get('/learning-history', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+    // Find completed sessions where user was the requester (student)
+    const sessions = await SessionRequest.find({
+      requester: userId,
+      status: 'completed',
+      createdAt: { $lt: twoDaysAgo }
+    })
+      .populate('tutor', 'firstName lastName profilePic')
+      .sort({ createdAt: -1 });
+
+    // Group sessions by date
+    const groupedByDate = {};
+    sessions.forEach(session => {
+      const date = new Date(session.createdAt).toISOString().split('T')[0];
+      if (!groupedByDate[date]) {
+        groupedByDate[date] = [];
+      }
+      
+      groupedByDate[date].push({
+        id: session._id,
+        type: session.sessionType, // Get actual session type
+        with: `${session.tutor.firstName} ${session.tutor.lastName}`,
+        when: session.createdAt,
+        duration: session.duration, // Actual duration from database
+        coinType: session.coinType, // silver or gold
+        coinsSpent: session.coinsSpent, // Actual coins spent
+        subject: session.subject,
+        topic: session.topic,
+        subtopic: session.subtopic,
+        rating: session.rating,
+        notes: session.message || ''
+      });
+    });
+
+    // Convert to array format expected by frontend
+    const historyArray = Object.keys(groupedByDate).map(date => ({
+      date,
+      sessions: groupedByDate[date]
+    }));
+
+    res.json(historyArray);
+  } catch (error) {
+    console.error('Error fetching learning history:', error);
+    handleErrors(res, 500, 'Failed to fetch learning history');
+  }
+});
+
+/**
+ * @route GET /api/session-requests/teaching-history
+ * @desc Get teaching history (sessions where user was a tutor, older than 2 days)
+ * @access Private
+ */
+router.get('/teaching-history', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+    // Find completed sessions where user was the tutor (teacher)
+    const sessions = await SessionRequest.find({
+      tutor: userId,
+      status: 'completed',
+      createdAt: { $lt: twoDaysAgo }
+    })
+      .populate('requester', 'firstName lastName profilePic')
+      .sort({ createdAt: -1 });
+
+    // Group sessions by date
+    const groupedByDate = {};
+    sessions.forEach(session => {
+      const date = new Date(session.createdAt).toISOString().split('T')[0];
+      if (!groupedByDate[date]) {
+        groupedByDate[date] = [];
+      }
+      
+      groupedByDate[date].push({
+        id: session._id,
+        type: session.sessionType, // Get actual session type
+        with: `${session.requester.firstName} ${session.requester.lastName}`,
+        when: session.createdAt,
+        duration: session.duration, // Actual duration from database
+        coinType: session.coinType, // silver or gold
+        coinsSpent: session.coinsSpent, // Actual coins spent
+        subject: session.subject,
+        topic: session.topic,
+        subtopic: session.subtopic,
+        rating: session.rating,
+        notes: session.message || ''
+      });
+    });
+
+    // Convert to array format expected by frontend
+    const historyArray = Object.keys(groupedByDate).map(date => ({
+      date,
+      sessions: groupedByDate[date]
+    }));
+
+    res.json(historyArray);
+  } catch (error) {
+    console.error('Error fetching teaching history:', error);
+    handleErrors(res, 500, 'Failed to fetch teaching history');
+  }
+});
+
+/**
+ * @route GET /api/session-requests/all-coin-history
+ * @desc Get complete coin transaction history (ALL completed sessions, no date restriction)
+ * @note This is different from learning-history/teaching-history which only show sessions older than 2 days
+ * @access Private
+ */
+router.get('/all-coin-history', requireAuth, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Find ALL completed sessions where user was either requester or tutor
+    // NO date restriction - returns complete transaction history
+    const [learningSessions, teachingSessions] = await Promise.all([
+      // Sessions where user was the student (spent coins)
+      SessionRequest.find({
+        requester: userId,
+        status: 'completed'
+      })
+        .populate('tutor', 'firstName lastName profilePic')
+        .sort({ createdAt: -1 }),
+      
+      // Sessions where user was the teacher (earned coins)
+      SessionRequest.find({
+        tutor: userId,
+        status: 'completed'
+      })
+        .populate('requester', 'firstName lastName profilePic')
+        .sort({ createdAt: -1 })
+    ]);
+
+    // Process learning sessions (spent)
+    const learningHistory = learningSessions.map(session => ({
+      id: session._id,
+      type: 'spent',
+      sessionType: session.sessionType,
+      with: `${session.tutor.firstName} ${session.tutor.lastName}`,
+      when: session.createdAt,
+      date: new Date(session.createdAt).toISOString().split('T')[0],
+      duration: session.duration,
+      coinType: session.coinType,
+      coinsSpent: session.coinsSpent,
+      subject: session.subject,
+      topic: session.topic,
+      subtopic: session.subtopic,
+      rating: session.rating,
+      notes: session.message || ''
+    }));
+
+    // Process teaching sessions (earned)
+    const teachingHistory = teachingSessions.map(session => ({
+      id: session._id,
+      type: 'earned',
+      sessionType: session.sessionType,
+      with: `${session.requester.firstName} ${session.requester.lastName}`,
+      when: session.createdAt,
+      date: new Date(session.createdAt).toISOString().split('T')[0],
+      duration: session.duration,
+      coinType: session.coinType,
+      coinsSpent: session.coinsSpent, // This is actually earned for teaching
+      subject: session.subject,
+      topic: session.topic,
+      subtopic: session.subtopic,
+      rating: session.rating,
+      notes: session.message || ''
+    }));
+
+    // Combine and sort all transactions by date
+    const allTransactions = [...learningHistory, ...teachingHistory]
+      .sort((a, b) => new Date(b.when) - new Date(a.when));
+
+    res.json({
+      learning: learningHistory,
+      teaching: teachingHistory,
+      all: allTransactions
+    });
+  } catch (error) {
+    console.error('Error fetching complete coin history:', error);
+    handleErrors(res, 500, 'Failed to fetch coin history');
+  }
+});
+
 module.exports = router;

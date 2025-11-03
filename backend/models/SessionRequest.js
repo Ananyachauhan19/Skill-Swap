@@ -30,6 +30,21 @@ const SessionRequestSchema = new mongoose.Schema({
   // Optional details about the question
   questionText: { type: String, default: '' },
   questionImageUrl: { type: String, default: '' },
+  // Session details
+  sessionType: { 
+    type: String, 
+    enum: ['one-on-one', 'interview', 'gd'], 
+    default: 'one-on-one' 
+  },
+  duration: { type: Number, default: 60 }, // Duration in minutes
+  credits: { type: Number, default: 10 }, // Credits for the session (deprecated, use coinsSpent)
+  coinType: { 
+    type: String, 
+    enum: ['silver', 'gold'], 
+    default: 'silver' 
+  }, // Type of coin used
+  coinsSpent: { type: Number, default: 10 }, // Number of coins spent
+  rating: { type: Number, min: 1, max: 5, default: null }, // Rating given by student
   status: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected', 'active', 'completed', 'cancelled'],

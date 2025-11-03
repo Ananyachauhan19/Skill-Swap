@@ -61,6 +61,9 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
           <button className="text-left px-4 py-2 hover:bg-blue-50 rounded" onClick={() => go('/teaching-history')}>
             Teaching History
           </button>
+          <button className="text-left px-4 py-2 hover:bg-blue-50 rounded" onClick={() => go('/coins-history')}>
+            Coin History
+          </button>
           <button className="text-left px-4 py-2 hover:bg-blue-50 rounded" onClick={() => go('/package')}>
             Purchase
           </button>

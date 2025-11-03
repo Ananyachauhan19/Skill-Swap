@@ -21,7 +21,7 @@ import Sessions from './user/Sessions';
 import Testimonial from './user/Testimonial';
 import Profile from './user/Profile';
 import CreateSession from './user/createSession';
-import HistoryPage from './user/HistoryPage';
+import LearningHistory from './user/LearningHistory';
 import HelpSupportPage from './user/HelpSupportPage';
 import GoPro from './user/HomeSection/GoPro';
 import AccountSettings from './user/AccountSettings';
@@ -36,6 +36,7 @@ import InterviewCallPage from './components/InterviewCallPage';
 import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
+import CoinsHistory from './user/CoinsHistory';
 import CompleteProfile from './user/myprofile/CompleteProfile';
 import Blog from './user/company/Blog';
 import SearchPage from './user/SearchPage';
@@ -79,7 +80,8 @@ const appRoutes = [
   { path: '/your-profile', element: <ProtectedRoute><Profile /></ProtectedRoute> },
   { path: '/createSession', element: <ProtectedRoute><CreateSession /></ProtectedRoute> },
   { path: '/package', element: <ProtectedRoute><Package /></ProtectedRoute> },
-  { path: '/learning-history', element: <ProtectedRoute><HistoryPage /></ProtectedRoute> },
+  { path: '/learning-history', element: <ProtectedRoute><LearningHistory /></ProtectedRoute> },
+  { path: '/coins-history', element: <ProtectedRoute><CoinsHistory /></ProtectedRoute> },
   { path: '/help', element: <ProtectedRoute><HelpSupportPage /></ProtectedRoute> },
   { path: '/pro', element: <ProtectedRoute><GoPro /></ProtectedRoute> },
   { path: '/accountSettings', element: <ProtectedRoute><AccountSettings /></ProtectedRoute> },

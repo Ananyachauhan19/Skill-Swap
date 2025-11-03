@@ -1,66 +1,6 @@
 import React, { useEffect, useState } from "react";
-import CoinEarningHistory from "./settings/CoinEarningHistory";
-
-// --- Static mock data for teaching session history ---
-const STATIC_TEACHING_HISTORY = [
-  {
-    date: "2025-07-05",
-    sessions: [
-      {
-        id: 1,
-        type: "one-on-one",
-        with: "Bob Lee",
-        when: "2025-07-05T11:00:00Z",
-        duration: 45,
-        credits: 12,
-        subject: "Mathematics",
-        topic: "Algebra",
-        subtopic: "Quadratic Equations",
-        rating: 5,
-        notes: "Taught quadratic equations and their solutions."
-      },
-      {
-        id: 2,
-        type: "interview",
-        with: "Alice Smith",
-        when: "2025-07-05T15:00:00Z",
-        duration: 30,
-        credits: 15,
-        rating: 4,
-        notes: "Conducted a mock interview for frontend role."
-      },
-      {
-        id: 3,
-        type: "gd",
-        with: ["Alice Smith", "Bob Lee", "Charlie Kim"],
-        when: "2025-07-05T17:00:00Z",
-        duration: 60,
-        credits: 8,
-        notes: "Moderated a group discussion on leadership."
-      },
-    ],
-  },
-  {
-    date: "2025-07-04",
-    sessions: [
-      {
-        id: 4,
-        type: "one-on-one",
-        with: "Charlie Kim",
-        when: "2025-07-04T10:00:00Z",
-        duration: 30,
-        credits: 10,
-        subject: "Physics",
-        topic: "Optics",
-        subtopic: "Mirrors",
-        rating: 4,
-        notes: "Explained mirror formula and image formation."
-      },
-    ],
-  },
-];
-
-
+import { BACKEND_URL } from "../config";
+import { FaChalkboardTeacher, FaCalendarAlt, FaSearch, FaStar, FaClock, FaAward, FaCoins, FaBars, FaBook } from 'react-icons/fa';
 
 const TeachingHistory = () => {
   const [history, setHistory] = useState([]);
@@ -70,24 +10,76 @@ const TeachingHistory = () => {
   const [search, setSearch] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [expandedSession, setExpandedSession] = useState(null);
-  const [activeTab, setActiveTab] = useState("teaching");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [stats, setStats] = useState({
+    totalSessions: 0,
+    totalHours: 0,
+    silverEarned: 0,
+    goldEarned: 0,
+    averageRating: 0
+  });
 
   useEffect(() => {
-    setLoading(true);
-    // fetchTeachingHistory as a local function
-    const fetchTeachingHistory = () => {
-      return new Promise((resolve) => {
-        setTimeout(() => resolve(STATIC_TEACHING_HISTORY), 400);
-      });
-    };
-    fetchTeachingHistory()
-      .then((data) => {
+    const fetchTeachingHistory = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${BACKEND_URL}/api/session-requests/teaching-history`, {
+          credentials: 'include',
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch teaching history');
+        }
+        
+        const data = await response.json();
         setHistory(data);
         setFilteredHistory(data);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+        calculateStats(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeachingHistory();
   }, []);
+
+  const calculateStats = (data) => {
+    let totalSessions = 0;
+    let totalMinutes = 0;
+    let silverEarned = 0;
+    let goldEarned = 0;
+    let totalRating = 0;
+    let ratedSessions = 0;
+
+    data.forEach(entry => {
+      entry.sessions.forEach(session => {
+        totalSessions++;
+        totalMinutes += session.duration || 0;
+        
+        // Calculate coins earned based on coin type
+        if (session.coinType === 'gold') {
+          goldEarned += session.coinsSpent || 0;
+        } else {
+          silverEarned += session.coinsSpent || 0;
+        }
+        
+        if (session.rating) {
+          totalRating += session.rating;
+          ratedSessions++;
+        }
+      });
+    });
+
+    setStats({
+      totalSessions,
+      totalHours: (totalMinutes / 60).toFixed(1),
+      silverEarned,
+      goldEarned,
+      averageRating: ratedSessions > 0 ? (totalRating / ratedSessions).toFixed(1) : 0
+    });
+  };
 
   useEffect(() => {
     let filtered = history;
@@ -129,24 +121,35 @@ const TeachingHistory = () => {
   };
 
   const SkeletonLoader = () => (
-    <div className="space-y-8 animate-pulse">
+    <div className="space-y-6 animate-pulse">
       {[...Array(2)].map((_, idx) => (
-        <div key={idx} className="bg-gray-100 rounded-xl p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-6 w-16 bg-gray-200 rounded"></div>
-            <div className="h-6 w-40 bg-gray-200 rounded"></div>
+        <div key={idx} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-gray-300 to-gray-400 p-6">
+            <div className="h-8 w-64 bg-gray-500 rounded mb-2"></div>
+            <div className="h-4 w-32 bg-gray-400 rounded"></div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg p-4 h-40">
-                <div className="space-y-3">
-                  <div className="h-5 w-3/4 bg-gray-200 rounded"></div>
-                  <div className="h-4 w-full bg-gray-200 rounded"></div>
-                  <div className="h-4 w-5/6 bg-gray-200 rounded"></div>
-                  <div className="h-4 w-2/3 bg-gray-200 rounded"></div>
+          <div className="p-6">
+            <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-gray-100 rounded-xl p-5 h-64">
+                  <div className="space-y-4">
+                    <div className="flex gap-3">
+                      <div className="h-12 w-12 bg-gray-200 rounded-lg"></div>
+                      <div className="flex-1">
+                        <div className="h-6 w-3/4 bg-gray-200 rounded mb-2"></div>
+                        <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="h-8 w-20 bg-gray-200 rounded-lg"></div>
+                      <div className="h-8 w-20 bg-gray-200 rounded-lg"></div>
+                      <div className="h-8 w-24 bg-gray-200 rounded-lg"></div>
+                    </div>
+                    <div className="h-16 w-full bg-gray-200 rounded-lg"></div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       ))}
@@ -154,186 +157,254 @@ const TeachingHistory = () => {
   );
 
   return (
-    <div className="min-h-screen bg-blue-50 pt-20 pb-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Toggle Section */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex rounded-lg shadow-sm bg-white">
-            <button
-              className={`px-6 py-3 rounded-l-lg font-semibold border-r border-blue-200 focus:outline-none ${activeTab === 'teaching' ? 'text-blue-900 bg-blue-100 cursor-default' : 'text-blue-700 hover:bg-blue-50'}`}
-              disabled={activeTab === 'teaching'}
-              onClick={() => setActiveTab('teaching')}
-            >
-              Teaching History
-            </button>
-            <button
-              className={`px-6 py-3 rounded-r-lg font-semibold border-l border-blue-200 focus:outline-none ${activeTab === 'coin' ? 'text-blue-900 bg-blue-100 cursor-default' : 'text-blue-700 hover:bg-blue-50'}`}
-              disabled={activeTab === 'coin'}
-              onClick={() => setActiveTab('coin')}
-            >
-              Coin Earning History
-            </button>
-          </div>
-        </div>
-        {activeTab === 'teaching' ? (
-          <>
-            {/* Header Section */}
-            <div className="mb-8 text-center">
-              <h1 className="text-4xl font-bold text-blue-900 mb-2">Teaching History</h1>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                Review your past teaching sessions, interviews, and group discussions
-              </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100">
+      <div className="w-full pt-20">
+        
+        {/* Mobile menu toggle */}
+        <button 
+          className="lg:hidden m-4 p-2 bg-white rounded-lg shadow"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
+          <FaBars className="text-gray-700" />
+        </button>
+
+        <div className="flex flex-col lg:flex-row min-h-[calc(100vh-5rem)]">
+          {/* Left Sidebar - Sticky */}
+          <aside className={`${sidebarOpen ? 'block' : 'hidden'} lg:block lg:sticky lg:top-20 lg:self-start lg:h-[calc(100vh-5rem)] lg:overflow-y-auto w-full lg:w-80 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg p-6 space-y-6`}>
+            
+            {/* Header */}
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <FaChalkboardTeacher className="text-blue-600" />
+                Teaching Stats
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">Your teaching impact</p>
             </div>
-            {/* Filter Section */}
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-              <div className="flex flex-col md:flex-row gap-4 items-center">
-                <div className="relative flex-grow w-full">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <input
-                    type="text"
-                    className="block w-full pl-10 pr-3 py-3 border border-blue-200 rounded-lg bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-                    placeholder="Search teaching sessions..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+
+            {/* Total Stats Card */}
+            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-blue-200">
+              <p className="text-sm text-gray-600 mb-2">Total Teaching Sessions</p>
+              <p className="text-4xl font-bold text-blue-700">{stats.totalSessions}</p>
+              <p className="text-xs text-gray-500 mt-2">{stats.totalHours} hours taught</p>
+            </div>
+
+            {/* Stats Summary */}
+            <div className="border-t pt-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Session Overview</p>
+              
+              {/* Teaching Hours */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600 flex items-center gap-2">
+                    <FaClock className="text-indigo-500" />
+                    Teaching Hours
+                  </span>
+                  <span className="text-sm font-bold text-gray-800">{stats.totalHours}h</span>
                 </div>
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                  <input
-                    type="date"
-                    className="border border-blue-200 rounded-lg px-4 py-3 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 bg-blue-50"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                  />
-                  <button
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition duration-200 whitespace-nowrap"
-                    onClick={() => {
-                      setSearch("");
-                      setSelectedDate("");
-                    }}
-                  >
-                    Reset Filters
-                  </button>
+              </div>
+
+              {/* Average Rating */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600 flex items-center gap-2">
+                    <FaStar className="text-yellow-500" />
+                    Average Rating
+                  </span>
+                  <span className="text-sm font-bold text-yellow-600">{stats.averageRating} ⭐</span>
+                </div>
+              </div>
+
+              {/* Coins Earned */}
+              <div className="border-t pt-4 mt-4">
+                <p className="text-sm font-semibold text-gray-700 mb-3">Coins Earned</p>
+                
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600 flex items-center gap-2">
+                      <FaCoins className="text-gray-500" />
+                      Silver Coins
+                    </span>
+                    <span className="text-sm font-bold text-gray-800">{stats.silverEarned}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600 flex items-center gap-2">
+                      <FaCoins className="text-yellow-500" />
+                      Gold Coins
+                    </span>
+                    <span className="text-sm font-bold text-yellow-600">{stats.goldEarned}</span>
+                  </div>
                 </div>
               </div>
             </div>
-            {/* Content Section */}
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+
+          </aside>
+
+          {/* Right Content - Scrollable */}
+          <main className="w-full lg:flex-1 pb-12">
+            
+            {/* Search and Filter Bar */}
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg p-6">
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="relative flex-1">
+                  <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400" />
+                  <input 
+                    value={search} 
+                    onChange={(e) => setSearch(e.target.value)} 
+                    placeholder="Search by student, subject, topic..." 
+                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  />
+                </div>
+                <div className="relative w-full md:w-48">
+                  <FaCalendarAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400" />
+                  <input 
+                    value={selectedDate} 
+                    onChange={(e) => setSelectedDate(e.target.value)} 
+                    type="date" 
+                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  />
+                </div>
+                {(search || selectedDate) && (
+                  <button 
+                    onClick={() => { setSearch(''); setSelectedDate(''); }}
+                    className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-semibold transition"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Sessions List */}
+            <div className="p-6 space-y-4">
               {loading ? (
                 <SkeletonLoader />
               ) : error ? (
-                <div className="p-8 text-center">
-                  <div className="text-red-500 mb-4">
-                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                  <div className="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Error loading teaching history</h3>
-                  <p className="text-gray-600">{error}</p>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Oops! Something went wrong</h3>
+                  <p className="text-gray-600 mb-6">{error}</p>
                   <button 
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg transition duration-200"
                     onClick={() => window.location.reload()}
                   >
                     Try Again
                   </button>
                 </div>
               ) : filteredHistory.length === 0 ? (
-                <div className="p-8 text-center">
-                  <div className="text-blue-400 mb-4">
-                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                  <div className="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <FaChalkboardTeacher className="text-4xl text-blue-600" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No teaching sessions found</h3>
-                  <p className="text-gray-600 mb-4">Try adjusting your search or date filters</p>
-                  <button 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition duration-200"
-                    onClick={() => {
-                      setSearch("");
-                      setSelectedDate("");
-                    }}
-                  >
-                    Clear Filters
-                  </button>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">No sessions found</h3>
+                  <p className="text-gray-600 mb-6">
+                    {search || selectedDate ? 'Try adjusting your filters' : 'Your completed teaching sessions will appear here'}
+                  </p>
+                  {(search || selectedDate) && (
+                    <button 
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg transition duration-200"
+                      onClick={() => {
+                        setSearch("");
+                        setSelectedDate("");
+                      }}
+                    >
+                      Clear Filters
+                    </button>
+                  )}
                 </div>
               ) : (
-                <ul className="divide-y divide-blue-200">
-                  {filteredHistory.map((entry, idx) => (
-                    <li key={idx} className="p-6 hover:bg-blue-50 transition duration-150">
-                      <div className="mb-4">
-                        <h3 className="text-xl font-semibold text-blue-900">
-                          {new Date(entry.date).toLocaleDateString(undefined, {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {entry.sessions.length} session{entry.sessions.length !== 1 ? 's' : ''}
-                        </p>
+                filteredHistory.map((entry, idx) => (
+                  <div key={idx} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                            <FaCalendarAlt className="text-blue-600" />
+                            {new Date(entry.date).toLocaleDateString(undefined, {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </h3>
+                          <p className="text-gray-600 mt-1">
+                            {entry.sessions.length} session{entry.sessions.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
                       </div>
-                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    </div>
+                    
+                    <div className="p-6">
+                      <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                         {entry.sessions.map((s) => (
                           <div 
                             key={s.id}
-                            className={`bg-white border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition duration-200 ${expandedSession === s.id ? 'ring-2 ring-blue-500' : 'border-blue-200'}`}
+                            className={`relative bg-gradient-to-br from-white to-gray-50 border-2 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer ${
+                              expandedSession === s.id ? 'ring-4 ring-blue-500 border-blue-500' : 'border-gray-200 hover:border-blue-300'
+                            }`}
+                            onClick={() => setExpandedSession(expandedSession === s.id ? null : s.id)}
                           >
-                            <div 
-                              className="p-4 cursor-pointer"
-                              onClick={() => setExpandedSession(expandedSession === s.id ? null : s.id)}
-                            >
-                              <div className="flex items-start">
-                                <div className="mr-3">
-                                  {sessionTypeLabel(s.type)}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex justify-between items-start">
-                                    <h4 className="font-medium text-gray-900">
+                            <div className="p-5">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="text-4xl">
+                                    {sessionTypeLabel(s.type)}
+                                  </div>
+                                  <div>
+                                    <h4 className="font-bold text-gray-900 text-lg">
                                       {s.type === 'gd' ? 'Group Discussion' : 
                                        s.type === 'interview' ? 'Interview Session' : '1-on-1 Session'}
                                     </h4>
-                                    {s.rating && (
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        {s.rating} ★
-                                      </span>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    {s.type === 'gd' ? 
-                                      `With ${Array.isArray(s.with) ? s.with.join(', ') : s.with}` : 
-                                      `With ${s.with}`}
-                                  </p>
-                                  <div className="mt-2 flex flex-wrap gap-1">
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                      {formatTime(s.when)}
-                                    </span>
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                      {s.duration} min
-                                    </span>
-                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                      {s.credits} credits
-                                    </span>
+                                    <p className="text-sm text-gray-600 flex items-center gap-1">
+                                      <FaChalkboardTeacher className="text-blue-600" />
+                                      {s.type === 'gd' ? 
+                                        `${Array.isArray(s.with) ? s.with.join(', ') : s.with}` : 
+                                        s.with}
+                                    </p>
                                   </div>
                                 </div>
+                                <div className={`px-3 py-1.5 rounded-full font-bold text-sm flex items-center gap-1 shadow-md ${
+                                  s.coinType === 'gold' 
+                                    ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white' 
+                                    : 'bg-gradient-to-r from-gray-400 to-gray-500 text-white'
+                                }`}>
+                                  <FaCoins /> {s.coinsSpent} {s.coinType === 'gold' ? 'Gold' : 'Silver'}
+                                </div>
                               </div>
+                              
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                                  <FaClock />
+                                  {formatTime(s.when)}
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                  ⏱️ {s.duration} min
+                                </span>
+                              </div>
+                              
                               {s.subject && (
-                                <div className="mt-3">
-                                  <div className="text-sm text-gray-700">
-                                    <span className="font-medium">Subject:</span> {s.subject}
-                                    {s.topic && ` • ${s.topic}`}
-                                    {s.subtopic && ` • ${s.subtopic}`}
-                                  </div>
+                                <div className="bg-gray-100 rounded-lg p-3 mb-3">
+                                  <p className="text-sm font-semibold text-gray-700">
+                                    📚 <span className="font-bold">{s.subject}</span>
+                                    {s.topic && <span className="text-gray-600"> • {s.topic}</span>}
+                                    {s.subtopic && <span className="text-gray-500"> • {s.subtopic}</span>}
+                                  </p>
                                 </div>
                               )}
                             </div>
+                            
                             {expandedSession === s.id && (
-                              <div className="bg-blue-50 border-t border-blue-200 p-4 animate-fade-in">
-                                <h5 className="text-sm font-medium text-gray-700 mb-1">Session Notes</h5>
-                                <p className="text-sm text-gray-600">
+                              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t-2 border-blue-200 p-5 animate-fade-in">
+                                <h5 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                                  📝 Session Notes
+                                </h5>
+                                <p className="text-sm text-gray-700 leading-relaxed">
                                   {s.notes || "No additional notes provided for this session."}
                                 </p>
                               </div>
@@ -341,25 +412,16 @@ const TeachingHistory = () => {
                           </div>
                         ))}
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
-          </>
-        ) : (
-          <CoinEarningHistory />
-        )}
+
+          </main>
+
+        </div>
       </div>
-      <style jsx>{`
-        .animate-fade-in {
-          animation: fadeIn 0.3s ease-out;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 };
