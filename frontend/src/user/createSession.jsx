@@ -31,7 +31,6 @@ const CreateSession = () => {
   const [actionLoading, setActionLoading] = useState({});
   const [startingSession, setStartingSession] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
   // const [currentUser, setCurrentUser] = useState(null); // Remove this line
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
