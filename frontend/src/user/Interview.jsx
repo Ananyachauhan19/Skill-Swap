@@ -1,10 +1,13 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import Fuse from 'fuse.js';
 import { FaTimes, FaCheckCircle, FaUserTie, FaCalendarAlt, FaComment, FaClock, FaStar, FaVideo } from 'react-icons/fa';
 import { BACKEND_URL } from "../config.js";
 import { useAuth } from "../context/AuthContext";
+import { COMPANIES, POSITIONS } from "../constants/interviewData";
+import InterviewRatingModal from "../components/InterviewRatingModal";
 import StatsSection from "./interviewSection/StatsSection";
 import PastInterviewsPreview from "./interviewSection/PastInterviewsPreview";
 import TopInterviewers from "./interviewSection/TopInterviewers";
@@ -123,6 +126,80 @@ function BookInterviewModal({ isOpen, onClose }) {
   const [selectedInterviewer, setSelectedInterviewer] = useState('');
   const { user } = useAuth() || {};
 
+  // Dropdown states
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
+  const [showPositionDropdown, setShowPositionDropdown] = useState(false);
+  const [highlightedCompanyIdx, setHighlightedCompanyIdx] = useState(-1);
+  const [highlightedPositionIdx, setHighlightedPositionIdx] = useState(-1);
+  const companyInputRef = useRef();
+  const positionInputRef = useRef();
+
+  // Fuse.js instances for fuzzy search
+  const fuseCompanies = useMemo(() => {
+    return new Fuse(COMPANIES, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, []);
+
+  const fusePositions = useMemo(() => {
+    return new Fuse(POSITIONS, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, []);
+
+  // Filtered lists using Fuse.js
+  const companyList = useMemo(() => {
+    if ((company || '').trim() === '') return COMPANIES;
+    const results = fuseCompanies.search(company);
+    return results.map(result => result.item);
+  }, [company, fuseCompanies]);
+
+  const positionList = useMemo(() => {
+    if ((position || '').trim() === '') return POSITIONS;
+    const results = fusePositions.search(position);
+    return results.map(result => result.item);
+  }, [position, fusePositions]);
+
+  // Keyboard navigation for company
+  const handleCompanyKeyDown = (e) => {
+    if (!showCompanyDropdown || companyList.length === 0) return;
+    if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedCompanyIdx(idx => (idx + 1) % companyList.length);
+    } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedCompanyIdx(idx => (idx - 1 + companyList.length) % companyList.length);
+    } else if (e.key === 'Enter') {
+      if (highlightedCompanyIdx >= 0 && highlightedCompanyIdx < companyList.length) {
+        setCompany(companyList[highlightedCompanyIdx]);
+        setShowCompanyDropdown(false);
+        setHighlightedCompanyIdx(-1);
+      }
+    }
+  };
+
+  // Keyboard navigation for position
+  const handlePositionKeyDown = (e) => {
+    if (!showPositionDropdown || positionList.length === 0) return;
+    if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedPositionIdx(idx => (idx + 1) % positionList.length);
+    } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedPositionIdx(idx => (idx - 1 + positionList.length) % positionList.length);
+    } else if (e.key === 'Enter') {
+      if (highlightedPositionIdx >= 0 && highlightedPositionIdx < positionList.length) {
+        setPosition(positionList[highlightedPositionIdx]);
+        setShowPositionDropdown(false);
+        setHighlightedPositionIdx(-1);
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     if (!company || !position) return alert('Please provide company and position');
     setLoading(true);
@@ -157,6 +234,7 @@ function BookInterviewModal({ isOpen, onClose }) {
         const res = await fetch(`${BACKEND_URL}/api/interview/interviewers?${q}`, { credentials: 'include' });
         if (!res.ok) return setMatchedInterviewers([]);
         const data = await res.json();
+        console.log('Matched interviewers data:', data); // Debug log
         setMatchedInterviewers(data || []);
       } catch (e) {
         console.error('Failed to fetch interviewers', e);
@@ -192,26 +270,92 @@ function BookInterviewModal({ isOpen, onClose }) {
             <p className="text-gray-600 text-sm mb-4">Fill in the details below to request a mock interview session</p>
 
             <div className="space-y-4">
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-blue-900 mb-2">Company Name *</label>
                 <input
+                  ref={companyInputRef}
                   type="text"
                   value={company}
-                  onChange={e => setCompany(e.target.value)}
-                  placeholder="e.g., Google, Microsoft, Amazon"
+                  onChange={e => {
+                    setCompany(e.target.value);
+                    setShowCompanyDropdown(true);
+                    setHighlightedCompanyIdx(-1);
+                  }}
+                  onFocus={() => setShowCompanyDropdown(true)}
+                  onBlur={() => setTimeout(() => { setShowCompanyDropdown(false); setHighlightedCompanyIdx(-1); }, 150)}
+                  onKeyDown={handleCompanyKeyDown}
+                  placeholder="Search company..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  autoComplete="off"
                 />
+                <AnimatePresence>
+                  {showCompanyDropdown && companyList.length > 0 && (
+                    <motion.ul
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute z-20 left-0 right-0 bg-white border-2 border-blue-200 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-2"
+                    >
+                      {companyList.map((c, idx) => (
+                        <li
+                          key={idx}
+                          className={`px-4 py-3 text-gray-700 hover:bg-blue-50 cursor-pointer text-base font-medium transition-colors ${highlightedCompanyIdx === idx ? 'bg-blue-100' : ''}`}
+                          onMouseDown={() => {
+                            setCompany(c);
+                            setShowCompanyDropdown(false);
+                            setHighlightedCompanyIdx(-1);
+                          }}
+                        >
+                          {c}
+                        </li>
+                      ))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-blue-900 mb-2">Position *</label>
                 <input
+                  ref={positionInputRef}
                   type="text"
                   value={position}
-                  onChange={e => setPosition(e.target.value)}
-                  placeholder="e.g., Software Engineer, Data Analyst"
+                  onChange={e => {
+                    setPosition(e.target.value);
+                    setShowPositionDropdown(true);
+                    setHighlightedPositionIdx(-1);
+                  }}
+                  onFocus={() => setShowPositionDropdown(true)}
+                  onBlur={() => setTimeout(() => { setShowPositionDropdown(false); setHighlightedPositionIdx(-1); }, 150)}
+                  onKeyDown={handlePositionKeyDown}
+                  placeholder="Search position..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  autoComplete="off"
                 />
+                <AnimatePresence>
+                  {showPositionDropdown && positionList.length > 0 && (
+                    <motion.ul
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute z-20 left-0 right-0 bg-white border-2 border-blue-200 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-2"
+                    >
+                      {positionList.map((p, idx) => (
+                        <li
+                          key={idx}
+                          className={`px-4 py-3 text-gray-700 hover:bg-blue-50 cursor-pointer text-base font-medium transition-colors ${highlightedPositionIdx === idx ? 'bg-blue-100' : ''}`}
+                          onMouseDown={() => {
+                            setPosition(p);
+                            setShowPositionDropdown(false);
+                            setHighlightedPositionIdx(-1);
+                          }}
+                        >
+                          {p}
+                        </li>
+                      ))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
               </div>
 
 
@@ -246,7 +390,7 @@ function BookInterviewModal({ isOpen, onClose }) {
                             : 'bg-white hover:bg-blue-100 border border-gray-200'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-1">
                           <input
                             type="radio"
                             name="selectedInterviewer"
@@ -255,12 +399,32 @@ function BookInterviewModal({ isOpen, onClose }) {
                             onChange={() => setSelectedInterviewer(String(m.user._id))}
                             className="w-4 h-4"
                           />
-                          <div>
-                            <div className="font-semibold">
+                          <div className="flex-1">
+                            <div className="font-semibold flex items-center gap-2">
                               {m.user?.firstName || m.user?.username} {m.user?.lastName || ''}
+                              {/* Rating Display */}
+                              {m.stats && m.stats.averageRating > 0 && (
+                                <span className={`flex items-center gap-1 text-xs ${
+                                  selectedInterviewer === String(m.user._id) ? 'text-yellow-300' : 'text-yellow-500'
+                                }`}>
+                                  <FaStar className="text-xs" />
+                                  {m.stats.averageRating.toFixed(1)}
+                                </span>
+                              )}
                             </div>
                             <div className={`text-sm ${selectedInterviewer === String(m.user._id) ? 'text-blue-100' : 'text-gray-600'}`}>
-                              {m.application.company} • {m.application.qualification}
+                              {m.user.college || m.application.company} • {m.application.qualification}
+                            </div>
+                            {/* Interview Count - Always show */}
+                            <div className={`text-xs mt-1 flex items-center gap-3 ${selectedInterviewer === String(m.user._id) ? 'text-blue-200' : 'text-gray-500'}`}>
+                              <span>
+                                📊 {m.stats?.conductedInterviews || 0} interview{(m.stats?.conductedInterviews || 0) !== 1 ? 's' : ''}
+                              </span>
+                              {m.stats?.totalRatings > 0 && (
+                                <span>
+                                  • {m.stats.totalRatings} rating{m.stats.totalRatings !== 1 ? 's' : ''}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -403,8 +567,21 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
 function ScheduledInterviewSection() {
   const [scheduled, setScheduled] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedInterview, setSelectedInterview] = useState(null);
   const { user } = useAuth() || {};
   const navigate = useNavigate();
+
+  const handleRateClick = (interview) => {
+    setSelectedInterview(interview);
+    setShowRatingModal(true);
+  };
+
+  const handleRatingSubmitted = (data) => {
+    console.log('Rating submitted:', data);
+    // Refresh the scheduled interviews
+    fetchScheduled();
+  };
 
   const fetchScheduled = async () => {
     setLoading(true);
@@ -413,6 +590,7 @@ function ScheduledInterviewSection() {
       let res = await fetch(`${BACKEND_URL}/api/interview/scheduled`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
+        console.log('Scheduled interviews with stats:', data); // Debug log
         setScheduled(Array.isArray(data) ? data : []);
         setLoading(false);
         return;
@@ -526,28 +704,46 @@ function ScheduledInterviewSection() {
               
               {/* Details */}
               <div className="space-y-3 text-sm text-[#4b5563] mb-5">
-                <p className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <div className="w-6 h-6 bg-gradient-to-br from-[#60a5fa] to-[#3b82f6] rounded-full flex items-center justify-center text-white text-xs">👤</div>
-                  <span className="font-medium">With: {(() => {
-                    try {
-                      const uid = String(user._id);
-                      const requesterId = s.requester?._id || s.requester;
-                      const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
-                      let other = null;
-                      if (String(assignedId) === uid) {
-                        other = s.requester;
-                      } else {
-                        other = s.assignedInterviewer;
+                  <span className="font-medium flex items-center gap-2 flex-wrap">
+                    <span>With: {(() => {
+                      try {
+                        const uid = String(user._id);
+                        const requesterId = s.requester?._id || s.requester;
+                        const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+                        let other = null;
+                        let isInterviewer = false;
+                        if (String(assignedId) === uid) {
+                          other = s.requester;
+                        } else {
+                          other = s.assignedInterviewer;
+                          isInterviewer = true;
+                        }
+                        if (!other) return 'TBD';
+                        const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
+                        return name;
+                      } catch (e) {
+                        return 'TBD';
                       }
-                      if (!other) return 'TBD';
-                      const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
-                      return name;
-                    } catch (e) {
-                      return 'TBD';
-                    }
-                  })()}</span>
-                </p>
-                <p className="flex items-center gap-2">
+                    })()}</span>
+                    {/* Show interviewer stats if current user is the requester */}
+                    {String(s.requester?._id || s.requester) === String(user._id) && s.interviewerStats && (
+                      <span className="flex items-center gap-2 text-xs">
+                        {s.interviewerStats.averageRating > 0 && (
+                          <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">
+                            <FaStar className="text-xs" />
+                            {s.interviewerStats.averageRating.toFixed(1)}
+                          </span>
+                        )}
+                        <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                          📊 {s.interviewerStats.conductedInterviews || 0} interviews
+                        </span>
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
                   <div className="w-6 h-6 bg-gradient-to-br from-[#93c5fd] to-[#60a5fa] rounded-full flex items-center justify-center text-white text-xs">📆</div>
                   <span className="font-medium">
                     {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString('en-US', {
@@ -555,26 +751,51 @@ function ScheduledInterviewSection() {
                       timeStyle: 'short'
                     }) : 'Date TBD'}
                   </span>
-                </p>
+                </div>
                 {s.message && (
-                  <p className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
                     <div className="w-6 h-6 bg-gradient-to-br from-[#93c5fd] to-[#60a5fa] rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">💬</div>
                     <span className="text-xs text-gray-600 line-clamp-2">{s.message}</span>
-                  </p>
+                  </div>
                 )}
               </div>
               
               {/* Button */}
-              <button
-                onClick={() => navigate('/session-requests')}
-                className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300 text-sm sm:text-base hover:scale-105 transform"
-              >
-                View Details →
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate('/session-requests')}
+                  className="flex-1 py-2.5 sm:py-3 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300 text-sm sm:text-base hover:scale-105 transform"
+                >
+                  View Details →
+                </button>
+                {/* Rate Interview Button - Show for completed interviews without rating */}
+                {s.status === 'completed' && !s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
+                  <button
+                    onClick={() => handleRateClick(s)}
+                    className="py-2.5 sm:py-3 px-4 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300 text-sm sm:text-base hover:scale-105 transform flex items-center gap-2"
+                  >
+                    <FaStar /> Rate
+                  </button>
+                )}
+                {/* Already Rated - Show rating */}
+                {s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
+                  <div className="py-2.5 sm:py-3 px-4 bg-green-50 border-2 border-green-200 text-green-700 rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
+                    <FaStar className="text-yellow-500" /> {s.rating} ⭐
+                  </div>
+                )}
+              </div>
             </motion.div>
           ))}
         </div>
         )}
+        
+        {/* Rating Modal */}
+        <InterviewRatingModal
+          isOpen={showRatingModal}
+          onClose={() => setShowRatingModal(false)}
+          interviewData={selectedInterview}
+          onRatingSubmitted={handleRatingSubmitted}
+        />
       </div>
     </section>
   );

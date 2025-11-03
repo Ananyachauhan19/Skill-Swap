@@ -14,17 +14,15 @@ export function AuthProvider({ children }) {
   const isLoggingOutRef = useRef(false);
 
   const clearAuthData = () => {
-    // Remove cookies in multiple ways to cover path/domain variations
-    const cookieNames = Object.keys(Cookies.get());
-    cookieNames.forEach((cookieName) => {
-      try {
-        Cookies.remove(cookieName, { path: '/', domain: window.location.hostname });
-        Cookies.remove(cookieName, { path: '/' });
-        Cookies.remove('token');
-      } catch (_) {
-        // ignore
-      }
-    });
+    // Only remove specific auth-related cookies, not all cookies
+    try {
+      Cookies.remove('token', { path: '/' });
+      Cookies.remove('user', { path: '/' });
+      Cookies.remove('registeredEmail', { path: '/' });
+      Cookies.remove('isRegistered', { path: '/' });
+    } catch (e) {
+      console.error('Error removing cookies:', e);
+    }
     localStorage.clear();
     sessionStorage.clear();
   };
@@ -41,13 +39,16 @@ export function AuthProvider({ children }) {
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
-        clearAuthData();
       }
     } catch (error) {
       console.error('Failed to fetch user:', error);
-      clearAuthData();
-      setUser(null);
-      setIsAuthenticated(false);
+      if (error.response && error.response.status === 401) {
+        clearAuthData();
+        setUser(null);
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -56,22 +57,6 @@ export function AuthProvider({ children }) {
   // Initial fetch on mount
   useEffect(() => {
     fetchUser();
-  }, []);
-
-  // Respond to global "authChanged" event:
-  // - If triggered by logout, skip /me fetch and just ensure user=null.
-  // - If triggered by login elsewhere, fetch the user.
-  useEffect(() => {
-    const handleAuthChange = async () => {
-      if (isLoggingOutRef.current) {
-        setUser(null);
-        setIsAuthenticated(false);
-        return; // do NOT fetch during logout
-      }
-      await fetchUser();
-    };
-    window.addEventListener('authChanged', handleAuthChange);
-    return () => window.removeEventListener('authChanged', handleAuthChange);
   }, []);
 
   // Logout for both backend & Google OAuth
@@ -83,11 +68,10 @@ export function AuthProvider({ children }) {
       try {
         await api.post("/api/auth/logout", {}, { withCredentials: true });
       } catch (e) {
-        // proceed even if backend call fails
         console.warn('Backend logout failed or not reachable, proceeding with client cleanup.');
       }
 
-      // Google logout (safe to call even if not logged in with Google)
+      // Google logout
       try {
         googleLogout();
       } catch (_) {}
@@ -97,16 +81,15 @@ export function AuthProvider({ children }) {
       setUser(null);
       setIsAuthenticated(false);
 
-      // notify app
-      window.dispatchEvent(new Event('authChanged'));
+      // notify app - use 'logout' event specifically
+      window.dispatchEvent(new Event('logout'));
     } catch (error) {
       console.error('Logout failed:', error);
       setUser(null);
       setIsAuthenticated(false);
       clearAuthData();
-      window.dispatchEvent(new Event('authChanged'));
+      window.dispatchEvent(new Event('logout'));
     } finally {
-      // small delay ensures listeners handle the event before we allow fetches again
       setTimeout(() => {
         isLoggingOutRef.current = false;
       }, 0);

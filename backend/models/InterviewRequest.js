@@ -12,6 +12,10 @@ const interviewRequestSchema = new mongoose.Schema({
   },
   assignedInterviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   scheduledAt: { type: Date, default: null },
+  // Rating fields
+  rating: { type: Number, min: 1, max: 5, default: null },
+  feedback: { type: String, default: '' },
+  ratedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model('InterviewRequest', interviewRequestSchema);

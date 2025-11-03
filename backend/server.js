@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const passport = require('passport');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const socketIO = require('socket.io');
 const cookieParser = require('cookie-parser');
@@ -23,6 +24,8 @@ const skillMateRoutes = require('./routes/skillMateRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const testimonialRoutes = require('./routes/testimonialRoutes');
 const interviewRoutes = require('./routes/interviewRoutes');
+const skillsRoutes = require('./routes/skillsRoutes');
+const debugRoutes = require('./routes/debugRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -44,7 +47,20 @@ app.use(cookieParser());
 app.use(session({
   secret: 'secret_key',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGO_URI,
+    touchAfter: 24 * 3600, // lazy session update (in seconds)
+    crypto: {
+      secret: 'secret_key'
+    }
+  }),
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production', // use secure cookies in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  }
 }));
 
 app.use(passport.initialize());
@@ -89,6 +105,8 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/interview', interviewRoutes);
+app.use('/api', skillsRoutes);
+app.use('/api', debugRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');

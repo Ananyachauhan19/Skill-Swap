@@ -1,95 +1,10 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Cookies from 'js-cookie';
+import Fuse from 'fuse.js';
 import VideoCall from '../components/VideoCall';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
-
-// Static data 
-const STATIC_COURSES = [
-  'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'English',
-  'Economics', 'History', 'Geography', 'Psychology', 'Business Studies',
-  'Political Science', 'Sociology', 'Accountancy', 'Statistics',
-];
-const STATIC_UNITS = {
-  Mathematics: ['Algebra', 'Calculus', 'Geometry', 'Trigonometry', 'Probability', 'Statistics'],
-  Physics: ['Mechanics', 'Optics', 'Thermodynamics', 'Electromagnetism', 'Modern Physics'],
-  Chemistry: ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Analytical Chemistry'],
-  Biology: ['Botany', 'Zoology', 'Genetics', 'Ecology', 'Cell Biology'],
-  'Computer Science': ['Data Structures', 'Algorithms', 'Operating Systems', 'Databases', 'Networking'],
-  English: ['Grammar', 'Literature', 'Writing Skills', 'Comprehension'],
-  Economics: ['Microeconomics', 'Macroeconomics', 'International Economics', 'Econometrics'],
-  History: ['Ancient History', 'Medieval History', 'Modern History', 'World History'],
-  Geography: ['Physical Geography', 'Human Geography', 'Cartography', 'GIS'],
-  Psychology: ['Cognitive Psychology', 'Developmental Psychology', 'Clinical Psychology'],
-  'Business Studies': ['Business Environment', 'Management', 'Marketing', 'Finance'],
-  'Political Science': ['Political Theory', 'Comparative Politics', 'International Relations'],
-  Sociology: ['Social Structure', 'Social Change', 'Research Methods'],
-  Accountancy: ['Financial Accounting', 'Cost Accounting', 'Auditing'],
-  Statistics: ['Descriptive Statistics', 'Inferential Statistics', 'Probability Theory'],
-};
-const STATIC_TOPICS = {
-  Algebra: ['Linear Equations', 'Quadratic Equations', 'Polynomials'],
-  Calculus: ['Limits', 'Derivatives', 'Integrals'],
-  Geometry: ['Triangles', 'Circles', 'Polygons'],
-  Trigonometry: ['Sine', 'Cosine', 'Tangent'],
-  Probability: ['Permutations', 'Combinations', 'Probability Distributions'],
-  Statistics: ['Mean', 'Median', 'Mode'],
-  Mechanics: ['Kinematics', 'Dynamics', 'Work & Energy'],
-  Optics: ['Reflection', 'Refraction', 'Lenses'],
-  Thermodynamics: ['Laws of Thermodynamics', 'Heat Transfer'],
-  Electromagnetism: ['Electric Fields', 'Magnetism', 'Circuits'],
-  'Modern Physics': ['Relativity', 'Quantum Mechanics'],
-  'Organic Chemistry': ['Hydrocarbons', 'Alcohols', 'Amines', 'Aldehydes', 'Ketones', 'Carboxylic Acids'],
-  'Inorganic Chemistry': ['Periodic Table', 'Coordination Compounds', 'Metals', 'Non-metals', 'Acids & Bases'],
-  'Physical Chemistry': ['Thermodynamics', 'Electrochemistry', 'Chemical Kinetics', 'Surface Chemistry'],
-  'Analytical Chemistry': ['Spectroscopy', 'Chromatography', 'Titration'],
-  Botany: ['Plant Physiology', 'Plant Anatomy'],
-  Zoology: ['Animal Physiology', 'Animal Classification'],
-  Genetics: ['Mendelian Genetics', 'DNA Structure'],
-  Ecology: ['Ecosystems', 'Biodiversity'],
-  'Cell Biology': ['Cell Structure', 'Cell Division'],
-  'Data Structures': ['BST', 'Heap', 'Trie', 'Hash Table', 'Stack', 'Queue', 'Graph'],
-  Algorithms: ['Dijkstra', 'Floyd Warshall', 'A* Search', 'Kruskal', 'Prim', 'Bellman-Ford', 'DFS', 'BFS'],
-  'Operating Systems': ['Processes', 'Threads', 'Deadlock', 'Memory Management'],
-  Databases: ['SQL', 'Normalization', 'Transactions', 'Indexing'],
-  Networking: ['OSI Model', 'TCP/IP', 'Routing'],
-  Grammar: ['Tenses', 'Parts of Speech', 'Voice'],
-  Literature: ['Poetry', 'Drama', 'Prose'],
-  'Writing Skills': ['Essay', 'Letter', 'Report'],
-  Comprehension: ['Passage Analysis', 'Summary'],
-  Microeconomics: ['Demand', 'Supply', 'Elasticity'],
-  Macroeconomics: ['GDP', 'Inflation', 'Unemployment'],
-  'International Economics': ['Trade', 'Exchange Rates'],
-  Econometrics: ['Regression', 'Time Series'],
-  'Ancient History': ['Indus Valley', 'Egyptian Civilization'],
-  'Medieval History': ['Delhi Sultanate', 'Mughal Empire'],
-  'Modern History': ['World Wars', 'Indian Independence'],
-  'World History': ['Renaissance', 'Industrial Revolution'],
-  'Physical Geography': ['Landforms', 'Climate'],
-  'Human Geography': ['Population', 'Urbanization'],
-  Cartography: ['Map Projections', 'GIS Basics'],
-  GIS: ['Remote Sensing', 'Spatial Analysis'],
-  'Cognitive Psychology': ['Memory', 'Perception'],
-  'Developmental Psychology': ['Child Development', 'Adolescence'],
-  'Clinical Psychology': ['Disorders', 'Therapies'],
-  'Business Environment': ['Business Types', 'Business Ethics'],
-  Management: ['Leadership', 'Motivation'],
-  Marketing: ['Market Research', 'Branding'],
-  Finance: ['Accounting', 'Investment'],
-  'Political Theory': ['Democracy', 'Justice'],
-  'Comparative Politics': ['Political Systems', 'Constitutions'],
-  'International Relations': ['UN', 'Globalization'],
-  'Social Structure': ['Family', 'Caste'],
-  'Social Change': ['Modernization', 'Social Movements'],
-  'Research Methods': ['Surveys', 'Fieldwork'],
-  'Financial Accounting': ['Balance Sheet', 'Ledger'],
-  'Cost Accounting': ['Cost Sheet', 'Budgeting'],
-  Auditing: ['Internal Audit', 'External Audit'],
-  'Descriptive Statistics': ['Mean', 'Variance'],
-  'Inferential Statistics': ['Hypothesis Testing', 'Confidence Intervals'],
-  'Probability Theory': ['Random Variables', 'Probability Distributions'],
-};
 
 const CreateSession = () => {
   const cardRef = useRef(null);
@@ -117,6 +32,29 @@ const CreateSession = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
+
+  // State for Google Sheet data
+  const [classes, setClasses] = useState([]);
+  const [subjectsByClass, setSubjectsByClass] = useState({});
+  const [topicsBySubject, setTopicsBySubject] = useState({});
+
+  // Fetch skills list from Google Sheet
+  useEffect(() => {
+    const fetchLists = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/skills-list`);
+        if (!response.ok) throw new Error('Failed to fetch skills list');
+        const data = await response.json();
+        setClasses(data.classes || []);
+        setSubjectsByClass(data.subjectsByClass || {});
+        setTopicsBySubject(data.topicsBySubject || {});
+        console.log('✅ [CreateSession] Loaded skills from Google Sheet:', data);
+      } catch (error) {
+        console.error('❌ [CreateSession] Error fetching skills list:', error);
+      }
+    };
+    fetchLists();
+  }, []);
 
   // Helper function to normalize user IDs for comparison
   const normalizeUserId = (userId) => {
@@ -229,33 +167,78 @@ const CreateSession = () => {
     };
   }, [currentUser, activeSession]);
 
-  // Filter course suggestions based on user's skills
-  const filteredCourseSuggestions = userSkills.length > 0
-    ? STATIC_COURSES.filter(s => userSkills.some(skill => skill.subject === s) && (form.subject || '').toLowerCase().includes(s.toLowerCase()))
-    : [];
-  const courseList = (form.subject || '').trim() === '' ? (userSkills.length > 0 ? [...new Set(userSkills.map(skill => skill.subject))] : STATIC_COURSES) : filteredCourseSuggestions;
+  // Initialize Fuse.js instances for fuzzy search
+  const fuseClasses = useMemo(() => {
+    const classesData = userSkills.length > 0 
+      ? [...new Set(userSkills.map(skill => skill.subject))].filter(s => classes.includes(s))
+      : classes;
+    return new Fuse(classesData, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, [classes, userSkills]);
 
-  // Filter unit suggestions based on user's skills
-  const unitList = form.subject
-    ? userSkills.length > 0
-      ? [...new Set(userSkills.filter(skill => skill.subject === form.subject).map(skill => skill.topic))].filter(t => STATIC_UNITS[form.subject]?.includes(t))
-      : STATIC_UNITS[form.subject] || []
-    : [];
-  const filteredUnitSuggestions = unitList.filter(
-    (u) => (form.topic || '').toLowerCase().includes((u || '').toLowerCase()) && (form.topic || '').trim() !== ''
-  );
-  const unitDropdownList = (form.topic || '').trim() === '' ? unitList : filteredUnitSuggestions;
+  const fuseSubjects = useMemo(() => {
+    if (!form.subject || !subjectsByClass[form.subject]) return null;
+    const subjectList = userSkills.length > 0 
+      ? [...new Set(userSkills.filter(skill => skill.subject === form.subject).map(skill => skill.topic))].filter(t => subjectsByClass[form.subject]?.includes(t))
+      : subjectsByClass[form.subject];
+    return new Fuse(subjectList, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, [form.subject, subjectsByClass, userSkills]);
 
-  // Filter subtopic suggestions based on user's skills
-  const topicList = form.topic
-    ? userSkills.length > 0
-      ? [...new Set(userSkills.filter(skill => skill.subject === form.subject && skill.topic === form.topic).map(skill => skill.subtopic))].filter(t => STATIC_TOPICS[form.topic]?.includes(t))
-      : STATIC_TOPICS[form.topic] || []
-    : [];
-  const filteredTopicSuggestions = topicList.filter(
-    (t) => (form.subtopic || '').toLowerCase().includes((t || '').toLowerCase()) && (form.subtopic || '').trim() !== ''
-  );
-  const topicDropdownList = (form.subtopic || '').trim() === '' ? topicList : filteredTopicSuggestions;
+  const fuseTopics = useMemo(() => {
+    if (!form.topic || !topicsBySubject[form.topic]) return null;
+    const topicList = userSkills.length > 0
+      ? [...new Set(userSkills.filter(skill => skill.subject === form.subject && skill.topic === form.topic).map(skill => skill.subtopic))].filter(t => topicsBySubject[form.topic]?.includes(t))
+      : topicsBySubject[form.topic];
+    return new Fuse(topicList, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, [form.topic, form.subject, topicsBySubject, userSkills]);
+
+  // Filter using Fuse.js fuzzy search
+  const courseList = useMemo(() => {
+    const baseList = userSkills.length > 0 
+      ? [...new Set(userSkills.map(skill => skill.subject))].filter(s => classes.includes(s))
+      : classes;
+    if ((form.subject || '').trim() === '') return baseList;
+    if (!fuseClasses) return baseList;
+    const results = fuseClasses.search(form.subject);
+    return results.map(result => result.item);
+  }, [form.subject, classes, userSkills, fuseClasses]);
+
+  const unitDropdownList = useMemo(() => {
+    const unitList = form.subject && subjectsByClass[form.subject] 
+      ? (userSkills.length > 0 
+          ? [...new Set(userSkills.filter(skill => skill.subject === form.subject).map(skill => skill.topic))].filter(t => subjectsByClass[form.subject]?.includes(t))
+          : subjectsByClass[form.subject])
+      : [];
+    if ((form.topic || '').trim() === '') return unitList;
+    if (!fuseSubjects) return unitList;
+    const results = fuseSubjects.search(form.topic);
+    return results.map(result => result.item);
+  }, [form.topic, form.subject, subjectsByClass, userSkills, fuseSubjects]);
+
+  const topicDropdownList = useMemo(() => {
+    const topicList = form.topic && topicsBySubject[form.topic]
+      ? (userSkills.length > 0
+          ? [...new Set(userSkills.filter(skill => skill.subject === form.subject && skill.topic === form.topic).map(skill => skill.subtopic))].filter(t => topicsBySubject[form.topic]?.includes(t))
+          : topicsBySubject[form.topic])
+      : [];
+    if ((form.subtopic || '').trim() === '') return topicList;
+    if (!fuseTopics) return topicList;
+    const results = fuseTopics.search(form.subtopic);
+    return results.map(result => result.item);
+  }, [form.subtopic, form.topic, form.subject, topicsBySubject, userSkills, fuseTopics]);
+
+  // Filter class suggestions - OLD CODE REMOVED
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -649,7 +632,7 @@ const CreateSession = () => {
             ) : (
               <form className="flex flex-col gap-5" onSubmit={handleSubmit} autoComplete="off">
                 <div className="relative">
-                  <label className="block text-blue-900 font-medium mb-1 font-lora">Subject / Course</label>
+                  <label className="block text-blue-900 font-medium mb-1 font-lora">Class</label>
                   <input
                     type="text"
                     name="subject"
@@ -673,7 +656,7 @@ const CreateSession = () => {
                         }
                       }
                     }}
-                    placeholder="e.g. Mathematics"
+                    placeholder="Search Class..."
                     className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     required
                     autoComplete="off"
@@ -697,7 +680,7 @@ const CreateSession = () => {
                   )}
                 </div>
                 <div className="relative">
-                  <label className="block text-blue-900 font-medium mb-1 font-lora">Topic / Unit</label>
+                  <label className="block text-blue-900 font-medium mb-1 font-lora">Subject</label>
                   <input
                     type="text"
                     name="topic"
@@ -721,7 +704,7 @@ const CreateSession = () => {
                         }
                       }
                     }}
-                    placeholder="e.g. Algebra, Calculus"
+                    placeholder="Search Subject..."
                     className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     required
                     autoComplete="off"
@@ -746,7 +729,7 @@ const CreateSession = () => {
                   )}
                 </div>
                 <div className="relative">
-                  <label className="block text-blue-900 font-medium mb-1 font-lora">Subtopic</label>
+                  <label className="block text-blue-900 font-medium mb-1 font-lora">Topic</label>
                   <input
                     type="text"
                     name="subtopic"
@@ -770,7 +753,7 @@ const CreateSession = () => {
                         }
                       }
                     }}
-                    placeholder="e.g. Linear Equations, Trees, SQL"
+                    placeholder="Search Topic..."
                     className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
                     required={!!form.topic}
                     autoComplete="off"

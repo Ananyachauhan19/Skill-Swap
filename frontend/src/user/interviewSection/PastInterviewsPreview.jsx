@@ -27,7 +27,6 @@ const PastInterviewsPreview = () => {
     setLoading(true);
     setError(null);
     try {
-      // Try my-interviews endpoint first
       let res = await fetch(`${BACKEND_URL}/api/interview/my-interviews`, { credentials: 'include' });
       let list = [];
 
@@ -35,7 +34,6 @@ const PastInterviewsPreview = () => {
         const data = await res.json();
         list = Array.isArray(data) ? data : [];
       } else {
-        // Fallback to requests endpoint
         res = await fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' });
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
@@ -150,6 +148,19 @@ const PastInterviewsPreview = () => {
                       {interview.interviewerName || interview.interviewer?.firstName || interview.assignedInterviewer?.firstName || interview.assignedInterviewer?.username || 'Interviewer'}
                     </h3>
                     <p className="text-xs sm:text-sm text-[#1e40af] truncate">{interview.domain || interview.subject || 'General'}</p>
+                    {/* Interviewer Stats */}
+                    {interview.interviewerStats && (
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                        {interview.interviewerStats.averageRating > 0 && (
+                          <span className="flex items-center gap-1 text-yellow-600">
+                            <FaStar className="text-xs" />
+                            {interview.interviewerStats.averageRating.toFixed(1)}
+                          </span>
+                        )}
+                        <span className="text-gray-400">•</span>
+                        <span>📊 {interview.interviewerStats.conductedInterviews || 0} interviews</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -228,16 +228,114 @@ exports.rejectApplication = async (req, res) => {
   }
 };
 
-// Public: get approved interviewers, optionally filter by company or position
+// Public: get approved interviewers, optionally filter by company or position with fuzzy search
 exports.getApprovedInterviewers = async (req, res) => {
   try {
     const { company, position } = req.query;
-    // Find users who have a matching InterviewerApplication approved OR role set to 'both' and skillsToTeach match
-    const appsQuery = { status: 'approved' };
-    if (company) appsQuery.company = new RegExp(company, 'i');
-    if (position) appsQuery.position = new RegExp(position, 'i');
-    const apps = await InterviewerApplication.find(appsQuery).populate('user', 'username firstName lastName profilePic');
-    res.json(apps.map(a => ({ application: a, user: a.user })));
+    
+    // Get all approved interviewers first
+    const apps = await InterviewerApplication.find({ status: 'approved' })
+      .populate('user', 'username firstName lastName profilePic college');
+    
+    // If no filters, return all
+    if (!company && !position) {
+      const result = apps.map(a => ({ 
+        application: a, 
+        user: a.user,
+        stats: {
+          conductedInterviews: a.conductedInterviews || 0,
+          averageRating: a.averageRating || 0,
+          totalRatings: a.totalRatings || 0
+        }
+      }));
+      console.log('Returning all approved interviewers with stats:', result.length);
+      return res.json(result);
+    }
+    
+    // Use Fuse.js for fuzzy matching
+    const Fuse = require('fuse.js');
+    
+    let matchedResults = [];
+    
+    // Strategy: Search separately for company and position, then merge with position priority
+    // This ensures we match if EITHER field matches (OR logic instead of AND)
+    
+    if (position) {
+      // PRIORITY 1: Position matching (higher weight, lower threshold for strict matching)
+      const positionFuse = new Fuse(apps, {
+        threshold: 0.3, // Stricter matching for positions
+        distance: 100,
+        keys: [
+          { name: 'position', weight: 3 },      // Highest priority
+          { name: 'qualification', weight: 1 }, // Related skills/qualifications
+        ],
+        includeScore: true
+      });
+      
+      const positionResults = positionFuse.search(position);
+      matchedResults = positionResults.map(r => ({
+        ...r,
+        matchType: 'position',
+        priorityScore: r.score // Lower = better
+      }));
+    }
+    
+    if (company) {
+      // PRIORITY 2: Company matching (secondary priority)
+      const companyFuse = new Fuse(apps, {
+        threshold: 0.4, // More lenient for company names
+        distance: 100,
+        keys: [
+          { name: 'company', weight: 2 },
+          { name: 'user.college', weight: 1 }, // University/college as fallback
+        ],
+        includeScore: true
+      });
+      
+      const companyResults = companyFuse.search(company);
+      
+      // Merge company results, but penalize score to give position matches priority
+      companyResults.forEach(cr => {
+        // Check if already matched by position
+        const existingIdx = matchedResults.findIndex(
+          mr => mr.item._id.toString() === cr.item._id.toString()
+        );
+        
+        if (existingIdx >= 0) {
+          // Already matched by position - enhance the match
+          matchedResults[existingIdx].matchType = 'both';
+          matchedResults[existingIdx].priorityScore = 
+            matchedResults[existingIdx].priorityScore * 0.5; // Boost score (lower is better)
+        } else {
+          // New match from company only - add with penalty
+          matchedResults.push({
+            ...cr,
+            matchType: 'company',
+            priorityScore: cr.score + 0.3 // Add penalty so position matches rank higher
+          });
+        }
+      });
+    }
+    
+    // Sort by priority score (lower = better match)
+    // Order: both > position > company
+    matchedResults.sort((a, b) => a.priorityScore - b.priorityScore);
+    
+    // Return matched interviewers with match information
+    const result = matchedResults.map(r => ({ 
+      application: r.item, 
+      user: r.item.user,
+      score: r.score,
+      matchType: r.matchType, // 'position', 'company', or 'both'
+      stats: {
+        conductedInterviews: r.item.conductedInterviews || 0,
+        averageRating: r.item.averageRating || 0,
+        totalRatings: r.item.totalRatings || 0
+      }
+    }));
+    console.log(`Returning ${result.length} matched interviewers with stats`);
+    res.json(result);
+    
   } catch (err) {
     console.error('getApprovedInterviewers error', err);
     res.status(500).json({ message: 'Failed to fetch interviewers' });
@@ -445,12 +543,227 @@ exports.getScheduledForUserOrInterviewer = async (req, res) => {
     const scheduled = await InterviewRequest.find({
       $or: [{ requester: userId }, { assignedInterviewer: userId }],
       status: 'scheduled'
-    }).populate('requester', 'username firstName lastName').populate('assignedInterviewer', 'username firstName lastName').sort({ scheduledAt: 1 });
+    }).populate('requester', 'username firstName lastName')
+      .populate('assignedInterviewer', 'username firstName lastName')
+      .sort({ scheduledAt: 1 });
 
-    res.json(scheduled);
+    // Fetch interviewer stats for each scheduled interview
+    const scheduledWithStats = await Promise.all(scheduled.map(async (interview) => {
+      const interviewObj = interview.toObject();
+      
+      // Get interviewer stats if assignedInterviewer exists
+      if (interview.assignedInterviewer) {
+        const interviewerApp = await InterviewerApplication.findOne({ 
+          user: interview.assignedInterviewer._id 
+        });
+        
+        if (interviewerApp) {
+          interviewObj.interviewerStats = {
+            conductedInterviews: interviewerApp.conductedInterviews || 0,
+            averageRating: interviewerApp.averageRating || 0,
+            totalRatings: interviewerApp.totalRatings || 0
+          };
+        }
+      }
+      
+      return interviewObj;
+    }));
+
+    res.json(scheduledWithStats);
   } catch (err) {
     console.error('getScheduledForUserOrInterviewer error', err);
     res.status(500).json({ message: 'Failed to fetch scheduled interviews' });
+  }
+};
+
+// Rate an interviewer after completed interview
+exports.rateInterviewer = async (req, res) => {
+  try {
+    const { requestId, rating, feedback } = req.body;
+    const userId = req.user._id;
+
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+    }
+
+    // Find the interview request
+    const request = await InterviewRequest.findById(requestId)
+      .populate('assignedInterviewer');
+
+    if (!request) {
+      return res.status(404).json({ message: 'Interview request not found' });
+    }
+
+    // Verify user is the requester
+    if (request.requester.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'Only the requester can rate the interview' });
+    }
+
+    // Check if already rated
+    if (request.rating) {
+      return res.status(400).json({ message: 'Interview already rated' });
+    }
+
+    // Update interview request with rating
+    request.rating = rating;
+    request.feedback = feedback || '';
+    request.ratedAt = new Date();
+    request.status = 'completed';
+    await request.save();
+
+    // Update interviewer's average rating
+    if (request.assignedInterviewer) {
+      const interviewerApp = await InterviewerApplication.findOne({ 
+        user: request.assignedInterviewer._id || request.assignedInterviewer 
+      });
+
+      if (interviewerApp) {
+        const currentTotal = interviewerApp.averageRating * interviewerApp.totalRatings;
+        interviewerApp.totalRatings += 1;
+        interviewerApp.averageRating = (currentTotal + rating) / interviewerApp.totalRatings;
+        interviewerApp.conductedInterviews += 1;
+        await interviewerApp.save();
+      }
+
+      // Create notification for interviewer
+      try {
+        const notification = await Notification.create({
+          userId: request.assignedInterviewer._id || request.assignedInterviewer,
+          type: 'interview-rated',
+          message: `You received a ${rating}-star rating for your interview`,
+          requestId: request._id,
+          timestamp: Date.now(),
+        });
+        
+        const io = req.app.get('io');
+        if (io) {
+          io.to((request.assignedInterviewer._id || request.assignedInterviewer).toString())
+            .emit('notification', notification);
+        }
+      } catch (e) {
+        console.error('Failed to create rating notification', e);
+      }
+    }
+
+    res.json({ 
+      message: 'Rating submitted successfully', 
+      request,
+      updatedRating: {
+        rating: request.rating,
+        feedback: request.feedback
+      }
+    });
+  } catch (err) {
+    console.error('rateInterviewer error', err);
+    res.status(500).json({ message: 'Failed to submit rating' });
+  }
+};
+
+// Get user's interview history (for stats and past interviews)
+exports.getMyInterviews = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    
+    // Get all interviews where user is either requester or interviewer
+    const interviews = await InterviewRequest.find({
+      $or: [{ requester: userId }, { assignedInterviewer: userId }]
+    })
+    .populate('requester', 'username firstName lastName profilePic')
+    .populate('assignedInterviewer', 'username firstName lastName profilePic')
+    .sort({ createdAt: -1 });
+
+    // Fetch interviewer stats for each interview
+    const interviewsWithStats = await Promise.all(interviews.map(async (interview) => {
+      const interviewObj = interview.toObject();
+      
+      // Get interviewer stats if assignedInterviewer exists
+      if (interview.assignedInterviewer) {
+        const interviewerApp = await InterviewerApplication.findOne({ 
+          user: interview.assignedInterviewer._id 
+        });
+        
+        if (interviewerApp) {
+          interviewObj.interviewerStats = {
+            conductedInterviews: interviewerApp.conductedInterviews || 0,
+            averageRating: interviewerApp.averageRating || 0,
+            totalRatings: interviewerApp.totalRatings || 0
+          };
+        }
+      }
+      
+      return interviewObj;
+    }));
+
+    res.json(interviewsWithStats);
+  } catch (err) {
+    console.error('getMyInterviews error', err);
+    res.status(500).json({ message: 'Failed to fetch interviews' });
+  }
+};
+
+// Get interview statistics for dashboard
+exports.getInterviewStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Get all interviews for the user
+    const allInterviews = await InterviewRequest.find({
+      $or: [{ requester: userId }, { assignedInterviewer: userId }]
+    });
+
+    // Count interviews by status (as requester)
+    const myRequests = allInterviews.filter(i => String(i.requester) === String(userId));
+    const totalRequested = myRequests.length;
+    const totalCompleted = myRequests.filter(i => i.status === 'completed').length;
+    const totalScheduled = myRequests.filter(i => i.status === 'scheduled').length;
+    const totalPending = myRequests.filter(i => i.status === 'pending').length;
+
+    // Calculate success rate
+    const successRate = totalRequested > 0 ? Math.round((totalCompleted / totalRequested) * 100) : 0;
+
+    // Count unique experts
+    const uniqueExperts = new Set();
+    myRequests.forEach(i => {
+      if (i.assignedInterviewer) {
+        uniqueExperts.add(String(i.assignedInterviewer));
+      }
+    });
+
+    // If user is an interviewer, get their stats
+    const interviewerApp = await InterviewerApplication.findOne({ user: userId });
+    let asInterviewer = null;
+    
+    if (interviewerApp && interviewerApp.status === 'approved') {
+      const conducted = allInterviews.filter(i => 
+        String(i.assignedInterviewer) === String(userId) && i.status === 'completed'
+      );
+
+      asInterviewer = {
+        totalConducted: conducted.length,
+        averageRating: interviewerApp.averageRating || 0,
+        totalRatings: interviewerApp.totalRatings || 0,
+        conductedInterviews: interviewerApp.conductedInterviews || 0
+      };
+    }
+
+    res.json({
+      // For StatsSection component
+      totalInterviews: totalRequested,
+      successRate,
+      totalExperts: uniqueExperts.size,
+      // Detailed breakdown
+      asRequester: {
+        totalRequested,
+        totalCompleted,
+        totalScheduled,
+        totalPending
+      },
+      asInterviewer
+    });
+  } catch (err) {
+    console.error('getInterviewStats error', err);
+    res.status(500).json({ message: 'Failed to fetch interview stats' });
   }
 };
 

@@ -542,13 +542,13 @@ const SessionRequests = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm text-gray-600">
           <div>
-            <span className="font-medium">Subject:</span> {request.subject}
+            <span className="font-medium">Class:</span> {request.subject}
           </div>
           <div>
-            <span className="font-medium">Topic:</span> {request.topic}
+            <span className="font-medium">Subject:</span> {request.topic}
           </div>
           <div>
-            <span className="font-medium">Subtopic:</span> {request.subtopic}
+            <span className="font-medium">Topic:</span> {request.subtopic}
           </div>
         </div>
         {request.message && (

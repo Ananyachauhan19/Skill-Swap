@@ -38,6 +38,15 @@ router.post('/schedule', requireAuth, ctrl.scheduleInterview);
 // Get scheduled interviews for user or interviewer
 router.get('/scheduled', requireAuth, ctrl.getScheduledForUserOrInterviewer);
 
+// Rate interviewer after completed interview
+router.post('/rate', requireAuth, ctrl.rateInterviewer);
+
+// Get user's interview history
+router.get('/my-interviews', requireAuth, ctrl.getMyInterviews);
+
+// Get interview statistics
+router.get('/stats', requireAuth, ctrl.getInterviewStats);
+
 // Optional public endpoints used by frontend: past interviews and faqs
 router.get('/past', ctrl.getPastInterviews);
 

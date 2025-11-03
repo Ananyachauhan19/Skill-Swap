@@ -14,7 +14,6 @@ const TopInterviewers = () => {
   const fetchTopInterviewers = async () => {
     setLoading(true);
     try {
-      // Try my-interviews endpoint first
       let res = await fetch(`${BACKEND_URL}/api/interview/my-interviews`, { credentials: 'include' });
       let list = [];
       
@@ -22,7 +21,6 @@ const TopInterviewers = () => {
         const data = await res.json();
         list = Array.isArray(data) ? data : [];
       } else {
-        // Fallback to requests endpoint
         res = await fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
@@ -39,10 +37,18 @@ const TopInterviewers = () => {
 
       const byInterviewer = new Map();
       const byCandidate = new Map();
+      const interviewerStatsMap = new Map();
+      
       for (const r of list) {
         // Count interviewer conducted when status completed or scheduled/assigned
         const inter = r.assignedInterviewer && (r.assignedInterviewer._id || r.assignedInterviewer);
-        if (inter) byInterviewer.set(String(inter), (byInterviewer.get(String(inter)) || 0) + 1);
+        if (inter) {
+          byInterviewer.set(String(inter), (byInterviewer.get(String(inter)) || 0) + 1);
+          // Store interviewer stats if available
+          if (r.interviewerStats && !interviewerStatsMap.has(String(inter))) {
+            interviewerStatsMap.set(String(inter), r.interviewerStats);
+          }
+        }
         const cand = r.requester && (r.requester._id || r.requester);
         if (cand) byCandidate.set(String(cand), (byCandidate.get(String(cand)) || 0) + 1);
       }
@@ -54,7 +60,15 @@ const TopInterviewers = () => {
         const candObj = r.requester && (typeof r.requester === 'object' ? r.requester : null);
         if (candObj && candObj._id && !userMap.has(String(candObj._id))) userMap.set(String(candObj._id), candObj);
       }
-      const conductedArr = Array.from(byInterviewer.entries()).map(([id, count]) => ({ user: userMap.get(id) || { _id: id }, count }));
+      const conductedArr = Array.from(byInterviewer.entries()).map(([id, count]) => {
+        const stats = interviewerStatsMap.get(id);
+        return {
+          user: userMap.get(id) || { _id: id },
+          count,
+          avgRating: stats?.averageRating || 0,
+          totalInterviews: stats?.conductedInterviews || count
+        };
+      });
       const requestedArr = Array.from(byCandidate.entries()).map(([id, count]) => ({ user: userMap.get(id) || { _id: id }, count }));
       conductedArr.sort((a, b) => b.count - a.count);
       requestedArr.sort((a, b) => b.count - a.count);
@@ -120,7 +134,7 @@ const TopInterviewers = () => {
             <span className="text-xl sm:text-2xl font-black text-[#2563eb]">{person.count || 0}</span>
           </div>
 
-          {person.avgRating && (
+          {person.avgRating > 0 && (
             <div className="flex items-center justify-between p-2 sm:p-3 bg-[#f0f9ff] border border-[#93c5fd] rounded-lg sm:rounded-xl">
               <span className="text-xs sm:text-sm text-[#1e3a8a] font-bold flex items-center gap-1 sm:gap-2">
                 <FaStar className="text-[#3b82f6] text-xs sm:text-base" />

@@ -35,7 +35,7 @@ const HowItWorks = () => {
             {
               emoji: "🔍",
               title: "Search Expert",
-              desc: "Select course, unit, or topic to find the perfect tutor",
+              desc: "Select class, subject, or topic to find the perfect tutor",
               bgGradient: "from-[#3b82f6] to-[#2563eb]",
               lightBg: "from-[#dbeafe] to-[#bfdbfe]",
               borderColor: "border-[#93c5fd]",

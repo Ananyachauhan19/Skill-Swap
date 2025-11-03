@@ -163,19 +163,19 @@ function App() {
     };
   }, [user?._id]);
 
-  // Handle logout
+  // Handle logout only
   useEffect(() => {
-    const handleAuthChange = () => {
+    const handleLogout = () => {
       if (socket.connected) {
         socket.disconnect();
-        console.info('[DEBUG] Socket disconnected on auth change');
+        console.info('[DEBUG] Socket disconnected on logout');
       }
       setUser(null);
-      navigate('/login', { replace: true }); // Redirect to login on logout
+      navigate('/login', { replace: true });
     };
 
-    window.addEventListener('authChanged', handleAuthChange);
-    return () => window.removeEventListener('authChanged', handleAuthChange);
+    window.addEventListener('logout', handleLogout);
+    return () => window.removeEventListener('logout', handleLogout);
   }, [navigate, setUser]);
 
   if (loading) {

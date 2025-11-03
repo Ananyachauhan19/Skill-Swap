@@ -1,26 +1,9 @@
-import React, { useState, useRef, forwardRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import coursesData from '../../../src/courses_300.json';
+import React, { useState, useRef, forwardRef, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Fuse from 'fuse.js';
+import { BACKEND_URL } from '../../config';
 
-// Build dropdown data from courses_300.json
-const courseSet = new Set();
-const STATIC_UNITS = {};
-const STATIC_TOPICS = {};
-coursesData.forEach(item => {
-  const course = item.course || '';
-  const unit = item.unit || '';
-  const topic = item.topic || '';
-  if (course) courseSet.add(course);
-  if (course && unit) {
-    if (!STATIC_UNITS[course]) STATIC_UNITS[course] = [];
-    if (!STATIC_UNITS[course].includes(unit)) STATIC_UNITS[course].push(unit);
-  }
-  if (unit && topic) {
-    if (!STATIC_TOPICS[unit]) STATIC_TOPICS[unit] = [];
-    if (!STATIC_TOPICS[unit].includes(topic)) STATIC_TOPICS[unit].push(topic);
-  }
-});
-const STATIC_COURSES = Array.from(courseSet);
+// Fetch data from Google Sheet via backend API instead of static JSON
 
 
 // Add state for question description and photo
@@ -38,29 +21,89 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
   const [questionValue, setQuestionValue] = useState("");
   const [questionPhoto, setQuestionPhoto] = useState(null);
 
-  // Filtered lists (show all if input is empty)
-  const filteredSuggestions = (courseValue || '').trim() === ''
-    ? STATIC_COURSES
-    : STATIC_COURSES.filter(
-        (s) => s.toLowerCase().includes((courseValue || '').toLowerCase())
-      );
-  const courseList = filteredSuggestions;
+  // Lists fetched from backend (Google Sheet)
+  const [classes, setClasses] = useState([]); // was courses
+  const [subjectsByClass, setSubjectsByClass] = useState({}); // was units per course
+  const [topicsBySubject, setTopicsBySubject] = useState({}); // was topics per unit
 
-  const unitList = courseValue ? (STATIC_UNITS[courseValue] || []) : [];
-  const filteredUnitSuggestions = (unitValue || '').trim() === ''
-    ? unitList
-    : unitList.filter(
-        (u) => u.toLowerCase().includes((unitValue || '').toLowerCase())
-      );
-  const unitDropdownList = filteredUnitSuggestions;
+  useEffect(() => {
+    let aborted = false;
+    const fetchLists = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/skills-list`);
+        if (!res.ok) throw new Error('Failed to load skills list');
+        const json = await res.json();
+        if (aborted) return;
+        console.log('✅ Loaded skills from Google Sheet:', json);
+        setClasses(Array.isArray(json.classes) ? json.classes : []);
+        setSubjectsByClass(json.subjectsByClass || {});
+        setTopicsBySubject(json.topicsBySubject || {});
+      } catch (e) {
+        console.error('❌ Failed to fetch skills list:', e);
+      }
+    };
+    fetchLists();
+    return () => { aborted = true; };
+  }, []);
 
-  const topicList = unitValue ? (STATIC_TOPICS[unitValue] || []) : [];
-  const filteredTopicSuggestions = (topicValue || '').trim() === ''
-    ? topicList
-    : topicList.filter(
-        (t) => t.toLowerCase().includes((topicValue || '').toLowerCase())
-      );
-  const topicDropdownList = filteredTopicSuggestions;
+  // Initialize Fuse.js instances for fuzzy search
+  const fuseClasses = useMemo(() => {
+    return new Fuse(classes, {
+      threshold: 0.3, // Lower = stricter matching
+      distance: 100,
+      keys: ['']  // Search the string directly
+    });
+  }, [classes]);
+
+  const fuseSubjects = useMemo(() => {
+    const subjectList = courseValue ? (subjectsByClass[courseValue] || []) : [];
+    return new Fuse(subjectList, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, [courseValue, subjectsByClass]);
+
+  const fuseTopics = useMemo(() => {
+    const topicList = unitValue ? (topicsBySubject[unitValue] || []) : [];
+    return new Fuse(topicList, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, [unitValue, topicsBySubject]);
+
+  // Filtered lists using Fuse.js fuzzy search
+  const courseList = useMemo(() => {
+    if ((courseValue || '').trim() === '') return classes;
+    const results = fuseClasses.search(courseValue);
+    return results.map(result => result.item);
+  }, [courseValue, classes, fuseClasses]);
+
+  const unitDropdownList = useMemo(() => {
+    const unitList = courseValue ? (subjectsByClass[courseValue] || []) : [];
+    if ((unitValue || '').trim() === '') return unitList;
+    const results = fuseSubjects.search(unitValue);
+    return results.map(result => result.item);
+  }, [unitValue, courseValue, subjectsByClass, fuseSubjects]);
+
+  const topicDropdownList = useMemo(() => {
+    const topicList = unitValue ? (topicsBySubject[unitValue] || []) : [];
+    if ((topicValue || '').trim() === '') return topicList;
+    const results = fuseTopics.search(topicValue);
+    return results.map(result => result.item);
+  }, [topicValue, unitValue, topicsBySubject, fuseTopics]);
+
+  // Base lists for checking if dropdown should be enabled
+  const unitList = useMemo(() => 
+    courseValue ? (subjectsByClass[courseValue] || []) : []
+  , [courseValue, subjectsByClass]);
+
+  const topicList = useMemo(() => 
+    unitValue ? (topicsBySubject[unitValue] || []) : []
+  , [unitValue, topicsBySubject]);
+
+  // Filtered lists (show all if input is empty) - OLD CODE REMOVED
 
   // Keyboard navigation for course
   const handleCourseKeyDown = (e) => {
@@ -133,7 +176,7 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Course Input */}
         <div className="relative flex-1">
-          <label className="block text-sm font-bold text-[#1e3a8a] mb-2">Course / Subject</label>
+          <label className="block text-sm font-bold text-[#1e3a8a] mb-2">Class</label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3b82f6]">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -154,7 +197,7 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
             onFocus={() => setShowDropdown(true)}
             onBlur={() => setTimeout(() => { setShowDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
             onKeyDown={handleCourseKeyDown}
-            placeholder="Search Course/Subject..."
+            placeholder="Search Class..."
             className="pl-12 pr-4 py-3 rounded-xl bg-white border-2 border-blue-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6] text-base font-medium w-full transition-all duration-300"
             autoComplete="off"
           />
@@ -191,7 +234,7 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
 
         {/* Unit Input */}
         <div className="relative flex-1">
-          <label className="block text-sm font-bold text-[#1e3a8a] mb-2">Unit / Chapter</label>
+          <label className="block text-sm font-bold text-[#1e3a8a] mb-2">Subject</label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3b82f6]">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -211,7 +254,7 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
               onFocus={() => setShowUnitDropdown(true)}
               onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
               onKeyDown={handleUnitKeyDown}
-              placeholder="Search Unit/Chapter..."
+              placeholder="Search Subject..."
               className="pl-12 pr-4 py-3 rounded-xl bg-white border-2 border-blue-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6] text-base font-medium w-full transition-all duration-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
               autoComplete="off"
               disabled={!courseValue || !unitList.length}
@@ -248,7 +291,7 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
 
         {/* Topic Input */}
         <div className="relative flex-1">
-          <label className="block text-sm font-bold text-[#1e3a8a] mb-2">Topic / Subtopic</label>
+          <label className="block text-sm font-bold text-[#1e3a8a] mb-2">Topic</label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3b82f6]">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -267,7 +310,7 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
               onFocus={() => setShowTopicDropdown(true)}
               onBlur={() => setTimeout(() => { setShowTopicDropdown(false); setHighlightedTopicIdx(-1); }, 150)}
               onKeyDown={handleTopicKeyDown}
-              placeholder="Search Subtopic..."
+              placeholder="Search Topic..."
               className="pl-12 pr-4 py-3 rounded-xl bg-white border-2 border-blue-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6] text-base font-medium w-full transition-all duration-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
               autoComplete="off"
               disabled={!unitValue || !topicList.length}

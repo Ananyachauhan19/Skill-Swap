@@ -14,19 +14,17 @@ const StatsSection = () => {
     async function fetchStats() {
       setStats(s => ({ ...s, loading: true, error: null }));
       try {
-        // Try to fetch from stats endpoint first
         let statsData = null;
         try {
           const statsRes = await fetch(`${BACKEND_URL}/api/interview/stats`, { credentials: 'include' });
           if (statsRes.ok) {
             statsData = await statsRes.json();
           }
-        } catch {
-          console.log('Stats endpoint not available, calculating from interviews');
+        } catch (err) {
+          console.log('Stats endpoint error:', err);
         }
 
         if (statsData) {
-          // Use backend-provided stats
           setStats({
             totalInterviews: statsData.totalInterviews || 0,
             totalExperts: statsData.totalExperts || 0,

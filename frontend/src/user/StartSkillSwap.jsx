@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TutorCard from './oneononeSection/TutorCard';
 import { motion as MotionComponent, AnimatePresence } from 'framer-motion';
+import Fuse from 'fuse.js';
 import socket from '../socket';
 import { useAuth } from '../context/AuthContext';
 import { BACKEND_URL } from '../config.js';
 import VideoCall from '../components/VideoCall.jsx';
 import { supabase, getPublicUrl } from '../lib/supabaseClient';
 
-import coursesData from '../courses_300.json';
+// Fetch data from Google Sheet via backend API instead of static JSON
 
 const StartSkillSwap = () => {
   const navigate = useNavigate();
@@ -26,40 +27,80 @@ const StartSkillSwap = () => {
   const unitInputRef = React.useRef();
   const topicInputRef = React.useRef();
 
-  const courseSet = new Set();
-  coursesData.forEach(item => {
-    if (item.course) courseSet.add(item.course);
-  });
-  const STATIC_COURSES = Array.from(courseSet);
-  const STATIC_UNITS = {};
-  const STATIC_TOPICS = {};
-  coursesData.forEach(item => {
-    if (item.course && item.unit) {
-      if (!STATIC_UNITS[item.course]) STATIC_UNITS[item.course] = [];
-      if (!STATIC_UNITS[item.course].includes(item.unit)) STATIC_UNITS[item.course].push(item.unit);
-    }
-    if (item.unit && item.topic) {
-      if (!STATIC_TOPICS[item.unit]) STATIC_TOPICS[item.unit] = [];
-      if (!STATIC_TOPICS[item.unit].includes(item.topic)) STATIC_TOPICS[item.unit].push(item.topic);
-    }
-  });
-  
+  // Lists fetched from backend (Google Sheet)
+  const [classes, setClasses] = useState([]); // was STATIC_COURSES
+  const [subjectsByClass, setSubjectsByClass] = useState({}); // was STATIC_UNITS
+  const [topicsBySubject, setTopicsBySubject] = useState({}); // was STATIC_TOPICS
 
-  // Filtered lists for dropdowns
-  const filteredSuggestions = STATIC_COURSES.filter(
-    (s) => (courseValue || '').toLowerCase().includes((s || '').toLowerCase()) && (courseValue || '').trim() !== ''
-  );
-  const courseList = (courseValue || '').trim() === '' ? STATIC_COURSES : filteredSuggestions;
-  const unitList = courseValue ? (STATIC_UNITS[courseValue] || []) : [];
-  const filteredUnitSuggestions = unitList.filter(
-    (u) => (unitValue || '').toLowerCase().includes((u || '').toLowerCase()) && (unitValue || '').trim() !== ''
-  );
-  const unitDropdownList = (unitValue || '').trim() === '' ? unitList : filteredUnitSuggestions;
-  const topicList = unitValue ? (STATIC_TOPICS[unitValue] || []) : [];
-  const filteredTopicSuggestions = topicList.filter(
-    (t) => (topicValue || '').toLowerCase().includes((t || '').toLowerCase()) && (topicValue || '').trim() !== ''
-  );
-  const topicDropdownList = (topicValue || '').trim() === '' ? topicList : filteredTopicSuggestions;
+  useEffect(() => {
+    let aborted = false;
+    const fetchLists = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/skills-list`);
+        if (!res.ok) throw new Error('Failed to load skills list');
+        const json = await res.json();
+        if (aborted) return;
+        console.log('✅ [StartSkillSwap] Loaded skills from Google Sheet:', json);
+        setClasses(Array.isArray(json.classes) ? json.classes : []);
+        setSubjectsByClass(json.subjectsByClass || {});
+        setTopicsBySubject(json.topicsBySubject || {});
+      } catch (e) {
+        console.error('❌ [StartSkillSwap] Failed to fetch skills list:', e);
+      }
+    };
+    fetchLists();
+    return () => { aborted = true; };
+  }, []);
+  
+  // Initialize Fuse.js instances for fuzzy search
+  const fuseClasses = useMemo(() => {
+    return new Fuse(classes, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, [classes]);
+
+  const fuseSubjects = useMemo(() => {
+    const subjectList = courseValue ? (subjectsByClass[courseValue] || []) : [];
+    return new Fuse(subjectList, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, [courseValue, subjectsByClass]);
+
+  const fuseTopics = useMemo(() => {
+    const topicList = unitValue ? (topicsBySubject[unitValue] || []) : [];
+    return new Fuse(topicList, {
+      threshold: 0.3,
+      distance: 100,
+      keys: ['']
+    });
+  }, [unitValue, topicsBySubject]);
+
+  // Filtered lists using Fuse.js fuzzy search
+  const courseList = useMemo(() => {
+    if ((courseValue || '').trim() === '') return classes;
+    const results = fuseClasses.search(courseValue);
+    return results.map(result => result.item);
+  }, [courseValue, classes, fuseClasses]);
+
+  const unitDropdownList = useMemo(() => {
+    const unitList = courseValue ? (subjectsByClass[courseValue] || []) : [];
+    if ((unitValue || '').trim() === '') return unitList;
+    const results = fuseSubjects.search(unitValue);
+    return results.map(result => result.item);
+  }, [unitValue, courseValue, subjectsByClass, fuseSubjects]);
+
+  const topicDropdownList = useMemo(() => {
+    const topicList = unitValue ? (topicsBySubject[unitValue] || []) : [];
+    if ((topicValue || '').trim() === '') return topicList;
+    const results = fuseTopics.search(topicValue);
+    return results.map(result => result.item);
+  }, [topicValue, unitValue, topicsBySubject, fuseTopics]);
+
+  // Filtered lists for dropdowns - OLD CODE REMOVED
 
   // Animation variants for dropdown
   const dropdownVariants = {
@@ -278,9 +319,9 @@ const StartSkillSwap = () => {
         <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-xl sm:max-w-3xl mx-auto transition-all duration-300 hover:shadow-2xl">
           {/* Inline Search Bar with Dropdowns (like serachBar.jsx) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Subject/Course Dropdown */}
+            {/* Class/Course Dropdown */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
               <input
                 ref={courseInputRef}
                 type="text"
@@ -295,7 +336,7 @@ const StartSkillSwap = () => {
                 onFocus={() => setShowDropdown(true)}
                 onBlur={() => setTimeout(() => { setShowDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
                 onKeyDown={handleCourseKeyDown}
-                placeholder="Search Course/Subject..."
+                placeholder="Search Class..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 text-sm"
                 autoComplete="off"
               />
@@ -329,9 +370,9 @@ const StartSkillSwap = () => {
                 )}
               </AnimatePresence>
             </div>
-            {/* Unit/Topic Dropdown */}
+            {/* Subject Dropdown */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
               <input
                 ref={unitInputRef}
                 type="text"
@@ -345,7 +386,7 @@ const StartSkillSwap = () => {
                 onFocus={() => setShowUnitDropdown(true)}
                 onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
                 onKeyDown={handleUnitKeyDown}
-                placeholder="Search Unit/Topic..."
+                placeholder="Search Subject..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 text-sm"
                 autoComplete="off"
                 disabled={!courseValue || !unitList.length}
@@ -379,9 +420,9 @@ const StartSkillSwap = () => {
                 )}
               </AnimatePresence>
             </div>
-            {/* Subtopic Dropdown */}
+            {/* Topic Dropdown */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Subtopic</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
               <input
                 ref={topicInputRef}
                 type="text"
@@ -394,7 +435,7 @@ const StartSkillSwap = () => {
                 onFocus={() => setShowTopicDropdown(true)}
                 onBlur={() => setTimeout(() => { setShowTopicDropdown(false); setHighlightedTopicIdx(-1); }, 150)}
                 onKeyDown={handleTopicKeyDown}
-                placeholder="Search Subtopic..."
+                placeholder="Search Topic..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 text-sm"
                 autoComplete="off"
                 disabled={!unitValue || !topicList.length}

@@ -10,6 +10,10 @@ const interviewerAppSchema = new mongoose.Schema({
   qualification: { type: String, required: false },
   resumeUrl: { type: String, required: false },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  // Rating fields
+  averageRating: { type: Number, default: 0, min: 0, max: 5 },
+  totalRatings: { type: Number, default: 0 },
+  conductedInterviews: { type: Number, default: 0 }, // Actual interviews conducted
 }, { timestamps: true });
 
 module.exports = mongoose.model('InterviewerApplication', interviewerAppSchema);
