@@ -43,6 +43,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   const [callStartTime, setCallStartTime] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
+  const hasEndedRef = useRef(false);
 
   // AV controls
   const [isMuted, setIsMuted] = useState(false);
@@ -413,7 +414,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   // (shared-image listeners already attached above)
 
         socket.on('end-call', ({ sessionId: endedSessionId }) => {
-          if (endedSessionId === sessionId) handleEndCall();
+          if (endedSessionId === sessionId && !hasEndedRef.current) handleEndCall();
         });
 
         socket.on('annotation-draw', handleRemoteDraw);
@@ -875,11 +876,13 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   // --- Call controls
 
   const handleEndCall = () => {
-    socket.emit('end-call', { sessionId });
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
+  try { socket.emit('end-call', { sessionId }); } catch { /* ignore */ }
     cleanup();
     setCallStartTime(null);
     setElapsedSeconds(0);
-    onEndCall && onEndCall();
+    onEndCall && onEndCall(sessionId);
   };
 
   const toggleMute = () => {

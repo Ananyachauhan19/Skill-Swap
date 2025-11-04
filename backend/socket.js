@@ -775,18 +775,7 @@ module.exports = (io) => {
           sessionRequest
         });
 
-        if (action === 'approve') {
-          const sessionStartedPayload = {
-            sessionId: sessionRequest._id.toString(),
-            sessionRequest,
-            tutor: sessionRequest.tutor,
-            requester: sessionRequest.requester
-          };
-          socket.emit('session-started', sessionStartedPayload);
-          if (requesterSocketId) {
-            io.to(requesterSocketId).emit('session-started', sessionStartedPayload);
-          }
-        }
+        // Do not emit 'session-started' on approve; it will emit only when tutor starts the session
 
         console.log(`[Session Request] Request ${action}d by tutor ${tutorId}`);
 

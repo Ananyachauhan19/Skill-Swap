@@ -40,7 +40,17 @@ const SessionRequestSchema = new mongoose.Schema({
     default: 'silver' 
   }, // Type of coin used
   coinsSpent: { type: Number, default: 10 }, // Number of coins spent
-  rating: { type: Number, min: 1, max: 5, default: null }, // Rating given by student
+  // Backwards-compat single rating (kept for existing UIs - student rating)
+  rating: { type: Number, min: 1, max: 5, default: null },
+  reviewText: { type: String, default: '' },
+  ratedAt: { type: Date, default: null },
+  // New dual-side ratings
+  ratingByRequester: { type: Number, min: 1, max: 5, default: null },
+  reviewByRequester: { type: String, default: '' },
+  ratedByRequesterAt: { type: Date, default: null },
+  ratingByTutor: { type: Number, min: 1, max: 5, default: null },
+  reviewByTutor: { type: String, default: '' },
+  ratedByTutorAt: { type: Date, default: null },
   status: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected', 'active', 'completed', 'cancelled'],
@@ -54,6 +64,12 @@ const SessionRequestSchema = new mongoose.Schema({
     type: Date, 
     default: Date.now 
   }
+});
+
+// Optional timestamps for real session timing
+SessionRequestSchema.add({
+  startedAt: { type: Date, default: null },
+  endedAt: { type: Date, default: null },
 });
 
 // Update the updatedAt field before saving

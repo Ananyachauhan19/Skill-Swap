@@ -5,6 +5,8 @@ import Footer from './components/Footer';
 import { ModalProvider } from './context/ModalContext';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
 import GlobalModals from './GlobalModals';
+import { ToastProvider } from './components/ToastProvider.jsx';
+import ToastSocketBridge from './components/ToastSocketBridge.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext.jsx';
 import RegisterInterviewer from './user/RegisterInterviewer.jsx';
@@ -51,6 +53,7 @@ import CookiesPolicy from './CookiesPolicy.jsx';
 import About from './About.jsx';
 import Career from './Career.jsx';
 import YourInterviews from './user/YourInterviews';
+import RatingPage from './user/RatingPage.jsx';
 
 // Define routes
 const appRoutes = [
@@ -74,6 +77,7 @@ const appRoutes = [
   { path: '/your-interviews', element: <ProtectedRoute><YourInterviews /></ProtectedRoute> },
   { path: '/session', element: <ProtectedRoute><Sessions /></ProtectedRoute> },
   { path: '/session-requests', element: <ProtectedRoute><SessionRequests /></ProtectedRoute> },
+  { path: '/rate/:sessionId', element: <ProtectedRoute><RatingPage /></ProtectedRoute> },
   { path: '/register-interviewer', element: <RegisterInterviewer />} ,
   { path: '/interview-call/:sessionId', element: <ProtectedRoute><InterviewCallPage /></ProtectedRoute> },
   { path: '/testimonials', element: <ProtectedRoute><Testimonial showAll={true} /></ProtectedRoute> },
@@ -148,6 +152,7 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isRatingPage = location.pathname.startsWith('/rate/');
   const element = useRoutes(appRoutes);
 
   // Socket connection for authenticated users
@@ -163,7 +168,7 @@ function App() {
     return () => {
       socket.off('register');
     };
-  }, [user?._id]);
+  }, [user]);
 
   // Handle logout only
   useEffect(() => {
@@ -180,21 +185,36 @@ function App() {
     return () => window.removeEventListener('logout', handleLogout);
   }, [navigate, setUser]);
 
+  // Enforce mandatory rating page: if a pending rating exists, always redirect to it
+  useEffect(() => {
+    try {
+      const pendingId = localStorage.getItem('pendingRatingSessionId');
+      if (pendingId && !location.pathname.startsWith(`/rate/`)) {
+        navigate(`/rate/${pendingId}`, { replace: true });
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [location.pathname, navigate]);
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <ModalProvider>
-      <ModalBodyScrollLock />
-      <GlobalModals />
-      {!isAuthPage && <Navbar />}
-      <div className={location.pathname === '/home' ? '' : 'pt-8'}>
-        {element}
-        {user && <CompleteProfile />}
-      </div>
-      {!isAuthPage && <Footer />}
-    </ModalProvider>
+    <ToastProvider>
+      <ToastSocketBridge />
+      <ModalProvider>
+        <ModalBodyScrollLock />
+        <GlobalModals />
+        {!isAuthPage && !isRatingPage && <Navbar />}
+        <div className={location.pathname === '/home' ? '' : 'pt-8'}>
+          {element}
+          {user && <CompleteProfile />}
+        </div>
+        {!isAuthPage && !isRatingPage && <Footer />}
+      </ModalProvider>
+    </ToastProvider>
   );
 }
 

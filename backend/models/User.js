@@ -63,6 +63,9 @@ const userSchema = new mongoose.Schema({
   badges: [{ type: String, default: ['Starter', 'Helper'], required: false }],
   rank: { type: String, default: 'Bronze', required: false },
   skillMates: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  // Rating aggregates (updated when sessions are rated)
+  ratingAverage: { type: Number, default: 0 },
+  ratingCount: { type: Number, default: 0 },
 });
 
 module.exports = mongoose.model('User', userSchema);

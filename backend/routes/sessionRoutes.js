@@ -1,6 +1,7 @@
 // routes/sessionRoutes.js
 const express = require('express');
 const Session = require('../models/Session');
+const SessionRequest = require('../models/SessionRequest');
 const router = express.Router();
 const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
@@ -304,6 +305,93 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Cancel session error:', error);
     res.status(500).json({ error: 'Failed to cancel session' });
+  }
+});
+
+// GET /api/sessions/top-performers – compute from SessionRequest collection
+router.get('/top-performers', async (req, res) => {
+  try {
+    // Only consider completed sessions for metrics
+    const completedMatch = { status: 'completed' };
+
+    // Top Rated Tutors (by average rating, at least 1 rating)
+    const topRatedAgg = await SessionRequest.aggregate([
+      { $match: { ...completedMatch, rating: { $ne: null } } },
+      { $group: { _id: '$tutor', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } },
+      { $sort: { avgRating: -1, count: -1 } },
+      { $limit: 1 },
+    ]);
+
+    let topRated = null;
+    if (topRatedAgg.length > 0) {
+      const [doc] = topRatedAgg;
+      topRated = await User.findById(doc._id).select('firstName lastName username profilePic ratingAverage ratingCount');
+      if (topRated) {
+        // Provide a 'rating' field to match frontend expectation
+        topRated = {
+          _id: topRated._id,
+          firstName: topRated.firstName,
+          lastName: topRated.lastName,
+          username: topRated.username,
+          profilePic: topRated.profilePic,
+          rating: Number(doc.avgRating.toFixed(2)),
+          ratingCount: doc.count,
+        };
+      }
+    }
+
+    // Most Active Learner (by count of completed requests as requester)
+    const mostActiveAgg = await SessionRequest.aggregate([
+      { $match: completedMatch },
+      { $group: { _id: '$requester', sessionCount: { $sum: 1 } } },
+      { $sort: { sessionCount: -1 } },
+      { $limit: 1 },
+    ]);
+
+    let mostActive = null;
+    if (mostActiveAgg.length > 0) {
+      const [doc] = mostActiveAgg;
+      const u = await User.findById(doc._id).select('firstName lastName username profilePic');
+      if (u) {
+        mostActive = {
+          _id: u._id,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          username: u.username,
+          profilePic: u.profilePic,
+          sessionCount: doc.sessionCount,
+        };
+      }
+    }
+
+    // Top Earner (sum coinsSpent for tutor)
+    const topEarnerAgg = await SessionRequest.aggregate([
+      { $match: completedMatch },
+      { $group: { _id: '$tutor', earnings: { $sum: { $ifNull: ['$coinsSpent', 0] } } } },
+      { $sort: { earnings: -1 } },
+      { $limit: 1 },
+    ]);
+
+    let topEarner = null;
+    if (topEarnerAgg.length > 0) {
+      const [doc] = topEarnerAgg;
+      const u = await User.findById(doc._id).select('firstName lastName username profilePic');
+      if (u) {
+        topEarner = {
+          _id: u._id,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          username: u.username,
+          profilePic: u.profilePic,
+          earnings: doc.earnings,
+        };
+      }
+    }
+
+    return res.json({ mostActive, topRated, topEarner });
+  } catch (err) {
+    console.error('top-performers error:', err);
+    res.status(500).json({ error: 'Failed to compute top performers' });
   }
 });
 

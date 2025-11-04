@@ -270,6 +270,9 @@ router.post('/approve/:requestId', requireAuth, requestLimiter, validateRequestI
       tutorName
     );
 
+    // Do NOT emit 'session-started' here. That should happen when tutor actually starts the session
+    // via POST /api/session-requests/start/:requestId. Keeping flow aligned with UX: approve first, then start.
+
     res.json({
       message: 'Session request approved',
       sessionRequest,
@@ -362,6 +365,9 @@ router.post('/start/:requestId', requireAuth, requestLimiter, validateRequestId,
     }
 
     sessionRequest.status = 'active';
+    if (!sessionRequest.startedAt) {
+      sessionRequest.startedAt = new Date();
+    }
     await sessionRequest.save();
 
     // Populate user details
@@ -421,6 +427,22 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
       return handleErrors(res, 403, 'Not authorized to complete this session');
     }
 
+    // Compute real duration and coin usage
+    const now = new Date();
+    if (!sessionRequest.startedAt) {
+      // If for some reason start was not stamped, assume a minimal 1-minute session starting now
+      sessionRequest.startedAt = new Date(now.getTime() - 60 * 1000);
+    }
+    sessionRequest.endedAt = now;
+    const durationMinutes = Math.max(1, Math.round((sessionRequest.endedAt - sessionRequest.startedAt) / 60000));
+    sessionRequest.duration = durationMinutes;
+
+    // Derive coins spent from duration if not already tracked
+    const perMinute = sessionRequest.coinType === 'gold' ? 1 : 1; // adjust if gold pricing differs later
+    if (typeof sessionRequest.coinsSpent !== 'number' || sessionRequest.coinsSpent < 0) {
+      sessionRequest.coinsSpent = durationMinutes * perMinute;
+    }
+
     sessionRequest.status = 'completed';
     await sessionRequest.save();
 
@@ -432,22 +454,22 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
     const completer = sessionRequest.tutor._id.toString() === req.user._id.toString()
       ? sessionRequest.tutor
       : sessionRequest.requester;
-    const recipient = sessionRequest.tutor._id.toString() === req.user._id.toString()
+    const otherParty = sessionRequest.tutor._id.toString() === req.user._id.toString()
       ? sessionRequest.requester
       : sessionRequest.tutor;
 
-    // Send notification to recipient
+    // Send notification to both parties and emit direct event for rating redirect
     const io = req.app.get('io');
     const notificationMessage = `${completer.firstName} ${completer.lastName} has completed the session on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
-    await sendNotification(
-      io,
-      recipient._id,
-      'session-completed',
-      notificationMessage,
-      sessionRequest._id,
-      req.user._id,
-      `${completer.firstName} ${completer.lastName}`
-    );
+    // Notify other party
+    await sendNotification(io, otherParty._id, 'session-completed', notificationMessage, sessionRequest._id, req.user._id, `${completer.firstName} ${completer.lastName}`);
+    // Notify completer as well for consistent UX
+    await sendNotification(io, completer._id, 'session-completed', 'You marked the session as completed.', sessionRequest._id, req.user._id, `${completer.firstName} ${completer.lastName}`);
+    // Emit direct event to both for legacy listeners
+    try {
+      io.to(sessionRequest.tutor._id.toString()).emit('session-completed', { sessionId: sessionRequest._id.toString() });
+      io.to(sessionRequest.requester._id.toString()).emit('session-completed', { sessionId: sessionRequest._id.toString() });
+    } catch {}
 
     res.json({
       message: 'Session marked as completed',
@@ -599,15 +621,15 @@ router.get('/teaching-history', requireAuth, async (req, res) => {
       
       groupedByDate[date].push({
         id: session._id,
-        type: session.sessionType, // Get actual session type
-        with: `${session.requester.firstName} ${session.requester.lastName}`,
+        type: session.sessionType || 'ONE-ON-ONE',
+        with: `${(session.requester && session.requester.firstName) ? session.requester.firstName : 'Unknown'} ${session.requester && session.requester.lastName ? session.requester.lastName : ''}`.trim(),
         when: session.createdAt,
-        duration: session.duration, // Actual duration from database
-        coinType: session.coinType, // silver or gold
-        coinsSpent: session.coinsSpent, // Actual coins spent
-        subject: session.subject,
-        topic: session.topic,
-        rating: session.rating,
+        duration: session.duration || 0,
+        coinType: session.coinType || 'silver',
+        coinsSpent: typeof session.coinsSpent === 'number' ? session.coinsSpent : 0,
+        subject: session.subject || 'N/A',
+        topic: session.topic || 'N/A',
+        rating: session.rating || null,
         notes: session.message || ''
       });
     });
@@ -659,16 +681,16 @@ router.get('/all-coin-history', requireAuth, async (req, res) => {
     const learningHistory = learningSessions.map(session => ({
       id: session._id,
       type: 'spent',
-      sessionType: session.sessionType,
-      with: `${session.tutor.firstName} ${session.tutor.lastName}`,
+      sessionType: session.sessionType || 'ONE-ON-ONE',
+      with: `${(session.tutor && session.tutor.firstName) ? session.tutor.firstName : 'Unknown'} ${session.tutor && session.tutor.lastName ? session.tutor.lastName : ''}`.trim(),
       when: session.createdAt,
       date: new Date(session.createdAt).toISOString().split('T')[0],
-      duration: session.duration,
-      coinType: session.coinType,
-      coinsSpent: session.coinsSpent,
-      subject: session.subject,
-      topic: session.topic,
-      rating: session.rating,
+      duration: session.duration || 0,
+      coinType: session.coinType || 'silver',
+      coinsSpent: typeof session.coinsSpent === 'number' ? session.coinsSpent : 0,
+      subject: session.subject || 'N/A',
+      topic: session.topic || 'N/A',
+      rating: session.rating || null,
       notes: session.message || ''
     }));
 
@@ -676,16 +698,16 @@ router.get('/all-coin-history', requireAuth, async (req, res) => {
     const teachingHistory = teachingSessions.map(session => ({
       id: session._id,
       type: 'earned',
-      sessionType: session.sessionType,
-      with: `${session.requester.firstName} ${session.requester.lastName}`,
+      sessionType: session.sessionType || 'ONE-ON-ONE',
+      with: `${(session.requester && session.requester.firstName) ? session.requester.firstName : 'Unknown'} ${session.requester && session.requester.lastName ? session.requester.lastName : ''}`.trim(),
       when: session.createdAt,
       date: new Date(session.createdAt).toISOString().split('T')[0],
-      duration: session.duration,
-      coinType: session.coinType,
-      coinsSpent: session.coinsSpent, // This is actually earned for teaching
-      subject: session.subject,
-      topic: session.topic,
-      rating: session.rating,
+      duration: session.duration || 0,
+      coinType: session.coinType || 'silver',
+      coinsSpent: typeof session.coinsSpent === 'number' ? session.coinsSpent : 0, // earned
+      subject: session.subject || 'N/A',
+      topic: session.topic || 'N/A',
+      rating: session.rating || null,
       notes: session.message || ''
     }));
 
@@ -701,6 +723,133 @@ router.get('/all-coin-history', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching complete coin history:', error);
     handleErrors(res, 500, 'Failed to fetch coin history');
+  }
+});
+
+/**
+ * @route GET /api/session-requests/:requestId
+ * @desc Get a session request by id with populated users
+ * @access Private
+ */
+router.get('/:requestId', requireAuth, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return handleErrors(res, 400, errors.array()[0].msg);
+  try {
+    const { requestId } = req.params;
+    const sr = await SessionRequest.findById(requestId)
+      .populate('requester', 'firstName lastName username profilePic')
+      .populate('tutor', 'firstName lastName username profilePic');
+    if (!sr) return handleErrors(res, 404, 'Session not found');
+    // Only allow participants to view
+    const requesterId = String(sr.requester && sr.requester._id ? sr.requester._id : sr.requester);
+    const tutorId = String(sr.tutor && sr.tutor._id ? sr.tutor._id : sr.tutor);
+    if (
+      requesterId !== String(req.user._id) &&
+      tutorId !== String(req.user._id)
+    ) {
+      return handleErrors(res, 403, 'Not authorized');
+    }
+    res.json(sr);
+  } catch (e) {
+    console.error('Fetch session by id error:', e);
+    handleErrors(res, 500, 'Failed to fetch session');
+  }
+});
+
+/**
+ * @route POST /api/session-requests/rate/:requestId
+ * @desc Submit rating and feedback for a completed session (student -> tutor)
+ * @access Private
+ */
+router.post('/rate/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
+  try {
+    const { requestId } = req.params;
+    const { rating, feedback } = req.body || {};
+
+    // Validate rating
+    const parsedRating = Number(rating);
+    if (!parsedRating || parsedRating < 1 || parsedRating > 5) {
+      return handleErrors(res, 400, 'Rating must be between 1 and 5');
+    }
+
+  // Find the session; allow rating if user was requester or tutor and session is completed
+  const sessionRequest = await SessionRequest.findById(requestId).populate('tutor requester', 'firstName lastName username');
+    if (!sessionRequest) {
+      return handleErrors(res, 404, 'Session not found');
+    }
+
+    if (sessionRequest.status !== 'completed') {
+      return handleErrors(res, 400, 'Only completed sessions can be rated');
+    }
+    // Determine role of rater and set proper fields; also maintain legacy fields for requester ratings
+    const isRequester = sessionRequest.requester.toString() === req.user._id.toString();
+    const isTutor = sessionRequest.tutor.toString() === req.user._id.toString();
+    if (!isRequester && !isTutor) {
+      return handleErrors(res, 403, 'You are not part of this session');
+    }
+
+    if (isRequester) {
+      if (typeof sessionRequest.ratingByRequester === 'number' && sessionRequest.ratingByRequester >= 1) {
+        return handleErrors(res, 400, 'You have already rated this session');
+      }
+      sessionRequest.ratingByRequester = parsedRating;
+      sessionRequest.reviewByRequester = (feedback || '').toString().trim();
+      sessionRequest.ratedByRequesterAt = new Date();
+      // Legacy single rating fields for compatibility
+      sessionRequest.rating = parsedRating;
+      sessionRequest.reviewText = sessionRequest.reviewByRequester;
+      sessionRequest.ratedAt = sessionRequest.ratedByRequesterAt;
+    } else if (isTutor) {
+      if (typeof sessionRequest.ratingByTutor === 'number' && sessionRequest.ratingByTutor >= 1) {
+        return handleErrors(res, 400, 'You have already rated this session');
+      }
+      sessionRequest.ratingByTutor = parsedRating;
+      sessionRequest.reviewByTutor = (feedback || '').toString().trim();
+      sessionRequest.ratedByTutorAt = new Date();
+    }
+
+    await sessionRequest.save();
+
+    // Update aggregates for the target user
+    try {
+      const targetUserId = isRequester ? sessionRequest.tutor._id : sessionRequest.requester._id;
+      const target = await User.findById(targetUserId);
+      if (target) {
+        const oldAvg = Number(target.ratingAverage || 0);
+        const oldCount = Number(target.ratingCount || 0);
+        const newCount = oldCount + 1;
+        const newAvg = ((oldAvg * oldCount) + parsedRating) / newCount;
+        target.ratingAverage = Number(newAvg.toFixed(2));
+        target.ratingCount = newCount;
+        await target.save();
+      }
+    } catch (e) {
+      console.warn('Failed to update user rating aggregates:', e && e.message);
+    }
+
+    // Notify the rated user
+    const io = req.app.get('io');
+    const targetUserId = isRequester ? sessionRequest.tutor._id : sessionRequest.requester._id;
+    const message = `${req.user.firstName || 'A user'} rated you ${parsedRating}★`;
+    await sendNotification(
+      io,
+      targetUserId,
+      'session-rated',
+      message,
+      sessionRequest._id,
+      req.user._id,
+      `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || req.user.username || 'User'
+    );
+
+    res.json({ message: 'Rating submitted successfully', rating: parsedRating, feedback: (feedback || '').toString().trim() });
+  } catch (error) {
+    console.error('Error rating session:', error);
+    handleErrors(res, 500, 'Failed to submit rating');
   }
 });
 

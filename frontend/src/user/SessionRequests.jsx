@@ -16,6 +16,7 @@ import { BACKEND_URL } from '../config.js';
 import socket from '../socket';
 import { useAuth } from '../context/AuthContext';
 import VideoCall from '../components/VideoCall';
+import SessionRatingModal from '../components/SessionRatingModal.jsx';
 
 const SessionRequests = () => {
   const [interviewRequests, setInterviewRequests] = useState({ received: [], sent: [] });
@@ -33,6 +34,8 @@ const SessionRequests = () => {
   const [cancelledMessage, setCancelledMessage] = useState('');
   const [interviewBanner, setInterviewBanner] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingContext, setRatingContext] = useState(null); // { sessionId, expertName, sessionType }
 
   useEffect(() => {
     const savedActiveSession = localStorage.getItem('activeSession');
@@ -47,6 +50,21 @@ const SessionRequests = () => {
       } catch {
         localStorage.removeItem('activeSession');
       }
+    }
+
+    // If user clicked Join from a toast, open call immediately
+    try {
+      const pending = localStorage.getItem('pendingJoinSession');
+      if (pending) {
+        const { sessionId, role } = JSON.parse(pending);
+        if (sessionId) {
+          setActiveSession({ sessionId, role: role || 'student' });
+          setShowVideoModal(true);
+        }
+        localStorage.removeItem('pendingJoinSession');
+      }
+    } catch {
+      // ignore
     }
     checkActiveSessionFromBackend();
   }, []);
@@ -148,12 +166,28 @@ const SessionRequests = () => {
     });
 
     socket.on('session-completed', ({ sessionId }) => {
+      // Close any active call UI
       if (activeSession && activeSession.sessionId === sessionId) {
         setShowVideoModal(false);
         setActiveSession(null);
         setReadyToStartSession(null);
         localStorage.removeItem('activeSession');
       }
+        // Fallback: if no session-completed comes shortly, still open rating page
+        if (sessionId) {
+          setTimeout(() => {
+            try {
+              // If a rating redirect hasn't been triggered already, enforce it
+              const pending = localStorage.getItem('pendingRatingSessionId');
+              if (!pending) {
+                localStorage.setItem('pendingRatingSessionId', String(sessionId));
+                navigate(`/rate/${sessionId}`);
+              }
+            } catch {
+              navigate(`/rate/${sessionId}`);
+            }
+          }, 1500);
+        }
     });
 
     socket.on('notification', (notification) => {
@@ -190,7 +224,7 @@ const SessionRequests = () => {
       socket.off('skillmate-request-rejected');
       socket.off('notification');
     };
-  }, [user, activeSession]);
+  }, [user, activeSession, navigate]);
 
   const fetchSessionRequests = async () => {
     try {
@@ -366,19 +400,26 @@ const SessionRequests = () => {
     }
   };
 
-  const handleEndCall = async () => {
-    if (activeSession) {
+  const handleEndCall = async (sid) => {
+    const id = sid || (activeSession && activeSession.sessionId);
+    if (id) {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/session-requests/complete/${activeSession.sessionId}`, {
+        const response = await fetch(`${BACKEND_URL}/api/session-requests/complete/${id}`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
         });
         if (response.ok) {
+          // Close UI
           setActiveSession(null);
           setReadyToStartSession(null);
           setShowVideoModal(false);
           localStorage.removeItem('activeSession');
+          // Enforce rating redirect
+          try {
+            localStorage.setItem('pendingRatingSessionId', String(id));
+          } catch { /* ignore */ }
+          navigate(`/rate/${id}`);
         }
       } catch {
         setError('Failed to complete session');
@@ -388,6 +429,26 @@ const SessionRequests = () => {
       setActiveSession(null);
       setReadyToStartSession(null);
       localStorage.removeItem('activeSession');
+    }
+  };
+
+  const submitSessionRating = async ({ rating, feedback }) => {
+    try {
+      if (!ratingContext || !ratingContext.sessionId) return;
+      const res = await fetch(`${BACKEND_URL}/api/session-requests/rate/${ratingContext.sessionId}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, feedback }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to submit rating');
+      setShowRatingModal(false);
+      setRatingContext(null);
+      // Refresh lists to reflect new rating in UIs that show it
+      fetchSessionRequests();
+    } catch (err) {
+      alert(err.message || 'Failed to submit rating');
     }
   };
 
@@ -1009,6 +1070,14 @@ const SessionRequests = () => {
               />
             </div>
           )}
+
+          {/* Mandatory Rating Modal for completed sessions (student only) */}
+          <SessionRatingModal
+            open={showRatingModal}
+            onSubmit={submitSessionRating}
+            sessionType={ratingContext?.sessionType || 'Session'}
+            expertName={ratingContext?.expertName || ''}
+          />
 
           {/* Tabs */}
           <div className="mb-8">
