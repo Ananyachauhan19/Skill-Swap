@@ -14,6 +14,8 @@ const notificationSchema = new mongoose.Schema({
       'session-rejected',
       'session-cancelled',
       'session-requested',
+      'session-completed',
+      'session-rated',
       'interview-requested',
       'interviewer-application',
       'interviewer-approved',

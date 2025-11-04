@@ -462,9 +462,33 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
     const io = req.app.get('io');
     const notificationMessage = `${completer.firstName} ${completer.lastName} has completed the session on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
     // Notify other party
-    await sendNotification(io, otherParty._id, 'session-completed', notificationMessage, sessionRequest._id, req.user._id, `${completer.firstName} ${completer.lastName}`);
+    try {
+      await sendNotification(
+        io,
+        otherParty._id,
+        'session-completed',
+        notificationMessage,
+        sessionRequest._id,
+        req.user._id,
+        `${completer.firstName} ${completer.lastName}`
+      );
+    } catch (e) {
+      console.warn('Non-fatal: failed to send other party completion notification:', e && e.message);
+    }
     // Notify completer as well for consistent UX
-    await sendNotification(io, completer._id, 'session-completed', 'You marked the session as completed.', sessionRequest._id, req.user._id, `${completer.firstName} ${completer.lastName}`);
+    try {
+      await sendNotification(
+        io,
+        completer._id,
+        'session-completed',
+        'You marked the session as completed.',
+        sessionRequest._id,
+        req.user._id,
+        `${completer.firstName} ${completer.lastName}`
+      );
+    } catch (e) {
+      console.warn('Non-fatal: failed to send completer completion notification:', e && e.message);
+    }
     // Emit direct event to both for legacy listeners
     try {
       io.to(sessionRequest.tutor._id.toString()).emit('session-completed', { sessionId: sessionRequest._id.toString() });
@@ -787,8 +811,12 @@ router.post('/rate/:requestId', requireAuth, requestLimiter, validateRequestId, 
       return handleErrors(res, 400, 'Only completed sessions can be rated');
     }
     // Determine role of rater and set proper fields; also maintain legacy fields for requester ratings
-    const isRequester = sessionRequest.requester.toString() === req.user._id.toString();
-    const isTutor = sessionRequest.tutor.toString() === req.user._id.toString();
+  // Normalize IDs to strings (supports populated docs or raw ObjectIds)
+  const requesterId = String(sessionRequest.requester && sessionRequest.requester._id ? sessionRequest.requester._id : sessionRequest.requester);
+  const tutorId = String(sessionRequest.tutor && sessionRequest.tutor._id ? sessionRequest.tutor._id : sessionRequest.tutor);
+  const currentUserId = String(req.user._id);
+  const isRequester = requesterId === currentUserId;
+  const isTutor = tutorId === currentUserId;
     if (!isRequester && !isTutor) {
       return handleErrors(res, 403, 'You are not part of this session');
     }
@@ -836,15 +864,19 @@ router.post('/rate/:requestId', requireAuth, requestLimiter, validateRequestId, 
     const io = req.app.get('io');
     const targetUserId = isRequester ? sessionRequest.tutor._id : sessionRequest.requester._id;
     const message = `${req.user.firstName || 'A user'} rated you ${parsedRating}★`;
-    await sendNotification(
-      io,
-      targetUserId,
-      'session-rated',
-      message,
-      sessionRequest._id,
-      req.user._id,
-      `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || req.user.username || 'User'
-    );
+    try {
+      await sendNotification(
+        io,
+        targetUserId,
+        'session-rated',
+        message,
+        sessionRequest._id,
+        req.user._id,
+        `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() || req.user.username || 'User'
+      );
+    } catch (e) {
+      console.warn('Non-fatal: failed to send rating notification:', e && e.message);
+    }
 
     res.json({ message: 'Rating submitted successfully', rating: parsedRating, feedback: (feedback || '').toString().trim() });
   } catch (error) {
