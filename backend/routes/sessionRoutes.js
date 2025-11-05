@@ -5,7 +5,7 @@ const SessionRequest = require('../models/SessionRequest');
 const router = express.Router();
 const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
-const { incrementContribution } = require('../utils/contributions');
+// No contributions here to avoid multi-counting; session activity is counted on completion in sessionRequestRoutes
 
 
 router.get('/search', async (req, res) => {
@@ -42,11 +42,7 @@ router.post('/', requireAuth, async (req, res) => {
     });
     res.status(201).json(session);
 
-    // Contribution: creating a session counts as an activity
-    try {
-      const io = req.app.get('io');
-      await incrementContribution({ userId: req.user._id, breakdownKey: 'sessionsCreated', io });
-    } catch (_) {}
+    // No contribution on create; count once per activity elsewhere
   } catch (err) {
     res.status(500).json({ message: 'Error creating session', error: err.message });
   }
@@ -165,11 +161,7 @@ router.post('/request/:id', requireAuth, async (req, res) => {
     
   res.json({ message: 'Request sent', session });
 
-  // Contribution: requesting to join a session counts as activity for requester (learner)
-  try {
-    const io = req.app.get('io');
-    await incrementContribution({ userId: req.user._id, breakdownKey: 'sessionRequests', io });
-  } catch (_) {}
+  // No contribution here; counted once on completion in sessionRequestRoutes
   } catch (error) {
     console.error('Session request error:', error);
     res.status(500).json({ error: 'Failed to send request' });
@@ -272,16 +264,7 @@ router.post('/:id/start', requireAuth, async (req, res) => {
       session: session
     });
 
-    // Contribution: when a session (legacy) starts, both participants get a contribution
-    try {
-      const io = req.app.get('io');
-      if (session.creator && session.creator._id) {
-        await incrementContribution({ userId: session.creator._id, breakdownKey: 'sessionsStarted', io });
-      }
-      if (session.requester && session.requester._id) {
-        await incrementContribution({ userId: session.requester._id, breakdownKey: 'sessionsStarted', io });
-      }
-    } catch (_) {}
+    // No contribution here; counted once on completion in sessionRequestRoutes
   } catch (error) {
     console.error('Start session error:', error);
     res.status(500).json({ error: 'Failed to start session' });

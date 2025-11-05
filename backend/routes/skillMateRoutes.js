@@ -3,7 +3,7 @@ const SkillMate = require('../models/SkillMate');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const requireAuth = require('../middleware/requireAuth');
-const { incrementContribution } = require('../utils/contributions');
+const { recordContributionEvent } = require('../utils/contributions');
 const router = express.Router();
 
 // Create a new SkillMate request
@@ -89,12 +89,13 @@ router.post('/request', requireAuth, async (req, res) => {
             timestamp: Date.now(),
           });
 
-          // Contributions: both users gain a contribution for adding a SkillMate
+          // Contributions: both users gain exactly one contribution for this approval (idempotent)
           try {
             const io = req.app.get('io');
+            const key = `skillmate-approved:${existingRequest._id}`;
             await Promise.all([
-              incrementContribution({ userId: requesterId, breakdownKey: 'skillMateApprovals', io }),
-              incrementContribution({ userId: recipientId, breakdownKey: 'skillMateApprovals', io }),
+              recordContributionEvent({ userId: requesterId, key, breakdownKey: 'skillMateApprovals', io }),
+              recordContributionEvent({ userId: recipientId, key, breakdownKey: 'skillMateApprovals', io }),
             ]);
           } catch (_) {}
 
@@ -270,11 +271,12 @@ router.post('/requests/approve/:requestId', requireAuth, async (req, res) => {
       timestamp: Date.now(),
     });
 
-    // Contributions: both users gain a contribution for adding a SkillMate
+    // Contributions: both users gain exactly one contribution for this approval (idempotent)
     try {
+      const key = `skillmate-approved:${skillMateRequest._id}`;
       await Promise.all([
-        incrementContribution({ userId: skillMateRequest.requester, breakdownKey: 'skillMateApprovals', io }),
-        incrementContribution({ userId: skillMateRequest.recipient, breakdownKey: 'skillMateApprovals', io }),
+        recordContributionEvent({ userId: skillMateRequest.requester, key, breakdownKey: 'skillMateApprovals', io }),
+        recordContributionEvent({ userId: skillMateRequest.recipient, key, breakdownKey: 'skillMateApprovals', io }),
       ]);
     } catch (_) {}
 

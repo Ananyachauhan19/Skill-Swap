@@ -2,9 +2,9 @@ const express = require('express');
 const router = express.Router();
 
 const Contribution = require('../models/Contribution');
-const ChatMessage = require('../models/Chat');
 const SessionRequest = require('../models/SessionRequest');
 const SkillMate = require('../models/SkillMate');
+const InterviewRequest = require('../models/InterviewRequest');
 const requireAdmin = require('../middleware/requireAdmin');
 
 // Utils
@@ -24,51 +24,33 @@ async function recomputeContributionsForDate(targetDate) {
 	const { start, end } = getUTCDayBounds(targetDate);
 	const dateKey = toDateKeyUTC(targetDate);
 
-	// Aggregate per-user counts from different sources
+		// Aggregate per-user counts from different sources (aligned with 'one activity = one increment per user')
 	const tallies = new Map(); // userId(str) -> { count, breakdown }
 
 	const bump = (userId, field, inc = 1) => {
 		if (!userId) return;
 		const key = String(userId);
-		if (!tallies.has(key)) tallies.set(key, { count: 0, breakdown: { chatMessages: 0, sessionRequests: 0, ratings: 0, skillMateApprovals: 0 } });
+			if (!tallies.has(key)) tallies.set(key, { count: 0, breakdown: { sessionsCompletedEarned: 0, sessionsCompletedSpent: 0, interviewsRated: 0, skillMateApprovals: 0 } });
 		const entry = tallies.get(key);
 		entry.count += inc;
 		entry.breakdown[field] += inc;
 	};
 
-	// 1) Chat messages sent on that day
-	const chatPipeline = [
-		{ $match: { createdAt: { $gte: start, $lte: end } } },
-		{ $group: { _id: '$senderId', cnt: { $sum: 1 } } },
-	];
-	const chatAgg = await ChatMessage.aggregate(chatPipeline);
-	chatAgg.forEach(row => bump(row._id, 'chatMessages', row.cnt));
+		// 1) Completed one-on-one sessions (endedAt on the target day)
+		const completedMatch = { status: 'completed', endedAt: { $gte: start, $lte: end } };
+		const tutorAgg = await SessionRequest.aggregate([
+			{ $match: completedMatch },
+			{ $group: { _id: '$tutor', cnt: { $sum: 1 } } }
+		]);
+		tutorAgg.forEach(row => bump(row._id, 'sessionsCompletedEarned', row.cnt));
 
-	// 2) Session requests created by requester on that day
-	const reqPipeline = [
-		{ $match: { createdAt: { $gte: start, $lte: end } } },
-		{ $group: { _id: '$requester', cnt: { $sum: 1 } } },
-	];
-	const reqAgg = await SessionRequest.aggregate(reqPipeline);
-	reqAgg.forEach(row => bump(row._id, 'sessionRequests', row.cnt));
+		const requesterAgg = await SessionRequest.aggregate([
+			{ $match: completedMatch },
+			{ $group: { _id: '$requester', cnt: { $sum: 1 } } }
+		]);
+		requesterAgg.forEach(row => bump(row._id, 'sessionsCompletedSpent', row.cnt));
 
-	// 3) Ratings given on that day by requester and tutor
-	const ratingRequesterPipeline = [
-		{ $match: { ratedByRequesterAt: { $gte: start, $lte: end }, ratingByRequester: { $ne: null } } },
-		{ $group: { _id: '$requester', cnt: { $sum: 1 } } },
-	];
-	const ratingTutorPipeline = [
-		{ $match: { ratedByTutorAt: { $gte: start, $lte: end }, ratingByTutor: { $ne: null } } },
-		{ $group: { _id: '$tutor', cnt: { $sum: 1 } } },
-	];
-	const [ratingReqAgg, ratingTutorAgg] = await Promise.all([
-		SessionRequest.aggregate(ratingRequesterPipeline),
-		SessionRequest.aggregate(ratingTutorPipeline),
-	]);
-	ratingReqAgg.forEach(row => bump(row._id, 'ratings', row.cnt));
-	ratingTutorAgg.forEach(row => bump(row._id, 'ratings', row.cnt));
-
-	// 4) SkillMate approvals (count for both requester and recipient on approval date)
+		// 2) SkillMate approvals (count for both requester and recipient on approval date)
 	const smPipeline = [
 		{ $match: { updatedAt: { $gte: start, $lte: end }, status: 'approved' } },
 		{ $project: { requester: 1, recipient: 1 } },
@@ -78,6 +60,16 @@ async function recomputeContributionsForDate(targetDate) {
 		bump(doc.requester, 'skillMateApprovals', 1);
 		bump(doc.recipient, 'skillMateApprovals', 1);
 	});
+
+		// 3) Interviews completed (when rated)
+		const ivAgg = await InterviewRequest.aggregate([
+			{ $match: { ratedAt: { $gte: start, $lte: end } } },
+			{ $project: { requester: 1, assignedInterviewer: 1 } },
+		]);
+		ivAgg.forEach(doc => {
+			if (doc.requester) bump(doc.requester, 'interviewsRated', 1);
+			if (doc.assignedInterviewer) bump(doc.assignedInterviewer, 'interviewsRated', 1);
+		});
 
 	// Upsert tallies into Contribution collection
 	if (tallies.size === 0) return { dateKey, upserts: 0 };

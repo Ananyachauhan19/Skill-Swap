@@ -64,13 +64,7 @@ exports.submitRequest = async (req, res) => {
     }
 
     res.status(201).json({ message: 'Interview request submitted', request: reqDoc });
-
-    // Contribution: requesting an interview counts as an activity for requester
-    try {
-      const { incrementContribution } = require('../utils/contributions');
-      const io = req.app.get('io');
-      await incrementContribution({ userId: requester, breakdownKey: 'interviewsRequested', io });
-    } catch (_) {}
+    // No contribution on submit to avoid multi-counting; count when completed (rated)
   } catch (err) {
     console.error('submitRequest error', err);
     res.status(500).json({ message: 'Failed to submit interview request' });
@@ -537,15 +531,7 @@ exports.scheduleInterview = async (req, res) => {
     }
 
     res.json({ message: 'Interview scheduled', request: reqDoc });
-
-    // Contribution: interviewer scheduling an interview is an activity
-    try {
-      const { incrementContribution } = require('../utils/contributions');
-      const io = req.app.get('io');
-      if (reqDoc.assignedInterviewer) {
-        await incrementContribution({ userId: reqDoc.assignedInterviewer, breakdownKey: 'interviewsRequested', io });
-      }
-    } catch (_) {}
+    // No contribution on schedule to avoid multi-counting
   } catch (err) {
     console.error('scheduleInterview error', err);
     res.status(500).json({ message: 'Failed to schedule interview' });
@@ -670,14 +656,15 @@ exports.rateInterviewer = async (req, res) => {
         feedback: request.feedback
       }
     });
-
-    // Contribution: rating an interview counts as activity for requester; interviewer also gets a contribution
+    // Contribution: count once for both users when interview is marked completed via rating (idempotent)
     try {
-      const { incrementContribution } = require('../utils/contributions');
+      const { recordContributionEvent } = require('../utils/contributions');
       const io = req.app.get('io');
+      const key = `interview-completed:${request._id}`;
+      const interviewerId = request.assignedInterviewer && (request.assignedInterviewer._id || request.assignedInterviewer);
       await Promise.all([
-        incrementContribution({ userId, breakdownKey: 'interviewsRated', io }),
-        request.assignedInterviewer ? incrementContribution({ userId: request.assignedInterviewer._id || request.assignedInterviewer, breakdownKey: 'interviewsRated', io }) : Promise.resolve(),
+        recordContributionEvent({ userId, key, breakdownKey: 'interviewsRated', io }),
+        interviewerId ? recordContributionEvent({ userId: interviewerId, key, breakdownKey: 'interviewsRated', io }) : Promise.resolve(),
       ]);
     } catch (_) {}
   } catch (err) {

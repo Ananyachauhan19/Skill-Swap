@@ -1,4 +1,5 @@
 const Contribution = require('../models/Contribution');
+const ContributionEvent = require('../models/ContributionEvent');
 
 function toDateKeyUTC(date = new Date()) {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
@@ -44,7 +45,28 @@ async function incrementContribution({ userId, when = new Date(), by = 1, breakd
   return { dateKey };
 }
 
+/**
+ * Idempotent record-and-increment. Creates a ContributionEvent(userId,key) first;
+ * if it already exists, no-op. Otherwise increments the daily contribution once.
+ */
+async function recordContributionEvent({ userId, key, when = new Date(), by = 1, breakdownKey, breakdownIncs = {}, io }) {
+  if (!userId || !key) return { recorded: false };
+  const dateKey = toDateKeyUTC(when);
+  try {
+    await ContributionEvent.create({ userId, key, dateKey });
+  } catch (e) {
+    // duplicate -> already recorded
+    if (e && e.code === 11000) {
+      return { recorded: false, duplicate: true };
+    }
+    throw e;
+  }
+  await incrementContribution({ userId, when, by, breakdownKey, breakdownIncs, io });
+  return { recorded: true };
+}
+
 module.exports = {
   toDateKeyUTC,
   incrementContribution,
+  recordContributionEvent,
 };

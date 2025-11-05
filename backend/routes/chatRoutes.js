@@ -5,7 +5,7 @@ const User = require('../models/User');
 const SkillMate = require('../models/SkillMate');
 const Notification = require('../models/Notification');
 const auth = require('../middleware/requireAuth');
-const { incrementContribution } = require('../utils/contributions');
+// Chat does not contribute to the calendar to avoid inflating activity counts
 
 // Send a new chat message
 router.post('/send', auth, async (req, res) => {
@@ -64,11 +64,7 @@ router.post('/send', auth, async (req, res) => {
 
     res.json({ message: 'Message sent successfully', chatMessage });
 
-    // Contribution: chatting with a SkillMate counts as a light activity for the sender
-    try {
-      const io = req.app.get('io');
-      await incrementContribution({ userId: senderId, breakdownKey: 'chatMessages', io });
-    } catch (_) {}
+    // No contribution increment on chat send
   } catch (error) {
     console.error('Error sending chat message:', error);
     res.status(500).json({ message: 'Server error' });
