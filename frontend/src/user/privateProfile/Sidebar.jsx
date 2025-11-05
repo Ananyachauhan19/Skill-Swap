@@ -13,6 +13,7 @@ import {
 } from "react-icons/fa";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { BACKEND_URL } from '../../config.js';
+import { useSkillMates } from '../../context/SkillMatesContext.jsx';
 
 // Fetch user profile from backend
 const fetchUserProfile = async () => {
@@ -44,7 +45,7 @@ const fetchUserProfile = async () => {
       skillsToLearn: userData.skillsToLearn || [],
       socialLinks: userData.socialLinks || [],
     };
-  } catch (err) {
+  } catch {
     throw new Error("Failed to fetch user profile");
   }
 };
@@ -52,6 +53,7 @@ const fetchUserProfile = async () => {
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { open: openSkillMates, count: skillMateCount } = useSkillMates();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -103,18 +105,21 @@ const Sidebar = () => {
           maxHeight: 'calc(100vh - 70px)',
         }}
       >
-        {navItems.map(({ path, icon: Icon, label, title, route }) => (
-          <button
-            key={path}
-            onClick={() => navigate(route || `/profile/${path}`)}
-            className={`flex flex-col items-center gap-1 p-2 sm:p-2.5 transition-all duration-300 transform hover:scale-105 ${isActive(path)}`}
-            title={title}
-            aria-label={title}
-          >
-            <Icon className="text-blue-900 sprit text-lg sm:text-xl" />
-            <span className="text-blue-900 text-[10px] sm:text-xs">{label}</span>
-          </button>
-        ))}
+        {navItems.map((item) => {
+          const { path, icon, label, title, route } = item;
+          return (
+            <button
+              key={path}
+              onClick={() => navigate(route || `/profile/${path}`)}
+              className={`flex flex-col items-center gap-1 p-2 sm:p-2.5 transition-all duration-300 transform hover:scale-105 ${isActive(path)}`}
+              title={title}
+              aria-label={title}
+            >
+              {React.createElement(icon, { className: 'text-blue-900 sprit text-lg sm:text-xl' })}
+              <span className="text-blue-900 text-[10px] sm:text-xs">{label}</span>
+            </button>
+          );
+        })}
       </aside>
 
 
@@ -133,21 +138,24 @@ const Sidebar = () => {
               </button>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {navItems.slice(3).map(({ path, icon: Icon, label, title, route }) => (
-                <button
-                  key={path}
-                  onClick={() => {
-                    navigate(route || `/profile/${path}`);
-                    setShowMobileMenu(false);
-                  }}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-lg transition-all duration-300 ${isActive(path)}`}
-                  title={title}
-                  aria-label={title}
-                >
-                  <Icon className="text-blue-900 text-xl" />
-                  <span className="text-blue-900 text-xs">{label}</span>
-                </button>
-              ))}
+              {navItems.slice(3).map((item) => {
+                const { path, icon, label, title, route } = item;
+                return (
+                  <button
+                    key={path}
+                    onClick={() => {
+                      navigate(route || `/profile/${path}`);
+                      setShowMobileMenu(false);
+                    }}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-lg transition-all duration-300 ${isActive(path)}`}
+                    title={title}
+                    aria-label={title}
+                  >
+                    {React.createElement(icon, { className: 'text-blue-900 text-xl' })}
+                    <span className="text-blue-900 text-xs">{label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -200,12 +208,12 @@ const Sidebar = () => {
                 
                 <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-3">
                   <button
-                    onClick={() => navigate("/profile/skillmates")}
+                    onClick={openSkillMates}
                     className="flex items-center gap-2 text-blue-900 text-base font-medium bg-transparent hover:text-blue-700 shadow-[0_2px_6px_rgba(0,0,139,0.2)] px-4 py-2 rounded-lg transition-all duration-300 w-full sm:w-auto justify-center"
-                    aria-label="View SkillMates"
+                    aria-label="Open SkillMates"
                   >
                     <FaUsers className="text-blue-900 text-lg" />
-                    <span>SkillMates ({user?.skillMatesCount || 0})</span>
+                    <span>SkillMates ({typeof skillMateCount === 'number' ? skillMateCount : (user?.skillMatesCount || 0)})</span>
                   </button>
                   
                   <button

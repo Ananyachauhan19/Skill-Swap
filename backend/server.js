@@ -26,6 +26,8 @@ const testimonialRoutes = require('./routes/testimonialRoutes');
 const interviewRoutes = require('./routes/interviewRoutes');
 const skillsRoutes = require('./routes/skillsRoutes');
 const debugRoutes = require('./routes/debugRoutes');
+const contributionRoutes = require('./routes/contributionRoutes');
+const cron = require('node-cron');
 
 const app = express();
 const server = http.createServer(app);
@@ -107,6 +109,7 @@ app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/interview', interviewRoutes);
 app.use('/api', skillsRoutes);
 app.use('/api', debugRoutes);
+app.use('/api/contributions', contributionRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');
@@ -118,5 +121,29 @@ mongoose.connect(process.env.MONGO_URI)
     server.listen(process.env.PORT, () =>
       console.log(`Server running on port ${process.env.PORT}`)
     );
+
+    // Schedule daily recompute (optional). Enable by setting ENABLE_CONTRIBUTION_CRON=true
+    if (String(process.env.ENABLE_CONTRIBUTION_CRON || 'false').toLowerCase() === 'true') {
+      try {
+        cron.schedule('5 2 * * *', async () => {
+          try {
+            const now = new Date();
+            const yest = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            yest.setUTCDate(yest.getUTCDate() - 1);
+            if (typeof contributionRoutes.recomputeContributionsForDate === 'function') {
+              const res = await contributionRoutes.recomputeContributionsForDate(yest);
+              console.log('[Contributions] Daily recompute complete for', res.dateKey, 'upserts:', res.upserts);
+            }
+          } catch (e) {
+            console.error('[Contributions] Daily recompute failed:', e);
+          }
+        });
+        console.log('[Contributions] Scheduled daily recompute at 02:05');
+      } catch (e) {
+        console.error('[Contributions] Failed to schedule cron job:', e);
+      }
+    } else {
+      console.log('[Contributions] Cron disabled. Set ENABLE_CONTRIBUTION_CRON=true to enable.');
+    }
   })
   .catch((err) => console.log(err));

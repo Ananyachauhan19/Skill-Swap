@@ -38,6 +38,38 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
 
+// Public: search users by name or username (for SkillMate search)
+router.get('/search/users', async (req, res) => {
+  try {
+    const qRaw = (req.query.q || '').toString().trim();
+    const limit = Math.min(parseInt(req.query.limit || '8', 10), 20);
+    const skip = Math.max(parseInt(req.query.skip || '0', 10), 0);
+
+    if (!qRaw) return res.json({ results: [] });
+
+    // Escape regex special chars
+    const escaped = qRaw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'i');
+
+    const users = await User.find({
+      $or: [
+        { firstName: regex },
+        { lastName: regex },
+        { username: regex },
+      ],
+    })
+      .select('_id firstName lastName username profilePic')
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    res.json({ results: users });
+  } catch (error) {
+    console.error('[DEBUG] /search/users error:', error);
+    res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
 // Example: after successful login, set cookie consistently
 router.post('/login/success', (req, res) => {
   console.info('[DEBUG] /login/success called for user:', req.user?._id);
@@ -573,6 +605,106 @@ router.get('/videos', requireAuth, async (req, res) => {
   }
 });
 
+// Public: Get videos for a given username (no auth required)
+router.get('/public/videos/:username', async (req, res) => {
+  try {
+    const profileUser = await User.findOne({ username: req.params.username }).select('firstName lastName _id');
+    if (!profileUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const mockVideos = [
+      {
+        id: '1',
+        title: 'React Tutorial',
+        description: 'Complete React tutorial for beginners',
+        thumbnail: 'https://placehold.co/320x180?text=React+Tutorial',
+        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        uploadDate: new Date().toISOString(),
+        userId: profileUser._id,
+        skillmates: 5,
+        views: 120,
+        likes: 20,
+        dislikes: 1,
+        isLive: false,
+        scheduledTime: null,
+        isDraft: false,
+        isArchived: false,
+      },
+      {
+        id: '2',
+        title: 'Node.js Crash Course',
+        description: 'Quick start guide to Node.js',
+        thumbnail: 'https://placehold.co/320x180?text=Node+JS',
+        videoUrl: 'https://www.w3schools.com/html/movie.mp4',
+        uploadDate: new Date().toISOString(),
+        userId: profileUser._id,
+        skillmates: 3,
+        views: 80,
+        likes: 10,
+        dislikes: 0,
+        isLive: false,
+        scheduledTime: null,
+        isDraft: false,
+        isArchived: false,
+      },
+    ];
+    res.json({ videos: mockVideos });
+  } catch (error) {
+    console.error('[DEBUG] Public videos error:', error);
+    res.status(500).json({ error: 'Failed to fetch public videos' });
+  }
+});
+
+// Public: Get videos by userId (no auth required)
+router.get('/public/videos/byId/:userId', async (req, res) => {
+  try {
+    const profileUser = await User.findById(req.params.userId).select('firstName lastName _id');
+    if (!profileUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const mockVideos = [
+      {
+        id: '1',
+        title: 'React Tutorial',
+        description: 'Complete React tutorial for beginners',
+        thumbnail: 'https://placehold.co/320x180?text=React+Tutorial',
+        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        uploadDate: new Date().toISOString(),
+        userId: profileUser._id,
+        skillmates: 5,
+        views: 120,
+        likes: 20,
+        dislikes: 1,
+        isLive: false,
+        scheduledTime: null,
+        isDraft: false,
+        isArchived: false,
+      },
+      {
+        id: '2',
+        title: 'Node.js Crash Course',
+        description: 'Quick start guide to Node.js',
+        thumbnail: 'https://placehold.co/320x180?text=Node+JS',
+        videoUrl: 'https://www.w3schools.com/html/movie.mp4',
+        uploadDate: new Date().toISOString(),
+        userId: profileUser._id,
+        skillmates: 3,
+        views: 80,
+        likes: 10,
+        dislikes: 0,
+        isLive: false,
+        scheduledTime: null,
+        isDraft: false,
+        isArchived: false,
+      },
+    ];
+    res.json({ videos: mockVideos });
+  } catch (error) {
+    console.error('[DEBUG] Public videos byId error:', error);
+    res.status(500).json({ error: 'Failed to fetch public videos by userId' });
+  }
+});
+
 // Upload video
 router.post('/videos/upload', requireAuth, async (req, res) => {
   try {
@@ -697,6 +829,114 @@ router.get('/live', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('[DEBUG] Live sessions error:', error);
     res.status(500).json({ error: 'Failed to fetch live sessions' });
+  }
+});
+
+// Public: Get live/scheduled sessions for a given username (no auth required)
+router.get('/public/live/:username', async (req, res) => {
+  try {
+    const profileUser = await User.findOne({ username: req.params.username }).select('firstName lastName _id');
+    if (!profileUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const mockLiveSessions = [
+      {
+        id: '1',
+        title: 'React Live Coding',
+        description: 'Live coding session on React',
+        thumbnail: 'https://placehold.co/320x180?text=Live+1',
+        videoUrl: null,
+        isLive: true,
+        scheduledTime: new Date(Date.now() + 3600 * 1000).toISOString(),
+        uploadDate: new Date().toLocaleString(),
+        host: `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim(),
+        userId: profileUser._id,
+        viewers: 120,
+        skillmates: 10,
+        views: 0,
+        likes: 0,
+        dislikes: 0,
+        isDraft: false,
+        isRecorded: false,
+      },
+      {
+        id: '2',
+        title: 'Node.js Q&A',
+        description: 'Q&A session on Node.js',
+        thumbnail: 'https://placehold.co/320x180?text=Live+2',
+        videoUrl: null,
+        isLive: false,
+        scheduledTime: new Date(Date.now() + 7200 * 1000).toISOString(),
+        uploadDate: new Date().toLocaleString(),
+        host: `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim(),
+        userId: profileUser._id,
+        viewers: 80,
+        skillmates: 8,
+        views: 0,
+        likes: 0,
+        dislikes: 0,
+        isDraft: false,
+        isRecorded: false,
+      },
+    ];
+    res.json({ liveSessions: mockLiveSessions });
+  } catch (error) {
+    console.error('[DEBUG] Public live sessions error:', error);
+    res.status(500).json({ error: 'Failed to fetch public live sessions' });
+  }
+});
+
+// Public: Get live/scheduled sessions by userId (no auth required)
+router.get('/public/live/byId/:userId', async (req, res) => {
+  try {
+    const profileUser = await User.findById(req.params.userId).select('firstName lastName _id');
+    if (!profileUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const mockLiveSessions = [
+      {
+        id: '1',
+        title: 'React Live Coding',
+        description: 'Live coding session on React',
+        thumbnail: 'https://placehold.co/320x180?text=Live+1',
+        videoUrl: null,
+        isLive: true,
+        scheduledTime: new Date(Date.now() + 3600 * 1000).toISOString(),
+        uploadDate: new Date().toLocaleString(),
+        host: `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim(),
+        userId: profileUser._id,
+        viewers: 120,
+        skillmates: 10,
+        views: 0,
+        likes: 0,
+        dislikes: 0,
+        isDraft: false,
+        isRecorded: false,
+      },
+      {
+        id: '2',
+        title: 'Node.js Q&A',
+        description: 'Q&A session on Node.js',
+        thumbnail: 'https://placehold.co/320x180?text=Live+2',
+        videoUrl: null,
+        isLive: false,
+        scheduledTime: new Date(Date.now() + 7200 * 1000).toISOString(),
+        uploadDate: new Date().toLocaleString(),
+        host: `${profileUser.firstName || ''} ${profileUser.lastName || ''}`.trim(),
+        userId: profileUser._id,
+        viewers: 80,
+        skillmates: 8,
+        views: 0,
+        likes: 0,
+        dislikes: 0,
+        isDraft: false,
+        isRecorded: false,
+      },
+    ];
+    res.json({ liveSessions: mockLiveSessions });
+  } catch (error) {
+    console.error('[DEBUG] Public live byId error:', error);
+    res.status(500).json({ error: 'Failed to fetch public live sessions by userId' });
   }
 });
 

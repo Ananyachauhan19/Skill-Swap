@@ -1,13 +1,30 @@
 import React from 'react';
+import { toast } from 'react-hot-toast';
 import { Edit2, Save, XCircle, Plus, Trash2 } from 'lucide-react';
 import { STATIC_COURSES, STATIC_UNITS } from '../../constants/teachingData';
+import { useSkillMates } from '../../context/SkillMatesContext.jsx';
+
+const SkillMateHeaderAction = () => {
+  const { count, open } = useSkillMates();
+  return (
+    <div className="w-full flex justify-end -mt-2">
+      <button
+        onClick={open}
+        className="inline-flex items-center gap-2 bg-blue-700 text-white px-3 py-1.5 rounded-md hover:bg-blue-800 shadow-sm"
+        aria-label="Open SkillMates"
+      >
+        <span>SkillMates</span>
+        <span className="text-xs bg-white/10 px-1.5 py-0.5 rounded">{count}</span>
+      </button>
+    </div>
+  );
+};
 
 const UserInfoSection = ({
   profile,
   editingField,
   fieldDraft,
   startEdit,
-  saveEdit,
   cancelEdit,
   handleArrayChange,
   handleArrayAdd,
@@ -24,7 +41,7 @@ const UserInfoSection = ({
       // Mock file upload (replace with actual upload logic)
       const mockUrl = `https://placehold.co/cert-${index}.pdf`;
       handleArrayChange('certificates', index, mockUrl, 'url');
-    } catch (err) {
+    } catch {
       toast.error('Failed to upload certificate.');
     }
   };
@@ -48,11 +65,14 @@ const UserInfoSection = ({
       <div className="flex-1 flex flex-col gap-2 w-full">
         <div className="flex items-center justify-between mb-2">
           <div className="font-semibold text-blue-900 text-lg">User Info</div>
-          {editingField !== 'userInfo' && (
-            <button onClick={() => startEdit('userInfo')} className="text-blue-600 hover:text-blue-800">
-              <Edit2 size={18} />
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <SkillMateHeaderAction />
+            {editingField !== 'userInfo' && (
+              <button onClick={() => startEdit('userInfo')} className="text-blue-600 hover:text-blue-800">
+                <Edit2 size={18} />
+              </button>
+            )}
+          </div>
         </div>
         {editingField === 'userInfo' ? (
           <>

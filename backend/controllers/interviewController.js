@@ -38,7 +38,7 @@ exports.submitRequest = async (req, res) => {
       scheduledAt: null,
     });
 
-    await reqDoc.save();
+  await reqDoc.save();
     await reqDoc.populate('requester', 'firstName lastName username profilePic');
 
     // Notify admins
@@ -64,6 +64,13 @@ exports.submitRequest = async (req, res) => {
     }
 
     res.status(201).json({ message: 'Interview request submitted', request: reqDoc });
+
+    // Contribution: requesting an interview counts as an activity for requester
+    try {
+      const { incrementContribution } = require('../utils/contributions');
+      const io = req.app.get('io');
+      await incrementContribution({ userId: requester, breakdownKey: 'interviewsRequested', io });
+    } catch (_) {}
   } catch (err) {
     console.error('submitRequest error', err);
     res.status(500).json({ message: 'Failed to submit interview request' });
@@ -530,6 +537,15 @@ exports.scheduleInterview = async (req, res) => {
     }
 
     res.json({ message: 'Interview scheduled', request: reqDoc });
+
+    // Contribution: interviewer scheduling an interview is an activity
+    try {
+      const { incrementContribution } = require('../utils/contributions');
+      const io = req.app.get('io');
+      if (reqDoc.assignedInterviewer) {
+        await incrementContribution({ userId: reqDoc.assignedInterviewer, breakdownKey: 'interviewsRequested', io });
+      }
+    } catch (_) {}
   } catch (err) {
     console.error('scheduleInterview error', err);
     res.status(500).json({ message: 'Failed to schedule interview' });
@@ -654,6 +670,16 @@ exports.rateInterviewer = async (req, res) => {
         feedback: request.feedback
       }
     });
+
+    // Contribution: rating an interview counts as activity for requester; interviewer also gets a contribution
+    try {
+      const { incrementContribution } = require('../utils/contributions');
+      const io = req.app.get('io');
+      await Promise.all([
+        incrementContribution({ userId, breakdownKey: 'interviewsRated', io }),
+        request.assignedInterviewer ? incrementContribution({ userId: request.assignedInterviewer._id || request.assignedInterviewer, breakdownKey: 'interviewsRated', io }) : Promise.resolve(),
+      ]);
+    } catch (_) {}
   } catch (err) {
     console.error('rateInterviewer error', err);
     res.status(500).json({ message: 'Failed to submit rating' });

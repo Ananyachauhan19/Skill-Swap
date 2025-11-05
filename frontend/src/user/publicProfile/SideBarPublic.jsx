@@ -14,10 +14,12 @@ import {
   FaChalkboardTeacher,
   FaChevronDown,
 } from 'react-icons/fa';
-import { useNavigate, useLocation, Outlet, NavLink, useParams } from 'react-router-dom';
+import { useNavigate, Outlet, NavLink, useParams } from 'react-router-dom';
 import ContributionCalendar from '../myprofile/ContributionCalendar';
+import Chat from '../../components/Chat';
 import SearchBar from '../privateProfile/SearchBar';
 import { BACKEND_URL } from '../../config.js';
+import { useToast } from '../../components/ToastContext.js';
 
 export const ProfileContext = createContext();
 
@@ -88,6 +90,8 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
+  const [activeChatId, setActiveChatId] = useState(null);
+  const { addToast } = useToast();
 
   useEffect(() => {
     const targetUsername = paramUsername || username;
@@ -118,7 +122,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
     window.addEventListener('profileUpdated', loadProfile);
     return () => window.removeEventListener('profileUpdated', loadProfile);
-  }, [paramUsername, username]);
+  }, [paramUsername, username, setNotFound]);
 
   const checkSkillMateStatus = async (userId) => {
     try {
@@ -131,7 +135,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
       const data = await response.json();
       setIsSkillMate(data.isSkillMate);
       setPendingRequest(data.pendingRequest);
-    } catch (error) {}
+    } catch (error) { console.warn('SkillMate status check failed:', error?.message); }
   };
 
   useEffect(() => {
@@ -164,9 +168,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
     try {
       await sendSkillMateRequest(profile._id);
       setPendingRequest({ isRequester: true });
-      alert('SkillMate request sent successfully!');
+      addToast({ title: 'Request Sent', message: 'SkillMate request sent successfully.', variant: 'success', timeout: 3000 });
     } catch (error) {
-      alert(error.message || 'Failed to send SkillMate request');
+      addToast({ title: 'Error', message: error.message || 'Failed to send SkillMate request', variant: 'error', timeout: 4000 });
     } finally {
       setRequestLoading(false);
     }
@@ -194,9 +198,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
       setIsSkillMate(false);
       setPendingRequest(null);
       setShowDropdown(false);
-      alert('SkillMate removed successfully!');
+      addToast({ title: 'Removed', message: 'SkillMate removed successfully.', variant: 'success', timeout: 3000 });
     } catch (error) {
-      alert(error.message || 'Failed to remove SkillMate');
+      addToast({ title: 'Error', message: error.message || 'Failed to remove SkillMate', variant: 'error', timeout: 4000 });
     } finally {
       setRequestLoading(false);
     }
@@ -223,9 +227,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
       await approveSkillMateRequest(pendingRequest.id);
       setIsSkillMate(true);
       setPendingRequest(null);
-      alert('SkillMate request approved successfully!');
+      addToast({ title: 'Approved', message: 'You are now SkillMates.', variant: 'success', timeout: 3000 });
     } catch (error) {
-      alert(error.message || 'Failed to approve SkillMate request');
+      addToast({ title: 'Error', message: error.message || 'Failed to approve SkillMate request', variant: 'error', timeout: 4000 });
     } finally {
       setRequestLoading(false);
     }
@@ -235,8 +239,14 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const toggleSearchBar = () => setShowSearchBar((prev) => !prev);
   const toggleMobileMenu = () => setShowMobileMenu((prev) => !prev);
 
+  // Build link to public-profile routes preserving userId when needed
+  const buildPublicLink = (segment = 'Home') => {
+    const qp = profile?._id ? `?userId=${profile._id}` : (window.location.search || '');
+    return `/public-profile/${segment}${qp}`;
+  };
+
   const mobileNavItems = [
-    { icon: FaUser, label: 'Profile', path: '/public-profile/Home' },
+    { icon: FaUser, label: 'Profile', path: buildPublicLink('Home') },
     { icon: FaGraduationCap, label: 'Education', path: '#education' },
     { icon: FaBriefcase, label: 'Experience', path: '#experience' },
     { icon: FaCode, label: 'Skills', path: '#skills' },
@@ -453,7 +463,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     <p className="text-sm text-gray-600 mt-2 max-w-md text-center sm:text-left">
                       {profile?.bio || 'Your bio goes here, set it in Setup Profile.'}
                     </p>
-                    <div className="mt-4 flex justify-center sm:justify-start relative z-10">
+                    <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center sm:justify-start relative z-10">
                       <button
                         className={`border border-blue-200 text-dark-blue px-6 sm:px-8 py-2 rounded-lg text-sm font-medium max-w-xs flex items-center justify-between ${
                           isSkillMate ? 'bg-green-50 border-green-200' : pendingRequest ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 hover:bg-blue-100'
@@ -482,7 +492,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                           <button
                             className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
                             onClick={() => {
-                              alert('Notifications turned ON');
+                              addToast({ title: 'Notifications', message: 'Notifications turned ON', variant: 'info', timeout: 2500 });
                               setShowDropdown(false);
                             }}
                           >
@@ -491,7 +501,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                           <button
                             className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
                             onClick={() => {
-                              alert('Notifications muted');
+                              addToast({ title: 'Notifications', message: 'Notifications muted', variant: 'warning', timeout: 2500 });
                               setShowDropdown(false);
                             }}
                           >
@@ -504,6 +514,15 @@ const SideBarPublic = ({ username, setNotFound }) => {
                             ❌ Remove SkillMate
                           </button>
                         </div>
+                      )}
+                      {isSkillMate && (
+                        <button
+                          className="border border-blue-200 text-white bg-blue-600 hover:bg-blue-700 px-6 sm:px-8 py-2 rounded-lg text-sm font-medium"
+                          onClick={() => setActiveChatId(profile?._id)}
+                          title="Message"
+                        >
+                          Message
+                        </button>
                       )}
                     </div>
                   </div>
@@ -581,20 +600,20 @@ const SideBarPublic = ({ username, setNotFound }) => {
             <div className="px-2 sm:px-0 pt-4 sm:pt-6">
               <div className="flex flex-wrap gap-2 sm:gap-4 border-b border-blue-200 mb-6">
                 <NavLink
-                  to="/public-profile/Home"
+                  to={buildPublicLink('Home')}
                   className={({ isActive }) => `pb-2 px-3 text-sm font-medium ${isActive ? activeTab : normalTab}`}
                   end
                 >
                   Home
                 </NavLink>
                 <NavLink
-                  to="/public-profile/live"
+                  to={buildPublicLink('live')}
                   className={({ isActive }) => `pb-2 px-3 text-sm font-medium ${isActive ? activeTab : normalTab}`}
                 >
                   Live
                 </NavLink>
                 <NavLink
-                  to="/public-profile/videos"
+                  to={buildPublicLink('videos')}
                   className={({ isActive }) => `pb-2 px-3 text-sm font-medium ${isActive ? activeTab : normalTab}`}
                 >
                   Videos
@@ -616,6 +635,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
           </div>
         </main>
+        {activeChatId && (
+          <Chat skillMateId={activeChatId} onClose={() => setActiveChatId(null)} />
+        )}
       </div>
     </ProfileContext.Provider>
   );

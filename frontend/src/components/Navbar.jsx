@@ -44,7 +44,7 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
                   });
                   return true;
                 }
-              } catch (error) {
+              } catch {
                 return false;
               }
             },
@@ -62,7 +62,7 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
                   });
                   return true;
                 }
-              } catch (error) {
+              } catch {
                 return false;
               }
             },
@@ -170,7 +170,7 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
                 // Handle error if needed
               }
             })
-            .catch((error) => {
+            .catch(() => {
               // Handle error if needed
             });
         },
@@ -328,6 +328,10 @@ const Navbar = () => {
   const [activeVideoCall, setActiveVideoCall] = useState(null);
   const menuRef = useRef();
   const coinsRef = useRef();
+  const searchRef = useRef();
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // Load notifications from localStorage and sync with socket
   useEffect(() => {
@@ -336,7 +340,7 @@ const Navbar = () => {
       try {
         const parsed = JSON.parse(savedNotifications);
         setNotifications(parsed);
-      } catch (error) {
+      } catch {
         localStorage.removeItem('notifications');
         setNotifications([]);
       }
@@ -398,7 +402,7 @@ const Navbar = () => {
             if (user && user._id) {
               socket.emit('register', user._id);
             }
-          } catch (error) {
+          } catch {
             setGoldenCoins(0);
             setSilverCoins(0);
           }
@@ -453,6 +457,7 @@ const Navbar = () => {
         navigate(`/profile/${username}`);
       }
       setSearchQuery('');
+      setShowSuggestions(false);
     }
   };
 
@@ -465,46 +470,46 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleRequestSent = (e) => {
-      setNotifications((prev) => {
-        const updated = [
-          { type: 'request', tutor: e.detail.tutor, onCancel: e.detail.onCancel },
-          ...prev,
-        ];
-        localStorage.setItem('notifications', JSON.stringify(updated));
-        return updated;
-      });
+              setNotifications((prev) => {
+                const updated = [
+                  { type: 'request', tutor: e.detail.tutor, onCancel: e.detail.onCancel },
+                  ...prev,
+                ];
+                localStorage.setItem('notifications', JSON.stringify(updated));
+                return updated;
+              });
     };
     const handleAddSessionRequestNotification = (e) => {
-      setNotifications((prev) => {
-        const updated = [
-          {
-            type: 'session',
-            tutor: e.detail.tutor,
-            onAccept: e.detail.onAccept,
-            onReject: e.detail.onReject,
-          },
-          ...prev,
-        ];
-        localStorage.setItem('notifications', JSON.stringify(updated));
-        return updated;
-      });
+              setNotifications((prev) => {
+                const updated = [
+                  {
+                    type: 'session',
+                    tutor: e.detail.tutor,
+                    onAccept: e.detail.onAccept,
+                    onReject: e.detail.onReject,
+                  },
+                  ...prev,
+                ];
+                localStorage.setItem('notifications', JSON.stringify(updated));
+                return updated;
+              });
     };
     const handleSessionRequestResponse = (e) => {
-      setNotifications((prev) => {
-        const updated = [
-          {
-            type: 'text',
-            message: `Your request to ${e.detail.tutor.name} has been ${e.detail.status}.`,
-          },
-          ...prev.filter(
-            (n) =>
-              !(n.type === 'request' && n.tutor && n.tutor.name === e.detail.tutor.name) &&
-              !(n.type === 'session' && n.tutor && n.tutor.name === e.detail.tutor.name),
-          ),
-        ];
-        localStorage.setItem('notifications', JSON.stringify(updated));
-        return updated;
-      });
+              setNotifications((prev) => {
+                const updated = [
+                  {
+                    type: 'text',
+                    message: `Your request to ${e.detail.tutor.name} has been ${e.detail.status}.`,
+                  },
+                  ...prev.filter(
+                    (n) =>
+                      !(n.type === 'request' && n.tutor && n.tutor.name === e.detail.tutor.name) &&
+                      !(n.type === 'session' && n.tutor && n.tutor.name === e.detail.tutor.name),
+                  ),
+                ];
+                localStorage.setItem('notifications', JSON.stringify(updated));
+                return updated;
+              });
     };
     window.addEventListener('requestSent', handleRequestSent);
     window.addEventListener('addSessionRequestNotification', handleAddSessionRequestNotification);
@@ -517,6 +522,53 @@ const Navbar = () => {
   }, []);
 
   useSessionSocketNotifications(setNotifications, setActiveVideoCall);
+
+  // Live suggestions: fetch users from backend on query change (debounced)
+  useEffect(() => {
+    let timeout;
+    let abortController;
+    const run = () => {
+      const q = searchQuery.trim();
+      if (q.length < 2) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+      setSearchLoading(true);
+      abortController = new AbortController();
+      const url = `${BACKEND_URL}/api/auth/search/users?q=${encodeURIComponent(q)}&limit=8`;
+      fetch(url, { signal: abortController.signal })
+        .then((r) => r.ok ? r.json() : Promise.reject(new Error('Failed')))
+        .then((data) => {
+          setSuggestions(Array.isArray(data.results) ? data.results : []);
+          setShowSuggestions(true);
+        })
+        .catch(() => {
+          if (!abortController.signal.aborted) {
+            setSuggestions([]);
+            setShowSuggestions(false);
+          }
+        })
+        .finally(() => setSearchLoading(false));
+    };
+
+    timeout = setTimeout(run, 250); // debounce
+    return () => {
+      clearTimeout(timeout);
+      if (abortController) abortController.abort();
+    };
+  }, [searchQuery]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleMobileMenu = () => setMenuOpen((open) => !open);
 
@@ -566,7 +618,7 @@ const Navbar = () => {
           {/* Right Side: Icons and Search */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Search */}
-            <form onSubmit={handleSearch} className="hidden md:flex items-center">
+            <form onSubmit={handleSearch} className="hidden md:flex items-center" ref={searchRef}>
               <div className="relative">
                 <input
                   type="text"
@@ -589,6 +641,42 @@ const Navbar = () => {
                     />
                   </svg>
                 </button>
+                {showSuggestions && (
+                  <div className="absolute z-50 mt-2 left-0 w-72 max-w-[18rem] bg-white border border-blue-200 rounded-xl shadow-xl overflow-hidden">
+                    <div className="max-h-80 overflow-y-auto">
+                      {searchLoading && (
+                        <div className="px-4 py-3 text-sm text-blue-900/70">Searching…</div>
+                      )}
+                      {!searchLoading && suggestions.length === 0 && (
+                        <div className="px-4 py-3 text-sm text-blue-900/70">No results</div>
+                      )}
+                      {suggestions.map((u) => (
+                        <button
+                          key={u._id}
+                          type="button"
+                          className="w-full px-3 py-2 flex items-center gap-3 hover:bg-blue-50 text-left"
+                          onClick={() => {
+                            setShowSuggestions(false);
+                            setSearchQuery('');
+                            navigate(`/profile/${encodeURIComponent(u.username)}`);
+                          }}
+                        >
+                          {u.profilePic ? (
+                            <img src={u.profilePic} alt={u.username} className="w-8 h-8 rounded-full object-cover border border-blue-200" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
+                              {(u.firstName?.[0] || u.username?.[0] || 'U').toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-blue-900 truncate">{`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username}</div>
+                            <div className="text-xs text-blue-900/70 truncate">@{u.username}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </form>
 

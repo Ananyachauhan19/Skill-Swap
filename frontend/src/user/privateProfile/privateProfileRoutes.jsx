@@ -7,7 +7,6 @@ import Draft from './Draft';
 import Archive from './Archive';
 import Saved from './Saved';
 import Analytics from './Analytics';
-import SkillMate from './SkillMate';
 import History from './History';
 import Home from './HomePage'
 
@@ -28,7 +27,7 @@ const privateProfileChildren = [
   { path: 'archived', element: <Archive /> },
   { path: 'saved', element: <Saved /> },
   { path: 'analytics', element: <Analytics /> },
-  { path: 'skillmates', element: <SkillMate /> },
+  // SkillMates page removed; use global modal via SkillMatesContext instead
   { path: 'history', element: <History /> },
 ];
 

@@ -3,6 +3,7 @@ const SkillMate = require('../models/SkillMate');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const requireAuth = require('../middleware/requireAuth');
+const { incrementContribution } = require('../utils/contributions');
 const router = express.Router();
 
 // Create a new SkillMate request
@@ -87,6 +88,15 @@ router.post('/request', requireAuth, async (req, res) => {
             requesterName: `${recipient.firstName} ${recipient.lastName}`,
             timestamp: Date.now(),
           });
+
+          // Contributions: both users gain a contribution for adding a SkillMate
+          try {
+            const io = req.app.get('io');
+            await Promise.all([
+              incrementContribution({ userId: requesterId, breakdownKey: 'skillMateApprovals', io }),
+              incrementContribution({ userId: recipientId, breakdownKey: 'skillMateApprovals', io }),
+            ]);
+          } catch (_) {}
 
           return res.status(200).json({ 
             message: 'SkillMate request approved automatically as the user had already sent you a request',
@@ -259,6 +269,14 @@ router.post('/requests/approve/:requestId', requireAuth, async (req, res) => {
       requesterName: `${recipient.firstName} ${recipient.lastName}`,
       timestamp: Date.now(),
     });
+
+    // Contributions: both users gain a contribution for adding a SkillMate
+    try {
+      await Promise.all([
+        incrementContribution({ userId: skillMateRequest.requester, breakdownKey: 'skillMateApprovals', io }),
+        incrementContribution({ userId: skillMateRequest.recipient, breakdownKey: 'skillMateApprovals', io }),
+      ]);
+    } catch (_) {}
 
     // Populate user details for response
     await skillMateRequest.populate('requester', 'firstName lastName username profilePic');

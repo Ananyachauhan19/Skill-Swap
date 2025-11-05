@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../lib/api';
+import { useAuth } from '../../context/AuthContext';
+import socket from '../../socket';
 
-// Static history simulation
-async function fetchUserHistory() {
-  try {
-    const staticHistory = [
-      { date: '2025-07-09', sessions: ['React Workshop', 'Node.js Q&A'] },
-      { date: '2025-07-08', sessions: ['JavaScript Basics'] },
-    ];
-    return staticHistory;
-  } catch {
-    throw new Error('Failed to fetch history');
-  }
+// Fetch dynamic contributions for the last N days
+async function fetchContributions(userId, rangeDays = 365) {
+  const res = await api.get(`/api/contributions/${userId}?rangeDays=${rangeDays}`);
+  return res.data.items || [];
 }
 
 // Generate last 12 months
@@ -31,6 +27,7 @@ const generateMonths = (currentDate) => {
       months.push({
         name: monthName,
         year: year,
+        monthIndex,
         days:
           current.getMonth() === endDate.getMonth() &&
           current.getFullYear() === endDate.getFullYear()
@@ -46,46 +43,47 @@ const generateMonths = (currentDate) => {
   return months;
 };
 
-// Generate contribution counts by date
-const generateContributionData = (currentDate, history) => {
-  const contributions = {};
+// Prepare a date-key map for the last 365 days and fill from API items
+const buildContributionMap = (currentDate, items) => {
+  const map = {};
   const endDate = new Date(currentDate);
   const startDate = new Date(currentDate);
   startDate.setDate(startDate.getDate() - 364);
 
   let current = new Date(startDate);
   while (current <= endDate) {
-    const dateStr = current.toISOString().split('T')[0];
-    contributions[dateStr] = 0;
-    current.setDate(current.getDate() + 1);
+    // Use UTC day key to align with backend
+    const dateStr = new Date(Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate())).toISOString().slice(0, 10);
+    map[dateStr] = 0;
+    current.setUTCDate(current.getUTCDate() + 1);
   }
 
-  history.forEach((entry) => {
-    const dateStr = entry.date;
-    if (contributions[dateStr] !== undefined) {
-      contributions[dateStr] += entry.sessions.length;
-    }
+  items.forEach(({ date, count }) => {
+    if (date in map) map[date] = count || 0;
   });
 
-  return contributions;
+  return map;
 };
 
 // Color by contribution count
 const getContributionColor = (count) => {
-  if (count === 0) return 'bg-gray-100';
+  if (count <= 0) return 'bg-gray-100';
   if (count === 1) return 'bg-blue-200';
-  if (count === 2) return 'bg-blue-400';
-  if (count === 3) return 'bg-blue-600';
-  return 'bg-blue-800';
+  if (count === 2) return 'bg-blue-300';
+  if (count === 3) return 'bg-blue-400';
+  if (count === 4) return 'bg-blue-500';
+  if (count === 5) return 'bg-blue-600';
+  if (count === 6) return 'bg-blue-700';
+  return 'bg-blue-800'; // 7+
 };
 
 const ContributionCalendar = () => {
-  const [history, setHistory] = useState([]);
   const [contributions, setContributions] = useState({});
   const [currentDate, setCurrentDate] = useState(new Date());
   const [months, setMonths] = useState(generateMonths(new Date()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useAuth();
 
   // Set current date + calendar update
   useEffect(() => {
@@ -102,15 +100,37 @@ const ContributionCalendar = () => {
 
   // Fetch contribution history
   useEffect(() => {
-    setLoading(true);
-    fetchUserHistory()
-      .then((data) => {
-        setHistory(data);
-        setContributions(generateContributionData(currentDate, data));
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [currentDate]);
+    const run = async () => {
+      if (!user || !user._id) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const items = await fetchContributions(user._id, 365);
+        setContributions(buildContributionMap(currentDate, items));
+      } catch (e) {
+        console.error('Failed to fetch contributions', e);
+        setError('Failed to load contributions');
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+  }, [currentDate, user]);
+
+  // Live updates: listen for backend contribution-updated events and refetch
+  useEffect(() => {
+    if (!user || !user._id) return;
+    const handler = async () => {
+      try {
+        const items = await fetchContributions(user._id, 365);
+        setContributions(buildContributionMap(new Date(), items));
+      } catch {
+        // non-blocking
+      }
+    };
+    socket.on('contribution-updated', handler);
+    return () => socket.off('contribution-updated', handler);
+  }, [user]);
 
   const totalContributions = Object.values(contributions).reduce(
     (sum, count) => sum + count,
@@ -146,11 +166,7 @@ const ContributionCalendar = () => {
           <div className="overflow-x-auto hide-scrollbar">
             <div className="flex gap-4">
               {months.map((month, monthIdx) => {
-                const { name, year, days } = month;
-
-                const monthIndex = months.findIndex(
-                  (m) => m.name === name && m.year === year
-                );
+                const { name, year, days, monthIndex } = month;
 
                 const firstDay = new Date(year, monthIndex, 1).getDay();
                 const weeks = Math.ceil((firstDay + days) / 7);
@@ -190,8 +206,8 @@ const ContributionCalendar = () => {
                               );
                             }
 
-                            // Format date string
-                            const dateStr = `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            // Format date string in UTC to match backend keys (YYYY-MM-DD)
+                            const dateStr = new Date(Date.UTC(year, monthIndex, day)).toISOString().slice(0, 10);
 
                             const count = contributions[dateStr] || 0;
 

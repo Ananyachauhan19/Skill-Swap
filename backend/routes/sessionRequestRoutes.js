@@ -6,6 +6,7 @@ const SessionRequest = require('../models/SessionRequest');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const requireAuth = require('../middleware/requireAuth');
+const { incrementContribution } = require('../utils/contributions');
 
 // Rate limiter for sensitive endpoints
 const requestLimiter = rateLimit({
@@ -121,6 +122,12 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
       message: 'Session request sent successfully',
       sessionRequest,
     });
+
+    // Contribution: creating a session request counts as an activity for requester
+    try {
+      const io = req.app.get('io');
+      await incrementContribution({ userId: requesterId, breakdownKey: 'sessionRequests', io });
+    } catch (_) {}
   } catch (error) {
     console.error('Error creating session request:', error);
     handleErrors(res, 500, 'Failed to create session request');
@@ -277,6 +284,13 @@ router.post('/approve/:requestId', requireAuth, requestLimiter, validateRequestI
       message: 'Session request approved',
       sessionRequest,
     });
+
+    // Contribution: tutor approving a session is an activity
+    try {
+      const { incrementContribution } = require('../utils/contributions');
+      const io = req.app.get('io');
+      await incrementContribution({ userId: tutorId, breakdownKey: 'sessionsCreated', io });
+    } catch (_) {}
   } catch (error) {
     console.error('Error approving session request:', error);
     handleErrors(res, 500, 'Failed to approve session request');
@@ -392,6 +406,13 @@ router.post('/start/:requestId', requireAuth, requestLimiter, validateRequestId,
       message: 'Session started',
       sessionRequest,
     });
+
+    // Contribution: tutor starting a session is an activity
+    try {
+      const { incrementContribution } = require('../utils/contributions');
+      const io = req.app.get('io');
+      await incrementContribution({ userId: tutorId, breakdownKey: 'sessionsCreated', io });
+    } catch (_) {}
   } catch (error) {
     console.error('Error starting session:', error);
     handleErrors(res, 500, 'Failed to start session');
@@ -494,6 +515,17 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
       io.to(sessionRequest.tutor._id.toString()).emit('session-completed', { sessionId: sessionRequest._id.toString() });
       io.to(sessionRequest.requester._id.toString()).emit('session-completed', { sessionId: sessionRequest._id.toString() });
     } catch {}
+
+    // Contributions: on completion, tutor earns coins and requester performed activity
+    try {
+      const coinType = sessionRequest.coinType || 'silver';
+      const earnedKey = coinType === 'gold' ? 'coinsEarnedGold' : 'coinsEarnedSilver';
+      const spentKey = coinType === 'gold' ? 'coinsSpentGold' : 'coinsSpentSilver';
+      await Promise.all([
+        incrementContribution({ userId: sessionRequest.tutor._id, breakdownKey: 'sessionsCompletedEarned', breakdownIncs: { [earnedKey]: 1 }, io }),
+        incrementContribution({ userId: sessionRequest.requester._id, breakdownKey: 'sessionsCompletedSpent', breakdownIncs: { [spentKey]: 1 }, io }),
+      ]);
+    } catch (_) {}
 
     res.json({
       message: 'Session marked as completed',
@@ -879,6 +911,18 @@ router.post('/rate/:requestId', requireAuth, requestLimiter, validateRequestId, 
     }
 
     res.json({ message: 'Rating submitted successfully', rating: parsedRating, feedback: (feedback || '').toString().trim() });
+
+    // Contribution: rating a session counts for the rater, and the rated user receives an activity as well
+    try {
+      const { incrementContribution } = require('../utils/contributions');
+      const io = req.app.get('io');
+      const raterId = req.user._id;
+      const ratedUserId = isRequester ? sessionRequest.tutor._id : sessionRequest.requester._id;
+      await Promise.all([
+        incrementContribution({ userId: raterId, breakdownKey: 'ratings', io }),
+        incrementContribution({ userId: ratedUserId, breakdownKey: 'ratings', io }),
+      ]);
+    } catch (_) {}
   } catch (error) {
     console.error('Error rating session:', error);
     handleErrors(res, 500, 'Failed to submit rating');

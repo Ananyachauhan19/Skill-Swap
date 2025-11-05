@@ -2,83 +2,94 @@ import React, { useEffect, useState, useRef, useContext } from 'react';
 import VideoCard from '../privateProfile/VideoCard';
 import { ProfileContext } from './SideBarPublic';
 import { useNavigate } from "react-router-dom";
+import api from '../../lib/api';
+import { BACKEND_URL } from '../../config';
+import { useToast } from '../../components/ToastContext.js';
 
 const PublicHome = () => {
   const navigate = useNavigate();
   const { searchQuery } = useContext(ProfileContext);
+  const { addToast } = useToast();
   const [content, setContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openMenuIdx, setOpenMenuIdx] = useState(null);
   const menuRefs = useRef([]);
 
-  // Fetch live/scheduled videos from Live.jsx and uploaded videos from Videos.jsx
+  // Fetch public content for the viewed user from backend
   useEffect(() => {
-    setTimeout(() => {
+    const fetchPublicContent = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        // Load live/scheduled videos from Live.jsx
-        const liveVideos = JSON.parse(localStorage.getItem("liveVideos") || "[]").map(video => ({
-          ...video,
-          type: 'live',
-          date: video.scheduledTime || video.uploadDate || new Date().toISOString(),
-        }));
-        // Load uploaded videos from Videos.jsx
-        const uploadedVideos = JSON.parse(localStorage.getItem("uploadedVideos") || "[]").map(video => ({
-          ...video,
-          type: 'video',
-          date: video.uploadDate || new Date().toISOString(),
-        }));
-        // Static demo data (fallback if localStorage is empty)
-        const initialContent = (liveVideos.length > 0 || uploadedVideos.length > 0)
-          ? [...liveVideos, ...uploadedVideos]
-          : [
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId');
+        // Try to infer username from pathname 
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        // e.g., /profile/:username or /public-profile
+        const username = pathParts[0] === 'profile' && pathParts[1] ? decodeURIComponent(pathParts[1]) : null;
+
+        // Choose endpoints based on available identifier
+        const liveUrl = username
+          ? `${BACKEND_URL}/api/auth/public/live/${username}`
+          : userId
+          ? `${BACKEND_URL}/api/auth/public/live/byId/${userId}`
+          : null;
+        const videosUrl = username
+          ? `${BACKEND_URL}/api/auth/public/videos/${username}`
+          : userId
+          ? `${BACKEND_URL}/api/auth/public/videos/byId/${userId}`
+          : null;
+
+        let initialContent = [];
+
+        if (liveUrl && videosUrl) {
+          const [liveRes, videosRes] = await Promise.all([
+            api.get(liveUrl, { withCredentials: false }),
+            api.get(videosUrl, { withCredentials: false }),
+          ]);
+
+          const liveData = (liveRes?.data?.liveSessions || []).map((v) => ({
+            ...v,
+            type: 'live',
+            date: v.scheduledTime || v.uploadDate || new Date().toISOString(),
+          }));
+          const videoData = (videosRes?.data?.videos || []).map((v) => ({
+            ...v,
+            type: 'video',
+            date: v.uploadDate || new Date().toISOString(),
+          }));
+          initialContent = [...liveData, ...videoData];
+        } else {
+          // Fallback to localStorage/static demo data when no identifier is present
+          const liveVideos = JSON.parse(localStorage.getItem('liveVideos') || '[]').map((video) => ({
+            ...video,
+            type: 'live',
+            date: video.scheduledTime || video.uploadDate || new Date().toISOString(),
+          }));
+          const uploadedVideos = JSON.parse(localStorage.getItem('uploadedVideos') || '[]').map((video) => ({
+            ...video,
+            type: 'video',
+            date: video.uploadDate || new Date().toISOString(),
+          }));
+          initialContent = [...liveVideos, ...uploadedVideos];
+          if (initialContent.length === 0) {
+            initialContent = [
               {
                 type: 'live',
-                id: "live1",
+                id: 'live1',
                 title: 'React Live Coding',
                 isLive: true,
                 scheduledTime: new Date(Date.now() + 3600 * 1000).toISOString(),
-                host: 'Ananya Sharma',
+                host: 'User',
                 viewers: 120,
                 thumbnail: 'https://placehold.co/320x180?text=Live+1',
                 userId: 'user123',
                 date: new Date(Date.now() + 3600 * 1000).toISOString(),
               },
               {
-                type: 'live',
-                id: "live2",
-                title: 'Node.js Q&A',
-                isLive: false,
-                scheduledTime: new Date(Date.now() + 7200 * 1000).toISOString(),
-                host: 'Rahul Verma',
-                viewers: 80,
-                thumbnail: 'https://placehold.co/320x180?text=Live+2',
-                userId: 'user456',
-                date: new Date(Date.now() + 7200 * 1000).toISOString(),
-              },
-              {
                 type: 'video',
-                id: "video1",
-                title: 'React Hooks Tutorial',
-                description: 'Learn React Hooks in depth.',
-                thumbnail: 'https://placehold.co/320x180?text=React+Hooks',
-                videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
-                uploadDate: new Date().toISOString(),
-                lastEdited: new Date().toISOString(),
-                userId: 'user123',
-                skillmates: 5,
-                views: 120,
-                likes: 20,
-                dislikes: 1,
-                isLive: false,
-                scheduledTime: null,
-                isDraft: false,
-                isArchived: false,
-                date: new Date().toISOString(),
-              },
-              {
-                type: 'video',
-                id: "video2",
+                id: 'video1',
                 title: 'Node.js Crash Course',
                 description: 'A quick start to Node.js.',
                 thumbnail: 'https://placehold.co/320x180?text=Node+JS',
@@ -97,47 +108,30 @@ const PublicHome = () => {
                 date: new Date().toISOString(),
               },
             ];
-        // Filter by searchQuery and exclude drafts/archived, then sort by date
+          }
+        }
+
         const filteredContent = initialContent
-          .filter(item => !item.isDraft && !item.isArchived && 
-            item.title.toLowerCase().includes(searchQuery.toLowerCase()))
+          .filter(
+            (item) =>
+              !item.isDraft &&
+              !item.isArchived &&
+              (item.title || '')
+                .toString()
+                .toLowerCase()
+                .includes((searchQuery || '').toLowerCase())
+          )
           .sort((a, b) => new Date(b.date) - new Date(a.date));
         setContent(filteredContent);
-        setLoading(false);
       } catch (err) {
+        console.warn('[DEBUG] PublicHome fetch error:', err?.message || err);
         setError('Failed to fetch content');
-        setLoading(false);
-      }
-    }, 0);
-    
-    // Backend fetch (commented for demo)
-    /*
-    const fetchPublicContent = async () => {
-      try {
-        const liveRes = await fetch('/api/user/live?userId=public', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        const videoRes = await fetch('/api/user/videos?userId=public', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-        });
-        if (!liveRes.ok || !videoRes.ok) throw new Error('Failed to fetch content');
-        const liveData = await liveRes.json();
-        const videoData = await videoRes.json();
-        const allContent = [
-          ...liveData.map(video => ({ ...video, type: 'live', date: video.scheduledTime || video.uploadDate })),
-          ...videoData.map(video => ({ ...video, type: 'video', date: video.uploadDate })),
-        ].filter(item => !item.isDraft && !item.isArchived && 
-          item.title.toLowerCase().includes(searchQuery.toLowerCase()))
-         .sort((a, b) => new Date(b.date) - new Date(a.date));
-        setContent(allContent);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to fetch content');
+      } finally {
         setLoading(false);
       }
     };
+
     fetchPublicContent();
-    */
   }, [searchQuery]);
 
   // Close menu on outside click
@@ -165,9 +159,9 @@ const PublicHome = () => {
     if (!savedVideos.find(v => v.id === video.id)) {
       savedVideos.push(video);
       localStorage.setItem('savedVideos', JSON.stringify(savedVideos));
-      alert(`Saved "${video.title}" to your list`);
+      addToast({ title: 'Saved', message: `Saved "${video.title}" to your list`, variant: 'success', timeout: 2500 });
     } else {
-      alert(`"${video.title}" is already saved`);
+      addToast({ title: 'Already Saved', message: `"${video.title}" is already saved`, variant: 'info', timeout: 2500 });
     }
     // Backend (commented)
     /*
@@ -186,7 +180,7 @@ const PublicHome = () => {
     const baseUrl = window.location.origin;
     const shareUrl = `${baseUrl}/watch/${video.id}`;
     navigator.clipboard.writeText(shareUrl);
-    alert(`Link copied to clipboard: ${shareUrl}`);
+    addToast({ title: 'Link Copied', message: shareUrl, variant: 'info', timeout: 2500 });
   };
 
   const handleReport = (video) => {

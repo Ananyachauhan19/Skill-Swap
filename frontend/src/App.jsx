@@ -3,8 +3,10 @@ import { useLocation, useRoutes, Navigate, useNavigate } from 'react-router-dom'
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { ModalProvider } from './context/ModalContext';
+import { SkillMatesProvider } from './context/SkillMatesContext.jsx';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
 import GlobalModals from './GlobalModals';
+import SkillMatesModal from './components/SkillMatesModal.jsx';
 import { ToastProvider } from './components/ToastProvider.jsx';
 import ToastSocketBridge from './components/ToastSocketBridge.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -205,14 +207,17 @@ function App() {
     <ToastProvider>
       <ToastSocketBridge />
       <ModalProvider>
-        <ModalBodyScrollLock />
-        <GlobalModals />
-        {!isAuthPage && !isRatingPage && <Navbar />}
-        <div className={location.pathname === '/home' ? '' : 'pt-8'}>
-          {element}
-          {user && <CompleteProfile />}
-        </div>
-        {!isAuthPage && !isRatingPage && <Footer />}
+        <SkillMatesProvider>
+          <ModalBodyScrollLock />
+          <GlobalModals />
+          <SkillMatesModal />
+          {!isAuthPage && !isRatingPage && <Navbar />}
+          <div className={location.pathname === '/home' ? '' : 'pt-8'}>
+            {element}
+            {user && <CompleteProfile />}
+          </div>
+          {!isAuthPage && !isRatingPage && <Footer />}
+        </SkillMatesProvider>
       </ModalProvider>
     </ToastProvider>
   );

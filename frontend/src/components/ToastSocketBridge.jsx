@@ -20,6 +20,47 @@ const ToastSocketBridge = () => {
 
     const onNotification = (n) => {
       if (!n || !n.type) return;
+      // SkillMate notifications
+      if (n.type === 'skillmate-requested') {
+        const requester = n.requesterName || 'A user';
+        addToast({
+          title: 'New SkillMate Request',
+          message: `${requester} sent you a SkillMate request.`,
+          variant: 'info',
+          timeout: 0,
+          actions: [
+            n.skillMateId
+              ? {
+                  label: 'Approve',
+                  variant: 'primary',
+                  onClick: async () => {
+                    try {
+                      await fetch(`${BACKEND_URL}/api/skillmates/requests/approve/${n.skillMateId}` , {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                      });
+                      addToast({ title: 'Approved', message: 'You are now SkillMates.', variant: 'success' });
+                    } catch {
+                      addToast({ title: 'Error', message: 'Failed to approve request.', variant: 'error' });
+                    }
+                  }
+                }
+              : { label: 'OK', variant: 'primary' },
+          ],
+        });
+        return;
+      }
+
+      if (n.type === 'skillmate-approved') {
+        addToast({ title: 'SkillMate Approved', message: n.message || 'Your SkillMate request was approved.', variant: 'success' });
+        return;
+      }
+
+      if (n.type === 'skillmate-rejected') {
+        addToast({ title: 'SkillMate Rejected', message: n.message || 'Your SkillMate request was rejected.', variant: 'error' });
+        return;
+      }
       // Handle session request to tutor
       if (n.type === 'session-requested') {
         const requester = n.requesterName || 'A learner';
