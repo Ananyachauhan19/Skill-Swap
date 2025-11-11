@@ -7,8 +7,17 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+      <div className="fixed inset-0 flex items-center justify-center bg-white z-40">
+        <div className="relative w-32 h-32 flex items-center justify-center">
+          <img
+            src="/assets/skillswap-logo.webp"
+            alt="SkillSwap Logo"
+            className="w-20 h-20 object-contain drop-shadow"
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-28 h-28 rounded-full border-[5px] border-blue-900/25 border-t-blue-900 animate-spin" />
+          </div>
+        </div>
       </div>
     );
   }
