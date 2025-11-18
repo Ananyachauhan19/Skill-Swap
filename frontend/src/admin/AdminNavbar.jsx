@@ -6,8 +6,6 @@ const navItems = [
   { label: 'Dashboard', to: '/admin/dashboard' },
   { label: 'Applications', to: '/admin/applications' },
   { label: 'Interview Requests', to: '/admin/interview-requests' },
-  { label: 'Session Requests', to: '/admin/session-requests' },
-  { label: 'SkillMate Requests', to: '/admin/skillmate-requests' },
   { label: 'Users', to: '/admin/users' },
   { label: 'Settings', to: '/admin/settings' },
 ];
