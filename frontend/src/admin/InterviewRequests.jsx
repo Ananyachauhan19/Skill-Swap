@@ -92,8 +92,8 @@ export default function InterviewRequests() {
   };
 
   return (
-    <div className="p-8">
-      <h2 className="text-2xl font-bold mb-4">Interview Requests</h2>
+    <div className="space-y-6">
+      <h1 className="text-xl font-semibold text-gray-800">Interview Requests</h1>
       {loading ? (
         <p>Loading...</p>
       ) : (

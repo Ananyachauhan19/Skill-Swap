@@ -47,6 +47,14 @@ import SearchPage from './user/SearchPage';
 import AdminPanel from './admin/adminpanel';
 import AdminRoute from './routes/AdminRoute';
 import InterviewerApplications from './admin/InterviewerApplications';
+import Dashboard from './admin/Dashboard.jsx';
+import InterviewRequests from './admin/InterviewRequests.jsx';
+import AdminSessionRequests from './admin/SessionRequests.jsx';
+import SkillMateRequests from './admin/SkillMateRequests.jsx';
+import Users from './admin/Users.jsx';
+import Settings from './admin/Settings.jsx';
+import Analytics from './admin/Analytics.jsx';
+import AdminLayout from './admin/AdminLayout.jsx';
 import PrivacyPolicy from './PrivacyPolicy.jsx';
 import Community from './Community.jsx';
 import FAQ from './FAQ.jsx';
@@ -57,7 +65,7 @@ import Career from './Career.jsx';
 import YourInterviews from './user/YourInterviews';
 import RatingPage from './user/RatingPage.jsx';
 
-// Define routes
+// Define full (regular user) routes
 const appRoutes = [
   // Public routes (accessible without authentication)
   { path: '/', element: <Navigate to="/home" replace /> },
@@ -132,6 +140,32 @@ const appRoutes = [
   },
 ];
 
+// Define admin-only routes (restrict everything else when admin email logged in)
+const adminOnlyRoutes = [
+  { path: '/', element: <Navigate to="/admin/dashboard" replace /> },
+  {
+    path: '/admin',
+    element: <AdminRoute />,
+    children: [
+      {
+        element: <AdminLayout />, // layout wraps all admin pages
+        children: [
+          { index: true, element: <Dashboard /> },
+          { path: 'dashboard', element: <Dashboard /> },
+          { path: 'applications', element: <InterviewerApplications /> },
+          { path: 'analytics', element: <Analytics /> },
+          { path: 'interview-requests', element: <InterviewRequests /> },
+          { path: 'session-requests', element: <AdminSessionRequests /> },
+          { path: 'skillmate-requests', element: <SkillMateRequests /> },
+          { path: 'users', element: <Users /> },
+          { path: 'settings', element: <Settings /> },
+        ],
+      },
+    ],
+  },
+  { path: '*', element: <Navigate to="/admin/dashboard" replace /> },
+];
+
 // Updated ProtectedRouteWithModal to redirect to login page
 function ProtectedRouteWithModal({ children }) {
   const { user, loading } = useAuth();
@@ -169,7 +203,18 @@ function App() {
   const navigate = useNavigate();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const isRatingPage = location.pathname.startsWith('/rate/');
-  const element = useRoutes(appRoutes);
+  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'skillswaphubb@gmail.com').toLowerCase();
+  const isAdminUser = !!(user && user.email && user.email.toLowerCase() === adminEmail);
+
+  // Choose route set based on admin status
+  const element = useRoutes(isAdminUser ? adminOnlyRoutes : appRoutes);
+
+  // Enforce redirect for admin to /admin regardless of prior location
+  useEffect(() => {
+    if (isAdminUser && !location.pathname.startsWith('/admin')) {
+      navigate('/admin', { replace: true });
+    }
+  }, [isAdminUser, location.pathname, navigate]);
 
   // Socket connection for authenticated users
   useEffect(() => {
@@ -225,12 +270,12 @@ function App() {
           <ModalBodyScrollLock />
           <GlobalModals />
           <SkillMatesModal />
-          {!isAuthPage && !isRatingPage && <Navbar />}
+          {!isAdminUser && !isAuthPage && !isRatingPage && <Navbar />}
           <div className={location.pathname === '/home' ? '' : 'pt-8'}>
             {element}
-            {user && <CompleteProfile />}
+            {user && !isAdminUser && <CompleteProfile />}
           </div>
-          {!isAuthPage && !isRatingPage && <Footer />}
+          {!isAdminUser && !isAuthPage && !isRatingPage && <Footer />}
         </SkillMatesProvider>
       </ModalProvider>
     </ToastProvider>

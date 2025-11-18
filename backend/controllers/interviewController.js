@@ -129,15 +129,109 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
   }
 }];
 
-// Admin: list all interviewer applications
+// Admin: list applications with filtering, search, and category support.
+// Query params:
+//   status = all|pending|approved|rejected
+//   search = free text (matches name/company/position/email/username)
+//   category = all|interview-expert|tutor
+//   startDate = YYYY-MM-DD (inclusive)
+//   endDate = YYYY-MM-DD (inclusive, converted to next day for exclusive boundary)
+// Returns unified list: interviewer applications (type='interview-expert') + tutor role users (type='tutor').
 exports.listApplications = async (req, res) => {
   try {
     const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
     if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
-    const apps = await InterviewerApplication.find().populate('user', 'username firstName lastName email').sort({ createdAt: -1 });
-    res.json(apps);
+
+    const { status = 'all', search = '', category = 'all', startDate = '', endDate = '' } = req.query;
+    const searchNorm = search.trim().toLowerCase();
+    const statusFilter = ['pending','approved','rejected'].includes(status) ? status : null;
+    const includeInterview = category === 'all' || category === 'interview-expert';
+    const includeTutor = category === 'all' || category === 'tutor';
+
+    // Build date range filter
+    const dateRangeFilter = {};
+    if (startDate) {
+      const start = new Date(startDate);
+      if (!isNaN(start)) dateRangeFilter.$gte = start;
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setDate(end.getDate() + 1);
+      if (!isNaN(end)) dateRangeFilter.$lt = end;
+    }
+
+    let interviewApps = [];
+    if (includeInterview) {
+      const query = statusFilter ? { status: statusFilter } : {};
+      if (Object.keys(dateRangeFilter).length > 0) {
+        query.createdAt = dateRangeFilter;
+      }
+      interviewApps = await InterviewerApplication.find(query)
+        .populate('user', 'username firstName lastName email role profilePic country education experience certificates')
+        .sort({ createdAt: -1 });
+      // client-side search filter
+      if (searchNorm) {
+        interviewApps = interviewApps.filter(a => {
+          const fields = [
+            a.name,
+            a.company,
+            a.position,
+            a.user && a.user.email,
+            a.user && a.user.username,
+            a.qualification,
+          ].filter(Boolean).map(v => v.toLowerCase());
+          return fields.some(f => f.includes(searchNorm));
+        });
+      }
+      interviewApps = interviewApps.map(a => ({ ...a.toObject(), type: 'interview-expert' }));
+    }
+
+    let tutorApps = [];
+    if (includeTutor) {
+      // Tutors derived from users with teaching capability roles
+      let tutorUsers = await User.find({ role: { $in: ['teacher','both'] } }, 'username firstName lastName email role profilePic country education experience certificates createdAt');
+      if (searchNorm) {
+        tutorUsers = tutorUsers.filter(u => {
+          const fields = [u.firstName, u.lastName, u.username, u.email].filter(Boolean).map(v => v.toLowerCase());
+          return fields.some(f => f.includes(searchNorm));
+        });
+      }
+      // Filter by date range (use createdAt or _id timestamp)
+      if (Object.keys(dateRangeFilter).length > 0) {
+        tutorUsers = tutorUsers.filter(u => {
+          const uDate = u.createdAt ? new Date(u.createdAt) : u._id.getTimestamp();
+          const inRange = (!dateRangeFilter.$gte || uDate >= dateRangeFilter.$gte) &&
+                         (!dateRangeFilter.$lt || uDate < dateRangeFilter.$lt);
+          return inRange;
+        });
+      }
+      // Status filtering: treat tutors as approved; hide if statusFilter excludes approved
+      if (statusFilter && statusFilter !== 'approved') tutorUsers = [];
+      tutorApps = tutorUsers.map(u => ({
+        _id: u._id,
+        type: 'tutor',
+        name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username,
+        company: '',
+        position: 'Tutor',
+        qualification: '',
+        experience: '',
+        status: 'approved',
+        resumeUrl: '',
+        user: u,
+        createdAt: u.createdAt || u._id.getTimestamp(),
+      }));
+    }
+
+    // Merge and sort by createdAt (fallback to _id timestamp)
+    const combined = [...interviewApps, ...tutorApps].sort((a,b) => {
+      const ta = a.createdAt ? new Date(a.createdAt) : a._id.getTimestamp();
+      const tb = b.createdAt ? new Date(b.createdAt) : b._id.getTimestamp();
+      return tb - ta; // newest first
+    });
+
+    res.json({ applications: combined, meta: { count: combined.length } });
   } catch (err) {
     console.error('listApplications error', err);
     res.status(500).json({ message: 'Failed to list applications' });
