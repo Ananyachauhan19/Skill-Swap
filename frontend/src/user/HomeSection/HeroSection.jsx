@@ -102,7 +102,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
   }, [isLoggedIn, user, loading, error]);
 
   return (
-    <section className="relative z-10 min-h-[calc(100vh-80px)] w-full bg-gradient-to-b from-blue-50 to-gray-100 flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-hidden pt-16 sm:pt-3">
+    <section className="relative z-10 min-h-[calc(100vh-80px)] w-full bg-home-bg flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-hidden pt-16 sm:pt-3">
       <div className="max-w-7xl w-full flex flex-col lg:flex-row gap-4 md:gap-6 items-center justify-between h-full py-2 sm:py-4">
         {/* Hero Text Content */}
         <motion.div

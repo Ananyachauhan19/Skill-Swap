@@ -11,6 +11,14 @@ export default {
         lora: ['Lora', 'serif'],
         nunito: ['Nunito', 'sans-serif'],
       },
+      colors: {
+        cream: {
+          50: '#FFFDD0',
+          100: '#FEFCBF',
+          200: '#FAF089',
+        },
+        'home-bg': '#F5F9FF',
+      }
     },
   },
   plugins: [],

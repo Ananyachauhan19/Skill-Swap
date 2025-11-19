@@ -1,144 +1,180 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { FaBriefcase, FaUserFriends, FaComments } from "react-icons/fa";
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { FaGlobe, FaLightbulb, FaHandshake, FaChartLine, FaShieldAlt, FaClock, FaQuoteLeft, FaChevronLeft, FaChevronRight, FaStar } from 'react-icons/fa';
+import axios from 'axios';
 
-const WhyChooseSection = ({ isLoggedIn, openRegister }) => {
-  const [activeCard, setActiveCard] = useState(null);
+const WhyChooseSection = () => {
+  const [testimonials, setTestimonials] = useState([]);
+  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const textVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
-    },
+  useEffect(() => {
+    const fetchTestimonials = async () => {
+      try {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+        const response = await axios.get(`${backendUrl}/api/testimonials?limit=5`);
+        if (response.data && response.data.length > 0) {
+          setTestimonials(response.data);
+        } else {
+          // Fallback testimonials if none exist
+          setTestimonials([
+            { _id: 1, username: 'Alex', description: 'SkillSwap changed the way I learn coding. Highly recommended!', rating: 5 },
+            { _id: 2, username: 'Sarah', description: 'Great community and amazing tutors. I learned so much in just a week.', rating: 5 },
+            { _id: 3, username: 'John', description: 'The best platform for peer-to-peer learning. Love it!', rating: 4 }
+          ]);
+        }
+      } catch (error) {
+        console.error('Error fetching testimonials:', error);
+        setTestimonials([
+          { _id: 1, username: 'Alex', description: 'SkillSwap changed the way I learn coding. Highly recommended!', rating: 5 },
+          { _id: 2, username: 'Sarah', description: 'Great community and amazing tutors. I learned so much in just a week.', rating: 5 },
+          { _id: 3, username: 'John', description: 'The best platform for peer-to-peer learning. Love it!', rating: 4 }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTestimonials();
+  }, []);
+
+  const nextTestimonial = () => {
+    setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
   };
 
-  const imageVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      transition: { duration: 0.8, ease: "easeOut", delay: 0.2 },
-    },
-  };
-
-  const buttonVariants = {
-    hover: {
-      scale: 1.05,
-      boxShadow: "0 10px 20px rgba(0, 0, 0, 0.1)",
-      transition: { duration: 0.3 },
-    },
-    tap: { scale: 0.95 },
-  };
-
-  const cardVariants = {
-    hover: {
-      y: -5,
-      boxShadow: "0 15px 30px rgba(0, 0, 0, 0.1)",
-    },
-    tap: {
-      scale: 0.98,
-    },
-    active: {
-      scale: 1.03,
-      backgroundColor: "rgba(255, 255, 255, 0.8)",
-    },
-  };
-
-  const iconVariants = {
-    normal: { scale: 1 },
-    active: {
-      scale: [0.8, 1.3, 1],
-      rotate: [0, 10, -10, 0],
-      transition: {
-        duration: 0.6,
-        times: [0, 0.4, 0.8, 1],
-      },
-    },
+  const prevTestimonial = () => {
+    setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length);
   };
 
   const features = [
     {
-      icon: FaBriefcase,
-      label: "Real-World Practice",
-      desc: "Hone skills through live sessions",
-      color: "bg-blue-100",
-      iconColor: "text-blue-500",
+      icon: <FaGlobe />,
+      title: "Global Community",
+      description: "Connect with learners and experts from over 50 countries.",
+      color: "blue"
     },
     {
-      icon: FaUserFriends,
-      label: "Personalized Mentorship",
-      desc: "Learn from industry experts",
-      color: "bg-purple-100",
-      iconColor: "text-purple-500",
+      icon: <FaLightbulb />,
+      title: "Innovative Learning",
+      description: "Experience a new way of learning through direct interaction.",
+      color: "yellow"
     },
     {
-      icon: FaComments,
-      label: "Collaborative Learning",
-      desc: "Engage in group discussions",
-      color: "bg-teal-100",
-      iconColor: "text-teal-500",
+      icon: <FaHandshake />,
+      title: "Trusted Platform",
+      description: "Verified profiles and secure environment for your peace of mind.",
+      color: "green"
     },
+    {
+      icon: <FaChartLine />,
+      title: "Career Growth",
+      description: "Enhance your skills and boost your career prospects.",
+      color: "purple"
+    },
+    {
+      icon: <FaShieldAlt />,
+      title: "Secure & Safe",
+      description: "Your data and privacy are our top priority.",
+      color: "red"
+    },
+    {
+      icon: <FaClock />,
+      title: "Flexible Schedule",
+      description: "Learn at your own pace, anytime, anywhere.",
+      color: "indigo"
+    }
   ];
 
   return (
-    <section className="py-10 sm:py-16 px-4 sm:px-8 bg-gradient-to-br from-[#FFFFFF] to-[#F5F8FF]">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 md:gap-10 items-center">
-        <motion.div
-          className="lg:w-1/2 space-y-5 sm:space-y-8"
-          initial="hidden"
-          animate="visible"
-          variants={textVariants}
-        >
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-900 leading-tight whitespace-nowrap">
-            Why Choose SkillSwap-Hub
-          </h2>
-          <p className="text-base sm:text-lg text-gray-700 max-w-xl leading-relaxed">
-            SkillSwap-Hub provides a professional environment for skill development. Engage in live sessions, earn credits by teaching, and join a global community of learners and experts. Our platform empowers you to grow through hands-on practice, personalized mentorship, and collaborative learning, ensuring you stay ahead in your career with practical, real-world skills.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {features.map((item, idx) => (
-              <motion.div
-                key={item.label}
-                className={`flex flex-col items-center gap-2 p-4 sm:p-5 rounded-xl border-2 border-white ${item.color} cursor-pointer ${idx === 2 ? 'col-span-2 sm:col-span-1' : ''}`}
-                variants={cardVariants}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.2, duration: 0.5 }}
-                whileHover="hover"
-                whileTap="tap"
-                onClick={() => setActiveCard(activeCard === idx ? null : idx)}
-              >
+    <section className="py-4 sm:py-6 bg-home-bg">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {/* Header */}
+        <div className="text-center mb-16">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-3xl md:text-4xl font-bold text-[#0A2540] mb-4"
+          >
+            Why Choose SkillSwap Hub?
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-lg text-gray-600 max-w-2xl mx-auto"
+          >
+            We provide the best environment for you to learn, teach, and grow.
+          </motion.p>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-20">
+          {features.map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.1 }}
+              className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 group"
+            >
+              <div className={`w-14 h-14 rounded-xl bg-${feature.color}-50 text-${feature.color}-600 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                {feature.icon}
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+              <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Testimonials Slider */}
+        <div className="bg-[#0A2540] rounded-3xl p-8 md:p-12 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+
+          <div className="relative z-10 max-w-4xl mx-auto text-center text-white">
+            <FaQuoteLeft className="text-4xl text-blue-400 mx-auto mb-8 opacity-50" />
+
+            <div className="min-h-[200px] flex items-center justify-center">
+              {testimonials.length > 0 && (
                 <motion.div
-                  className={`p-2 sm:p-3 rounded-full bg-white ${activeCard === idx ? `ring-4 ring-opacity-50 ring-${item.iconColor.split('-')[1]}-300` : ''}`}
-                  variants={iconVariants}
-                  animate={activeCard === idx ? "active" : "normal"}
+                  key={currentTestimonial}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.5 }}
+                  className="space-y-6"
                 >
-                  <item.icon className={`text-2xl sm:text-3xl ${item.iconColor}`} />
+                  <p className="text-xl md:text-2xl font-medium leading-relaxed italic">
+                    "{testimonials[currentTestimonial].description}"
+                  </p>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex text-yellow-400 gap-1">
+                      {[...Array(testimonials[currentTestimonial].rating || 5)].map((_, i) => (
+                        <FaStar key={i} />
+                      ))}
+                    </div>
+                    <h4 className="font-bold text-lg">{testimonials[currentTestimonial].username}</h4>
+                    <p className="text-blue-200 text-sm">Learner</p>
+                  </div>
                 </motion.div>
-                <p className="text-sm sm:text-base font-semibold text-gray-800 mt-1">{item.label}</p>
-                <p className="text-xs sm:text-sm text-gray-600 text-center">{item.desc}</p>
-              </motion.div>
-            ))}
+              )}
+            </div>
+
+            <div className="flex justify-center gap-4 mt-8">
+              <button onClick={prevTestimonial} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+                <FaChevronLeft className="text-white" />
+              </button>
+              <button onClick={nextTestimonial} className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+                <FaChevronRight className="text-white" />
+              </button>
+            </div>
           </div>
-        </motion.div>
-        <motion.div
-          className="lg:w-1/2 w-full mt-6 sm:mt-0"
-          initial="hidden"
-          animate="visible"
-          variants={imageVariants}
-        >
-          <picture>
-            <source srcSet="/assets/skillchoose.webp" type="image/webp" />
-            <img
-              src="/assets/skillchoose.webp"
-              alt="Why Choose SkillSwap"
-              className="w-full h-[300px] sm:h-[450px] object-cover max-h-[300px] sm:max-h-[450px]"
-              loading="lazy"
-            />
-          </picture>
-        </motion.div>
+        </div>
+
       </div>
     </section>
   );

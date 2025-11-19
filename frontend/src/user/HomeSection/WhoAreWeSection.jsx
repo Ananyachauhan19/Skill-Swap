@@ -1,151 +1,121 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { FaGlobe, FaLightbulb, FaHandshake } from "react-icons/fa";
+import React from 'react';
+import { motion } from 'framer-motion';
+import { FaGlobe, FaUsers, FaLightbulb } from 'react-icons/fa';
 
-const WhoAreWeSection = ({ navigate }) => {
-  const [activeCard, setActiveCard] = useState(null);
-
-  const textVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: "easeOut" },
-    },
-  };
-
-  const imageVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: {
-      opacity: 1,
-      scale: 1,
-      transition: { duration: 0.8, ease: "easeOut", delay: 0.2 },
-    },
-  };
-
-  const buttonVariants = {
-    hover: {
-      scale: 1.05,
-      boxShadow: "0 10px 20px rgba(0, 0, 0, 0.1)",
-      transition: { duration: 0.3 },
-    },
-    tap: { scale: 0.95 },
-  };
-
-  const cardVariants = {
-    hover: {
-      y: -5,
-      boxShadow: "0 15px 30px rgba(0, 0, 0, 0.1)",
-    },
-    tap: {
-      scale: 0.98,
-    },
-    active: {
-      scale: 1.03,
-      backgroundColor: "rgba(255, 255, 255, 0.8)",
-    },
-  };
-
-  const iconVariants = {
-    normal: { scale: 1 },
-    active: {
-      scale: [0.8, 1.3, 1],
-      rotate: [0, 10, -10, 0],
-      transition: {
-        duration: 0.6,
-        times: [0, 0.4, 0.8, 1],
-      },
-    },
-  };
-
-  const features = [
-    {
-      icon: FaGlobe,
-      label: "Global Community",
-      desc: "Connect with professionals worldwide",
-      color: "bg-pink-100",
-      iconColor: "text-pink-500",
-    },
-    {
-      icon: FaLightbulb,
-      label: "Innovative Learning",
-      desc: "Access cutting-edge knowledge",
-      color: "bg-yellow-100",
-      iconColor: "text-yellow-500",
-    },
-    {
-      icon: FaHandshake,
-      label: "Collaborative Growth",
-      desc: "Grow through shared expertise",
-      color: "bg-green-100",
-      iconColor: "text-green-500",
-    },
-  ];
-
+const WhoAreWeSection = () => {
   return (
-    <section className="py-10 sm:py-16 px-4 sm:px-8 bg-gradient-to-br from-[#FFFFFF] to-[#F5F8FF]">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 md:gap-10 items-center">
-        <motion.div
-          className="lg:w-1/2 space-y-5 sm:space-y-8"
-          initial="hidden"
-          animate="visible"
-          variants={textVariants}
-        >
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-900 leading-tight">
-            Who We Are
-          </h2>
+    <section className="py-4 sm:py-6 bg-home-bg overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
 
-          <p className="text-base sm:text-lg text-gray-700 max-w-xl leading-relaxed">
-            SkillSwap-Hub is a transformative platform dedicated to empowering professionals through peer-to-peer learning and skill exchange. We connect a vibrant global community of experts, mentors, and learners, creating a dynamic ecosystem where knowledge flows freely.
-          </p>
+          {/* Left Content */}
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="space-y-8"
+          >
+            <div className="space-y-4">
+              <div className="inline-block px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 font-semibold text-sm">
+                About Us
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-[#0A2540] leading-tight">
+                We Are Building the Future of <br />
+                <span className="text-blue-600">Collaborative Learning</span>
+              </h2>
+              <p className="text-lg text-gray-600 leading-relaxed">
+                SkillSwap Hub is more than just a platform; it's a global movement. We believe that everyone has something to teach and something to learn. Our mission is to democratize education by connecting curious minds with passionate experts.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {features.map((item, idx) => (
-              <motion.div
-                key={item.label}
-                className={`flex flex-col items-center gap-2 p-4 sm:p-5 rounded-xl border-2 border-white ${item.color} cursor-pointer ${idx === 2 ? 'col-span-2 sm:col-span-1' : ''}`}
-                variants={cardVariants}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.2, duration: 0.5 }}
-                whileHover="hover"
-                whileTap="tap"
-                onClick={() => setActiveCard(activeCard === idx ? null : idx)}
-              >
-                <motion.div
-                  className={`p-2 sm:p-3 rounded-full bg-white ${activeCard === idx ? `ring-4 ring-opacity-50 ring-${item.iconColor.split('-')[1]}-300` : ''}`}
-                  variants={iconVariants}
-                  animate={activeCard === idx ? "active" : "normal"}
-                >
-                  <item.icon className={`text-2xl sm:text-3xl ${item.iconColor}`} />
-                </motion.div>
-                <p className="text-sm sm:text-base font-semibold text-gray-800 mt-1">{item.label}</p>
-                <p className="text-xs sm:text-sm text-gray-600 text-center">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+                  <FaGlobe className="text-xl" />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">Global Reach</h3>
+                <p className="text-sm text-gray-500">Connecting learners from every corner of the world.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
+                  <FaUsers className="text-xl" />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">Community First</h3>
+                <p className="text-sm text-gray-500">Built by the community, for the community.</p>
+              </div>
+            </div>
 
-          
-        </motion.div>
+            <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0A2540] to-blue-900 text-white relative overflow-hidden">
+              <div className="relative z-10 flex items-start gap-4">
+                <div className="p-3 rounded-full bg-white/10">
+                  <FaLightbulb className="text-yellow-400 text-xl" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg mb-1">Our Mission</h3>
+                  <p className="text-blue-100 text-sm leading-relaxed">
+                    To create a world where knowledge is shared freely and accessible to everyone, regardless of their background or location.
+                  </p>
+                </div>
+              </div>
+              {/* Decorative circles */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full -ml-10 -mb-10"></div>
+            </div>
+          </motion.div>
 
-        <motion.div
-          className="lg:w-1/2 w-full mt-6 sm:mt-0"
-          initial="hidden"
-          animate="visible"
-          variants={imageVariants}
-        >
-          <div className="rounded-xl overflow-hidden shadow-xl">
-            <picture>
-              <source srcSet="/assets/skillswap-community.webp" type="image/webp" />
+          {/* Right Image Composition */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="relative"
+          >
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
               <img
-                src="/assets/skillswap-community.webp"
-                alt="SkillSwap Community"
-                className="w-full h-auto object-cover aspect-[4/3] sm:aspect-[3/4] lg:aspect-[16/9]"
-                loading="lazy"
+                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1471&q=80"
+                alt="Team collaboration"
+                className="w-full h-full object-cover"
               />
-            </picture>
-          </div>
-        </motion.div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+
+              <div className="absolute bottom-6 left-6 right-6 text-white">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className="flex -space-x-3">
+                    {[1, 2, 3, 4].map(i => (
+                      <img key={i} src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" className="w-10 h-10 rounded-full border-2 border-white" />
+                    ))}
+                  </div>
+                  <span className="font-semibold text-sm">+10k Learners</span>
+                </div>
+                <p className="text-sm text-gray-200">Join our growing family today.</p>
+              </div>
+            </div>
+
+            {/* Floating Badge */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              whileInView={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="absolute -top-6 -right-6 bg-white p-4 rounded-xl shadow-xl border border-gray-100 hidden md:block"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-green-50 flex items-center justify-center">
+                  <span className="text-xl font-bold text-green-600">98%</span>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase font-semibold">Success Rate</p>
+                  <p className="text-sm font-bold text-gray-900">in Skill Matching</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Decorative Elements */}
+            <div className="absolute -z-10 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-blue-100/50 rounded-full blur-3xl opacity-50"></div>
+          </motion.div>
+
+        </div>
       </div>
     </section>
   );

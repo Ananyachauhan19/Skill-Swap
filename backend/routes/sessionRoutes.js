@@ -5,8 +5,6 @@ const SessionRequest = require('../models/SessionRequest');
 const router = express.Router();
 const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
-// No contributions here to avoid multi-counting; session activity is counted on completion in sessionRequestRoutes
-
 
 router.get('/search', async (req, res) => {
   try {
@@ -20,9 +18,9 @@ router.get('/search', async (req, res) => {
     if (topic) filter.topic = topic;
 
     const sessions = await Session.find(filter)
-    .populate('creator', 'firstName lastName') // This replaces the ObjectId with the user object { _id, name }
-  .exec();
-       
+      .populate('creator', 'firstName lastName') // This replaces the ObjectId with the user object { _id, name }
+      .exec();
+
 
     res.json(sessions);
   } catch (err) {
@@ -70,18 +68,18 @@ router.get('/mine', requireAuth, async (req, res) => {
       .populate('creator', 'firstName lastName')
       .populate('requester', 'firstName lastName')
       .sort({ date: -1, time: -1 });
-    
+
     // Get sessions where the user is the requester
     let requestedSessions = await Session.find({ requester: req.user._id })
       .populate('creator', 'firstName lastName')
       .populate('requester', 'firstName lastName')
       .sort({ date: -1, time: -1 });
-    
+
     // Combine both arrays
     let allSessions = [...createdSessions, ...requestedSessions];
-    
+
     // Remove duplicates (in case user is both creator and requester)
-    const uniqueSessions = allSessions.filter((session, index, self) => 
+    const uniqueSessions = allSessions.filter((session, index, self) =>
       index === self.findIndex(s => s._id.toString() === session._id.toString())
     );
 
@@ -144,24 +142,24 @@ router.post('/request/:id', requireAuth, async (req, res) => {
     const session = await Session.findById(req.params.id)
       .populate('creator', 'firstName lastName socketId')
       .populate('requester', 'firstName lastName');
-    
+
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
-    
-  session.status = 'requested';
+
+    session.status = 'requested';
     session.requester = req.user ? req.user._id : req.body.userId;
-  await session.save();
+    await session.save();
 
-  const io = req.app.get('io');
-    
+    const io = req.app.get('io');
+
     if (session.creator?.socketId) {
-  io.to(session.creator.socketId).emit('session-requested', session);
+      io.to(session.creator.socketId).emit('session-requested', session);
     }
-    
-  res.json({ message: 'Request sent', session });
 
-  // No contribution here; counted once on completion in sessionRequestRoutes
+    res.json({ message: 'Request sent', session });
+
+    // No contribution here; counted once on completion in sessionRequestRoutes
   } catch (error) {
     console.error('Session request error:', error);
     res.status(500).json({ error: 'Failed to send request' });
@@ -171,24 +169,24 @@ router.post('/request/:id', requireAuth, async (req, res) => {
 // Approve
 router.post('/:id/approve', requireAuth, async (req, res) => {
   try {
-  const session = await Session.findById(req.params.id).populate('requester');
+    const session = await Session.findById(req.params.id).populate('requester');
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
-    
+
     // Check if user is the creator
     if (session.creator.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Only the session creator can approve sessions' });
     }
-    
-  session.status = 'approved';
-  await session.save();
 
-  const io = req.app.get('io');
+    session.status = 'approved';
+    await session.save();
+
+    const io = req.app.get('io');
     if (session.requester && session.requester.socketId) {
-  io.to(session.requester.socketId).emit('session-approved', session);
+      io.to(session.requester.socketId).emit('session-approved', session);
     }
-  res.json(session);
+    res.json(session);
   } catch (error) {
     console.error('Approve error:', error);
     res.status(500).json({ error: 'Failed to approve session' });
@@ -198,24 +196,24 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
 // Reject
 router.post('/:id/reject', requireAuth, async (req, res) => {
   try {
-  const session = await Session.findById(req.params.id).populate('requester');
+    const session = await Session.findById(req.params.id).populate('requester');
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
-    
+
     // Check if user is the creator
     if (session.creator.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Only the session creator can reject sessions' });
     }
-    
-  session.status = 'rejected';
-  await session.save();
 
-  const io = req.app.get('io');
+    session.status = 'rejected';
+    await session.save();
+
+    const io = req.app.get('io');
     if (session.requester && session.requester.socketId) {
-  io.to(session.requester.socketId).emit('session-rejected', session);
+      io.to(session.requester.socketId).emit('session-rejected', session);
     }
-  res.json(session);
+    res.json(session);
   } catch (error) {
     console.error('Reject error:', error);
     res.status(500).json({ error: 'Failed to reject session' });
@@ -228,7 +226,7 @@ router.post('/:id/start', requireAuth, async (req, res) => {
     const session = await Session.findById(req.params.id)
       .populate('creator', 'firstName lastName socketId')
       .populate('requester', 'firstName lastName socketId');
-    
+
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
@@ -259,7 +257,7 @@ router.post('/:id/start', requireAuth, async (req, res) => {
       });
     }
 
-    res.json({ 
+    res.json({
       message: 'Session started successfully',
       session: session
     });
@@ -277,7 +275,7 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
     const session = await Session.findById(req.params.id)
       .populate('creator', 'firstName lastName socketId')
       .populate('requester', 'firstName lastName socketId');
-    
+
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
@@ -305,7 +303,7 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
       });
     }
 
-    res.json({ 
+    res.json({
       message: 'Session cancelled successfully',
       session: session
     });

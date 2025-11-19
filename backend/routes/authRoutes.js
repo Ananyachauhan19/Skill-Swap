@@ -9,6 +9,7 @@ const {
   logout
 } = require('../controllers/authController');
 const User = require('../models/User');
+const Session = require('../models/Session');
 const requireAuth = require('../middleware/requireAuth');
 
 // Sanitize array fields to remove invalid keys (e.g., _id)
@@ -38,53 +39,7 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
 
-// Public: search users by name or username (for SkillMate search)
-router.get('/search/users', async (req, res) => {
-  try {
-    const qRaw = (req.query.q || '').toString().trim();
-    const limit = Math.min(parseInt(req.query.limit || '8', 10), 20);
-    const skip = Math.max(parseInt(req.query.skip || '0', 10), 0);
-
-    if (!qRaw) return res.json({ results: [] });
-
-    // Escape regex special chars
-    const escaped = qRaw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(escaped, 'i');
-
-    const users = await User.find({
-      $or: [
-        { firstName: regex },
-        { lastName: regex },
-        { username: regex },
-      ],
-    })
-      .select('_id firstName lastName username profilePic')
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    res.json({ results: users });
-  } catch (error) {
-    console.error('[DEBUG] /search/users error:', error);
-    res.status(500).json({ error: 'Failed to search users' });
-  }
-});
-
-// Example: after successful login, set cookie consistently
-router.post('/login/success', (req, res) => {
-  console.info('[DEBUG] /login/success called for user:', req.user?._id);
-  const { token } = req.body;
-  if (!token) return res.status(400).json({ message: 'No token' });
-  res.cookie('token', token, { ...cookieBase, maxAge: 7 * 24 * 60 * 60 * 1000 });
-  res.cookie('user', JSON.stringify(req.user), {
-    ...cookieBase,
-    httpOnly: false,
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  });
-  return res.status(200).json({ ok: true });
-});
-
-// Logout route: Clear session and all relevant cookies
+// Logout route
 router.post('/logout', (req, res) => {
   console.info('[DEBUG] Logout initiated for session:', req.sessionID, 'user:', req.user?._id);
   if (req.user) {
@@ -114,16 +69,6 @@ router.post('/logout', (req, res) => {
     console.info('[DEBUG] Cookies cleared (no user)');
     return res.status(200).json({ message: 'Logged out successfully' });
   }
-});
-
-// Test endpoint to check cookies
-router.get('/test-cookie', (req, res) => {
-  console.info('[DEBUG] Test Cookie - All cookies:', req.cookies);
-  res.cookie('test', 'test-value', {
-    ...cookieBase,
-    maxAge: 24 * 60 * 60 * 1000
-  });
-  res.json({ message: 'Test cookie set', cookies: req.cookies });
 });
 
 // Google OAuth entry
@@ -204,6 +149,57 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
   }
 });
 
+// Public Stats Endpoint
+router.get('/stats/public', async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalSessions = await Session.countDocuments();
+    const expertUsers = await User.countDocuments({
+      skillsToTeach: { $exists: true, $ne: [], $not: { $size: 0 } }
+    });
+
+    res.json({
+      totalUsers,
+      totalSessions,
+      expertUsers
+    });
+  } catch (error) {
+    console.error('Error fetching public stats:', error);
+    res.status(500).json({ error: 'Failed to fetch public stats' });
+  }
+});
+
+// Search users for SkillMate (navbar search)
+router.get('/search/users', async (req, res) => {
+  try {
+    const { q, limit } = req.query;
+    if (!q || q.trim().length < 2) {
+      return res.json({ results: [] });
+    }
+    
+    const searchLimit = parseInt(limit) || 8;
+    const searchQuery = q.trim();
+    
+    // Search by username, firstName, lastName, or email
+    const users = await User.find({
+      $or: [
+        { username: { $regex: searchQuery, $options: 'i' } },
+        { firstName: { $regex: searchQuery, $options: 'i' } },
+        { lastName: { $regex: searchQuery, $options: 'i' } },
+        { email: { $regex: searchQuery, $options: 'i' } }
+      ]
+    })
+    .select('_id username firstName lastName profilePic role')
+    .limit(searchLimit)
+    .lean();
+    
+    res.json({ results: users });
+  } catch (error) {
+    console.error('[DEBUG] Error searching users for SkillMate:', error);
+    res.status(500).json({ message: 'Server error while searching users', results: [] });
+  }
+});
+
 // Search users by username
 router.get('/search', async (req, res) => {
   try {
@@ -229,14 +225,6 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       console.info('[DEBUG] User not found for /user/profile:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
-    console.info('[DEBUG] Fetched user profile:', {
-      _id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      username: user.username,
-      bio: user.bio,
-      skillsToTeach: user.skillsToTeach
-    });
     res.json({
       _id: user._id,
       firstName: user.firstName,
@@ -275,8 +263,6 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
 
-  console.info('[DEBUG] Profile update request:', { firstName, lastName, bio, skillsToTeach, username });
-
   try {
     const updateData = {};
 
@@ -308,8 +294,6 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     if (rank !== undefined) updateData.rank = rank;
     if (username !== undefined) updateData.username = username;
 
-    console.info('[DEBUG] Updating user with data:', updateData);
-
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $set: updateData },
@@ -317,18 +301,8 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     ).select('-password -otp -otpExpires');
 
     if (!user) {
-      console.info('[DEBUG] User not found for profile update:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
-
-    console.info('[DEBUG] Updated user profile:', {
-      _id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      username: user.username,
-      bio: user.bio,
-      skillsToTeach: user.skillsToTeach
-    });
 
     res.json({
       _id: user._id,
@@ -365,17 +339,8 @@ router.get('/profile', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password -otp -otpExpires');
     if (!user) {
-      console.info('[DEBUG] User not found for /profile:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
-    console.info('[DEBUG] Fetched user profile (/profile):', {
-      _id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      username: user.username,
-      bio: user.bio,
-      skillsToTeach: user.skillsToTeach
-    });
     res.json({
       _id: user._id,
       firstName: user.firstName,
@@ -414,8 +379,6 @@ router.put('/profile', requireAuth, async (req, res) => {
     skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
   } = req.body;
 
-  console.info('[DEBUG] Profile update request (/profile):', { firstName, lastName, bio, skillsToTeach, username });
-
   try {
     const updateData = {};
 
@@ -447,8 +410,6 @@ router.put('/profile', requireAuth, async (req, res) => {
     if (rank !== undefined) updateData.rank = rank;
     if (username !== undefined) updateData.username = username;
 
-    console.info('[DEBUG] Updating user with data (/profile):', updateData);
-
     const user = await User.findByIdAndUpdate(
       req.user._id,
       { $set: updateData },
@@ -456,18 +417,8 @@ router.put('/profile', requireAuth, async (req, res) => {
     ).select('-password -otp -otpExpires');
 
     if (!user) {
-      console.info('[DEBUG] User not found for profile update:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
-
-    console.info('[DEBUG] Updated user profile (/profile):', {
-      _id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      username: user.username,
-      bio: user.bio,
-      skillsToTeach: user.skillsToTeach
-    });
 
     res.json({
       _id: user._id,
@@ -504,7 +455,6 @@ router.get('/user/public/:username', async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username }).select('-password -otp -otpExpires -__v');
     if (!user) {
-      console.info('[DEBUG] User not found for /user/public/:username:', req.params.username);
       return res.status(404).json({ message: 'User not found' });
     }
     res.json(user);
@@ -519,7 +469,6 @@ router.get('/coins', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('goldCoins silverCoins');
     if (!user) {
-      console.info('[DEBUG] User not found for /coins:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
     res.json({
@@ -1018,31 +967,6 @@ router.post('/live/:id/archive', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('[DEBUG] Live session archive error:', error);
     res.status(500).json({ error: 'Failed to archive live session' });
-  }
-});
-
-// Get activity stats (total users, experts, session types)
-router.get('/stats/activity', async (req, res) => {
-  try {
-    // Count total registered users
-    const totalUsers = await User.countDocuments();
-    
-    // Count users who have skills to teach (experts)
-    const expertsCount = await User.countDocuments({
-      skillsToTeach: { $exists: true, $ne: [], $not: { $size: 0 } }
-    });
-
-    // Session types available (hardcoded for now, can be dynamic from DB)
-    const sessionTypes = 3; // 1-on-1, Live/Recorded, Interview
-
-    res.json({
-      activeMembers: totalUsers,
-      expertsAvailable: expertsCount,
-      sessionTypes: sessionTypes
-    });
-  } catch (error) {
-    console.error('Error fetching activity stats:', error);
-    res.status(500).json({ error: 'Failed to fetch activity stats' });
   }
 });
 
