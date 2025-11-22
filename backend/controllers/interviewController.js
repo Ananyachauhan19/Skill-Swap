@@ -6,18 +6,19 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const supabase = require('../utils/supabaseClient');
 
-// simple multer setup for resume uploads (stores in /uploads/resumes)
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '..', 'uploads', 'resumes'));
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    cb(null, `${req.user._id}-${Date.now()}${ext}`);
+// Multer memory storage for uploading resume directly to Supabase
+// Accept only PDF up to 2MB
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ext !== '.pdf') return cb(new Error('Resume must be a PDF'));
+    cb(null, true);
   }
 });
-const upload = multer({ storage });
 
 // Create a new interview request (by requester)
 exports.submitRequest = async (req, res) => {
@@ -84,7 +85,32 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
     }
     const { name, company, position, experience, totalPastInterviews, qualification } = req.body;
     const userId = req.user._id;
-    const resumeUrl = req.file ? `/uploads/resumes/${req.file.filename}` : '';
+    let resumePublicUrl = '';
+
+    // Upload resume to Supabase storage if provided
+    if (req.file) {
+      try {
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        const fileName = `${userId}-${Date.now()}${ext}`;
+        const bucket = 'interviewer-resumes';
+
+        const { error: uploadErr } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, req.file.buffer, {
+            contentType: 'application/pdf',
+            upsert: false,
+          });
+        if (uploadErr) {
+          console.error('[Supabase] Resume upload failed:', uploadErr);
+          return res.status(500).json({ message: 'Failed to upload resume', detail: uploadErr.message });
+        }
+        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(fileName);
+        resumePublicUrl = pub.publicUrl;
+      } catch (uploadCatch) {
+        console.error('[Supabase] Unexpected resume upload error', uploadCatch);
+        return res.status(500).json({ message: 'Unexpected error uploading resume' });
+      }
+    }
 
     let appDoc = await InterviewerApplication.findOne({ user: userId });
     const isNew = !appDoc;
@@ -100,7 +126,7 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
     appDoc.totalPastInterviews = Number(totalPastInterviews) || appDoc.totalPastInterviews || 0;
     appDoc.qualification = qualification || appDoc.qualification;
     // If a new resume was uploaded, replace the URL
-    if (resumeUrl) appDoc.resumeUrl = resumeUrl;
+    if (resumePublicUrl) appDoc.resumeUrl = resumePublicUrl;
     // Reset status to pending when (re)submitting
     appDoc.status = 'pending';
 
