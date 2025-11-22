@@ -1,2 +1,4 @@
+# Deprecated duplicate .gitignore (root .gitignore now handles ignores)
+# Intentionally left minimal to avoid confusion. Add any backend-specific patterns below if needed.
 .env
 node_modules/
