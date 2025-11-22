@@ -8,6 +8,7 @@ const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const socketIO = require('socket.io');
 const cookieParser = require('cookie-parser');
+const multer = require('multer');
 const questionRoutes = require('./routes/questionRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const chatRoutes = require('./routes/chatRoutes');
@@ -71,32 +72,8 @@ app.use(passport.session());
 require('./socket')(io);
 app.set('io', io);
 
-// Serve uploaded files (resume uploads). Keep compatibility with both 'uploads' and 'Uploads' folders.
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
+// Local /uploads serving removed (resumes now stored in Supabase). If other local assets needed, re-add selectively.
 
-// Ensure uploads/resumes folder exists to prevent multer write errors
-const fs = require('fs');
-const uploadsPath = path.join(__dirname, 'uploads', 'resumes');
-try {
-  fs.mkdirSync(uploadsPath, { recursive: true });
-  console.info('[INFO] Ensured uploads directory exists:', uploadsPath);
-} catch (e) {
-  console.error('[ERROR] Failed to ensure uploads directory:', uploadsPath, e);
-}
-
-// Generic error handler that returns JSON for API consumers (avoids HTML error pages)
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err && err.stack ? err.stack : err);
-  if (res.headersSent) return next(err);
-  res.status(err.status || 500);
-  // If the request accepts JSON, return JSON
-  if (req.headers.accept && req.headers.accept.indexOf('application/json') !== -1) {
-    return res.json({ message: err.message || 'Internal Server Error' });
-  }
-  // Fallback to plain text
-  return res.type('txt').send(err.message || 'Internal Server Error');
-});
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/session-requests', sessionRequestRoutes);
@@ -116,6 +93,25 @@ app.use('/api', tutorRoutes);
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');
 app.get('/api/interview-faqs', interviewCtrl.getFaqs);
+
+// Centralized error handler (after routes) with Multer-specific responses
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  // Multer file size limit
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).json({ message: 'Resume file too large. Max size is 2MB.' });
+  }
+  // Custom resume type validation error
+  if (err && err.message === 'Resume must be a PDF') {
+    return res.status(400).json({ message: err.message });
+  }
+  // General Multer errors
+  if (err && err.name === 'MulterError') {
+    return res.status(400).json({ message: err.message || 'File upload error' });
+  }
+  console.error('Unhandled error:', err && err.stack ? err.stack : err);
+  return res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
+});
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {

@@ -48,7 +48,6 @@ const fetchUserProfile = async () => {
       tutorActivationAt: userData.tutorActivationAt || null,
     };
 
-    // Fetch tutor application status (optional)
     try {
       const statusRes = await fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' });
       if (statusRes.ok) {

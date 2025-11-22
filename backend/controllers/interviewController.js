@@ -79,7 +79,7 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
     try {
       console.info('[DEBUG] applyInterviewer called by user:', req.user && req.user._id ? req.user._id.toString() : req.user);
       console.info('[DEBUG] applyInterviewer body keys:', Object.keys(req.body || {}));
-      console.info('[DEBUG] applyInterviewer file:', req.file ? { filename: req.file.filename, path: req.file.path } : null);
+      console.info('[DEBUG] applyInterviewer file meta:', req.file ? { original: req.file.originalname, size: req.file.size } : null);
     } catch (logErr) {
       console.error('[DEBUG] failed to log applyInterviewer context', logErr);
     }
@@ -92,7 +92,7 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
       try {
         const ext = path.extname(req.file.originalname).toLowerCase();
         const fileName = `${userId}-${Date.now()}${ext}`;
-        const bucket = 'interviewer-resumes';
+        const bucket = process.env.SUPABASE_INTERVIEWER_RESUMES_BUCKET || 'interviewer-resumes';
 
         const { error: uploadErr } = await supabase.storage
           .from(bucket)
@@ -102,7 +102,7 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
           });
         if (uploadErr) {
           console.error('[Supabase] Resume upload failed:', uploadErr);
-          return res.status(500).json({ message: 'Failed to upload resume', detail: uploadErr.message });
+          return res.status(500).json({ message: 'Failed to upload resume', detail: uploadErr.message, bucket });
         }
         const { data: pub } = supabase.storage.from(bucket).getPublicUrl(fileName);
         resumePublicUrl = pub.publicUrl;

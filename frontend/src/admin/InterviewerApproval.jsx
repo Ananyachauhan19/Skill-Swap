@@ -73,9 +73,28 @@ export default function InterviewerApproval({ selected, detailTab, setDetailTab,
         );
       case 'resume':
         return (
-          <div>
+          <div className="space-y-2">
             {selected.resumeUrl ? (
-              <a href={selected.resumeUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">Open Resume</a>
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const raw = selected.resumeUrl;
+                    // Fallback: prepend origin if relative path (e.g. /uploads/resumes/...)
+                    const href = /^(https?:)?\/\//i.test(raw) ? raw : `${window.location.origin}${raw.startsWith('/') ? '' : '/'}${raw}`;
+                    try {
+                      window.open(href, '_blank', 'noopener,noreferrer');
+                    } catch (_) {}
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Opens resume in a new tab"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 3h7v7M10 14L21 3M5 21h14a2 2 0 002-2V9"/></svg>
+                  Open Resume
+                </button>
+                <p className="text-xs text-gray-500 break-all">{selected.resumeUrl}</p>
+              </>
             ) : (
               <div className="text-gray-500">No resume provided.</div>
             )}
