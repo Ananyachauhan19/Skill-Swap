@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FaEye,
@@ -11,6 +11,7 @@ import {
 import { MdOutlineMoreHoriz } from "react-icons/md";
 import axios from "axios";
 import { useModal } from "../context/ModalContext";
+import { useAuth } from "../context/AuthContext.jsx";
 import { motion } from "framer-motion";
 import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config.js';
@@ -19,6 +20,7 @@ import Fuse from 'fuse.js';
 const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const navigate = useNavigate();
   const { openLogin } = useModal();
+  const { setUser } = useAuth();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -29,9 +31,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     password: "",
     confirmPassword: "",
   });
-  const [skillsToTeach, setSkillsToTeach] = useState([
-    { subject: '', topic: '' }
-  ]);
   const [role, setRole] = useState('learner');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -46,40 +45,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const [emailForOtp, setEmailForOtp] = useState("");
   const [registrationData, setRegistrationData] = useState(null);
 
-  // State for skills dropdowns
-  const [allSubjects, setAllSubjects] = useState([]);
-  const [topicsBySubject, setTopicsBySubject] = useState({});
-  const [activeDropdown, setActiveDropdown] = useState({ index: null, field: null });
-
-  useEffect(() => {
-    const fetchSkillsData = async () => {
-      try {
-        const response = await axios.get(`${BACKEND_URL}/api/skills-list`);
-        const { subjectsByClass, topicsBySubject } = response.data;
-        const uniqueSubjects = [...new Set(Object.values(subjectsByClass).flat())];
-        setAllSubjects(uniqueSubjects);
-        setTopicsBySubject(topicsBySubject || {});
-      } catch (err) {
-        console.error("Failed to fetch skills list:", err);
-      }
-    };
-    fetchSkillsData();
-  }, []);
-
-  const fuseSubjects = useMemo(() => new Fuse(allSubjects, {
-    threshold: 0.3,
-    keys: [],
-  }), [allSubjects]);
-
-  const fuseTopics = useMemo(() => {
-    if (activeDropdown.index === null) return null;
-    const currentSubject = skillsToTeach[activeDropdown.index]?.subject;
-    if (!currentSubject || !topicsBySubject[currentSubject]) return null;
-    return new Fuse(topicsBySubject[currentSubject], {
-      threshold: 0.3,
-      keys: [],
-    });
-  }, [skillsToTeach, activeDropdown.index, topicsBySubject]);
 
 
   const carouselImages = [
@@ -90,7 +55,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   ];
   const extendedImages = [...carouselImages, carouselImages[0]]; // Append first image for seamless loop
 
-  const MAX_SKILLS = 3;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -150,25 +114,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleAddSkill = () => {
-    if (skillsToTeach.length < MAX_SKILLS) {
-      setSkillsToTeach([...skillsToTeach, { subject: '', topic: '' }]);
-    }
-  };
-
-  const handleRemoveSkill = (idx) => {
-    setSkillsToTeach(skillsToTeach.filter((_, i) => i !== idx));
-  };
-
-  const handleSkillChange = (idx, field, value) => {
-    const newSkills = [...skillsToTeach];
-    newSkills[idx][field] = value;
-    // When subject changes, reset topic
-    if (field === 'subject') {
-      newSkills[idx].topic = '';
-    }
-    setSkillsToTeach(newSkills);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -188,24 +133,11 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     if (password !== confirmPassword) {
       return setError("Passwords do not match.");
     }
-    if ((role === 'teacher' || role === 'both') && (!skillsToTeach.length || skillsToTeach.some(s => !s.subject || !s.topic))) {
-      return setError('Please select subject and topic for each teaching skill.');
-    }
     try {
       setIsLoading(true);
       setError("");
       
-      setRegistrationData({
-        firstName,
-        lastName,
-        username,
-        email,
-        phone,
-        gender,
-        password,
-        role,
-        skillsToTeach,
-      });
+      setRegistrationData({ firstName, lastName, username, email, phone, gender, role });
       
       const res = await axios.post(`${BACKEND_URL}/api/auth/register`, {
         firstName,
@@ -216,7 +148,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         gender,
         password,
         role,
-        skillsToTeach,
       });
       
       setEmailForOtp(email);
@@ -247,11 +178,16 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
       Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
       Cookies.set('isRegistered', 'true', { expires: 1 });
       window.dispatchEvent(new Event("authChanged"));
+      // Immediately update auth context so ProtectedRoute sees user and does not redirect to /login
+      try { setUser(user); } catch (e) { /* ignore */ }
       if (onRegisterSuccess) onRegisterSuccess(user);
-      if (isModal && onClose) {
-        onClose();
+      // Always redirect tutors (teacher/both) to tutor application page, even if modal
+      if (user.role === 'teacher' || user.role === 'both') {
+        if (isModal && onClose) onClose();
+        navigate('/tutor/apply');
       } else {
-        navigate("/home");
+        if (isModal && onClose) onClose();
+        navigate('/home');
       }
     } catch (err) {
       setError(err.response?.data?.message || "OTP verification failed.");
@@ -537,98 +473,8 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                   </div>
 
                   {(role === 'teacher' || role === 'both') && (
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-0.5">
-                        What do you want to teach? (Max {MAX_SKILLS} skills)
-                      </label>
-                      {skillsToTeach.map((skill, idx) => {
-                        const filteredSubjects = skill.subject ? fuseSubjects.search(skill.subject).map(r => r.item) : allSubjects;
-                        const currentTopics = topicsBySubject[skill.subject] || [];
-                        const filteredTopics = skill.topic && fuseTopics ? fuseTopics.search(skill.topic).map(r => r.item) : currentTopics;
-
-                        return (
-                          <div key={idx} className="p-2 border border-gray-300 rounded-lg relative bg-gray-50 space-y-2">
-                            {/* Subject Dropdown */}
-                            <div className="relative">
-                              <input
-                                type="text"
-                                placeholder="Subject (e.g., Mathematics)"
-                                value={skill.subject}
-                                onChange={(e) => handleSkillChange(idx, 'subject', e.target.value)}
-                                onFocus={() => setActiveDropdown({ index: idx, field: 'subject' })}
-                                onBlur={() => setTimeout(() => { if (activeDropdown.index === idx && activeDropdown.field === 'subject') setActiveDropdown({ index: null, field: null }); }, 150)}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                              />
-                              {activeDropdown.index === idx && activeDropdown.field === 'subject' && (
-                                <ul className="absolute z-20 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
-                                  {filteredSubjects.map((s, s_idx) => (
-                                    <li
-                                      key={s_idx}
-                                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                                      onMouseDown={() => {
-                                        handleSkillChange(idx, 'subject', s);
-                                        setActiveDropdown({ index: null, field: null });
-                                      }}
-                                    >
-                                      {s}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-
-                            {/* Topic Dropdown */}
-                            <div className="relative">
-                              <input
-                                type="text"
-                                placeholder="Topic (e.g., Algebra)"
-                                value={skill.topic}
-                                onChange={(e) => handleSkillChange(idx, 'topic', e.target.value)}
-                                onFocus={() => setActiveDropdown({ index: idx, field: 'topic' })}
-                                onBlur={() => setTimeout(() => { if (activeDropdown.index === idx && activeDropdown.field === 'topic') setActiveDropdown({ index: null, field: null }); }, 150)}
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                                disabled={!skill.subject || !currentTopics.length}
-                              />
-                              {activeDropdown.index === idx && activeDropdown.field === 'topic' && (
-                                <ul className="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-40 overflow-y-auto shadow-lg">
-                                  {filteredTopics.map((t, t_idx) => (
-                                    <li
-                                      key={t_idx}
-                                      className="px-3 py-2 hover:bg-blue-50 cursor-pointer"
-                                      onMouseDown={() => {
-                                        handleSkillChange(idx, 'topic', t);
-                                        setActiveDropdown({ index: null, field: null });
-                                      }}
-                                    >
-                                      {t}
-                                    </li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-
-                            {skillsToTeach.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveSkill(idx)}
-                                className="absolute top-2 right-2 text-red-500 hover:text-red-700 transition"
-                                aria-label="Remove skill"
-                              >
-                                <FaTimes />
-                              </button>
-                            )}
-                          </div>
-                        )
-                      })}
-                      {skillsToTeach.length < MAX_SKILLS && (
-                        <button
-                          type="button"
-                          onClick={handleAddSkill}
-                          className="text-blue-600 hover:text-blue-800 underline text-xs"
-                        >
-                          Add Another Skill
-                        </button>
-                      )}
+                    <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+                      After registration you will be redirected to complete tutor verification (add skills, education, marksheet & video).
                     </div>
                   )}
 

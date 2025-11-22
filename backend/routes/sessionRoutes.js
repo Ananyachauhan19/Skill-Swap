@@ -5,6 +5,7 @@ const SessionRequest = require('../models/SessionRequest');
 const router = express.Router();
 const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
+const tutorCtrl = require('../controllers/tutorController');
 
 router.get('/search', async (req, res) => {
   try {
@@ -30,7 +31,7 @@ router.get('/search', async (req, res) => {
 });
 
 // Create a session
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.requireActiveTutor, async (req, res) => {
   try {
     console.log('Session creation - req.user:', req.user); // Debug log
     const { subject, topic, description, date, time } = req.body;
@@ -136,8 +137,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Request session
-router.post('/request/:id', requireAuth, async (req, res) => {
+// Request session (no tutor requirement; learners can request)
+router.post('/request/:id', requireAuth, tutorCtrl.ensureTutorActivation, async (req, res) => {
   try {
     const session = await Session.findById(req.params.id)
       .populate('creator', 'firstName lastName socketId')
@@ -220,8 +221,8 @@ router.post('/:id/reject', requireAuth, async (req, res) => {
   }
 });
 
-// Start session
-router.post('/:id/start', requireAuth, async (req, res) => {
+// Start session (creator must be active tutor)
+router.post('/:id/start', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.requireActiveTutor, async (req, res) => {
   try {
     const session = await Session.findById(req.params.id)
       .populate('creator', 'firstName lastName socketId')

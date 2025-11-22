@@ -28,7 +28,7 @@ const fetchUserProfile = async () => {
     if (!response.ok) throw new Error('Failed to fetch user profile');
     const userData = await response.json();
     
-    return {
+    const profile = {
       fullName: userData.firstName && userData.lastName 
         ? `${userData.firstName} ${userData.lastName}` 
         : userData.firstName || userData.username || 'User',
@@ -44,7 +44,23 @@ const fetchUserProfile = async () => {
       skillsToTeach: userData.skillsToTeach || [],
       skillsToLearn: userData.skillsToLearn || [],
       socialLinks: userData.socialLinks || [],
+      isTutor: userData.isTutor || false,
+      tutorActivationAt: userData.tutorActivationAt || null,
     };
+
+    // Fetch tutor application status (optional)
+    try {
+      const statusRes = await fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' });
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        profile.tutorApplication = statusData.application;
+        profile.activationRemainingMs = statusData.activationRemainingMs;
+        profile.isTutor = statusData.isTutor; // override if activated
+      }
+    } catch (e) {
+      // ignore errors silently
+    }
+    return profile;
   } catch {
     throw new Error("Failed to fetch user profile");
   }
@@ -206,7 +222,7 @@ const Sidebar = () => {
                   </button>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-3 w-full">
                   <button
                     onClick={openSkillMates}
                     className="flex items-center gap-2 text-blue-900 text-base font-medium bg-transparent hover:text-blue-700 shadow-[0_2px_6px_rgba(0,0,139,0.2)] px-4 py-2 rounded-lg transition-all duration-300 w-full sm:w-auto justify-center"
@@ -223,6 +239,30 @@ const Sidebar = () => {
                   >
                     Setup Profile
                   </button>
+
+                  {/* Tutor application status */}
+                  <div className="w-full sm:w-auto text-xs mt-2 sm:mt-0 flex flex-col gap-1 items-center sm:items-start">
+                    {!user?.tutorApplication && !user?.isTutor && (
+                      <button
+                        onClick={() => navigate('/tutor/apply')}
+                        className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition"
+                      >Apply as Tutor</button>
+                    )}
+                    {user?.tutorApplication && user?.tutorApplication.status === 'pending' && (
+                      <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium">Tutor Application: Pending Review</span>
+                    )}
+                    {user?.tutorApplication && user?.tutorApplication.status === 'rejected' && (
+                      <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 font-medium">Tutor Application: Rejected</span>
+                    )}
+                    {user?.tutorApplication && user?.tutorApplication.status === 'approved' && !user?.isTutor && (
+                      <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 font-medium">
+                        Approved – Unlocks in {Math.ceil((user.activationRemainingMs || 0)/60000)} min
+                      </span>
+                    )}
+                    {user?.isTutor && (
+                      <span className="px-3 py-1 rounded-full bg-green-600 text-white font-medium">Tutor Functions Active</span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

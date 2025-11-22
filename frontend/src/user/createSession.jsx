@@ -40,14 +40,17 @@ const CreateSession = () => {
   const [subjectsByClass, setSubjectsByClass] = useState({});
   const [topicsBySubject, setTopicsBySubject] = useState({});
 
-  // Derived skill lists for teacher
+  // Treat 'both' role same as 'teacher' for tutor capabilities
+  const isTutorRole = currentUser?.role === 'teacher' || currentUser?.role === 'both';
+
+  // Derived skill lists for tutor-capable user
   const tutorSubjects = useMemo(() => {
-    if (currentUser?.role !== 'teacher') return [];
+    if (!isTutorRole) return [];
     return [...new Set(userSkills.map(skill => skill.subject))].filter(Boolean);
-  }, [userSkills, currentUser]);
+  }, [userSkills, isTutorRole]);
 
   const tutorTopicsBySubject = useMemo(() => {
-    if (currentUser?.role !== 'teacher') return {};
+    if (!isTutorRole) return {};
     return userSkills.reduce((acc, skill) => {
       if (skill.subject && skill.topic) {
         if (!acc[skill.subject]) {
@@ -57,11 +60,11 @@ const CreateSession = () => {
       }
       return acc;
     }, {});
-  }, [userSkills, currentUser]);
+  }, [userSkills, isTutorRole]);
 
   // Get available classes based on teacher's skills
   const availableClasses = useMemo(() => {
-    if (currentUser?.role !== 'teacher' || !userSkills.length) return [];
+    if (!isTutorRole || !userSkills.length) return [];
     
     // Get all classes that have subjects and topics matching teacher's skills
     const classSet = new Set();
@@ -208,72 +211,72 @@ const CreateSession = () => {
 
   // Initialize Fuse.js instances for fuzzy search
   const fuseClasses = useMemo(() => {
-    const classList = currentUser?.role === 'teacher' ? availableClasses : classes;
+    const classList = isTutorRole ? availableClasses : classes;
     return new Fuse(classList, {
       threshold: 0.3,
       distance: 100,
       keys: ['']
     });
-  }, [availableClasses, classes, currentUser]);
+  }, [availableClasses, classes, isTutorRole]);
 
   const fuseSubjects = useMemo(() => {
-    if (currentUser?.role !== 'teacher') return null;
+    if (!isTutorRole) return null;
     return new Fuse(tutorSubjects, {
       threshold: 0.3,
       distance: 100,
       keys: ['']
     });
-  }, [tutorSubjects, currentUser]);
+  }, [tutorSubjects, isTutorRole]);
 
   const fuseTopics = useMemo(() => {
-    if (currentUser?.role !== 'teacher' || !form.topic || !tutorTopicsBySubject[form.topic]) return null;
+    if (!isTutorRole || !form.topic || !tutorTopicsBySubject[form.topic]) return null;
     const topicList = tutorTopicsBySubject[form.topic] || [];
     return new Fuse(topicList, {
       threshold: 0.3,
       distance: 100,
       keys: ['']
     });
-  }, [form.topic, tutorTopicsBySubject, currentUser]);
+  }, [form.topic, tutorTopicsBySubject, isTutorRole]);
 
 
   // Filter using Fuse.js fuzzy search
   const courseList = useMemo(() => {
-    const baseList = currentUser?.role === 'teacher' ? availableClasses : classes;
+    const baseList = isTutorRole ? availableClasses : classes;
     if ((form.subject || '').trim() === '') return baseList;
     if (!fuseClasses) return baseList;
     const results = fuseClasses.search(form.subject);
     return results.map(result => result.item);
-  }, [form.subject, availableClasses, classes, fuseClasses, currentUser]);
+  }, [form.subject, availableClasses, classes, fuseClasses, isTutorRole]);
 
   const unitDropdownList = useMemo(() => {
-    if (currentUser?.role !== 'teacher') return [];
+    if (!isTutorRole) return [];
     const baseList = tutorSubjects;
     if ((form.topic || '').trim() === '') return baseList;
     if (!fuseSubjects) return baseList;
     const results = fuseSubjects.search(form.topic);
     return results.map(result => result.item);
-  }, [form.topic, tutorSubjects, fuseSubjects, currentUser]);
+  }, [form.topic, tutorSubjects, fuseSubjects, isTutorRole]);
 
   const topicDropdownList = useMemo(() => {
-    if (currentUser?.role !== 'teacher' || !form.topic) return [];
+    if (!isTutorRole || !form.topic) return [];
     const baseList = tutorTopicsBySubject[form.topic] || [];
     if ((form.subtopic || '').trim() === '') return baseList;
     if (!fuseTopics) return baseList;
     const results = fuseTopics.search(form.subtopic);
     return results.map(result => result.item);
-  }, [form.subtopic, form.topic, tutorTopicsBySubject, fuseTopics, currentUser]);
+  }, [form.subtopic, form.topic, tutorTopicsBySubject, fuseTopics, isTutorRole]);
 
 
   // Helper computed values for dropdown lists
   const unitList = useMemo(() => {
-    if (currentUser?.role !== 'teacher') return [];
+    if (!isTutorRole) return [];
     return tutorSubjects;
-  }, [tutorSubjects, currentUser]);
+  }, [tutorSubjects, isTutorRole]);
 
   const topicList = useMemo(() => {
-    if (currentUser?.role !== 'teacher' || !form.topic) return [];
+    if (!isTutorRole || !form.topic) return [];
     return tutorTopicsBySubject[form.topic] || [];
-  }, [form.topic, tutorTopicsBySubject, currentUser]);
+  }, [form.topic, tutorTopicsBySubject, isTutorRole]);
 
 
   const handleChange = e => {
@@ -661,7 +664,7 @@ const CreateSession = () => {
                   Schedule Another
                 </button>
               </div>
-            ) : currentUser?.role !== 'teacher' ? (
+            ) : !isTutorRole ? (
               <div className="text-center animate-fade-in">
                 <p className="text-red-600 font-semibold mb-4 font-nunito">Only teachers can create sessions. Please add skills to your profile to begin.</p>
               </div>

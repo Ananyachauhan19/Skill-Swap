@@ -41,12 +41,11 @@ import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
 import CoinsHistory from './user/CoinsHistory';
-import CompleteProfile from './user/myprofile/CompleteProfile';
 import Blog from './user/company/Blog';
 import SearchPage from './user/SearchPage';
 import AdminPanel from './admin/adminpanel';
 import AdminRoute from './routes/AdminRoute';
-import InterviewerApplications from './admin/InterviewerApplications';
+import Applications from './admin/Applications.jsx';
 import Dashboard from './admin/Dashboard.jsx';
 import InterviewRequests from './admin/InterviewRequests.jsx';
 import AdminSessionRequests from './admin/SessionRequests.jsx';
@@ -64,6 +63,8 @@ import About from './About.jsx';
 import Career from './Career.jsx';
 import YourInterviews from './user/YourInterviews';
 import RatingPage from './user/RatingPage.jsx';
+import TutorApplication from './tutor/TutorApplication.jsx';
+import TutorVerification from './admin/TutorVerification.jsx';
 
 // Define full (regular user) routes
 const appRoutes = [
@@ -72,6 +73,7 @@ const appRoutes = [
   { path: '/home', element: <Home /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
+  { path: '/tutor/apply', element: <ProtectedRoute><TutorApplication /></ProtectedRoute> },
   { path: '/privacy-policy', element: <PrivacyPolicy /> },
   { path: '/community', element: <Community /> },
   { path: '/about', element: <About /> },
@@ -114,7 +116,7 @@ const appRoutes = [
       },
       {
         path: 'applications',
-        element: <ProtectedRoute><InterviewerApplications /></ProtectedRoute>,
+        element: <ProtectedRoute><Applications /></ProtectedRoute>,
       },
     ],
   },
@@ -152,13 +154,14 @@ const adminOnlyRoutes = [
         children: [
           { index: true, element: <Dashboard /> },
           { path: 'dashboard', element: <Dashboard /> },
-          { path: 'applications', element: <InterviewerApplications /> },
+          { path: 'applications', element: <Applications /> },
           { path: 'analytics', element: <Analytics /> },
           { path: 'interview-requests', element: <InterviewRequests /> },
           { path: 'session-requests', element: <AdminSessionRequests /> },
           { path: 'skillmate-requests', element: <SkillMateRequests /> },
           { path: 'users', element: <Users /> },
           { path: 'settings', element: <Settings /> },
+          { path: 'tutor-verification', element: <TutorVerification /> },
         ],
       },
     ],
@@ -273,7 +276,6 @@ function App() {
           {!isAdminUser && !isAuthPage && !isRatingPage && <Navbar />}
           <div className={location.pathname === '/home' ? '' : 'pt-8'}>
             {element}
-            {user && !isAdminUser && <CompleteProfile />}
           </div>
           {!isAdminUser && !isAuthPage && !isRatingPage && <Footer />}
         </SkillMatesProvider>

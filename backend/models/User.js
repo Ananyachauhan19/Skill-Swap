@@ -66,6 +66,10 @@ const userSchema = new mongoose.Schema({
   // Rating aggregates (updated when sessions are rated)
   ratingAverage: { type: Number, default: 0 },
   ratingCount: { type: Number, default: 0 },
+  // Tutor verification / activation fields
+  isTutor: { type: Boolean, default: false },
+  tutorActivationAt: { type: Date, required: false },
+  tutorApplicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'TutorApplication', required: false },
 });
 
 module.exports = mongoose.model('User', userSchema);
