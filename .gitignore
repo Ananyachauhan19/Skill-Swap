@@ -1,30 +1,36 @@
-# Root ignore for repository-wide artifacts
-# Node dependency directories
+###############################
+# Global .gitignore for Skill-Swap
+# (Single source of truth)
+###############################
+
+### Node dependency directories
 node_modules/
 backend/node_modules/
 frontend/node_modules/
 
-# Build outputs
+### Build outputs & generated assets
 backend/logs/
 frontend/dist/
 frontend/dist-ssr/
+coverage/
 
-# Environment / secrets
+### Environment / secrets (never commit)
 .env
-backend/.env
-frontend/.env
 *.env.local
 *.env.development
 *.env.production
+backend/.env
+frontend/.env
+frontend/src/.env
 
-# OS / editor noise
+### OS / editor noise
 .DS_Store
 Thumbs.db
-.vscode/
 .idea/
+.vscode/
 *.swp
 
-# Debug logs
+### Logs & debugging artifacts
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
@@ -32,7 +38,7 @@ lerna-debug.log*
 *.log
 logs/
 
-# Generated documentation summaries
+### Documentation auto-generated summaries (explicitly excluded)
 *_SUMMARY.md
 *_GUIDE.md
 COLOR_DESIGN_GUIDE.md
@@ -43,5 +49,39 @@ QUICK_REFERENCE.md
 REDESIGN_SUMMARY.md
 VISUAL_SUMMARY.md
 
-# Misc
-coverage/
+### Misc / caches
+*.tsbuildinfo
+*.pid
+*.pid.lock
+*.tgz
+package-lock.json
+
+### Ignore macOS / Windows indexing
+.AppleDouble
+.LSOverride
+ehthumbs.db
+Desktop.ini
+
+### Prevent committing compressed archives used temporarily
+*.zip
+*.7z
+*.rar
+*.gz
+*.bz2
+*.tar
+
+### Prevent committing image optimization leftovers
+*.orig
+
+### Frontend specific temp artifacts
+frontend/.eslintcache
+frontend/.parcel-cache
+frontend/.cache
+
+### Backend runtime artifacts (if created)
+backend/tmp/
+backend/.cache/
+
+###############################
+# End of global ignore rules
+###############################
