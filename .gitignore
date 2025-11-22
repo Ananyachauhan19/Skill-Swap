@@ -85,3 +85,4 @@ backend/.cache/
 ###############################
 # End of global ignore rules
 ###############################
+!.vscode/extensions.json
