@@ -74,6 +74,51 @@ const Sidebar = () => {
   const [error, setError] = useState(null);
   const [showMore, setShowMore] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  // Profile image upload states
+  const [imageFile, setImageFile] = useState(null);
+  const [uploadStatus, setUploadStatus] = useState('idle'); // idle | uploading | success | error
+  const [uploadError, setUploadError] = useState('');
+
+  const onSelectImage = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    if (f.size > 1024 * 1024) {
+      setUploadError('Max size 1MB');
+      return;
+    }
+    if (!['image/jpeg','image/png','image/webp'].includes(f.type)) {
+      setUploadError('Allowed: JPEG PNG WEBP');
+      return;
+    }
+    setUploadError('');
+    setImageFile(f);
+    setUser((prev) => prev ? { ...prev, profilePicPreview: URL.createObjectURL(f) } : prev);
+  };
+
+  const uploadProfilePhoto = async () => {
+    if (!imageFile) return;
+    setUploadStatus('uploading');
+    setUploadError('');
+    try {
+      const form = new FormData();
+      form.append('image', imageFile);
+      const resp = await fetch(`${BACKEND_URL}/api/user/profile-photo`, {
+        method: 'PATCH',
+        credentials: 'include',
+        body: form,
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.message || 'Upload failed');
+      setUser((prev) => prev ? { ...prev, profilePic: data.profileImageUrl, profilePicPreview: data.profileImageUrl } : prev);
+      setUploadStatus('success');
+      setTimeout(() => setUploadStatus('idle'), 2000);
+      setImageFile(null);
+      window.dispatchEvent(new Event('profileUpdated'));
+    } catch (e) {
+      setUploadStatus('error');
+      setUploadError(e.message);
+    }
+  };
 
   const loadUser = async () => {
     setLoading(true);
@@ -196,11 +241,17 @@ const Sidebar = () => {
                 </button>
               </div>
             ) : (
-              <img
-                src={user?.profilePicPreview || user?.profilePic || "https://placehold.co/100x100?text=User"}
-                alt={`${user?.fullName || "User"}'s profile picture`}
-                className="w-[120px] h-[120px] sm:w-[180px] sm:h-[180px] rounded-full object-cover border-2 border-blue-200"
-              />
+              <div className="relative group">
+                <img
+                  src={user?.profilePicPreview || user?.profileImageUrl || user?.profilePic || "https://placehold.co/100x100?text=User"}
+                  alt={`${user?.fullName || "User"}'s profile picture`}
+                  className="w-[120px] h-[120px] sm:w-[180px] sm:h-[180px] rounded-full object-cover border-2 border-blue-200"
+                />
+                <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-xs text-white font-medium rounded-full cursor-pointer transition" title="Change photo">
+                  <span>Change</span>
+                  <input type="file" accept="image/*" onChange={onSelectImage} className="hidden" />
+                </label>
+              </div>
             )}
             
             <div className="mt-4 sm:mt-0 sm:ml-4 w-full sm:w-auto flex flex-col items-center sm:items-start justify-between">
@@ -238,6 +289,20 @@ const Sidebar = () => {
                   >
                     Setup Profile
                   </button>
+                  {/* Upload controls */}
+                  {imageFile && (
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                      <button
+                        onClick={uploadProfilePhoto}
+                        disabled={uploadStatus==='uploading'}
+                        className="px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium disabled:opacity-50 hover:bg-indigo-700 transition"
+                      >{uploadStatus==='uploading' ? 'Uploading...' : 'Save Photo'}</button>
+                      <button
+                        onClick={() => { setImageFile(null); setUser((p)=> p ? { ...p, profilePicPreview: p.profilePic } : p); }}
+                        className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-300 transition"
+                      >Cancel</button>
+                    </div>
+                  )}
 
                   {/* Tutor application status */}
                   <div className="w-full sm:w-auto text-xs mt-2 sm:mt-0 flex flex-col gap-1 items-center sm:items-start">
@@ -263,6 +328,12 @@ const Sidebar = () => {
                     )}
                   </div>
                 </div>
+                {(uploadError || uploadStatus==='success') && (
+                  <div className="mt-2 w-full text-center sm:text-left">
+                    {uploadError && <p className="text-[11px] text-red-600">{uploadError}</p>}
+                    {uploadStatus==='success' && <p className="text-[11px] text-green-600">Profile photo updated</p>}
+                  </div>
+                )}
               </div>
             </div>
           </div>

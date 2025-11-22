@@ -232,6 +232,7 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       username: user.username,
       email: user.email,
       profilePic: user.profilePic,
+      profileImageUrl: user.profileImageUrl,
       bio: user.bio,
       skillsToTeach: user.skillsToTeach,
       skillsToLearn: user.skillsToLearn,
@@ -311,6 +312,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       username: user.username,
       email: user.email,
       profilePic: user.profilePic,
+      profileImageUrl: user.profileImageUrl,
       bio: user.bio,
       skillsToTeach: user.skillsToTeach,
       skillsToLearn: user.skillsToLearn,
@@ -457,7 +459,27 @@ router.get('/user/public/:username', async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    res.json(user);
+    res.json({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      profilePic: user.profilePic,
+      profileImageUrl: user.profileImageUrl,
+      bio: user.bio,
+      skillsToTeach: user.skillsToTeach,
+      skillsToLearn: user.skillsToLearn,
+      country: user.country,
+      education: user.education,
+      experience: user.experience,
+      certificates: user.certificates,
+      linkedin: user.linkedin,
+      website: user.website,
+      github: user.github,
+      twitter: user.twitter,
+      rank: user.rank,
+      badges: user.badges
+    });
   } catch (err) {
     console.error('[DEBUG] Public profile fetch error:', err);
     res.status(500).json({ message: 'Server error' });

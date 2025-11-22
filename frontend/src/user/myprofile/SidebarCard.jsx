@@ -125,9 +125,6 @@ const SidebarCard = ({
               src={profile.profilePicPreview}
               alt="Profile"
               className="w-full h-full rounded-full object-cover border-4 border-blue-600 transition-all duration-200"
-              onError={() => {
-                setProfile((prev) => ({ ...prev, profilePicPreview: null }));
-              }}
             />
           ) : (
             <div className="w-full h-full rounded-full bg-blue-200 flex items-center justify-center text-2xl font-bold text-blue-900 transition-all duration-200">
@@ -138,7 +135,7 @@ const SidebarCard = ({
           )}
           <input
             type="file"
-            accept="image/jpeg,image/png,image/gif"
+            accept="image/jpeg,image/png,image/webp"
             onChange={(e) => handleProfilePicChange(e)}
             className="absolute inset-0 opacity-0 cursor-pointer"
             title="Upload Profile Picture"

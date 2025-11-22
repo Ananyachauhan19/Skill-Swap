@@ -29,6 +29,7 @@ const skillsRoutes = require('./routes/skillsRoutes');
 const debugRoutes = require('./routes/debugRoutes');
 const contributionRoutes = require('./routes/contributionRoutes');
 const tutorRoutes = require('./routes/tutorRoutes');
+const userRoutes = require('./routes/userRoutes');
 const cron = require('node-cron');
 
 const app = express();
@@ -89,6 +90,7 @@ app.use('/api', skillsRoutes);
 app.use('/api', debugRoutes);
 app.use('/api/contributions', contributionRoutes);
 app.use('/api', tutorRoutes);
+app.use('/api', userRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');

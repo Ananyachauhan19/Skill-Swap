@@ -29,8 +29,9 @@ const fetchUserProfile = async () => {
       fullName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.firstName || user.username || '',
       userId: user.username || '',
       email: user.email || '',
-      profilePic: user.profilePic || '',
-      profilePicPreview: user.profilePic || '',
+      profileImageUrl: user.profileImageUrl || user.profilePic || '',
+      profilePic: user.profilePic || user.profileImageUrl || '',
+      profilePicPreview: user.profileImageUrl || user.profilePic || '',
       bio: user.bio || '',
       country: user.country || '',
       education: user.education || [],
@@ -115,8 +116,9 @@ const updateUserProfile = async (profile) => {
         : updatedUser.firstName || updatedUser.username || '',
       userId: updatedUser.username || '',
       email: updatedUser.email || '',
-      profilePic: updatedUser.profilePic || '',
-      profilePicPreview: updatedUser.profilePic || '',
+      profileImageUrl: updatedUser.profileImageUrl || updatedUser.profilePic || '',
+      profilePic: updatedUser.profilePic || updatedUser.profileImageUrl || '',
+      profilePicPreview: updatedUser.profileImageUrl || updatedUser.profilePic || '',
       bio: updatedUser.bio || '',
       country: updatedUser.country || '',
       education: updatedUser.education || [],
@@ -140,13 +142,18 @@ const updateUserProfile = async (profile) => {
 };
 
 // Upload profile picture
+// Cloudinary-backed profile photo upload
 const uploadProfilePic = async (file) => {
-  try {
-    const mockUrl = 'https://placehold.co/100x100?text=NewPic';
-    return { url: mockUrl };
-  } catch {
-    throw new Error('Failed to upload profile picture');
-  }
+  const form = new FormData();
+  form.append('image', file);
+  const resp = await fetch(`${BACKEND_URL}/api/user/profile-photo`, {
+    method: 'PATCH',
+    credentials: 'include',
+    body: form,
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.message || 'Failed to upload profile picture');
+  return { url: data.profileImageUrl };
 };
 
 const Profile = () => {
@@ -247,8 +254,8 @@ const Profile = () => {
       toast.error('Please select an image file (e.g., JPG, PNG).');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size must be less than 5MB.');
+    if (file.size > 1 * 1024 * 1024) {
+      toast.error('Image size must be less than 1MB.');
       return;
     }
     try {
@@ -256,7 +263,7 @@ const Profile = () => {
       const previewUrl = URL.createObjectURL(file);
       setProfile((prev) => ({ ...prev, profilePicPreview: previewUrl }));
       const result = await uploadProfilePic(file);
-      const updatedProfile = { ...profile, profilePic: result.url, profilePicPreview: result.url };
+      const updatedProfile = { ...profile, profilePic: result.url, profileImageUrl: result.url, profilePicPreview: result.url };
       const updated = await updateUserProfile(updatedProfile);
       setProfile(updated);
       setOriginalProfile(updated);
