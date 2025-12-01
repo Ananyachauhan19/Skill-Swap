@@ -15,18 +15,17 @@ const TutorCard = ({ tutor, onRequestSession }) => {
   const isAvailable = tutor.status?.includes('Available');
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-6 border-2 border-[#93c5fd] hover:border-[#3b82f6] overflow-hidden group">
+    <div className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 p-6 border border-gray-100 overflow-hidden group">
       {/* Accent line at top */}
-      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#3b82f6] to-[#2563eb]"></div>
+      <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500"></div>
 
       <div className="flex items-start gap-4 mb-5">
         {/* Profile Image */}
         <div className="relative flex-shrink-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6] to-[#2563eb] opacity-20 rounded-full blur-md"></div>
           <img
             src={getProfilePic(tutor.profilePic, tutor.name)}
             alt={tutor.name}
-            className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-3 border-white shadow-lg ring-2 ring-[#3b82f6]"
+            className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2 border-gray-200"
           />
           {isAvailable && (
             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
@@ -51,7 +50,7 @@ const TutorCard = ({ tutor, onRequestSession }) => {
       {/* Details Grid */}
       <div className="space-y-3 mb-5">
         <div className="flex items-center gap-3 text-sm text-gray-600">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#60a5fa] to-[#3b82f6] rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
             <FaCalendarAlt className="text-white text-xs" />
           </div>
           <div>
@@ -61,7 +60,7 @@ const TutorCard = ({ tutor, onRequestSession }) => {
         </div>
 
         <div className="flex items-center gap-3 text-sm text-gray-600">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#93c5fd] to-[#60a5fa] rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
             <FaClock className="text-white text-xs" />
           </div>
           <div>
@@ -72,7 +71,7 @@ const TutorCard = ({ tutor, onRequestSession }) => {
 
         {tutor.skills && tutor.skills.length > 0 && (
           <div className="flex items-start gap-3 text-sm text-gray-600">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#60a5fa] to-[#3b82f6] rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
               <FaUserGraduate className="text-white text-xs" />
             </div>
             <div className="flex-1">
@@ -93,7 +92,7 @@ const TutorCard = ({ tutor, onRequestSession }) => {
 
         {tutor.rating && (
           <div className="flex items-center gap-3 text-sm">
-            <div className="w-8 h-8 bg-gradient-to-br from-[#fbbf24] to-[#f59e0b] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
               <FaStar className="text-white text-xs" />
             </div>
             <div className="flex items-center gap-2">
@@ -117,7 +116,7 @@ const TutorCard = ({ tutor, onRequestSession }) => {
       {/* Action Button */}
       <button
         onClick={onRequestSession}
-        className="w-full py-3 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300 hover:scale-105 transform flex items-center justify-center gap-2"
+        className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all duration-300 flex items-center justify-center gap-2"
       >
         <FaCheckCircle className="text-lg" />
         <span>Request Session</span>

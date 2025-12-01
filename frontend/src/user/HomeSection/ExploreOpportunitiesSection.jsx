@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUserFriends, FaVideo, FaBriefcase, FaArrowRight } from 'react-icons/fa';
 
@@ -9,21 +10,21 @@ const ExploreOpportunitiesSection = () => {
       description: 'Connect with peers to exchange skills and knowledge directly.',
       icon: <FaUserFriends />,
       color: 'blue',
-      link: '/skill-mate'
+      link: '/StartSkillSwap'
     },
     {
-      title: 'Live Sessions',
+      title: 'One on One Sessions',
       description: 'Join interactive live sessions hosted by experts in real-time.',
       icon: <FaVideo />,
       color: 'purple',
-      link: '/sessions'
+      link: '/one-on-one'
     },
     {
-      title: 'Professional Mentorship',
-      description: 'Get guidance from industry professionals to advance your career.',
+      title: 'Live Interview Practice',
+      description: 'Practice interviews live with mentors and get feedback.',
       icon: <FaBriefcase />,
       color: 'green',
-      link: '/mentorship'
+      link: '/interview'
     }
   ];
 
@@ -44,8 +45,10 @@ const ExploreOpportunitiesSection = () => {
     }
   };
 
+  const navigate = useNavigate();
+
   return (
-    <section className="py-4 sm:py-6 bg-home-bg">
+    <section id="explore" className="py-4 sm:py-6 bg-home-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <motion.h2
@@ -79,6 +82,7 @@ const ExploreOpportunitiesSection = () => {
               key={index}
               variants={itemVariants}
               whileHover={{ y: -10 }}
+              onClick={() => navigate(item.link)}
               className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group cursor-pointer"
             >
               <div className={`w-14 h-14 rounded-xl bg-${item.color}-50 text-${item.color}-600 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-300`}>
@@ -90,9 +94,12 @@ const ExploreOpportunitiesSection = () => {
               <p className="text-gray-600 mb-6 leading-relaxed">
                 {item.description}
               </p>
-              <div className="flex items-center text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all">
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(item.link); }}
+                className="flex items-center text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all"
+              >
                 Learn more <FaArrowRight className="ml-1" />
-              </div>
+              </button>
             </motion.div>
           ))}
         </motion.div>

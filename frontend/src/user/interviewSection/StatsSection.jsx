@@ -91,7 +91,7 @@ const StatsSection = () => {
   }, []);
 
   return (
-    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-8 pt-6">
+    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 sm:gap-8 pt-4 sm:pt-6">
       <div className="text-center">
         <p className="text-3xl sm:text-4xl font-bold text-[#1e3a8a]">
           {stats.loading ? '...' : stats.totalInterviews ?? 0}

@@ -55,10 +55,10 @@ const FAQSection = () => {
   }
 
   return (
-    <section className="w-full bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe] overflow-hidden">
+    <section className="w-full bg-home-bg overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
-        <div className="flex flex-col items-center gap-4 mb-8 sm:mb-10 pb-6 border-b-2 border-[#93c5fd]">
+        <div className="flex flex-col items-center gap-4 mb-8 sm:mb-10 pb-6 border-b border-gray-200">
         <div className="flex items-center justify-center gap-2 sm:gap-3 w-full flex-wrap">
           <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1e3a8a] text-center">
@@ -77,11 +77,11 @@ const FAQSection = () => {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: index * 0.05 }}
             viewport={{ once: true }}
-            className="bg-white rounded-2xl border-2 border-[#93c5fd] overflow-hidden transition-all duration-300 hover:border-[#3b82f6] shadow-sm hover:shadow-md"
+            className="bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md shadow-sm"
           >
             <button
               onClick={() => toggleFAQ(index)}
-              className="w-full flex items-center justify-between p-3 sm:p-5 text-left hover:bg-[#f0f9ff] transition-colors group"
+              className="w-full flex items-center justify-between p-3 sm:p-5 text-left hover:bg-blue-50 transition-colors group"
             >
               <h3 className="font-bold text-[#1e3a8a] pr-2 sm:pr-4 flex-1 text-sm sm:text-base">
                 <span className="text-[#3b82f6] mr-2 group-hover:scale-110 transition-transform">
@@ -104,7 +104,7 @@ const FAQSection = () => {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.2 }}
-                className="px-3 sm:px-5 pb-4 sm:pb-5 pt-2 sm:pt-3 text-[#4b5563] text-xs sm:text-sm border-t-2 border-[#93c5fd] bg-[#f0f9ff]"
+                className="px-3 sm:px-5 pb-4 sm:pb-5 pt-2 sm:pt-3 text-[#4b5563] text-xs sm:text-sm border-t border-gray-200 bg-gray-50"
               >
                 {faq.answer}
               </motion.div>

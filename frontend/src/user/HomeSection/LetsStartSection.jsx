@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { FaRocket, FaArrowRight, FaCheckCircle } from 'react-icons/fa';
 
 const LetsStartSection = () => {
+  const navigate = useNavigate();
   return (
     <section className="py-4 sm:py-6 bg-home-bg">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,7 +28,11 @@ const LetsStartSection = () => {
               transition={{ delay: 0.2, type: 'spring' }}
               className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-8 backdrop-blur-sm"
             >
-              <FaRocket className="text-3xl text-blue-400" />
+              <img
+                src="/assets/skillswap-logo.webp"
+                alt="SkillSwap Logo"
+                className="w-10 h-10 object-contain drop-shadow-sm"
+              />
             </motion.div>
 
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
@@ -42,28 +48,22 @@ const LetsStartSection = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => navigate('/home')}
                 className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-lg shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all"
               >
                 Get Started Now <FaArrowRight />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.1)' }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-transparent border border-white/30 text-white rounded-full font-bold text-lg hover:bg-white/5 transition-all"
-              >
-                Browse Courses
               </motion.button>
             </div>
 
             <div className="flex flex-wrap justify-center gap-6 text-sm text-blue-200/80">
               <div className="flex items-center gap-2">
-                <FaCheckCircle className="text-green-400" /> No credit card required
+                <FaCheckCircle className="text-green-400" /> Peer-to-peer learning with real professionals
               </div>
               <div className="flex items-center gap-2">
-                <FaCheckCircle className="text-green-400" /> 14-day free trial
+                <FaCheckCircle className="text-green-400" /> 1-on-1 live sessions using Skill Coins
               </div>
               <div className="flex items-center gap-2">
-                <FaCheckCircle className="text-green-400" /> Cancel anytime
+                <FaCheckCircle className="text-green-400" /> Live interview practice with actionable feedback
               </div>
             </div>
           </div>

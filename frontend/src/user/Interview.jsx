@@ -83,7 +83,7 @@ const HowItWorks = () => (
             transition={{ duration: 0.5, delay: index * 0.1 }}
             viewport={{ once: true }}
             whileHover={{ y: -8, transition: { duration: 0.2 } }}
-            className={`group relative flex flex-col items-center text-center p-5 sm:p-6 bg-white rounded-2xl border-2 ${item.borderColor} transition-all duration-300 hover:shadow-lg overflow-hidden`}
+            className="group relative flex flex-col items-center text-center p-5 sm:p-6 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
           >
             {/* Gradient accent at top */}
             <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${item.bgGradient}`}></div>
@@ -649,8 +649,8 @@ function ScheduledInterviewSection() {
   });
 
   return (
-    <section className="w-full bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe] overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <section className="w-full bg-home-bg overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header with gradient background */}
         <div className="flex flex-col items-center gap-4 mb-8 sm:mb-10 pb-6 border-b-2 border-[#3b82f6]/20">
         <div className="flex items-center justify-center gap-2 sm:gap-3 w-full flex-wrap">
@@ -680,7 +680,7 @@ function ScheduledInterviewSection() {
               viewport={{ once: true }}
               whileHover={{ y: -4 }}
               transition={{ duration: 0.3, delay: idx * 0.1 }}
-              className="relative bg-white border-2 border-[#93c5fd] rounded-2xl p-5 sm:p-6 hover:border-[#3b82f6] transition-all duration-300 shadow-md hover:shadow-lg overflow-hidden group"
+              className="relative bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 hover:shadow-md transition-all duration-300 shadow-sm overflow-hidden group"
             >
               {/* Accent line at top */}
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#3b82f6] to-[#2563eb]"></div>
@@ -820,9 +820,9 @@ const Interview = () => {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe]">
+    <div className="min-h-screen w-full bg-home-bg">
       {/* Full Viewport Hero Section - Shifted Up */}
-      <section className="relative min-h-[85vh] w-full flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-6 sm:pb-8">
+      <section className="relative min-h-[85vh] w-full flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-6 sm:pb-8 bg-home-bg">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div

@@ -136,7 +136,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
           <motion.div className="flex flex-wrap gap-2 justify-center lg:justify-start px-2 sm:px-0" variants={textVariants}>
             {(isLoggedIn || debugMode) ? (
               <motion.button
-                onClick={() => exploreRef?.current?.scrollIntoView({ behavior: "smooth" })}
+                onClick={() => navigate('/home#explore')}
                 className="bg-blue-900 text-white px-4 py-2 rounded-md font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
                 variants={buttonVariants}
                 whileHover="hover"

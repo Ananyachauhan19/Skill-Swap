@@ -15,8 +15,8 @@ const HowItWorks = () => {
   };
 
   return (
-    <section className="relative rounded-3xl mb-8 w-full max-w-7xl mx-auto overflow-hidden bg-white shadow-xl">
-      <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-12 sm:py-16 flex flex-col gap-8 sm:gap-10">
+    <section className="relative rounded-3xl mb-8 w-full max-w-7xl mx-auto overflow-hidden bg-white border border-gray-100 shadow-sm">
+      <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col gap-6 sm:gap-8">
         <div className="flex flex-col items-center gap-4 mb-4 sm:mb-6">
           <div className="flex items-center justify-center gap-3 w-full flex-wrap">
             <div className="w-8 sm:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
@@ -68,12 +68,12 @@ const HowItWorks = () => {
             <div
               key={index}
               onClick={() => handleCardClick(index)}
-              className={`group relative flex flex-col items-center text-center p-5 sm:p-6 bg-white rounded-2xl border-2 ${item.borderColor} transition-all duration-300 hover:shadow-lg overflow-hidden cursor-pointer`}
+              className="group relative flex flex-col items-center text-center p-5 sm:p-6 bg-white rounded-xl border border-gray-100 transition-all duration-300 hover:shadow-md overflow-hidden cursor-pointer"
             >
-              <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${item.bgGradient}`}></div>
+              <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500"></div>
 
               <div 
-                className={`relative z-10 flex items-center justify-center w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-gradient-to-br ${item.lightBg} mb-4 transition-all duration-300 shadow-md text-2xl ${
+                className={`relative z-10 flex items-center justify-center w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-blue-50 mb-4 transition-all duration-300 text-2xl ${
                   clickedIndex === index ? 'scale-110 rotate-12' : 'group-hover:scale-110'
                 }`}
               >
@@ -87,8 +87,6 @@ const HowItWorks = () => {
               <p className="relative z-10 text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-line">
                 {item.desc}
               </p>
-
-              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${item.bgGradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 rounded-b-2xl`}></div>
             </div>
           ))}
         </div>
@@ -195,9 +193,9 @@ const OneOnOne = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe]">
+    <div className="min-h-screen w-full bg-home-bg">
       {/* Hero Section */}
-      <section className="relative min-h-[75vh] w-full flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-6 sm:pb-8">
+      <section className="relative min-h-[75vh] w-full flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-6 sm:pb-8 bg-home-bg">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl"></div>
@@ -267,8 +265,8 @@ const OneOnOne = () => {
       {/* Main Content */}
       <main className="w-full max-w-7xl mx-auto flex flex-col gap-12 sm:gap-16 px-4 sm:px-8 py-8 sm:py-12 lg:py-16">
         {/* Search Section */}
-        <section className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 shadow-xl overflow-hidden">
-          <div className="flex flex-col items-center gap-4 mb-8 pb-6 border-b-2 border-[#3b82f6]/20">
+        <section className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex flex-col items-center gap-4 mb-8 pb-6 border-b border-gray-200">
             <div className="flex items-center justify-center gap-3 w-full flex-wrap">
               <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1e3a8a] text-center">

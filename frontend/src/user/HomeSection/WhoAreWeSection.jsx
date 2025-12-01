@@ -1,8 +1,26 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FaGlobe, FaUsers, FaLightbulb } from 'react-icons/fa';
+import axios from 'axios';
 
 const WhoAreWeSection = () => {
+  const [totalUsers, setTotalUsers] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+        const { data } = await axios.get(`${backendUrl}/api/auth/stats/public`);
+        setTotalUsers(data?.totalUsers ?? null);
+      } catch (err) {
+        setTotalUsers(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
   return (
     <section className="py-4 sm:py-6 bg-home-bg overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -87,7 +105,9 @@ const WhoAreWeSection = () => {
                       <img key={i} src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" className="w-10 h-10 rounded-full border-2 border-white" />
                     ))}
                   </div>
-                  <span className="font-semibold text-sm">+10k Learners</span>
+                  <span className="font-semibold text-sm">
+                    {loading ? 'Loading…' : (totalUsers != null ? `${totalUsers.toLocaleString()} Learners` : 'Our Learners')}
+                  </span>
                 </div>
                 <p className="text-sm text-gray-200">Join our growing family today.</p>
               </div>

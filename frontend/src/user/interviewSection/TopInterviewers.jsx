@@ -167,7 +167,7 @@ const TopInterviewers = () => {
   }
 
   return (
-    <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe]">
+    <section className="relative w-full overflow-hidden bg-home-bg">
       <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col gap-8 sm:gap-10 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col items-center gap-4 mb-4 sm:mb-6">

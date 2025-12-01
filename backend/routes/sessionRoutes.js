@@ -320,81 +320,159 @@ router.get('/top-performers', async (req, res) => {
     // Only consider completed sessions for metrics
     const completedMatch = { status: 'completed' };
 
-    // Top Rated Tutors (by average rating, at least 1 rating)
+    // Top Rated Tutors (legacy single rating field) - Top 3
     const topRatedAgg = await SessionRequest.aggregate([
       { $match: { ...completedMatch, rating: { $ne: null } } },
       { $group: { _id: '$tutor', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } },
       { $sort: { avgRating: -1, count: -1 } },
-      { $limit: 1 },
+      { $limit: 3 },
     ]);
 
-    let topRated = null;
-    if (topRatedAgg.length > 0) {
-      const [doc] = topRatedAgg;
-      topRated = await User.findById(doc._id).select('firstName lastName username profilePic ratingAverage ratingCount');
-      if (topRated) {
-        // Provide a 'rating' field to match frontend expectation
-        topRated = {
-          _id: topRated._id,
-          firstName: topRated.firstName,
-          lastName: topRated.lastName,
-          username: topRated.username,
-          profilePic: topRated.profilePic,
-          rating: Number(doc.avgRating.toFixed(2)),
-          ratingCount: doc.count,
-        };
-      }
-    }
+    const topRated = await Promise.all(
+      topRatedAgg.map(async (doc) => {
+        const user = await User.findById(doc._id).select('firstName lastName username profilePic role');
+        if (user) {
+          return {
+            _id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            profilePic: user.profilePic,
+            role: user.role,
+            rating: Number(doc.avgRating.toFixed(1)),
+            ratingCount: doc.count,
+          };
+        }
+        return null;
+      })
+    ).then(results => results.filter(Boolean));
 
-    // Most Active Learner (by count of completed requests as requester)
+    // Most Active Learners (by count of completed requests as requester) - Top 3
     const mostActiveAgg = await SessionRequest.aggregate([
       { $match: completedMatch },
       { $group: { _id: '$requester', sessionCount: { $sum: 1 } } },
       { $sort: { sessionCount: -1 } },
-      { $limit: 1 },
+      { $limit: 3 },
     ]);
 
-    let mostActive = null;
-    if (mostActiveAgg.length > 0) {
-      const [doc] = mostActiveAgg;
-      const u = await User.findById(doc._id).select('firstName lastName username profilePic');
-      if (u) {
-        mostActive = {
-          _id: u._id,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          username: u.username,
-          profilePic: u.profilePic,
-          sessionCount: doc.sessionCount,
-        };
-      }
-    }
+    const mostActive = await Promise.all(
+      mostActiveAgg.map(async (doc) => {
+        const user = await User.findById(doc._id).select('firstName lastName username profilePic role');
+        if (user) {
+          return {
+            _id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            profilePic: user.profilePic,
+            role: user.role,
+            sessionCount: doc.sessionCount,
+          };
+        }
+        return null;
+      })
+    ).then(results => results.filter(Boolean));
 
-    // Top Earner (sum coinsSpent for tutor)
+    // Top Earners (separate silver / gold coins earned by tutors from completed sessions) - Top 3
     const topEarnerAgg = await SessionRequest.aggregate([
       { $match: completedMatch },
-      { $group: { _id: '$tutor', earnings: { $sum: { $ifNull: ['$coinsSpent', 0] } } } },
-      { $sort: { earnings: -1 } },
-      { $limit: 1 },
+      { $group: { _id: { tutor: '$tutor', coinType: '$coinType' }, coins: { $sum: { $ifNull: ['$coinsSpent', 0] } } } },
+      { $group: { _id: '$_id.tutor', coinsBreakdown: { $push: { coinType: '$_id.coinType', coins: '$coins' } }, totalEarnings: { $sum: '$coins' } } },
+      { $sort: { totalEarnings: -1 } },
+      { $limit: 3 }
     ]);
 
-    let topEarner = null;
-    if (topEarnerAgg.length > 0) {
-      const [doc] = topEarnerAgg;
-      const u = await User.findById(doc._id).select('firstName lastName username profilePic');
-      if (u) {
-        topEarner = {
-          _id: u._id,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          username: u.username,
-          profilePic: u.profilePic,
-          earnings: doc.earnings,
-        };
+    const topEarners = await Promise.all(
+      topEarnerAgg.map(async (doc) => {
+        const user = await User.findById(doc._id).select('firstName lastName username profilePic role');
+        if (user) {
+          const silverEntry = doc.coinsBreakdown.find(c => c.coinType === 'silver');
+          const goldEntry = doc.coinsBreakdown.find(c => c.coinType === 'gold');
+          const silverEarnings = silverEntry ? silverEntry.coins : 0;
+          const goldEarnings = goldEntry ? goldEntry.coins : 0;
+          return {
+            _id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            profilePic: user.profilePic,
+            role: user.role,
+            silverEarnings,
+            goldEarnings,
+            totalEarnings: silverEarnings + goldEarnings,
+          };
+        }
+        return null;
+      })
+    ).then(results => results.filter(Boolean));
+
+    // All Stars – overall active learners (exclude pure tutors) based on combined engagement
+    // Metrics: sessionCount, avgTutorRating (ratingByTutor), distinctTutorsCount
+    const allStarsAgg = await SessionRequest.aggregate([
+      { $match: completedMatch },
+      { $group: { 
+          _id: '$requester',
+          sessionCount: { $sum: 1 },
+          tutors: { $addToSet: '$tutor' },
+          ratings: { $push: '$ratingByTutor' }
+        } 
       }
+    ]);
+
+    // Build learner performance list
+    const learnerPerf = [];
+    for (const doc of allStarsAgg) {
+      const user = await User.findById(doc._id).select('firstName lastName username profilePic role');
+      if (!user) continue;
+      if (!(user.role === 'learner' || user.role === 'both')) continue; // only learners / both
+      const validRatings = (doc.ratings || []).filter(r => r !== null && r !== undefined);
+      const avgTutorRating = validRatings.length ? (validRatings.reduce((a,b)=>a+b,0) / validRatings.length) : 0;
+      const distinctTutorsCount = (doc.tutors || []).length;
+      learnerPerf.push({
+        userId: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+        profilePic: user.profilePic,
+        role: user.role,
+        sessionCount: doc.sessionCount,
+        avgTutorRating: Number(avgTutorRating.toFixed(1)),
+        distinctTutorsCount
+      });
     }
 
-    return res.json({ mostActive, topRated, topEarner });
+    // Normalization for composite ranking (not returned visibly)
+    const maxSessions = Math.max(...learnerPerf.map(l => l.sessionCount), 1);
+    const maxDistinctTutors = Math.max(...learnerPerf.map(l => l.distinctTutorsCount), 1);
+
+    const rankedLearners = learnerPerf.map(l => ({
+      ...l,
+      compositeScore: (
+        (l.sessionCount / maxSessions) * 0.4 +
+        (l.avgTutorRating / 5) * 0.4 +
+        (l.distinctTutorsCount / maxDistinctTutors) * 0.2
+      )
+    })).sort((a,b) => b.compositeScore - a.compositeScore).slice(0,3);
+
+    // Hide composite score number for All Stars in response (frontend won't display)
+    const allStars = rankedLearners.map(l => ({
+      _id: l.userId,
+      firstName: l.firstName,
+      lastName: l.lastName,
+      username: l.username,
+      profilePic: l.profilePic,
+      role: l.role,
+      sessionCount: l.sessionCount,
+      avgTutorRating: l.avgTutorRating,
+      distinctTutorsCount: l.distinctTutorsCount
+    }));
+
+    return res.json({
+      allStars,
+      mostActive,
+      topRated,
+      topEarners
+    });
   } catch (err) {
     console.error('top-performers error:', err);
     res.status(500).json({ error: 'Failed to compute top performers' });
