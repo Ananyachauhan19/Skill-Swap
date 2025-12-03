@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Edit2, Save, XCircle, Plus, Trash2 } from 'lucide-react';
 import { STATIC_COURSES, STATIC_UNITS } from '../../constants/teachingData';
+import { BACKEND_URL } from '../../config.js';
 import { useSkillMates } from '../../context/SkillMatesContext.jsx';
 
 const SkillMateHeaderAction = () => {
@@ -31,6 +32,9 @@ const UserInfoSection = ({
   handleArrayRemove,
   onSaveEdit,
 }) => {
+  const [classes, setClasses] = useState([]);
+  const [subjectsByClass, setSubjectsByClass] = useState({});
+  const [topicsBySubject, setTopicsBySubject] = useState({});
   const handleCertFileUpload = async (index, file) => {
     if (!file) return;
     if (!file.type.includes('pdf')) {
@@ -59,6 +63,25 @@ const UserInfoSection = ({
     }
     cancelEdit();
   };
+
+  // Load classes/subjects/topics from CSV-backed endpoint
+  useEffect(() => {
+    const loadSkillsList = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/skills-list`, { credentials: 'include' });
+        const data = await res.json();
+        setClasses(Array.isArray(data.classes) ? data.classes : []);
+        setSubjectsByClass(data.subjectsByClass || {});
+        setTopicsBySubject(data.topicsBySubject || {});
+      } catch {
+        // Fallback to statics if API fails
+        setClasses(STATIC_COURSES);
+        setSubjectsByClass({});
+        setTopicsBySubject({});
+      }
+    };
+    loadSkillsList();
+  }, []);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 sm:p-8 flex flex-col md:flex-row gap-4 sm:gap-8 items-center mb-2">
@@ -132,14 +155,32 @@ const UserInfoSection = ({
                   <div key={i} className="flex gap-2 items-center">
                     <select
                       className="border rounded px-2 py-1 text-xs"
+                      value={s.class || ''}
+                      onChange={(e) => {
+                        handleArrayChange('skillsToTeach', i, e.target.value, 'class');
+                        // Reset dependent fields when class changes
+                        handleArrayChange('skillsToTeach', i, '', 'subject');
+                        handleArrayChange('skillsToTeach', i, '', 'topic');
+                      }}
+                    >
+                      <option value="">Select Class/Course</option>
+                      {classes.map((cls) => (
+                        <option key={cls} value={cls}>{cls}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="border rounded px-2 py-1 text-xs"
                       value={s.subject || ''}
-                      onChange={(e) => handleArrayChange('skillsToTeach', i, e.target.value, 'subject')}
+                      onChange={(e) => {
+                        handleArrayChange('skillsToTeach', i, e.target.value, 'subject');
+                        // Reset topic when subject changes
+                        handleArrayChange('skillsToTeach', i, '', 'topic');
+                      }}
+                      disabled={!s.class}
                     >
                       <option value="">Select Subject</option>
-                      {STATIC_COURSES.map((subj) => (
-                        <option key={subj} value={subj}>
-                          {subj}
-                        </option>
+                      {(subjectsByClass[s.class] || []).map((subj) => (
+                        <option key={subj} value={subj}>{subj}</option>
                       ))}
                     </select>
                     <select
@@ -149,10 +190,9 @@ const UserInfoSection = ({
                       disabled={!s.subject}
                     >
                       <option value="">Select Topic</option>
-                      {(STATIC_UNITS[s.subject] || []).map((topic) => (
-                        <option key={topic} value={topic}>
-                          {topic}
-                        </option>
+                      <option value="ALL" className="font-semibold bg-blue-50">ALL (Complete Subject)</option>
+                      {(topicsBySubject[s.subject] || []).map((topic) => (
+                        <option key={topic} value={topic}>{topic}</option>
                       ))}
                     </select>
                     <button onClick={() => handleArrayRemove('skillsToTeach', i)} className="text-red-500 hover:text-red-700">
@@ -249,7 +289,7 @@ const UserInfoSection = ({
                 {(profile.skillsToTeach || []).length > 0 ? (
                   profile.skillsToTeach.map((s, i) => (
                     <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
-                      {s.subject} {s.topic ? `> ${s.topic}` : ''}
+                      {s.class ? `${s.class} • ` : ''}{s.subject} {s.topic ? `> ${s.topic}` : ''}
                     </li>
                   ))
                 ) : (

@@ -44,9 +44,26 @@ const CreateSession = () => {
   const isTutorRole = currentUser?.role === 'teacher' || currentUser?.role === 'both';
 
   // Derived skill lists for tutor-capable user
+  const tutorClasses = useMemo(() => {
+    if (!isTutorRole) return [];
+    return [...new Set(userSkills.map(skill => skill.class))].filter(Boolean);
+  }, [userSkills, isTutorRole]);
+
   const tutorSubjects = useMemo(() => {
     if (!isTutorRole) return [];
     return [...new Set(userSkills.map(skill => skill.subject))].filter(Boolean);
+  }, [userSkills, isTutorRole]);
+
+  // Check if user has ALL topics for a given subject
+  const hasAllTopics = useMemo(() => {
+    if (!isTutorRole) return {};
+    const allTopicsMap = {};
+    userSkills.forEach(skill => {
+      if (skill.topic === 'ALL' && skill.subject) {
+        allTopicsMap[skill.subject] = true;
+      }
+    });
+    return allTopicsMap;
   }, [userSkills, isTutorRole]);
 
   const tutorTopicsBySubject = useMemo(() => {
@@ -56,34 +73,24 @@ const CreateSession = () => {
         if (!acc[skill.subject]) {
           acc[skill.subject] = [];
         }
-        acc[skill.subject].push(skill.topic);
+        // If user has 'ALL', include all available topics from Google Sheet
+        if (skill.topic === 'ALL') {
+          const allTopicsForSubject = topicsBySubject[skill.subject] || [];
+          acc[skill.subject] = [...new Set([...acc[skill.subject], ...allTopicsForSubject])];
+        } else {
+          acc[skill.subject].push(skill.topic);
+        }
       }
       return acc;
     }, {});
-  }, [userSkills, isTutorRole]);
+  }, [userSkills, isTutorRole, topicsBySubject]);
 
   // Get available classes based on teacher's skills
   const availableClasses = useMemo(() => {
     if (!isTutorRole || !userSkills.length) return [];
-    
-    // Get all classes that have subjects and topics matching teacher's skills
-    const classSet = new Set();
-    
-    userSkills.forEach(skill => {
-      // Find classes that contain this subject and topic combination
-      Object.entries(subjectsByClass).forEach(([className, subjects]) => {
-        if (subjects.includes(skill.subject)) {
-          // Check if this subject has the topic in the Google Sheet
-          const topicsForSubject = topicsBySubject[skill.subject] || [];
-          if (topicsForSubject.includes(skill.topic)) {
-            classSet.add(className);
-          }
-        }
-      });
-    });
-    
-    return Array.from(classSet);
-  }, [userSkills, currentUser, subjectsByClass, topicsBySubject]);
+    // Simply return all unique classes from user's skills
+    return tutorClasses;
+  }, [tutorClasses, isTutorRole, userSkills.length]);
 
 
   // Fetch skills list from Google Sheet
@@ -229,7 +236,7 @@ const CreateSession = () => {
   }, [tutorSubjects, isTutorRole]);
 
   const fuseTopics = useMemo(() => {
-    if (!isTutorRole || !form.topic || !tutorTopicsBySubject[form.topic]) return null;
+    if (!isTutorRole || !form.topic) return null;
     const topicList = tutorTopicsBySubject[form.topic] || [];
     return new Fuse(topicList, {
       threshold: 0.3,
@@ -306,20 +313,23 @@ const CreateSession = () => {
   const handleSubmit = async e => {
     e.preventDefault();
 
-    // Check if user is a learner
-    if (currentUser?.role !== 'teacher') {
+    // Check tutor capability: teacher, both, or activated tutor
+    const canTutor = currentUser?.role === 'teacher' || currentUser?.role === 'both' || currentUser?.isTutor;
+    if (!canTutor) {
       alert('Only teachers can create sessions. Please register as a teacher and add skills to your profile.');
       return;
     }
 
     // Check if user has the selected skill
+    // If user has 'ALL' for the subject, they can teach any topic in that subject
     const hasSkill = userSkills.some(skill =>
+      skill.class === form.subject &&
       skill.subject === form.topic &&
-      skill.topic === form.subtopic
+      (skill.topic === form.subtopic || skill.topic === 'ALL')
     );
 
     if (!hasSkill) {
-      alert('You can only create sessions for your registered skills (Subject and Topic).');
+      alert('You can only create sessions for your registered skills (Class, Subject, and Topic).');
       return;
     }
 
@@ -794,7 +804,7 @@ const CreateSession = () => {
                     }}
                     placeholder="Search Topic..."
                     className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
-                    required={!!form.topic}
+                    required
                     autoComplete="off"
                     disabled={!form.topic || topicList.length === 0}
                   />

@@ -383,7 +383,7 @@ const Sidebar = () => {
                   <ul className="flex flex-wrap gap-2">
                     {user.skillsToTeach.map((s, i) => (
                       <li key={i} className="bg-blue-100 text-blue-900 px-3 py-1 rounded-full text-xs font-medium">
-                        {s.subject} {s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
+                        {s.class ? `${s.class} • ` : ''}{s.subject} {s.topic === 'ALL' ? ' > ALL Topics' : s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
                       </li>
                     ))}
                   </ul>
