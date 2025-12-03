@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema({
   },
   skillsToTeach: [
     {
+      class: { type: String, required: false },
       subject: { type: String, required: false },
       topic: { type: String, required: false },
     },

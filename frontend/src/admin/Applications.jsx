@@ -232,7 +232,7 @@ export default function Applications() {
                       {isTutorCategory && tutorApp && (
                         <div className="flex flex-wrap gap-1">
                           {(tutorApp.skills || []).map((s,i)=>(
-                            <span key={i} className="text-[11px] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">{s.subject} : {s.topic}</span>
+                            <span key={i} className="text-[11px] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">{s.class ? `${s.class} • ` : ''}{s.subject}{s.topic ? ` : ${s.topic}` : ''}</span>
                           ))}
                           {(!tutorApp.skills || tutorApp.skills.length===0) && <span className="text-[11px] text-gray-400">No skills</span>}
                         </div>

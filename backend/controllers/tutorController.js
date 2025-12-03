@@ -39,8 +39,8 @@ exports.apply = async (req, res) => {
       return res.status(400).json({ message: 'At least one skill is required' });
     }
     for (const s of parsedSkills) {
-      if (!s.subject || !s.topic) {
-        return res.status(400).json({ message: 'Each skill requires subject and topic' });
+      if (!s.class || !s.subject || !s.topic) {
+        return res.status(400).json({ message: 'Each skill requires class, subject and topic' });
       }
     }
 
@@ -182,12 +182,12 @@ exports.approve = async (req, res) => {
     // Merge application skills into user.skillsToTeach (avoid duplicates by subject+topic)
     const existing = userDoc.skillsToTeach || [];
     const incoming = app.skills || [];
-    const mapKey = s => `${(s.subject||'').toLowerCase()}::${(s.topic||'').toLowerCase()}`;
+    const mapKey = s => `${(s.class||'').toLowerCase()}::${(s.subject||'').toLowerCase()}::${(s.topic||'').toLowerCase()}`;
     const existingSet = new Set(existing.map(mapKey));
     const merged = [...existing];
     for (const s of incoming) {
       if (!existingSet.has(mapKey(s))) {
-        merged.push({ subject: s.subject, topic: s.topic });
+        merged.push({ class: s.class, subject: s.subject, topic: s.topic });
         existingSet.add(mapKey(s));
       }
     }

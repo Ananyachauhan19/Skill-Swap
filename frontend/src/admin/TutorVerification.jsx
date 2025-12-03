@@ -82,7 +82,7 @@ export default function TutorVerification({ selected }) {
           <div className="font-medium text-gray-700 mb-2 flex items-center gap-2">Skills <span className="text-gray-400">({tutorApp.skills?.length || 0})</span></div>
           <div className="flex flex-wrap gap-1">
             {tutorApp.skills && tutorApp.skills.map((s,i)=>(
-              <span key={i} className="text-[11px] bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">{s.subject} : {s.topic}</span>
+              <span key={i} className="text-[11px] bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">{s.class} • {s.subject} : {s.topic}</span>
             ))}
             {(!tutorApp.skills || tutorApp.skills.length===0) && <span className="text-[11px] text-gray-400">No skills</span>}
           </div>

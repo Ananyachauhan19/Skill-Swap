@@ -38,21 +38,25 @@ const StepIndicator = ({ step }) => (
   </div>
 );
 
-const SkillSelector = ({ subjects, topicsBySubject, value, onChange }) => {
+const SkillSelector = ({ classes, subjectsByClass, topicsBySubject, value, onChange }) => {
   const [subjectQuery, setSubjectQuery] = useState('');
   const [topicQuery, setTopicQuery] = useState('');
+  const [classFocused, setClassFocused] = useState(false);
   const [subjectFocused, setSubjectFocused] = useState(false);
   const [topicFocused, setTopicFocused] = useState(false);
-  const fuseSubjects = useMemo(() => new Fuse(subjects.map(s => ({ name: s })), { keys: ['name'], threshold: 0.4 }), [subjects]);
+  const activeSubjects = value.class ? (subjectsByClass[value.class] || []) : [];
+  const fuseSubjects = useMemo(() => new Fuse(activeSubjects.map(s => ({ name: s })), { keys: ['name'], threshold: 0.4 }), [activeSubjects]);
   const activeSubjectTopics = value.subject ? (topicsBySubject[value.subject] || []) : [];
   const fuseTopics = useMemo(() => new Fuse(activeSubjectTopics.map(t => ({ name: t })), { keys: ['name'], threshold: 0.4 }), [activeSubjectTopics]);
 
-  const filteredSubjects = subjectQuery ? fuseSubjects.search(subjectQuery).map(r => r.item.name) : subjects;
+  const filteredClasses = classes || [];
+  const filteredSubjects = subjectQuery ? fuseSubjects.search(subjectQuery).map(r => r.item.name) : activeSubjects;
   const filteredTopics = topicQuery ? fuseTopics.search(topicQuery).map(r => r.item.name) : activeSubjectTopics;
 
   // Clear queries when parent resets selected value (after Add Skill)
   useEffect(() => {
-    if (!value.subject && !value.topic) {
+    if (!value.class && !value.subject && !value.topic) {
+      setClassFocused(false);
       setSubjectQuery('');
       setTopicQuery('');
     }
@@ -61,10 +65,28 @@ const SkillSelector = ({ subjects, topicsBySubject, value, onChange }) => {
   return (
     <div className="space-y-3">
       <div>
+        <label className="text-xs font-semibold text-gray-600">Class / Course</label>
+        <div className="relative mt-1">
+          <select
+            className="w-full border rounded px-3 py-2 text-sm"
+            value={value.class || ''}
+            onChange={e => onChange({ class: e.target.value, subject: '', topic: '' })}
+            onFocus={() => setClassFocused(true)}
+            onBlur={() => setClassFocused(false)}
+          >
+            <option value="">Select...</option>
+            {filteredClasses.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div>
         <label className="text-xs font-semibold text-gray-600">Subject</label>
         <div className="relative mt-1">
           <input
-            className="w-full border rounded px-3 py-2 text-sm"
+            disabled={!value.class}
+            className="w-full border rounded px-3 py-2 text-sm disabled:bg-gray-100"
             placeholder="Search subject..."
             value={subjectQuery}
             onChange={e => setSubjectQuery(e.target.value)}
@@ -77,7 +99,7 @@ const SkillSelector = ({ subjects, topicsBySubject, value, onChange }) => {
                 <button
                   key={s}
                   type="button"
-                  onMouseDown={() => { onChange({ subject: s, topic: '' }); setSubjectQuery(s); }}
+                  onMouseDown={() => { onChange({ class: value.class, subject: s, topic: '' }); setSubjectQuery(s); }}
                   className={`w-full text-left px-3 py-1 text-sm hover:bg-blue-50 ${value.subject === s ? 'bg-blue-100 font-medium' : ''}`}
                 >{s}</button>
               ))}
@@ -175,9 +197,10 @@ const TutorApplication = () => {
   const [classOrYear, setClassOrYear] = useState(''); // For school classes 9-12
   const [collegeTrack, setCollegeTrack] = useState(''); // UG / PG
   const [courseName, setCourseName] = useState('');
-  const [skills, setSkills] = useState([]); // each { subject, topic }
-  const [currentSkill, setCurrentSkill] = useState({ subject: '', topic: '' });
-  const [subjects, setSubjects] = useState([]);
+  const [skills, setSkills] = useState([]); // each { class, subject, topic }
+  const [currentSkill, setCurrentSkill] = useState({ class: '', subject: '', topic: '' });
+  const [classes, setClasses] = useState([]);
+  const [subjectsByClass, setSubjectsByClass] = useState({});
   const [topicsBySubject, setTopicsBySubject] = useState({});
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [marksheetFile, setMarksheetFile] = useState(null);
@@ -196,8 +219,9 @@ const TutorApplication = () => {
         const res = await fetch(`${BACKEND_URL}/api/skills-list`);
         if (!res.ok) throw new Error('Failed to load subjects/topics');
         const data = await res.json();
+        setClasses(data.classes || []);
+        setSubjectsByClass(data.subjectsByClass || {});
         setTopicsBySubject(data.topicsBySubject || {});
-        setSubjects(Object.keys(data.topicsBySubject || {}).sort());
       } catch (e) {
         setSubmitError(e.message);
       } finally {
@@ -264,7 +288,7 @@ const TutorApplication = () => {
     setCollegeTrack('');
     setCourseName('');
     setSkills([]);
-    setCurrentSkill({ subject: '', topic: '' });
+    setCurrentSkill({ class: '', subject: '', topic: '' });
     setStep(1);
   }
 
@@ -290,8 +314,8 @@ const TutorApplication = () => {
     return false;
   }, [step, educationLevel, institutionName, classOrYear, collegeTrack, courseName, skills, marksheetFile, videoFile]);
 
-  const duplicateSkill = (subject, topic) => skills.some(s => s.subject === subject && s.topic === topic);
-  const canAddCurrent = currentSkill.subject && currentSkill.topic && !duplicateSkill(currentSkill.subject, currentSkill.topic) && skills.length < MAX_SKILLS;
+  const duplicateSkill = (clazz, subject, topic) => skills.some(s => s.class === clazz && s.subject === subject && s.topic === topic);
+  const canAddCurrent = currentSkill.class && currentSkill.subject && currentSkill.topic && !duplicateSkill(currentSkill.class, currentSkill.subject, currentSkill.topic) && skills.length < MAX_SKILLS;
 
   function next() { if (stepValid && step < 4) setStep(s => s + 1); }
   function back() { if (step > 1) setStep(s => s - 1); }
@@ -299,7 +323,7 @@ const TutorApplication = () => {
   function addCurrentSkill() {
     if (!canAddCurrent) return;
     setSkills(prev => [...prev, currentSkill]);
-    setCurrentSkill({ subject: '', topic: '' });
+    setCurrentSkill({ class: '', subject: '', topic: '' });
   }
   function removeSkill(idx) { setSkills(prev => prev.filter((_, i) => i !== idx)); }
 
@@ -398,7 +422,8 @@ const TutorApplication = () => {
           {!loadingMeta && (
             <div className="grid md:grid-cols-2 gap-6">
               <SkillSelector
-                subjects={subjects}
+                classes={classes}
+                subjectsByClass={subjectsByClass}
                 topicsBySubject={topicsBySubject}
                 value={currentSkill}
                 onChange={setCurrentSkill}
@@ -416,7 +441,7 @@ const TutorApplication = () => {
                 <div className="flex flex-wrap gap-2">
                   {skills.map((s,i) => (
                     <div key={i} className="group flex items-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-1 rounded-full text-xs font-medium">
-                      <span>{s.subject} – {s.topic}</span>
+                      <span>{s.class} • {s.subject} – {s.topic}</span>
                       <button type="button" onClick={() => removeSkill(i)} className="opacity-60 group-hover:opacity-100">✕</button>
                     </div>
                   ))}
@@ -469,7 +494,7 @@ const TutorApplication = () => {
             <div className="space-y-2">
               <p className="font-medium">Skills:</p>
               <div className="flex flex-wrap gap-2">
-                {skills.map((s,i) => <div key={i} className="bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-1 rounded-full text-xs">{s.subject}-{s.topic}</div>)}
+                {skills.map((s,i) => <div key={i} className="bg-indigo-50 border border-indigo-200 text-indigo-700 px-2 py-1 rounded-full text-xs">{s.class}-{s.subject}-{s.topic}</div>)}
               </div>
               <p><span className="font-medium">Marksheet:</span> {marksheetFile?.name || '—'}</p>
               <p><span className="font-medium">Video:</span> {videoFile?.name || '—'}</p>

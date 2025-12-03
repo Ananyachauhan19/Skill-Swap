@@ -4,6 +4,7 @@ const tutorApplicationSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
   skills: [
     {
+      class: { type: String, required: true },
       subject: { type: String, required: true },
       topic: { type: String, required: true },
     },
