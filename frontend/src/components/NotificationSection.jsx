@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import socket from '../socket';
 import { BACKEND_URL } from '../config.js';
 import SessionRequestNotification from './SessionRequestNotification';
@@ -22,6 +22,7 @@ const NotificationSection = ({ userId }) => {
   const [loading, setLoading] = useState({});
   const dropdownRef = useRef();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Fetch notifications on mount
   useEffect(() => {
@@ -564,6 +565,15 @@ const NotificationSection = ({ userId }) => {
                             hour12: true,
                           }) : 'Unknown time'}
                         </span>
+                        <button
+                          onClick={() => {
+                            navigate(`/profile/${n.skillMateRequest.requester?.username || n.skillMateRequest.requester?._id}`);
+                            setShow(false);
+                          }}
+                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] sm:text-xs rounded-md hover:from-blue-600 hover:to-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                        >
+                          View Profile
+                        </button>
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
                           className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"

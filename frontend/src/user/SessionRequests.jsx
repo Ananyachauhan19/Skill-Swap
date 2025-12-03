@@ -631,6 +631,17 @@ const SessionRequests = () => {
         </div>
 
         <div className="flex gap-2">
+          {type === 'skillmate' && (
+            <button
+              onClick={() => {
+                const otherUser = isReceived ? request.requester : request.recipient;
+                navigate(`/profile/${otherUser?.username || otherUser?._id}`);
+              }}
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
+            >
+              <FaUser size={14} /> View Profile
+            </button>
+          )}
           {isReceived && request.status === 'pending' && (
             <>
               <button
