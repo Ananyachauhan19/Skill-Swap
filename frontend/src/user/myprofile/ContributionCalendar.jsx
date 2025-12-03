@@ -65,16 +65,26 @@ const buildContributionMap = (currentDate, items) => {
   return map;
 };
 
-// Color by contribution count
+// Color by contribution count with enhanced gradient
 const getContributionColor = (count) => {
-  if (count <= 0) return 'bg-gray-100';
-  if (count === 1) return 'bg-blue-200';
-  if (count === 2) return 'bg-blue-300';
-  if (count === 3) return 'bg-blue-400';
-  if (count === 4) return 'bg-blue-500';
-  if (count === 5) return 'bg-blue-600';
-  if (count === 6) return 'bg-blue-700';
-  return 'bg-blue-800'; // 7+
+  if (count <= 0) return 'bg-gray-100 hover:bg-gray-200';
+  if (count === 1) return 'bg-blue-200 hover:bg-blue-300';
+  if (count === 2) return 'bg-blue-300 hover:bg-blue-400';
+  if (count === 3) return 'bg-blue-400 hover:bg-blue-500';
+  if (count === 4) return 'bg-blue-500 hover:bg-blue-600';
+  if (count === 5) return 'bg-blue-600 hover:bg-blue-700';
+  if (count === 6) return 'bg-blue-700 hover:bg-blue-800';
+  if (count >= 10) return 'bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950';
+  return 'bg-blue-800 hover:bg-blue-900'; // 7-9
+};
+
+// Get intensity label
+const getIntensityLabel = (count) => {
+  if (count <= 0) return 'No activity';
+  if (count <= 2) return 'Low activity';
+  if (count <= 5) return 'Moderate activity';
+  if (count <= 9) return 'High activity';
+  return 'Very high activity';
 };
 
 const ContributionCalendar = () => {
@@ -83,6 +93,8 @@ const ContributionCalendar = () => {
   const [months, setMonths] = useState(generateMonths(new Date()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hoveredDay, setHoveredDay] = useState(null);
+  const [contributionStats, setContributionStats] = useState({ total: 0, maxStreak: 0, currentStreak: 0 });
   const { user } = useAuth();
 
   // Set current date + calendar update
@@ -98,6 +110,29 @@ const ContributionCalendar = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Calculate streaks
+  const calculateStreaks = (contribMap) => {
+    const dates = Object.keys(contribMap).sort();
+    let currentStreak = 0;
+    let maxStreak = 0;
+    let tempStreak = 0;
+
+    for (let i = dates.length - 1; i >= 0; i--) {
+      if (contribMap[dates[i]] > 0) {
+        tempStreak++;
+        if (i === dates.length - 1 || contribMap[dates[i + 1]] > 0) {
+          currentStreak = tempStreak;
+        }
+        maxStreak = Math.max(maxStreak, tempStreak);
+      } else {
+        if (i === dates.length - 1) currentStreak = 0;
+        tempStreak = 0;
+      }
+    }
+
+    return { currentStreak, maxStreak };
+  };
+
   // Fetch contribution history
   useEffect(() => {
     const run = async () => {
@@ -106,7 +141,13 @@ const ContributionCalendar = () => {
       setError(null);
       try {
         const items = await fetchContributions(user._id, 365);
-        setContributions(buildContributionMap(currentDate, items));
+        const contribMap = buildContributionMap(currentDate, items);
+        setContributions(contribMap);
+        
+        // Calculate statistics
+        const total = Object.values(contribMap).reduce((sum, count) => sum + count, 0);
+        const streaks = calculateStreaks(contribMap);
+        setContributionStats({ total, ...streaks });
       } catch (e) {
         console.error('Failed to fetch contributions', e);
         setError('Failed to load contributions');
@@ -123,7 +164,13 @@ const ContributionCalendar = () => {
     const handler = async () => {
       try {
         const items = await fetchContributions(user._id, 365);
-        setContributions(buildContributionMap(new Date(), items));
+        const contribMap = buildContributionMap(new Date(), items);
+        setContributions(contribMap);
+        
+        // Update statistics
+        const total = Object.values(contribMap).reduce((sum, count) => sum + count, 0);
+        const streaks = calculateStreaks(contribMap);
+        setContributionStats({ total, ...streaks });
       } catch {
         // non-blocking
       }
@@ -131,11 +178,6 @@ const ContributionCalendar = () => {
     socket.on('contribution-updated', handler);
     return () => socket.off('contribution-updated', handler);
   }, [user]);
-
-  const totalContributions = Object.values(contributions).reduce(
-    (sum, count) => sum + count,
-    0
-  );
 
   return (
     <>
@@ -157,10 +199,37 @@ const ContributionCalendar = () => {
             </select>
           </div>
 
-          {/* Total Contributions */}
-          <p className="text-sm text-gray-700 mb-4">
-            {totalContributions} Contributions in the last year
-          </p>
+          {/* Statistics Grid */}
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
+              <p className="text-xs text-blue-600 font-medium mb-1">Total</p>
+              <p className="text-2xl font-bold text-blue-900">{contributionStats.total}</p>
+              <p className="text-[10px] text-blue-600">contributions</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
+              <p className="text-xs text-green-600 font-medium mb-1">Current Streak</p>
+              <p className="text-2xl font-bold text-green-900">{contributionStats.currentStreak}</p>
+              <p className="text-[10px] text-green-600">days</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200">
+              <p className="text-xs text-purple-600 font-medium mb-1">Best Streak</p>
+              <p className="text-2xl font-bold text-purple-900">{contributionStats.maxStreak}</p>
+              <p className="text-[10px] text-purple-600">days</p>
+            </div>
+          </div>
+
+          {/* Activity Legend */}
+          <div className="flex items-center gap-2 mb-4 text-xs text-gray-600">
+            <span>Less</span>
+            <div className="flex gap-1">
+              <div className="w-3 h-3 bg-gray-100 rounded-sm border border-gray-200"></div>
+              <div className="w-3 h-3 bg-blue-200 rounded-sm"></div>
+              <div className="w-3 h-3 bg-blue-400 rounded-sm"></div>
+              <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
+              <div className="w-3 h-3 bg-blue-800 rounded-sm"></div>
+            </div>
+            <span>More</span>
+          </div>
 
           {/* Calendar Grid */}
           <div className="overflow-x-auto hide-scrollbar">
@@ -216,8 +285,10 @@ const ContributionCalendar = () => {
                                 key={colIdx}
                                 className={`${boxClass} ${getContributionColor(
                                   count
-                                )} hover:border hover:border-blue-300 transition cursor-pointer`}
-                                title={`${name} ${day}, ${year} - ${count} contribution${count !== 1 ? 's' : ''}`}
+                                )} hover:ring-2 hover:ring-blue-400 hover:ring-offset-1 transition-all duration-200 cursor-pointer relative group`}
+                                title={`${name} ${day}, ${year}\n${count} contribution${count !== 1 ? 's' : ''}\n${getIntensityLabel(count)}`}
+                                onMouseEnter={() => setHoveredDay({ date: dateStr, count, label: `${name} ${day}, ${year}` })}
+                                onMouseLeave={() => setHoveredDay(null)}
                               />
                             );
                           })}
@@ -229,6 +300,17 @@ const ContributionCalendar = () => {
               })}
             </div>
           </div>
+
+          {/* Hover Tooltip */}
+          {hoveredDay && (
+            <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-semibold text-blue-900">{hoveredDay.label}</p>
+              <p className="text-xs text-blue-700 mt-1">
+                <span className="font-bold text-lg">{hoveredDay.count}</span> contribution{hoveredDay.count !== 1 ? 's' : ''}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">{getIntensityLabel(hoveredDay.count)}</p>
+            </div>
+          )}
         </div>
       )}
     </>

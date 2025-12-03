@@ -46,6 +46,32 @@ async function incrementContribution({ userId, when = new Date(), by = 1, breakd
 }
 
 /**
+ * Activity Type Constants - Track all platform activities
+ */
+const ACTIVITY_TYPES = {
+  DAILY_LOGIN: 'daily_login',
+  SESSION_COMPLETED_LEARNER: 'session_completed_learner',
+  SESSION_COMPLETED_TUTOR: 'session_completed_tutor',
+  LIVE_SESSION_JOINED: 'live_session_joined',
+  ONE_ON_ONE_SESSION: 'one_on_one_session',
+  COINS_PURCHASED: 'coins_purchased',
+  SESSION_CREATED: 'session_created',
+  INTERVIEW_COMPLETED: 'interview_completed',
+  SKILLMATE_ADDED: 'skillmate_added',
+  QUESTION_POSTED: 'question_posted',
+  ANSWER_PROVIDED: 'answer_provided',
+  PROFILE_UPDATED: 'profile_updated',
+  CERTIFICATE_UPLOADED: 'certificate_uploaded',
+  TESTIMONIAL_GIVEN: 'testimonial_given',
+  TUTOR_APPLICATION_SUBMITTED: 'tutor_application_submitted',
+  FIRST_SESSION_AS_TUTOR: 'first_session_as_tutor',
+  FIRST_SESSION_AS_LEARNER: 'first_session_as_learner',
+  SESSION_RATED: 'session_rated',
+  COINS_EARNED: 'coins_earned',
+  BADGE_EARNED: 'badge_earned',
+};
+
+/**
  * Idempotent record-and-increment. Creates a ContributionEvent(userId,key) first;
  * if it already exists, no-op. Otherwise increments the daily contribution once.
  */
@@ -65,8 +91,76 @@ async function recordContributionEvent({ userId, key, when = new Date(), by = 1,
   return { recorded: true };
 }
 
+/**
+ * Track specific activity types with proper breakdown categorization
+ */
+async function trackActivity({ userId, activityType, activityId, when = new Date(), io, metadata = {} }) {
+  if (!userId || !activityType) return { tracked: false };
+
+  const key = activityId ? `${activityType}:${activityId}` : `${activityType}:${Date.now()}`;
+  
+  // Map activity types to breakdown keys for better analytics
+  const breakdownMapping = {
+    [ACTIVITY_TYPES.DAILY_LOGIN]: 'dailyLogins',
+    [ACTIVITY_TYPES.SESSION_COMPLETED_LEARNER]: 'sessionsAsLearner',
+    [ACTIVITY_TYPES.SESSION_COMPLETED_TUTOR]: 'sessionsAsTutor',
+    [ACTIVITY_TYPES.LIVE_SESSION_JOINED]: 'liveSessions',
+    [ACTIVITY_TYPES.ONE_ON_ONE_SESSION]: 'oneOnOneSessions',
+    [ACTIVITY_TYPES.COINS_PURCHASED]: 'coinsPurchased',
+    [ACTIVITY_TYPES.SESSION_CREATED]: 'sessionsCreated',
+    [ACTIVITY_TYPES.INTERVIEW_COMPLETED]: 'interviewsCompleted',
+    [ACTIVITY_TYPES.SKILLMATE_ADDED]: 'skillmatesAdded',
+    [ACTIVITY_TYPES.QUESTION_POSTED]: 'questionsPosted',
+    [ACTIVITY_TYPES.ANSWER_PROVIDED]: 'answersProvided',
+    [ACTIVITY_TYPES.PROFILE_UPDATED]: 'profileUpdates',
+    [ACTIVITY_TYPES.CERTIFICATE_UPLOADED]: 'certificatesUploaded',
+    [ACTIVITY_TYPES.TESTIMONIAL_GIVEN]: 'testimonialsGiven',
+    [ACTIVITY_TYPES.TUTOR_APPLICATION_SUBMITTED]: 'tutorApplications',
+    [ACTIVITY_TYPES.FIRST_SESSION_AS_TUTOR]: 'firstSessionAsTutor',
+    [ACTIVITY_TYPES.FIRST_SESSION_AS_LEARNER]: 'firstSessionAsLearner',
+    [ACTIVITY_TYPES.SESSION_RATED]: 'sessionsRated',
+    [ACTIVITY_TYPES.COINS_EARNED]: 'coinsEarned',
+    [ACTIVITY_TYPES.BADGE_EARNED]: 'badgesEarned',
+  };
+
+  const breakdownKey = breakdownMapping[activityType] || 'other';
+  const breakdownIncs = {};
+
+  // Add metadata to breakdown if provided (e.g., coin amounts)
+  if (metadata.coinsAmount) {
+    breakdownIncs.totalCoinsTransacted = metadata.coinsAmount;
+  }
+
+  return await recordContributionEvent({
+    userId,
+    key,
+    when,
+    by: 1,
+    breakdownKey,
+    breakdownIncs,
+    io,
+  });
+}
+
+/**
+ * Track daily login - idempotent (one per day)
+ */
+async function trackDailyLogin({ userId, when = new Date(), io }) {
+  const dateKey = toDateKeyUTC(when);
+  return await trackActivity({
+    userId,
+    activityType: ACTIVITY_TYPES.DAILY_LOGIN,
+    activityId: dateKey,
+    when,
+    io,
+  });
+}
+
 module.exports = {
   toDateKeyUTC,
   incrementContribution,
   recordContributionEvent,
+  trackActivity,
+  trackDailyLogin,
+  ACTIVITY_TYPES,
 };

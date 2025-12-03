@@ -12,36 +12,44 @@ function startEndForDays(days) {
   return { startUtc, endUtc };
 }
 
-// GET /api/contributions/:userId?days=365
+// GET /api/contributions/:userId?days=365&rangeDays=365
 exports.getByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
-    const days = req.query.days ? parseInt(req.query.days, 10) : 365;
-    const { startUtc, endUtc } = startEndForDays(days);
+    const rangeDays = req.query.rangeDays ? parseInt(req.query.rangeDays, 10) : 365;
 
-    // Try to read from stored contributions first
-    const docs = await Contribution.find({ user: userId, date: { $gte: startUtc, $lte: endUtc } }).select('date count');
-    const map = {};
-    // initialize zeroes for full range
-    for (let d = new Date(startUtc); d <= endUtc; d.setUTCDate(d.getUTCDate() + 1)) {
-      const k = d.toISOString().split('T')[0];
-      map[k] = 0;
-    }
-    for (const doc of docs) {
-      const k = new Date(doc.date).toISOString().split('T')[0];
-      map[k] = doc.count || 0;
-    }
+    // Build dateKey range
+    const endDate = new Date();
+    const startDate = new Date(endDate);
+    startDate.setDate(startDate.getDate() - rangeDays + 1);
 
-    // If cache looks empty, compute on-demand as fallback
-    const hasAny = docs && docs.length > 0;
-    if (!hasAny) {
-      const computed = await computeRangeForUser(userId, startUtc, endUtc);
-      for (const [k, v] of Object.entries(computed)) {
-        map[k] = v || 0;
-      }
-    }
+    const startKey = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate())).toISOString().slice(0, 10);
+    const endKey = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate())).toISOString().slice(0, 10);
 
-    return res.json({ userId, days, contributions: map });
+    // Fetch contributions from database
+    const docs = await Contribution.find({
+      userId,
+      dateKey: { $gte: startKey, $lte: endKey }
+    }).select('dateKey count breakdown').lean();
+
+    // Build items array with date and count
+    const items = docs.map(doc => ({
+      date: doc.dateKey,
+      count: doc.count || 0,
+      breakdown: doc.breakdown || {}
+    }));
+
+    // Calculate total contributions
+    const total = items.reduce((sum, item) => sum + item.count, 0);
+
+    return res.json({
+      userId,
+      rangeDays,
+      total,
+      items,
+      startDate: startKey,
+      endDate: endKey
+    });
   } catch (e) {
     console.error('[contributions:getByUserId] error:', e);
     res.status(500).json({ message: 'Failed to get contributions' });

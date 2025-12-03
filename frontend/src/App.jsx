@@ -64,6 +64,7 @@ import Career from './Career.jsx';
 import YourInterviews from './user/YourInterviews';
 import RatingPage from './user/RatingPage.jsx';
 import TutorApplication from './tutor/TutorApplication.jsx';
+import TutorVerificationStatus from './tutor/TutorVerificationStatus.jsx';
 import TutorVerification from './admin/TutorVerification.jsx';
 
 // Define full (regular user) routes
@@ -74,6 +75,7 @@ const appRoutes = [
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
   { path: '/tutor/apply', element: <ProtectedRoute><TutorApplication /></ProtectedRoute> },
+  { path: '/tutor/status', element: <ProtectedRoute><TutorVerificationStatus /></ProtectedRoute> },
   { path: '/privacy-policy', element: <PrivacyPolicy /> },
   { path: '/community', element: <Community /> },
   { path: '/about', element: <About /> },
