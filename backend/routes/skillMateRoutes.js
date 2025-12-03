@@ -273,10 +273,20 @@ router.post('/requests/approve/:requestId', requireAuth, async (req, res) => {
 
     // Contributions: both users gain exactly one contribution for this approval (idempotent)
     try {
-      const key = `skillmate-approved:${skillMateRequest._id}`;
+      const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
       await Promise.all([
-        recordContributionEvent({ userId: skillMateRequest.requester, key, breakdownKey: 'skillMateApprovals', io }),
-        recordContributionEvent({ userId: skillMateRequest.recipient, key, breakdownKey: 'skillMateApprovals', io }),
+        trackActivity({
+          userId: skillMateRequest.requester,
+          activityType: ACTIVITY_TYPES.SKILLMATE_ADDED,
+          activityId: skillMateRequest._id.toString(),
+          io
+        }),
+        trackActivity({
+          userId: skillMateRequest.recipient,
+          activityType: ACTIVITY_TYPES.SKILLMATE_ADDED,
+          activityId: skillMateRequest._id.toString(),
+          io
+        })
       ]);
     } catch (_) {}
 

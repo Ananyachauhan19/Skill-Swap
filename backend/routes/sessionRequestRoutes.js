@@ -6,7 +6,7 @@ const SessionRequest = require('../models/SessionRequest');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const requireAuth = require('../middleware/requireAuth');
-const { recordContributionEvent } = require('../utils/contributions');
+const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
 
 // Rate limiter for sensitive endpoints
 const requestLimiter = rateLimit({
@@ -501,13 +501,20 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
 
     // Contributions: on completion, idempotent single increment for both users
     try {
-      const coinType = sessionRequest.coinType || 'silver';
-      const earnedKey = coinType === 'gold' ? 'coinsEarnedGold' : 'coinsEarnedSilver';
-      const spentKey = coinType === 'gold' ? 'coinsSpentGold' : 'coinsSpentSilver';
-      const keyBase = `session-completed:${sessionRequest._id}`;
+      const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
       await Promise.all([
-        recordContributionEvent({ userId: sessionRequest.tutor._id, key: keyBase, breakdownKey: 'sessionsCompletedEarned', breakdownIncs: { [earnedKey]: 1 }, io }),
-        recordContributionEvent({ userId: sessionRequest.requester._id, key: keyBase, breakdownKey: 'sessionsCompletedSpent', breakdownIncs: { [spentKey]: 1 }, io }),
+        trackActivity({
+          userId: sessionRequest.tutor._id,
+          activityType: ACTIVITY_TYPES.SESSION_COMPLETED_TUTOR,
+          activityId: sessionRequest._id.toString(),
+          io
+        }),
+        trackActivity({
+          userId: sessionRequest.requester._id,
+          activityType: ACTIVITY_TYPES.SESSION_COMPLETED_LEARNER,
+          activityId: sessionRequest._id.toString(),
+          io
+        })
       ]);
     } catch (_) {}
 

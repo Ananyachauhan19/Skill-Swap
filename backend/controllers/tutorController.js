@@ -115,6 +115,18 @@ exports.apply = async (req, res) => {
       await User.findByIdAndUpdate(userId, { tutorApplicationId: application._id });
     }
 
+    // Track tutor application submission
+    try {
+      const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
+      const io = req.app?.get('io');
+      await trackActivity({
+        userId,
+        activityType: ACTIVITY_TYPES.TUTOR_APPLICATION_SUBMITTED,
+        activityId: application._id.toString(),
+        io
+      });
+    } catch (_) {}
+
     return res.status(201).json({ message: 'Application submitted', application });
   } catch (e) {
     console.error('[Tutor] Apply error:', e);

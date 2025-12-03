@@ -14,6 +14,22 @@ exports.createQuestion = async (req, res) => {
     });
 
     await question.save();
+    
+    // Track question posting
+    try {
+      const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
+      const io = req.app?.get('io');
+      const userId = req.user?._id || req.user?.id;
+      if (userId) {
+        await trackActivity({
+          userId,
+          activityType: ACTIVITY_TYPES.QUESTION_POSTED,
+          activityId: question._id.toString(),
+          io
+        });
+      }
+    } catch (_) {}
+    
     res.status(201).json({ message: 'Question submitted!', question });
   } catch (err) {
     res.status(500).json({ error: err.message });

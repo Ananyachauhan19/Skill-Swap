@@ -807,13 +807,32 @@ exports.rateInterviewer = async (req, res) => {
     });
     // Contribution: count once for both users when interview is marked completed via rating (idempotent)
     try {
-      const { recordContributionEvent } = require('../utils/contributions');
+      const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
       const io = req.app.get('io');
-      const key = `interview-completed:${request._id}`;
       const interviewerId = request.assignedInterviewer && (request.assignedInterviewer._id || request.assignedInterviewer);
+      
       await Promise.all([
-        recordContributionEvent({ userId, key, breakdownKey: 'interviewsRated', io }),
-        interviewerId ? recordContributionEvent({ userId: interviewerId, key, breakdownKey: 'interviewsRated', io }) : Promise.resolve(),
+        // Track interview completion for requester
+        trackActivity({
+          userId,
+          activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
+          activityId: request._id.toString(),
+          io
+        }),
+        // Track interview completion for interviewer
+        interviewerId ? trackActivity({
+          userId: interviewerId,
+          activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
+          activityId: request._id.toString(),
+          io
+        }) : Promise.resolve(),
+        // Track session rating
+        trackActivity({
+          userId,
+          activityType: ACTIVITY_TYPES.SESSION_RATED,
+          activityId: request._id.toString(),
+          io
+        })
       ]);
     } catch (_) {}
   } catch (err) {

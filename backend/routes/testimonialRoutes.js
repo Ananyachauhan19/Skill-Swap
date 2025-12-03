@@ -81,6 +81,37 @@ router.post(
       }
 
       const created = await Testimonial.create({ username, rating, description, profilePic });
+      
+      // Track testimonial submission
+      try {
+        const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
+        let userId = null;
+        // Try to get user ID from auth token
+        try {
+          let token = null;
+          const authHeader = req.headers.authorization;
+          if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.split(' ')[1];
+          } else if (req.cookies && req.cookies.token) {
+            token = req.cookies.token;
+          }
+          if (token) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            userId = decoded?.id;
+          }
+        } catch (_) {}
+        
+        if (userId) {
+          const io = req.app?.get('io');
+          await trackActivity({
+            userId,
+            activityType: ACTIVITY_TYPES.TESTIMONIAL_GIVEN,
+            activityId: created._id.toString(),
+            io
+          });
+        }
+      } catch (_) {}
+      
       res.status(201).json(created);
     } catch (err) {
       console.error('POST /api/testimonials error:', err);

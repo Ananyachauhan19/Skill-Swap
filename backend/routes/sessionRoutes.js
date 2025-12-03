@@ -39,9 +39,20 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
       subject, topic, description, date, time,
       creator: req.user._id
     });
+    
+    // Track session creation contribution
+    try {
+      const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
+      const io = req.app.get('io');
+      await trackActivity({
+        userId: req.user._id,
+        activityType: ACTIVITY_TYPES.SESSION_CREATED,
+        activityId: session._id.toString(),
+        io
+      });
+    } catch (_) {}
+    
     res.status(201).json(session);
-
-    // No contribution on create; count once per activity elsewhere
   } catch (err) {
     res.status(500).json({ message: 'Error creating session', error: err.message });
   }

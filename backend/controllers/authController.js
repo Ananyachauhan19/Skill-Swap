@@ -2,6 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendOtpEmail } = require('../utils/sendMail');
+const { trackDailyLogin } = require('../utils/contributions');
 
 exports.register = async (req, res) => {
   const { firstName, lastName, email, phone, gender, password, username, role, skillsToTeach, skillsToLearn } = req.body;
@@ -91,6 +92,16 @@ exports.verifyOtp = async (req, res) => {
   user.otp = undefined;
   user.otpExpires = undefined;
   await user.save();
+
+  // Track daily login (contribution calendar)
+  try {
+    await trackDailyLogin({
+      userId: user._id,
+      when: new Date()
+    });
+  } catch (error) {
+    console.error('Error tracking daily login:', error);
+  }
 
   // Generate JWT token after successful OTP verification
   const isAdmin = user.email === 'skillswaphubb@gmail.com';

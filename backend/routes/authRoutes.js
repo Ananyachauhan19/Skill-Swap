@@ -11,6 +11,7 @@ const {
 const User = require('../models/User');
 const Session = require('../models/Session');
 const requireAuth = require('../middleware/requireAuth');
+const { trackDailyLogin, trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
 
 // Sanitize array fields to remove invalid keys (e.g., _id)
 const sanitizeArrayFields = (data, validKeys) => {
@@ -91,6 +92,16 @@ router.get(
       console.info('[DEBUG] Google callback for user:', user?._id);
       if (!user?.email) return res.redirect('/api/auth/failure');
 
+      // Track daily login for OAuth
+      try {
+        await trackDailyLogin({
+          userId: user._id,
+          when: new Date()
+        });
+      } catch (error) {
+        console.error('Error tracking Google OAuth login:', error);
+      }
+
       const token = generateToken(user);
       const frontendUrl = (process.env.FRONTEND_URL ||
         (isProd ? 'https://skillswaphub.in' : 'http://localhost:5173')
@@ -127,6 +138,17 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
   try {
     const user = req.user;
     console.info('[DEBUG] LinkedIn callback for user:', user?._id);
+    
+    // Track daily login for OAuth
+    try {
+      await trackDailyLogin({
+        userId: user._id,
+        when: new Date()
+      });
+    } catch (error) {
+      console.error('Error tracking LinkedIn OAuth login:', error);
+    }
+    
     const token = generateToken(user);
     const frontendUrl = (process.env.FRONTEND_URL ||
       (isProd ? 'https://skillswaphub.in' : 'http://localhost:5173')
@@ -308,6 +330,17 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Track profile update
+    try {
+      const io = req.app.get('io');
+      await trackActivity({
+        userId: req.user._id,
+        activityType: ACTIVITY_TYPES.PROFILE_UPDATED,
+        activityId: `profile-update-${Date.now()}`,
+        io
+      });
+    } catch (_) {}
+
     res.json({
       _id: user._id,
       firstName: user.firstName,
@@ -424,6 +457,17 @@ router.put('/profile', requireAuth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // Track profile update
+    try {
+      const io = req.app.get('io');
+      await trackActivity({
+        userId: req.user._id,
+        activityType: ACTIVITY_TYPES.PROFILE_UPDATED,
+        activityId: `profile-update-${Date.now()}`,
+        io
+      });
+    } catch (_) {}
 
     res.json({
       _id: user._id,
