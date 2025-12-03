@@ -10,21 +10,24 @@ const ExploreOpportunitiesSection = () => {
       description: 'Connect with peers to exchange skills and knowledge directly.',
       icon: <FaUserFriends />,
       color: 'blue',
-      link: '/StartSkillSwap'
+      link: '/StartSkillSwap',
+      backgroundImage: '/assets/exploreopportunities/peertopeer.webp'
     },
     {
       title: 'One on One Sessions',
       description: 'Join interactive live sessions hosted by experts in real-time.',
       icon: <FaVideo />,
       color: 'purple',
-      link: '/one-on-one'
+      link: '/one-on-one',
+      backgroundImage: '/assets/exploreopportunities/peertopeer.webp'
     },
     {
       title: 'Live Interview Practice',
       description: 'Practice interviews live with mentors and get feedback.',
       icon: <FaBriefcase />,
       color: 'green',
-      link: '/interview'
+      link: '/interview',
+       backgroundImage: '/assets/exploreopportunities/peertopeer.webp'
     }
   ];
 
@@ -82,25 +85,42 @@ const ExploreOpportunitiesSection = () => {
             <motion.div
               key={index}
               variants={itemVariants}
-              whileHover={{ y: -10 }}
               onClick={() => navigate(item.link)}
-              className="bg-white rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 group cursor-pointer"
+              className="relative rounded-2xl p-8 shadow-sm border border-gray-100 cursor-pointer overflow-hidden"
+              style={{
+                backgroundImage: item.backgroundImage ? `url(${item.backgroundImage})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }}
             >
-              <div className={`w-14 h-14 rounded-xl bg-${item.color}-50 text-${item.color}-600 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                {item.icon}
+              {/* Content */}
+              <div className="relative z-10">
+                <div
+                  className={`w-14 h-14 rounded-xl ${
+                    item.backgroundImage ? `bg-${item.color}-50 text-${item.color}-600` : `bg-${item.color}-50 text-${item.color}-600`
+                  } flex items-center justify-center text-2xl mb-6`}
+                >
+                  {item.icon}
+                </div>
+                <h3
+                  className="text-xl font-bold mb-3 text-[#0A2540]"
+                >
+                  {item.title}
+                </h3>
+                <p className="mb-6 leading-relaxed text-gray-700">
+                  {item.description}
+                </p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(item.link);
+                  }}
+                  className="flex items-center text-sm font-semibold text-blue-600"
+                >
+                  Learn more <FaArrowRight className="ml-1" />
+                </button>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                {item.title}
-              </h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                {item.description}
-              </p>
-              <button
-                onClick={(e) => { e.stopPropagation(); navigate(item.link); }}
-                className="flex items-center text-sm font-semibold text-blue-600 group-hover:gap-2 transition-all"
-              >
-                Learn more <FaArrowRight className="ml-1" />
-              </button>
             </motion.div>
           ))}
         </motion.div>
@@ -116,23 +136,43 @@ const ExploreOpportunitiesSection = () => {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => navigate(item.link)}
-                className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer flex-shrink-0 w-[280px]"
+                className="relative rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer flex-shrink-0 w-[280px] overflow-hidden"
+                style={{
+                  backgroundImage: item.backgroundImage ? `url(${item.backgroundImage})` : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
+                }}
               >
-                <div className={`w-12 h-12 rounded-lg ${item.color === 'blue' ? 'bg-blue-50 text-blue-600' : item.color === 'purple' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'} flex items-center justify-center text-xl mb-4`}>
-                  {item.icon}
+                {/* Content */}
+                <div className="relative z-10">
+                  <div
+                    className={`w-12 h-12 rounded-lg ${
+                      item.color === 'blue'
+                        ? 'bg-blue-50 text-blue-600'
+                        : item.color === 'purple'
+                        ? 'bg-purple-50 text-purple-600'
+                        : 'bg-green-50 text-green-600'
+                    } flex items-center justify-center text-xl mb-4`}
+                  >
+                    {item.icon}
+                  </div>
+                  <h3 className="text-lg font-bold mb-2 text-[#0A2540]">
+                    {item.title}
+                  </h3>
+                  <p className="text-sm mb-4 leading-relaxed text-gray-700">
+                    {item.description}
+                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(item.link);
+                    }}
+                    className="flex items-center text-xs font-semibold text-blue-600"
+                  >
+                    Learn more <FaArrowRight className="ml-1" />
+                  </button>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                  {item.description}
-                </p>
-                <button
-                  onClick={(e) => { e.stopPropagation(); navigate(item.link); }}
-                  className="flex items-center text-xs font-semibold text-blue-600"
-                >
-                  Learn more <FaArrowRight className="ml-1" />
-                </button>
               </motion.div>
             ))}
           </div>

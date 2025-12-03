@@ -761,43 +761,36 @@ const SessionRequests = () => {
         <div
           className={`${
             sidebarOpen ? 'w-64' : 'w-0'
-          } bg-gradient-to-br from-blue-50 to-indigo-50 text-gray-800 transition-all duration-300 sticky top-20 self-start z-40 overflow-hidden shadow-2xl border-r border-blue-100 hidden md:block`}
+          } bg-white text-gray-800 transition-all duration-300 sticky top-20 self-start z-40 overflow-hidden shadow-lg border-r border-gray-200 hidden md:block`}
           style={{ 
             height: 'calc(100vh - 80px)',
             maxHeight: 'calc(100vh - 80px)'
           }}
         >
           {/* Sidebar Header - Fixed */}
-          <div className="p-6 border-b border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <h2 className="text-xl font-bold flex items-center gap-3 text-gray-900">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg transform hover:scale-105 transition">
-                <FaHome className="text-white" size={18} />
-              </div>
-              <span className="bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent">
-                Requests Hub
-              </span>
+          <div className="p-6 border-b border-gray-200 bg-white">
+            <h2 className="text-lg font-semibold text-gray-900">
+              Requests Hub
             </h2>
           </div>
 
           {/* Navigation Buttons - Fixed (No Scroll) */}
-          <nav className="p-4 space-y-3">
+          <nav className="p-4 space-y-2">
             <button
               onClick={() => {
                 setRequestType('session');
                 setActiveTab('received');
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 requestType === 'session'
-                  ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-[1.02]'
-                  : 'hover:bg-gray-50 hover:translate-x-1 text-blue-900'
+                  ? 'bg-blue-600 text-white'
+                  : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <div className={`p-2 rounded-lg ${requestType === 'session' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
-                <FaVideo className={`text-base ${requestType === 'session' ? 'text-white' : 'text-blue-900'}`} />
-              </div>
+              <FaVideo className="text-sm" />
               <span className="font-medium text-sm">Session Requests</span>
               {requests.received.filter((req) => req.status === 'pending').length > 0 && (
-                <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse text-white">
+                <span className="ml-auto bg-red-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                   {requests.received.filter((req) => req.status === 'pending').length}
                 </span>
               )}
@@ -808,18 +801,16 @@ const SessionRequests = () => {
                 setRequestType('skillmate');
                 setActiveTab('received');
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 requestType === 'skillmate'
-                  ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-[1.02]'
-                  : 'hover:bg-gray-50 hover:translate-x-1 text-blue-900'
+                  ? 'bg-blue-600 text-white'
+                  : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <div className={`p-2 rounded-lg ${requestType === 'skillmate' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
-                <FaHandshake className={`text-base ${requestType === 'skillmate' ? 'text-white' : 'text-blue-900'}`} />
-              </div>
+              <FaHandshake className="text-sm" />
               <span className="font-medium text-sm">SkillMate Requests</span>
               {skillMateRequests.received.filter((req) => req.status === 'pending').length > 0 && (
-                <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse text-white">
+                <span className="ml-auto bg-red-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                   {skillMateRequests.received.filter((req) => req.status === 'pending').length}
                 </span>
               )}
@@ -830,18 +821,16 @@ const SessionRequests = () => {
                 setRequestType('interview');
                 setActiveTab('received');
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                 requestType === 'interview'
-                  ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-[1.02]'
-                  : 'hover:bg-gray-50 hover:translate-x-1 text-blue-900'
+                  ? 'bg-blue-600 text-white'
+                  : 'hover:bg-gray-100 text-gray-700'
               }`}
             >
-              <div className={`p-2 rounded-lg ${requestType === 'interview' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
-                <FaUser className={`text-base ${requestType === 'interview' ? 'text-white' : 'text-blue-900'}`} />
-              </div>
+              <FaUser className="text-sm" />
               <span className="font-medium text-sm">Interview Requests</span>
               {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length > 0 && (
-                <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow-lg animate-pulse text-white">
+                <span className="ml-auto bg-red-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                   {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length}
                 </span>
               )}
@@ -952,25 +941,20 @@ const SessionRequests = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="md:hidden mb-6 p-3 text-white bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 rounded-xl shadow-lg flex items-center gap-2 transition-all hover:scale-105"
+            className="md:hidden mb-6 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-all"
           >
-            <FaBars size={20} />
+            <FaBars size={18} />
             <span className="font-medium">Menu</span>
           </button>
 
           {/* Page Header */}
-          <div className="mb-8 bg-gradient-to-r from-blue-900 to-blue-800 rounded-2xl p-8 shadow-xl">
-            <div>
-              <h1 className="text-4xl font-bold text-white flex items-center gap-3">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                  <FaUserFriends className="text-white" size={24} />
-                </div>
-                Manage Your Requests
-              </h1>
-              <p className="text-blue-100 mt-3 text-lg">
-                View and manage all your session, skill mate, and interview requests in one place
-              </p>
-            </div>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Manage Your Requests
+            </h1>
+            <p className="text-gray-600">
+              View and manage all your session, skill mate, and interview requests
+            </p>
           </div>          {/* Error Message */}
           {error && (
             <div className="mb-6 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-xl shadow-md flex items-center gap-3">
@@ -1081,22 +1065,18 @@ const SessionRequests = () => {
 
           {/* Tabs */}
           <div className="mb-8">
-            <div className="bg-white rounded-xl shadow-md p-2 inline-flex gap-2 border border-gray-100">
+            <div className="inline-flex gap-1 border-b border-gray-200">
               <button
                 onClick={() => setActiveTab('received')}
-                className={`px-6 py-3 font-semibold rounded-lg transition-all duration-200 ${
+                className={`px-6 py-3 font-medium transition-all ${
                   activeTab === 'received'
-                    ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-105'
-                    : 'text-gray-600 hover:text-blue-900 hover:bg-blue-50'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span>Received</span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                    activeTab === 'received'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-blue-900/10 text-blue-900'
-                  }`}>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
                     {requestType === 'session'
                       ? requests.received.length
                       : requestType === 'skillmate'
@@ -1107,19 +1087,15 @@ const SessionRequests = () => {
               </button>
               <button
                 onClick={() => setActiveTab('sent')}
-                className={`px-6 py-3 font-semibold rounded-lg transition-all duration-200 ${
+                className={`px-6 py-3 font-medium transition-all ${
                   activeTab === 'sent'
-                    ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg transform scale-105'
-                    : 'text-gray-600 hover:text-blue-900 hover:bg-blue-50'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span>Sent</span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                    activeTab === 'sent'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-blue-900/10 text-blue-900'
-                  }`}>
+                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
                     {requestType === 'session'
                       ? requests.sent.length
                       : requestType === 'skillmate'

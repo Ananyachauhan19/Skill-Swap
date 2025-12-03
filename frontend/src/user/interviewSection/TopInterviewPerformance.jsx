@@ -79,7 +79,7 @@ const TopInterviewPerformance = () => {
 
   if (loading) {
     return (
-      <section className="bg-white rounded-3xl shadow-lg p-6 sm:p-8 border border-blue-200">
+      <section className="bg-white rounded-xl border border-gray-200 p-8">
         <div className="text-center py-10">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
           <p className="text-gray-600 mt-4">Loading top interview performance...</p>
@@ -88,33 +88,33 @@ const TopInterviewPerformance = () => {
     );
   }
 
-  if (error || merged.length === 0) return null; // hide section if no data
+  if (error || merged.length === 0) return null;
 
   return (
-    <section className="bg-gradient-to-br from-blue-50 to-white rounded-3xl shadow-lg p-6 sm:p-8 border border-blue-200">
-      <div className="flex items-center justify-center gap-3 mb-6">
-        <FaTable className="text-blue-600 text-2xl" />
-        <h2 className="text-2xl sm:text-3xl font-bold text-blue-900 text-center">Top Interview Performance</h2>
+    <section className="bg-white rounded-xl border border-gray-200 p-8">
+      <div className="mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">Top Interview Performance</h2>
+        <p className="text-center text-gray-600 text-sm">Overall activity rankings</p>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-blue-200">
-          <thead className="bg-blue-100/50">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">Rank</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">User</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">Stars</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-blue-900 uppercase tracking-wider">Total Interviews</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Rank</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">User</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Rating</th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Total</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-blue-100">
+          <tbody className="bg-white divide-y divide-gray-200">
             {merged.map((row, idx) => {
               const name = (row.user?.firstName || row.user?.username || 'User') + (row.user?.lastName ? ` ${row.user.lastName}` : '');
               const avatar = row.user?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=DBEAFE&color=1E40AF&bold=true`;
               const stars = typeof row.rating === 'number' ? Math.round(row.rating) : null;
               return (
-                <tr key={row.user?._id || idx} className="hover:bg-blue-50/70">
-                  <td className="px-4 py-3 text-blue-900 font-semibold">
+                <tr key={row.user?._id || idx} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-900 font-medium">
                     <div className="flex items-center gap-2">
                       <span>#{idx + 1}</span>
                       {idx < 3 && <FaTrophy className={`${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-gray-400' : 'text-orange-600'}`} />}
@@ -122,9 +122,9 @@ const TopInterviewPerformance = () => {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover border border-blue-200" />
+                      <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-200" />
                       <div>
-                        <div className="text-blue-900 font-semibold">{name}</div>
+                        <div className="text-gray-900 font-medium">{name}</div>
                         <div className="text-xs text-gray-500">{row.conducted || 0} conducted • {row.attended || 0} attended</div>
                       </div>
                     </div>
@@ -135,12 +135,12 @@ const TopInterviewPerformance = () => {
                         <span className="text-gray-500 text-sm">N/A</span>
                       ) : (
                         [...Array(5)].map((_, i) => (
-                          <FaStar key={i} className={i < stars ? 'text-yellow-500' : 'text-gray-300'} />
+                          <FaStar key={i} className={i < stars ? 'text-yellow-500' : 'text-gray-300'} size={14} />
                         ))
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-blue-900 font-bold">{row.total}</td>
+                  <td className="px-4 py-3 text-gray-900 font-semibold">{row.total}</td>
                 </tr>
               );
             })}

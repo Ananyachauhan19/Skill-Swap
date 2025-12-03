@@ -313,21 +313,21 @@ const StartSkillSwap = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-blue-50 to-blue-100 flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8 transition-all duration-500">
-      <div className="w-full max-w-6xl">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-blue-900 mb-6 text-center animate-fade-in transition-all duration-300">
-          Find Tutors for Your Doubts
-        </h1>
-        <p className="text-base sm:text-lg text-gray-600 max-w-xl sm:max-w-2xl mx-auto mb-8 text-center animate-fade-in transition-all duration-300 opacity-90">
-          Connect with expert tutors by entering your subject, topic, and specific question. Upload a photo if needed and start your learning journey.
-        </p>
+    <div className="min-h-screen w-full bg-home-bg pt-20 pb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-3">
+            Find Tutors for Your Doubts
+          </h1>
+          <p className="text-gray-600 text-center max-w-2xl mx-auto">
+            Connect with expert tutors by entering your subject, topic, and specific question. Upload a photo if needed and start your learning journey.
+          </p>
+        </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 max-w-xl sm:max-w-3xl mx-auto transition-all duration-300 hover:shadow-2xl">
-          {/* Inline Search Bar with Dropdowns (like serachBar.jsx) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Class/Course Dropdown */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6 sm:p-8 max-w-4xl mx-auto mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Class</label>
               <input
                 ref={courseInputRef}
                 type="text"
@@ -343,42 +343,32 @@ const StartSkillSwap = () => {
                 onBlur={() => setTimeout(() => { setShowDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
                 onKeyDown={handleCourseKeyDown}
                 placeholder="Search Class..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none"
                 autoComplete="off"
               />
-              <AnimatePresence>
-                {showDropdown && (
-                  <MotionComponent.ul
-                    variants={dropdownVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2"
-                  >
-                    {courseList.map((s, idx) => (
-                      <MotionComponent.li
-                        key={idx}
-                        className={`px-4 py-2.5 text-gray-600 hover:bg-blue-100/80 cursor-pointer text-base font-medium transition-all duration-300 ${highlightedCourseIdx === idx ? 'bg-blue-100/80' : ''}`}
-                        onMouseDown={() => {
-                          setCourseValue(s);
-                          setShowDropdown(false);
-                          setHighlightedCourseIdx(-1);
-                          setUnitValue('');
-                          setTopicValue('');
-                          setTimeout(() => unitInputRef.current && unitInputRef.current.focus(), 0);
-                        }}
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        {s}
-                      </MotionComponent.li>
-                    ))}
-                  </MotionComponent.ul>
-                )}
-              </AnimatePresence>
+              {showDropdown && courseList.length > 0 && (
+                <ul className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2">
+                  {courseList.map((s, idx) => (
+                    <li
+                      key={idx}
+                      className={`px-4 py-2.5 text-gray-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedCourseIdx === idx ? 'bg-blue-100' : ''}`}
+                      onMouseDown={() => {
+                        setCourseValue(s);
+                        setShowDropdown(false);
+                        setHighlightedCourseIdx(-1);
+                        setUnitValue('');
+                        setTopicValue('');
+                        setTimeout(() => unitInputRef.current && unitInputRef.current.focus(), 0);
+                      }}
+                    >
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {/* Subject Dropdown */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Subject</label>
               <input
                 ref={unitInputRef}
                 type="text"
@@ -393,42 +383,32 @@ const StartSkillSwap = () => {
                 onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
                 onKeyDown={handleUnitKeyDown}
                 placeholder="Search Subject..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 autoComplete="off"
                 disabled={!courseValue || !unitList.length}
               />
-              <AnimatePresence>
-                {showUnitDropdown && courseValue && unitList.length > 0 && (
-                  <MotionComponent.ul
-                    variants={dropdownVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2"
-                  >
-                    {unitDropdownList.map((u, idx) => (
-                      <MotionComponent.li
-                        key={idx}
-                        className={`px-4 py-2.5 text-gray-600 hover:bg-blue-100/80 cursor-pointer text-base font-medium transition-all duration-300 ${highlightedUnitIdx === idx ? 'bg-blue-100/80' : ''}`}
-                        onMouseDown={() => {
-                          setUnitValue(u);
-                          setShowUnitDropdown(false);
-                          setHighlightedUnitIdx(-1);
-                          setTopicValue('');
-                          setTimeout(() => topicInputRef.current && topicInputRef.current.focus(), 0);
-                        }}
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        {u}
-                      </MotionComponent.li>
-                    ))}
-                  </MotionComponent.ul>
-                )}
-              </AnimatePresence>
+              {showUnitDropdown && courseValue && unitList.length > 0 && (
+                <ul className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2">
+                  {unitDropdownList.map((u, idx) => (
+                    <li
+                      key={idx}
+                      className={`px-4 py-2.5 text-gray-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedUnitIdx === idx ? 'bg-blue-100' : ''}`}
+                      onMouseDown={() => {
+                        setUnitValue(u);
+                        setShowUnitDropdown(false);
+                        setHighlightedUnitIdx(-1);
+                        setTopicValue('');
+                        setTimeout(() => topicInputRef.current && topicInputRef.current.focus(), 0);
+                      }}
+                    >
+                      {u}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
-            {/* Topic Dropdown */}
             <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Topic</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Topic</label>
               <input
                 ref={topicInputRef}
                 type="text"
@@ -442,41 +422,32 @@ const StartSkillSwap = () => {
                 onBlur={() => setTimeout(() => { setShowTopicDropdown(false); setHighlightedTopicIdx(-1); }, 150)}
                 onKeyDown={handleTopicKeyDown}
                 placeholder="Search Topic..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-300 text-sm"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                 autoComplete="off"
                 disabled={!unitValue || !topicList.length}
               />
-              <AnimatePresence>
-                {showTopicDropdown && unitValue && topicList.length > 0 && (
-                  <MotionComponent.ul
-                    variants={dropdownVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    className="absolute z-10 left-0 right-0 bg-white border border-blue-200 rounded-xl shadow-xl max-h-48 overflow-y-auto mt-2"
-                  >
-                    {topicDropdownList.map((t, idx) => (
-                      <MotionComponent.li
-                        key={idx}
-                        className={`px-4 py-2.5 text-gray-600 hover:bg-blue-100/80 cursor-pointer text-base font-medium transition-all duration-300 ${highlightedTopicIdx === idx ? 'bg-blue-100/80' : ''}`}
-                        onMouseDown={e => {
-                          e.preventDefault();
-                          setTopicValue(t);
-                          setShowTopicDropdown(false);
-                          setHighlightedTopicIdx(-1);
-                        }}
-                        whileHover={{ scale: 1.02 }}
-                      >
-                        {t}
-                      </MotionComponent.li>
-                    ))}
-                  </MotionComponent.ul>
-                )}
-              </AnimatePresence>
+              {showTopicDropdown && unitValue && topicList.length > 0 && (
+                <ul className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2">
+                  {topicDropdownList.map((t, idx) => (
+                    <li
+                      key={idx}
+                      className={`px-4 py-2.5 text-gray-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedTopicIdx === idx ? 'bg-blue-100' : ''}`}
+                      onMouseDown={e => {
+                        e.preventDefault();
+                        setTopicValue(t);
+                        setShowTopicDropdown(false);
+                        setHighlightedTopicIdx(-1);
+                      }}
+                    >
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
-          <div className="mt-6 transition-all duration-300">
-            <label htmlFor="question" className="block text-sm font-medium text-gray-700 opacity-90">
+          <div className="mb-6">
+            <label htmlFor="question" className="block text-sm font-semibold text-gray-900 mb-2">
               Your Question
             </label>
             <textarea
@@ -484,12 +455,12 @@ const StartSkillSwap = () => {
               value={questionValue}
               onChange={(e) => setQuestionValue(e.target.value)}
               placeholder="Describe your question or doubt in detail..."
-              className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 placeholder-gray-400 transition-all duration-300"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm outline-none resize-none"
               rows="4"
             />
           </div>
-          <div className="mt-4 transition-all duration-300">
-            <label htmlFor="questionPhoto" className="block text-sm font-medium text-gray-700 opacity-90">
+          <div className="mb-6">
+            <label htmlFor="questionPhoto" className="block text-sm font-semibold text-gray-900 mb-2">
               Upload Question Photo (Optional)
             </label>
             <input
@@ -497,91 +468,93 @@ const StartSkillSwap = () => {
               type="file"
               accept="image/*"
               onChange={handleFileChange}
-              className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all duration-300"
+              className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100 cursor-pointer"
             />
             {uploading && (
-              <p className="mt-2 text-sm text-blue-700">Uploading image…</p>
+              <p className="mt-2 text-sm text-blue-600">Uploading image…</p>
             )}
             {!uploading && questionImageUrl && (
-              <p className="mt-2 text-sm text-green-700 truncate">Image ready to share</p>
+              <p className="mt-2 text-sm text-green-600">✓ Image ready to share</p>
             )}
           </div>
           <button
             onClick={handleFindTutor}
-            className="mt-6 w-full bg-blue-800 text-white px-6 py-3 rounded-md font-semibold text-base sm:text-lg shadow-md transition-all duration-300 hover:bg-blue-900 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
           >
             Find Tutors
           </button>
         </div>
 
         {error && (
-          <div className="mt-6 max-w-xl sm:max-w-3xl mx-auto w-full transition-all duration-300">
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-lg shadow-md">
+          <div className="max-w-4xl mx-auto mb-6">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
               {error}
             </div>
           </div>
         )}
 
         {successMessage && (
-          <div className="mt-6 max-w-xl sm:max-w-3xl mx-auto w-full transition-all duration-300">
-            <div className="bg-green-100 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded-lg shadow-md">
+          <div className="max-w-4xl mx-auto mb-6">
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
               {successMessage}
             </div>
           </div>
         )}
 
         {loading && (
-          <div className="mt-8 sm:mt-10 max-w-xl sm:max-w-3xl mx-auto w-full text-center transition-all duration-300">
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-blue-800"></div>
-              <span className="ml-3 text-blue-800 text-base sm:text-lg font-medium">Finding online tutors...</span>
+          <div className="max-w-4xl mx-auto text-center py-8">
+            <div className="flex items-center justify-center gap-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
+              <span className="text-gray-700 font-medium">Finding online tutors...</span>
             </div>
           </div>
         )}
 
         {searched && !loading && (
-          <div className="mt-8 sm:mt-10 max-w-xl sm:max-w-3xl mx-auto w-full flex flex-col gap-4 sm:gap-6 transition-all duration-300">
+          <div className="max-w-4xl mx-auto">
             {tutors.length === 0 ? (
-              <div className="text-center text-blue-800 text-base sm:text-lg font-medium opacity-90">
+              <div className="text-center text-gray-600 py-8">
                 No online tutors found for your search criteria. Try different subjects or topics.
               </div>
             ) : (
               <>
-                <div className="text-center text-green-600 text-base sm:text-lg font-semibold opacity-90">
+                <div className="text-center text-green-600 font-semibold mb-6">
                   Found {tutors.length} online tutor{tutors.length > 1 ? 's' : ''} for your search
                 </div>
-                {tutors.map((tutor, idx) => (
-                  <TutorCard
-                    key={idx}
-                    tutor={{
-                      name: `${tutor.firstName} ${tutor.lastName}`,
-                      profilePic: tutor.profilePic || "",
-                      status: tutor.status,
-                      date: new Date().toISOString().split('T')[0],
-                      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                      skills: [courseValue, unitValue, topicValue].filter(Boolean),
-                      rating: tutor.rating || 4.5,
-                      userId: tutor.userId,
-                      socketId: tutor.socketId,
-                    }}
-                    onRequestSession={() => handleRequestSession(tutor)}
-                  />
-                ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {tutors.map((tutor, idx) => (
+                    <TutorCard
+                      key={idx}
+                      tutor={{
+                        name: `${tutor.firstName} ${tutor.lastName}`,
+                        profilePic: tutor.profilePic || "",
+                        status: tutor.status,
+                        date: new Date().toISOString().split('T')[0],
+                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                        skills: [courseValue, unitValue, topicValue].filter(Boolean),
+                        rating: tutor.rating || 4.5,
+                        userId: tutor.userId,
+                        socketId: tutor.socketId,
+                      }}
+                      onRequestSession={() => handleRequestSession(tutor)}
+                    />
+                  ))}
+                </div>
               </>
             )}
           </div>
         )}
 
         {showSessionButtons && (
-          <div className="mt-6 sm:mt-8 flex flex-col items-center gap-4 transition-all duration-300">
+          <div className="max-w-4xl mx-auto mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
-              className="w-40 sm:w-48 bg-blue-800 text-white px-4 sm:px-6 py-2 rounded-md font-semibold shadow-md transition-all duration-300 hover:bg-blue-900 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="w-full sm:w-48 bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               onClick={() => setShowVideoModal(true)}
             >
               Start Session
             </button>
             <button
-              className="w-40 sm:w-48 bg-blue-800 text-white px-4 sm:px-6 py-2 rounded-md font-semibold shadow-md transition-all duration-300 hover:bg-blue-900 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="w-full sm:w-48 bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               onClick={() => setShowVideoModal(true)}
             >
               Join Session
@@ -589,9 +562,9 @@ const StartSkillSwap = () => {
           </div>
         )}
 
-        <div className="mt-10 sm:mt-12 text-center transition-all duration-300">
+        <div className="mt-8 text-center">
           <button
-            className="bg-blue-800 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-full font-semibold text-base sm:text-lg shadow-md transition-all duration-300 hover:bg-blue-900 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors"
             onClick={() => navigate('/')}
           >
             Back to Home

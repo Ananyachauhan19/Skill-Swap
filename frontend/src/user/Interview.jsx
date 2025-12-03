@@ -59,57 +59,33 @@ const howItWorksSteps = [
 ];
 
 const HowItWorks = () => (
-  <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe]">
-    <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-12 sm:py-16 flex flex-col gap-8 sm:gap-10 max-w-7xl mx-auto">
-      <div className="flex flex-col items-center gap-4 mb-4 sm:mb-6">
-        <div className="flex items-center justify-center gap-3 w-full flex-wrap">
-          <div className="w-8 sm:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#1e3a8a] text-center">
-            🚀 How It Works
-          </h2>
-          <div className="w-8 sm:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-        </div>
-        <p className="text-center text-[#4b5563] text-sm sm:text-base lg:text-lg max-w-2xl mx-auto px-2">
+  <section className="bg-home-bg py-12 sm:py-16">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="mb-10">
+        <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-3">
+          How It Works
+        </h2>
+        <p className="text-center text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
           Get ready for your dream job with our expert-led, interactive mock interviews
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {howItWorksSteps.map((item, index) => (
-          <motion.div
+          <div
             key={index}
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: index * 0.1 }}
-            viewport={{ once: true }}
-            whileHover={{ y: -8, transition: { duration: 0.2 } }}
-            className="group relative flex flex-col items-center text-center p-5 sm:p-6 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+            className="flex flex-col items-center text-center p-6 bg-white rounded-xl border border-gray-200"
           >
-            {/* Gradient accent at top */}
-            <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${item.bgGradient}`}></div>
-
-            {/* Icon circle */}
-            <motion.div 
-              className={`relative z-10 flex items-center justify-center w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-gradient-to-br ${item.lightBg} mb-4 group-hover:scale-110 transition-all duration-300 shadow-md text-2xl`}
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.6 }}
-            >
+            <div className="text-4xl mb-3">
               {item.emoji}
-            </motion.div>
-
-            {/* Title */}
-            <h3 className={`relative z-10 text-lg sm:text-xl font-bold ${item.textColor} mb-2`}>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
               {item.title}
             </h3>
-
-            {/* Description */}
-            <p className="relative z-10 text-xs sm:text-sm text-[#6b7280] leading-relaxed">
+            <p className="text-sm text-gray-600 leading-relaxed">
               {item.desc}
             </p>
-
-            {/* Bottom accent line */}
-            <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${item.bgGradient} transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 rounded-b-2xl`}></div>
-          </motion.div>
+          </div>
         ))}
       </div>
     </div>
@@ -249,20 +225,15 @@ function BookInterviewModal({ isOpen, onClose }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        >
-          <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 rounded-t-2xl flex items-center justify-between z-10">
-            <h3 className="text-2xl font-bold flex items-center gap-2">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-blue-600 text-white p-6 rounded-t-xl flex items-center justify-between z-10">
+            <h3 className="text-xl font-bold flex items-center gap-2">
               <FaCalendarAlt />
               Book Mock Interview
             </h3>
-            <button onClick={onClose} className="text-white hover:bg-white/20 p-2 rounded-full transition-colors">
-              <FaTimes size={20} />
+            <button onClick={onClose} className="text-white hover:bg-blue-700 p-2 rounded-lg transition-colors">
+              <FaTimes size={18} />
             </button>
           </div>
 
@@ -271,7 +242,7 @@ function BookInterviewModal({ isOpen, onClose }) {
 
             <div className="space-y-4">
               <div className="relative">
-                <label className="block text-sm font-semibold text-blue-900 mb-2">Company Name *</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Company Name *</label>
                 <input
                   ref={companyInputRef}
                   type="text"
@@ -285,37 +256,30 @@ function BookInterviewModal({ isOpen, onClose }) {
                   onBlur={() => setTimeout(() => { setShowCompanyDropdown(false); setHighlightedCompanyIdx(-1); }, 150)}
                   onKeyDown={handleCompanyKeyDown}
                   placeholder="Search company..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   autoComplete="off"
                 />
-                <AnimatePresence>
-                  {showCompanyDropdown && companyList.length > 0 && (
-                    <motion.ul
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute z-20 left-0 right-0 bg-white border-2 border-blue-200 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-2"
-                    >
-                      {companyList.map((c, idx) => (
-                        <li
-                          key={idx}
-                          className={`px-4 py-3 text-gray-700 hover:bg-blue-50 cursor-pointer text-base font-medium transition-colors ${highlightedCompanyIdx === idx ? 'bg-blue-100' : ''}`}
-                          onMouseDown={() => {
-                            setCompany(c);
-                            setShowCompanyDropdown(false);
-                            setHighlightedCompanyIdx(-1);
-                          }}
-                        >
-                          {c}
-                        </li>
-                      ))}
-                    </motion.ul>
-                  )}
-                </AnimatePresence>
+                {showCompanyDropdown && companyList.length > 0 && (
+                  <ul className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2">
+                    {companyList.map((c, idx) => (
+                      <li
+                        key={idx}
+                        className={`px-4 py-2.5 text-gray-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedCompanyIdx === idx ? 'bg-blue-100' : ''}`}
+                        onMouseDown={() => {
+                          setCompany(c);
+                          setShowCompanyDropdown(false);
+                          setHighlightedCompanyIdx(-1);
+                        }}
+                      >
+                        {c}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div className="relative">
-                <label className="block text-sm font-semibold text-blue-900 mb-2">Position *</label>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">Position *</label>
                 <input
                   ref={positionInputRef}
                   type="text"
@@ -329,39 +293,32 @@ function BookInterviewModal({ isOpen, onClose }) {
                   onBlur={() => setTimeout(() => { setShowPositionDropdown(false); setHighlightedPositionIdx(-1); }, 150)}
                   onKeyDown={handlePositionKeyDown}
                   placeholder="Search position..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                   autoComplete="off"
                 />
-                <AnimatePresence>
-                  {showPositionDropdown && positionList.length > 0 && (
-                    <motion.ul
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="absolute z-20 left-0 right-0 bg-white border-2 border-blue-200 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-2"
-                    >
-                      {positionList.map((p, idx) => (
-                        <li
-                          key={idx}
-                          className={`px-4 py-3 text-gray-700 hover:bg-blue-50 cursor-pointer text-base font-medium transition-colors ${highlightedPositionIdx === idx ? 'bg-blue-100' : ''}`}
-                          onMouseDown={() => {
-                            setPosition(p);
-                            setShowPositionDropdown(false);
-                            setHighlightedPositionIdx(-1);
-                          }}
-                        >
-                          {p}
-                        </li>
-                      ))}
-                    </motion.ul>
-                  )}
-                </AnimatePresence>
+                {showPositionDropdown && positionList.length > 0 && (
+                  <ul className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2">
+                    {positionList.map((p, idx) => (
+                      <li
+                        key={idx}
+                        className={`px-4 py-2.5 text-gray-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedPositionIdx === idx ? 'bg-blue-100' : ''}`}
+                        onMouseDown={() => {
+                          setPosition(p);
+                          setShowPositionDropdown(false);
+                          setHighlightedPositionIdx(-1);
+                        }}
+                      >
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
 
 
               <div>
-                <label className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                <label className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                   <FaComment />
                   Additional Message (Optional)
                 </label>
@@ -370,13 +327,13 @@ function BookInterviewModal({ isOpen, onClose }) {
                   onChange={e => setMessage(e.target.value)}
                   placeholder="Any specific topics or areas you'd like to focus on..."
                   rows="4"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
                 />
               </div>
 
               {matchedInterviewers && matchedInterviewers.length > 0 && (
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                  <h4 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <FaUserTie />
                     Recommended Interviewers
                   </h4>
@@ -384,10 +341,10 @@ function BookInterviewModal({ isOpen, onClose }) {
                     {matchedInterviewers.map((m) => (
                       <label
                         key={m.application._id}
-                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${
+                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
                           selectedInterviewer === String(m.user._id)
-                            ? 'bg-blue-600 text-white shadow-lg'
-                            : 'bg-white hover:bg-blue-100 border border-gray-200'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white hover:bg-blue-50 border border-gray-200'
                         }`}
                       >
                         <div className="flex items-center gap-3 flex-1">
@@ -441,20 +398,20 @@ function BookInterviewModal({ isOpen, onClose }) {
             <div className="flex gap-3 pt-4">
               <button
                 onClick={onClose}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
+                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading || !company || !position}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-800 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </AnimatePresence>
   );
@@ -479,36 +436,31 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.9 }}
-          className="bg-white rounded-2xl shadow-2xl max-w-lg w-full"
-        >
-          <div className="bg-gradient-to-r from-[#3b82f6] to-[#1e40af] text-white p-6 rounded-t-2xl flex items-center justify-between">
-            <h3 className="text-2xl font-bold flex items-center gap-2">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="bg-white rounded-xl shadow-lg max-w-lg w-full">
+          <div className="bg-blue-600 text-white p-6 rounded-t-xl flex items-center justify-between">
+            <h3 className="text-xl font-bold flex items-center gap-2">
               <FaUserTie />
               Become an Interviewer
             </h3>
-            <button onClick={onClose} className="text-white hover:bg-white/20 p-2 rounded-full transition-colors">
-              <FaTimes size={20} />
+            <button onClick={onClose} className="text-white hover:bg-blue-700 p-2 rounded-lg transition-colors">
+              <FaTimes size={18} />
             </button>
           </div>
 
           <div className="p-6 space-y-4">
             {isApproved ? (
               <div className="text-center py-8">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaCheckCircle className="text-blue-600 text-4xl" />
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaCheckCircle className="text-blue-600 text-3xl" />
                 </div>
-                <h4 className="text-xl font-bold text-blue-900 mb-2">You're Already an Approved Interviewer!</h4>
-                <p className="text-gray-600">You can start conducting mock interviews right away.</p>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">You're Already an Approved Interviewer!</h4>
+                <p className="text-gray-600 text-sm">You can start conducting mock interviews right away.</p>
               </div>
             ) : (
               <>
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
-                  <h4 className="font-semibold text-blue-900 mb-2">Why Become an Interviewer?</h4>
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="font-semibold text-gray-900 mb-2">Why Become an Interviewer?</h4>
                   <ul className="space-y-2 text-sm text-gray-600">
                     <li className="flex items-start gap-2">
                       <span className="text-[#2563eb] mt-1">✓</span>
@@ -529,7 +481,7 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
                   </ul>
                 </div>
 
-                <div className="bg-[#f0f9ff] p-4 rounded-xl border border-[#bfdbfe]">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <p className="text-sm text-gray-700">
                     <strong>Note:</strong> Your application will be reviewed by our admin team. You'll be notified once approved.
                   </p>
@@ -540,7 +492,7 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
             <div className="flex gap-3 pt-4">
               <button
                 onClick={onClose}
-                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
+                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors"
               >
                 Close
               </button>
@@ -550,14 +502,14 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
                     navigate('/register-interviewer');
                     onClose();
                   }}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#3b82f6] to-[#1e40af] text-white rounded-xl font-semibold hover:from-[#2563eb] hover:to-[#1e3a8a] transition-all shadow-lg"
+                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
                 >
                   Apply Now
                 </button>
               )}
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </AnimatePresence>
   );
@@ -649,63 +601,50 @@ function ScheduledInterviewSection() {
   });
 
   return (
-    <section className="w-full bg-home-bg overflow-hidden">
+    <section className="w-full bg-home-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {/* Header with gradient background */}
-        <div className="flex flex-col items-center gap-4 mb-8 sm:mb-10 pb-6 border-b-2 border-[#3b82f6]/20">
-        <div className="flex items-center justify-center gap-2 sm:gap-3 w-full flex-wrap">
-          <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1e3a8a] text-center">
-            📅 Your Scheduled Interviews
+        <div className="mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">
+            Your Scheduled Interviews
           </h2>
-          <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
+          <p className="text-center text-gray-600 text-sm">Upcoming sessions and completed interviews</p>
         </div>
-      </div>
 
       {visible.length === 0 ? (
-        <div className="text-center py-12 sm:py-16">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#dbeafe] to-[#bfdbfe] rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <FaCalendarAlt className="text-[#2563eb] text-3xl" />
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FaCalendarAlt className="text-blue-600 text-2xl" />
           </div>
-          <p className="text-[#4b5563] text-lg sm:text-xl font-semibold">No scheduled interviews yet</p>
-          <p className="text-[#9ca3af] text-sm sm:text-base mt-2">Book your first mock interview to get started!</p>
+          <p className="text-gray-900 text-lg font-semibold">No scheduled interviews yet</p>
+          <p className="text-gray-600 text-sm mt-2">Book your first mock interview to get started!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {visible.map((s, idx) => (
-            <motion.div
+            <div
               key={s._id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -4 }}
-              transition={{ duration: 0.3, delay: idx * 0.1 }}
-              className="relative bg-white border border-gray-100 rounded-2xl p-5 sm:p-6 hover:shadow-md transition-all duration-300 shadow-sm overflow-hidden group"
+              className="bg-white border border-gray-200 rounded-xl p-6"
             >
-              {/* Accent line at top */}
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#3b82f6] to-[#2563eb]"></div>
 
-              {/* Status Badge */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="font-bold text-[#1e3a8a] text-base sm:text-lg">
+                  <h3 className="font-semibold text-gray-900 text-lg">
                     {s.company || s.subject || 'Interview Session'}
                   </h3>
                   {(s.position || s.topic) && (
-                    <p className="text-xs sm:text-sm text-[#3b82f6] mt-1">
+                    <p className="text-sm text-gray-600 mt-1">
                       {s.position || s.topic}
                     </p>
                   )}
                 </div>
-                <span className="px-3 py-1 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white text-xs font-bold rounded-full whitespace-nowrap ml-2">
-                  🎯 {(s.status || 'Scheduled').charAt(0).toUpperCase() + (s.status || 'Scheduled').slice(1)}
+                <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-medium rounded-md whitespace-nowrap ml-2">
+                  {(s.status || 'Scheduled').charAt(0).toUpperCase() + (s.status || 'Scheduled').slice(1)}
                 </span>
               </div>
               
-              {/* Details */}
-              <div className="space-y-3 text-sm text-[#4b5563] mb-5">
+              <div className="space-y-3 text-sm text-gray-700 mb-5">
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-gradient-to-br from-[#60a5fa] to-[#3b82f6] rounded-full flex items-center justify-center text-white text-xs">👤</div>
+                  <FaUserTie className="text-blue-600 text-sm" />
                   <span className="font-medium flex items-center gap-2 flex-wrap">
                     <span>With: {(() => {
                       try {
@@ -744,7 +683,7 @@ function ScheduledInterviewSection() {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-gradient-to-br from-[#93c5fd] to-[#60a5fa] rounded-full flex items-center justify-center text-white text-xs">📆</div>
+                  <FaCalendarAlt className="text-blue-600 text-sm" />
                   <span className="font-medium">
                     {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString('en-US', {
                       dateStyle: 'medium',
@@ -753,38 +692,35 @@ function ScheduledInterviewSection() {
                   </span>
                 </div>
                 {s.message && (
-                  <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                    <div className="w-6 h-6 bg-gradient-to-br from-[#93c5fd] to-[#60a5fa] rounded-full flex items-center justify-center text-white text-xs flex-shrink-0">💬</div>
-                    <span className="text-xs text-gray-600 line-clamp-2">{s.message}</span>
+                  <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <FaComment className="text-blue-600 text-sm flex-shrink-0 mt-0.5" />
+                    <span className="text-xs text-gray-700 line-clamp-2">{s.message}</span>
                   </div>
                 )}
               </div>
               
-              {/* Button */}
               <div className="flex gap-2">
                 <button
                   onClick={() => navigate('/session-requests')}
-                  className="flex-1 py-2.5 sm:py-3 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300 text-sm sm:text-base hover:scale-105 transform"
+                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
                 >
                   View Details →
                 </button>
-                {/* Rate Interview Button - Show for completed interviews without rating */}
                 {s.status === 'completed' && !s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
                   <button
                     onClick={() => handleRateClick(s)}
-                    className="py-2.5 sm:py-3 px-4 bg-gradient-to-r from-yellow-400 to-yellow-500 text-white rounded-xl font-bold hover:shadow-lg transition-all duration-300 text-sm sm:text-base hover:scale-105 transform flex items-center gap-2"
+                    className="py-2.5 px-4 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors text-sm flex items-center gap-2"
                   >
                     <FaStar /> Rate
                   </button>
                 )}
-                {/* Already Rated - Show rating */}
                 {s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
-                  <div className="py-2.5 sm:py-3 px-4 bg-green-50 border-2 border-green-200 text-green-700 rounded-xl font-bold text-sm sm:text-base flex items-center gap-2">
-                    <FaStar className="text-yellow-500" /> {s.rating} ⭐
+                  <div className="py-2.5 px-4 bg-green-50 border border-green-200 text-green-700 rounded-lg font-medium text-sm flex items-center gap-2">
+                    <FaStar className="text-yellow-500" /> {s.rating}/5
                   </div>
                 )}
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
         )}
