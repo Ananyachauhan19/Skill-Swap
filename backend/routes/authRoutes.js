@@ -248,7 +248,10 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       goldCoins: user.goldCoins,
       silverCoins: user.silverCoins,
       badges: user.badges,
-      rank: user.rank
+      rank: user.rank,
+      isTutor: user.isTutor,
+      tutorActivationAt: user.tutorActivationAt,
+      tutorApplicationId: user.tutorApplicationId
     });
   } catch (err) {
     console.error('[DEBUG] Profile fetch error:', err);
