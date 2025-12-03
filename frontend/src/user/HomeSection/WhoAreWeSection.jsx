@@ -22,9 +22,9 @@ const WhoAreWeSection = () => {
     fetchStats();
   }, []);
   return (
-    <section className="py-4 sm:py-6 bg-home-bg overflow-hidden">
+    <section className="py-6 sm:py-8 bg-home-bg overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
 
           {/* Left Content */}
           <motion.div
@@ -32,13 +32,13 @@ const WhoAreWeSection = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="space-y-8"
+            className="space-y-6 mb-8 lg:mb-0"
           >
-            <div className="space-y-4">
-              <div className="inline-block px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 font-semibold text-sm">
+            <div className="space-y-3">
+              <div className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold text-xs">
                 About Us
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#0A2540] leading-tight">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#0A2540] leading-tight">
                 We Are Building the Future of <br />
                 <span className="text-blue-600">Collaborative Learning</span>
               </h2>
@@ -47,31 +47,31 @@ const WhoAreWeSection = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
-                  <FaGlobe className="text-xl" />
+            <div className="grid grid-cols-3 sm:grid-cols-2 gap-2 sm:gap-6">
+              <div className="p-3 sm:p-6 rounded-lg sm:rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center mb-2 sm:mb-4 mx-auto">
+                  <FaGlobe className="text-base sm:text-xl" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2">Global Reach</h3>
-                <p className="text-sm text-gray-500">Connecting learners from every corner of the world.</p>
+                <h3 className="font-bold text-gray-900 mb-1 sm:mb-2 text-xs sm:text-base text-center">Global Reach</h3>
+                <p className="text-[10px] sm:text-sm text-gray-500 text-center hidden sm:block">Connecting learners from every corner of the world.</p>
               </div>
-              <div className="p-6 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all">
-                <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
-                  <FaUsers className="text-xl" />
+              <div className="p-3 sm:p-6 rounded-lg sm:rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-2 sm:mb-4 mx-auto">
+                  <FaUsers className="text-base sm:text-xl" />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2">Community First</h3>
-                <p className="text-sm text-gray-500">Built by the community, for the community.</p>
+                <h3 className="font-bold text-gray-900 mb-1 sm:mb-2 text-xs sm:text-base text-center">Community First</h3>
+                <p className="text-[10px] sm:text-sm text-gray-500 text-center hidden sm:block">Built by the community, for the community.</p>
               </div>
             </div>
 
-            <div className="p-6 rounded-2xl bg-gradient-to-r from-[#0A2540] to-blue-900 text-white relative overflow-hidden">
-              <div className="relative z-10 flex items-start gap-4">
-                <div className="p-3 rounded-full bg-white/10">
-                  <FaLightbulb className="text-yellow-400 text-xl" />
+            <div className="p-3 sm:p-6 rounded-lg sm:rounded-2xl bg-gradient-to-r from-[#0A2540] to-blue-900 text-white relative overflow-hidden">
+              <div className="relative z-10 flex items-start gap-2 sm:gap-4">
+                <div className="p-2 sm:p-3 rounded-full bg-white/10">
+                  <FaLightbulb className="text-yellow-400 text-base sm:text-xl" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg mb-1">Our Mission</h3>
-                  <p className="text-blue-100 text-sm leading-relaxed">
+                  <h3 className="font-bold text-xs sm:text-lg mb-0.5 sm:mb-1">Our Mission</h3>
+                  <p className="text-blue-100 text-[10px] sm:text-sm leading-relaxed">
                     To create a world where knowledge is shared freely and accessible to everyone, regardless of their background or location.
                   </p>
                 </div>

@@ -137,16 +137,16 @@ const TopPerformersSection = () => {
   };
 
   return (
-    <section className="py-4 sm:py-6 bg-home-bg">
+    <section className="py-6 sm:py-8 bg-home-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-10">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="inline-block mb-3 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100"
+            className="inline-block mb-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100"
           >
-            <span className="text-sm font-semibold text-blue-600 flex items-center gap-2">
+            <span className="text-xs sm:text-sm font-semibold text-blue-600 flex items-center gap-2">
               <FaTrophy className="text-yellow-500" /> Hall of Fame
             </span>
           </motion.div>
@@ -154,7 +154,7 @@ const TopPerformersSection = () => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-[#0A2540] mb-4"
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#0A2540] mb-3"
           >
             Meet Our Top Performers
           </motion.h2>
@@ -169,8 +169,8 @@ const TopPerformersSection = () => {
           </motion.p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex justify-center mb-10 flex-wrap gap-3">
+        {/* Tabs - Desktop */}
+        <div className="hidden md:flex justify-center mb-8 flex-wrap gap-3">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -184,6 +184,25 @@ const TopPerformersSection = () => {
               {tab.label}
             </button>
           ))}
+        </div>
+
+        {/* Tabs - Mobile: Horizontal Scroll */}
+        <div className="md:hidden mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
+          <div className="flex gap-3 pb-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 flex-shrink-0 ${activeTab === tab.id
+                  ? 'bg-gradient-to-r from-[#0A2540] to-blue-600 text-white shadow-lg'
+                  : 'bg-white text-gray-700 border-2 border-gray-200'
+                  }`}
+              >
+                <span className={activeTab === tab.id ? 'text-white' : 'text-gray-500'}>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Cards Grid */}
@@ -201,12 +220,14 @@ const TopPerformersSection = () => {
             <p className="text-gray-400 text-sm mt-2">Be the first to make it to the leaderboard!</p>
           </div>
         ) : (
+          <>
+          {/* Desktop: Grid Layout */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             <AnimatePresence mode="popLayout">
               {getDisplayCards().map((card, index) => {
@@ -331,6 +352,100 @@ const TopPerformersSection = () => {
               })}
             </AnimatePresence>
           </motion.div>
+
+          {/* Mobile: Compact Grid - 3 Cards in One Line */}
+          <div className="md:hidden">
+            <div className="grid grid-cols-3 gap-2 px-2">
+              <AnimatePresence mode="popLayout">
+                {getDisplayCards().map((card, index) => {
+                  const rankBadge = getRankBadge(card.rank);
+                  return (
+                    <motion.div
+                      key={`${card._id}-${card.type}-mobile`}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.1 }}
+                      onClick={() => navigate(`/profile/${card.username}`)}
+                      className="bg-white rounded-lg p-3 border border-gray-100 relative overflow-hidden shadow-sm cursor-pointer"
+                    >
+                      {/* Rank Badge */}
+                      <div className="absolute top-2 left-2 z-20">
+                        <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${rankBadge.color} flex items-center justify-center shadow-sm`}>
+                          <span className="text-sm">{rankBadge.icon}</span>
+                        </div>
+                      </div>
+
+                      <div className="relative z-10">
+                        {/* User Avatar - Centered */}
+                        <div className="flex flex-col items-center pt-8 mb-2">
+                          <div className="relative mb-2">
+                            <div className="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-gray-100">
+                              <img
+                                src={card.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=64`}
+                                alt={card.username}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=64`;
+                                }}
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* User Name */}
+                          <h3 className="font-bold text-xs text-gray-900 truncate w-full text-center">
+                            {card.firstName}
+                          </h3>
+                          <p className="text-[10px] text-gray-500 truncate w-full text-center">@{card.username}</p>
+                        </div>
+
+                        {/* Badge */}
+                        <div className="flex justify-center mb-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                            card.color === 'orange' ? 'bg-orange-100 text-orange-700' :
+                            card.color === 'yellow' ? 'bg-yellow-100 text-yellow-700' :
+                            card.color === 'green' ? 'bg-green-100 text-green-700' :
+                            'bg-blue-100 text-blue-700'
+                          }`}>
+                            {card.badge}
+                          </span>
+                        </div>
+
+                        {/* Stats - Compact */}
+                        {card.type === 'all' ? (
+                          <div className="text-center">
+                            <div className="grid grid-cols-3 gap-1 mb-1">
+                              {card.metrics.map(m => (
+                                <div key={m.label} className="text-center">
+                                  <p className="text-[8px] text-gray-500 font-semibold">{m.label}</p>
+                                  <p className="text-xs font-bold text-[#0A2540]">{m.value}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <span className="text-sm font-extrabold text-[#0A2540] block">
+                              {card.stat}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* CTA Button - Compact */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); navigate('/StartSkillSwap'); }}
+                          className="mt-2 w-full px-2 py-1.5 text-[9px] font-semibold bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        >
+                          Explore
+                        </button>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          </div>
+          </>
         )}
       </div>
     </section>

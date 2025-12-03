@@ -23,6 +23,15 @@ body {
   -ms-overflow-style: none;
 }
 
+/* Scrollbar Hide Utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Animations */
 @keyframes fade-in {
   from { opacity: 0; }

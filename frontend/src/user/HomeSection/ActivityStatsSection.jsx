@@ -45,25 +45,28 @@ const ActivityStatsSection = () => {
       id: 1,
       label: 'Active Learners',
       value: stats.totalUsers,
-      icon: <FaUsers className="text-blue-600" />,
+      icon: <FaUsers className="text-white" />,
       color: 'blue',
-      description: 'Join our growing community'
+      description: 'Join our growing community',
+      backgroundImage: '/assets/activesession/activeusers.webp'
     },
     {
       id: 2,
       label: 'Expert Tutors',
       value: stats.expertUsers,
-      icon: <FaChalkboardTeacher className="text-purple-600" />,
+      icon: <FaChalkboardTeacher className="text-white" />,
       color: 'purple',
-      description: 'Learn from the best'
+      description: 'Learn from the best',
+      backgroundImage: '/assets/activesession/availableexpert.webp'
     },
     {
       id: 3,
       label: 'Sessions Completed',
       value: stats.totalSessions,
-      icon: <FaLayerGroup className="text-green-600" />,
+      icon: <FaLayerGroup className="text-white" />,
       color: 'green',
-      description: 'Knowledge shared daily'
+      description: 'Knowledge shared daily',
+      backgroundImage: '/assets/activesession/completesession.webp'
     }
   ];
 
@@ -85,21 +88,21 @@ const ActivityStatsSection = () => {
   };
 
   return (
-    <section className="py-4 sm:py-6 bg-home-bg" ref={ref}>
+    <section className="py-6 sm:py-8 bg-home-bg" ref={ref}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
 
           {/* Left Content */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6 }}
-            className="space-y-6"
+            className="space-y-4 mb-8 lg:mb-0"
           >
-            <div className="inline-block px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 font-semibold text-sm mb-2">
+            <div className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold text-xs">
               Our Impact
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#0A2540] leading-tight">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#0A2540] leading-tight">
               Empowering Learning <br />
               <span className="text-blue-600">Through Connection</span>
             </h2>
@@ -120,23 +123,46 @@ const ActivityStatsSection = () => {
             variants={containerVariants}
             initial="hidden"
             animate={inView ? "visible" : "hidden"}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-6"
+            className="grid grid-cols-3 sm:grid-cols-2 gap-2 sm:gap-6"
           >
             {statCards.map((card, index) => (
               <motion.div
                 key={card.id}
                 variants={itemVariants}
-                className={`p-6 rounded-2xl bg-white border border-gray-100 shadow-lg hover:shadow-xl transition-shadow ${index === 2 ? 'sm:col-span-2 sm:w-2/3 sm:mx-auto' : ''}`}
+                className={`relative p-4 sm:p-6 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 min-h-[140px] sm:min-h-[180px] ${index === 2 ? 'sm:col-span-2 sm:w-2/3 sm:mx-auto' : ''}`}
+                style={{
+                  backgroundImage: card.backgroundImage ? `url(${card.backgroundImage})` : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat'
+                }}
               >
-                <div className={`w-12 h-12 rounded-xl bg-${card.color}-50 flex items-center justify-center text-2xl mb-4`}>
-                  {card.icon}
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-3xl font-bold text-gray-900">
-                    {inView ? <CountUp end={card.value} duration={2.5} separator="," /> : '0'}+
-                  </h3>
-                  <p className="font-medium text-gray-700">{card.label}</p>
-                  <p className="text-sm text-gray-500">{card.description}</p>
+                {/* Subtle overlay for readability */}
+                <div className={`absolute inset-0 ${card.backgroundImage ? 'bg-gradient-to-br from-black/60 via-black/50 to-black/65' : `bg-${card.color}-50`}`}></div>
+                
+                {/* Content Layout */}
+                <div className="relative z-10 h-full flex items-center gap-3 sm:gap-4">
+                  {/* Left: Count with Icon */}
+                  <div className="flex-shrink-0">
+                    <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl ${card.backgroundImage ? 'bg-white/10 backdrop-blur-md border border-white/20' : `bg-${card.color}-100`} flex flex-col items-center justify-center shadow-lg`}>
+                      <div className="text-xl sm:text-2xl mb-1">
+                        {card.icon}
+                      </div>
+                      <div className={`text-lg sm:text-xl font-bold ${card.backgroundImage ? 'text-white' : 'text-gray-900'}`}>
+                        {inView ? <CountUp end={card.value} duration={2.5} separator="," /> : '0'}+
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Title & Description */}
+                  <div className="flex-1 space-y-1 sm:space-y-2">
+                    <h3 className={`text-sm sm:text-lg md:text-xl font-bold leading-tight ${card.backgroundImage ? 'text-white' : 'text-[#0A2540]'}`}>
+                      {card.label}
+                    </h3>
+                    <p className={`text-xs sm:text-sm leading-relaxed ${card.backgroundImage ? 'text-gray-200' : 'text-gray-600'}`}>
+                      {card.description}
+                    </p>
+                  </div>
                 </div>
               </motion.div>
             ))}

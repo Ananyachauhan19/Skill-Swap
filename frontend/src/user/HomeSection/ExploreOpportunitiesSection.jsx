@@ -48,14 +48,14 @@ const ExploreOpportunitiesSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section id="explore" className="py-4 sm:py-6 bg-home-bg">
+    <section id="explore" className="py-6 sm:py-8 bg-home-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-10">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold text-[#0A2540] mb-4"
+            className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#0A2540] mb-3"
           >
             Explore Opportunities
           </motion.h2>
@@ -70,12 +70,13 @@ const ExploreOpportunitiesSection = () => {
           </motion.p>
         </div>
 
+        {/* Desktop: Grid Layout */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+          className="hidden md:grid md:grid-cols-3 gap-8"
         >
           {opportunities.map((item, index) => (
             <motion.div
@@ -103,6 +104,39 @@ const ExploreOpportunitiesSection = () => {
             </motion.div>
           ))}
         </motion.div>
+
+        {/* Mobile: Horizontal Scroll */}
+        <div className="md:hidden overflow-x-auto scrollbar-hide -mx-4 px-4">
+          <div className="flex gap-4 pb-4">
+            {opportunities.map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                onClick={() => navigate(item.link)}
+                className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 cursor-pointer flex-shrink-0 w-[280px]"
+              >
+                <div className={`w-12 h-12 rounded-lg ${item.color === 'blue' ? 'bg-blue-50 text-blue-600' : item.color === 'purple' ? 'bg-purple-50 text-purple-600' : 'bg-green-50 text-green-600'} flex items-center justify-center text-xl mb-4`}>
+                  {item.icon}
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+                  {item.description}
+                </p>
+                <button
+                  onClick={(e) => { e.stopPropagation(); navigate(item.link); }}
+                  className="flex items-center text-xs font-semibold text-blue-600"
+                >
+                  Learn more <FaArrowRight className="ml-1" />
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        </div>
 
         <motion.div
           initial={{ opacity: 0 }}

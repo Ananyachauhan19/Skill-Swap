@@ -5,7 +5,7 @@ import {
   Globe, BookOpen, TrendingUp, Award, Star, Rocket, 
   ArrowRight, Play, Github, Linkedin, Twitter, Menu, X
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const About = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -23,13 +23,14 @@ const About = () => {
       { threshold: 0.1 }
     );
 
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
+    const currentRef = sectionRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (sectionRef.current) {
-        observer.unobserve(sectionRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, []);
@@ -50,16 +51,16 @@ const About = () => {
   const TabButton = ({ tab, isActive, onClick }) => (
     <motion.button
       onClick={onClick}
-      whileHover={{ y: -5, scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className={`flex items-center space-x-2 px-6 py-4 rounded-xl transition-all duration-300 ${
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.98 }}
+      className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-300 ${
         isActive
-          ? "bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-lg shadow-blue-500/30"
-          : "bg-blue-50 text-blue-800 hover:bg-blue-100"
+          ? "bg-[#0A2540] text-white shadow-sm"
+          : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
       }`}
     >
-      <tab.icon size={20} />
-      <span className="font-semibold">{tab.label}</span>
+      <tab.icon size={18} />
+      <span className="font-semibold text-sm">{tab.label}</span>
     </motion.button>
   );
 
@@ -68,7 +69,7 @@ const About = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className={`bg-white border border-blue-100 rounded-2xl p-8 shadow-lg shadow-blue-100/50 hover:shadow-blue-200/70 transition-all duration-300 ${className}`}
+      className={`bg-white border border-gray-100 rounded-xl p-8 shadow-sm hover:shadow-md transition-all duration-300 ${className}`}
     >
       {children}
     </motion.div>
@@ -78,17 +79,16 @@ const About = () => {
     <SectionCard>
       <motion.button
         onClick={() => toggleSection(sectionKey)}
-        whileHover={{ x: 5 }}
         className="w-full flex items-center justify-between text-left group"
       >
-        <h3 className="text-xl font-semibold text-blue-800 group-hover:text-blue-600 transition-colors">
+        <h3 className="text-lg font-semibold text-[#0A2540] group-hover:text-blue-600 transition-colors">
           {title}
         </h3>
         <motion.div
           animate={{ rotate: expandedSection === sectionKey ? 180 : 0 }}
           transition={{ duration: 0.3 }}
         >
-          <ChevronDown size={24} className="text-blue-700" />
+          <ChevronDown size={20} className="text-gray-600" />
         </motion.div>
       </motion.button>
       <motion.div
@@ -109,31 +109,31 @@ const About = () => {
 
   const TeamMemberCard = ({ name, role, description, index }) => (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      whileHover={{ y: -10, scale: 1.02 }}
-      className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-2xl shadow-lg shadow-blue-100/50 hover:shadow-blue-200/70 transition-all duration-300 border border-blue-100"
+      whileHover={{ y: -5 }}
+      className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
     >
       <div className="flex items-center mb-4">
-        <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg shadow-blue-400/40">
+        <div className="w-14 h-14 bg-[#0A2540] rounded-full flex items-center justify-center text-white font-bold text-lg mr-4">
           {name.split(" ").map(n => n[0]).join("")}
         </div>
         <div>
-          <h4 className="font-bold text-blue-800">{name}</h4>
-          <p className="text-blue-600 font-medium">{role}</p>
+          <h4 className="font-bold text-[#0A2540] text-lg">{name}</h4>
+          <p className="text-gray-600 text-sm font-medium">{role}</p>
         </div>
       </div>
-      <p className="text-gray-700 leading-relaxed">{description}</p>
+      <p className="text-gray-600 leading-relaxed text-sm">{description}</p>
       <div className="flex space-x-3 mt-4">
         {[Twitter, Linkedin, Github].map((Icon, i) => (
           <motion.a 
             key={i}
             href="#"
-            whileHover={{ scale: 1.2, y: -2 }}
-            className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 hover:bg-blue-200 transition-colors"
+            whileHover={{ y: -2 }}
+            className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-colors"
           >
-            <Icon size={16} />
+            <Icon size={15} />
           </motion.a>
         ))}
       </div>
@@ -142,33 +142,33 @@ const About = () => {
 
   const FeatureCard = ({ title, description, icon, index }) => (
     <motion.div
-      initial={{ opacity: 0, y: 50 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      whileHover={{ y: -10 }}
-      className="bg-gradient-to-br from-white to-blue-50 p-6 rounded-2xl shadow-lg shadow-blue-100/50 hover:shadow-blue-200/70 transition-all duration-300 border border-blue-100"
+      whileHover={{ y: -5 }}
+      className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
     >
-      <div className="text-4xl mb-4">{icon}</div>
-      <h3 className="text-xl font-bold text-blue-800 mb-3">{title}</h3>
-      <p className="text-gray-700 leading-relaxed">{description}</p>
+      <div className="text-3xl mb-4">{icon}</div>
+      <h3 className="text-lg font-bold text-[#0A2540] mb-3">{title}</h3>
+      <p className="text-gray-600 leading-relaxed text-sm">{description}</p>
     </motion.div>
   );
 
   const ValueCard = ({ title, content, index }) => (
     <motion.div
-      initial={{ opacity: 0, x: -50 }}
-      animate={{ opacity: 1, x: 0 }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      whileHover={{ scale: 1.02 }}
-      className="bg-white p-6 rounded-2xl shadow-lg shadow-blue-100/50 border border-blue-100"
+      whileHover={{ y: -3 }}
+      className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md border border-gray-100 transition-all duration-300"
     >
       <div className="flex items-center mb-4">
-        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold mr-3">
+        <div className="w-10 h-10 bg-[#0A2540] rounded-full flex items-center justify-center text-white font-bold mr-3 text-sm">
           {index + 1}
         </div>
-        <h3 className="text-lg font-bold text-blue-800">{title}</h3>
+        <h3 className="text-base font-bold text-[#0A2540]">{title}</h3>
       </div>
-      <p className="text-gray-700 leading-relaxed">{content}</p>
+      <p className="text-gray-600 leading-relaxed text-sm">{content}</p>
     </motion.div>
   );
 
@@ -196,9 +196,9 @@ const About = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100">
+    <div className="min-h-screen bg-home-bg">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-blue-700 to-blue-500 text-white overflow-hidden">
+      <div className="relative bg-gradient-to-r from-[#0A2540] to-[#1e3a8a] text-white overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48ZyBmaWxsPSJub25lIiBzdHJva2U9IiMzODg0ZTMiIHN0cm9rZS13aWR0aD0iMSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMTUiLz48L2c+PC9zdmc+')] opacity-10"></div>
         
         <div className="max-w-7xl mx-auto px-4 py-20 relative z-10">
@@ -284,10 +284,10 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <BookOpen size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <BookOpen size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">Welcome to SkillSwap Hub</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">Welcome to SkillSwap Hub</h2>
                       </div>
                       <p className="text-gray-700 leading-relaxed text-lg mb-6">
                         Welcome to SkillSwap Hub, the world's first revolutionary platform where you can learn, teach, and earn – all in one place. We are not just a learning community, but a global ecosystem of knowledge exchange where every skill matters, every learner counts, and every teacher grows.
@@ -301,10 +301,10 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <Zap size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <Zap size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">How SkillSwap Hub Works</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">How SkillSwap Hub Works</h2>
                       </div>
                       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         {[
@@ -315,18 +315,18 @@ const About = () => {
                         ].map((item, index) => (
                           <motion.div
                             key={index}
-                            whileHover={{ y: -5 }}
-                            className="bg-gradient-to-b from-white to-blue-50 p-5 rounded-xl border border-blue-100 shadow-sm hover:shadow-md transition-all"
+                            whileHover={{ y: -3 }}
+                            className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-all"
                           >
-                            <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold mb-4">
+                            <div className="w-10 h-10 bg-[#0A2540] text-white rounded-full flex items-center justify-center font-bold mb-4 text-sm">
                               {index + 1}
                             </div>
-                            <h3 className="font-semibold text-blue-800 mb-2">{item.step}</h3>
-                            <p className="text-sm text-gray-600">{item.desc}</p>
+                            <h3 className="font-semibold text-[#0A2540] mb-2 text-sm">{item.step}</h3>
+                            <p className="text-xs text-gray-600 leading-relaxed">{item.desc}</p>
                           </motion.div>
                         ))}
                       </div>
-                      <p className="text-blue-700 font-medium text-center text-lg bg-blue-50 p-4 rounded-xl">
+                      <p className="text-[#0A2540] font-medium text-center text-base bg-blue-50 p-5 rounded-lg border border-gray-100">
                         The cycle never ends – you teach, learn, and earn simultaneously, making SkillSwap Hub not just a platform, but a lifestyle.
                       </p>
                     </SectionCard>
@@ -335,10 +335,10 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <TrendingUp size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <TrendingUp size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">Why SkillSwap Hub Exists</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">Why SkillSwap Hub Exists</h2>
                       </div>
                       <p className="text-gray-700 leading-relaxed text-lg mb-6">
                         Because we realized one big truth: Everyone has something to teach, and everyone has something to learn. Traditional education often overlooks practical skills, creativity, and fast-emerging expertise. But in today's world, these skills often make the biggest difference.
@@ -361,16 +361,16 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <Target size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <Target size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">Our Vision</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">Our Vision</h2>
                       </div>
                       <p className="text-gray-700 leading-relaxed text-lg mb-6">
                         Our vision is simple yet powerful: to create a world where knowledge is not restricted, but exchanged freely, fairly, and globally. We dream of a society where learning is accessible to everyone, where teaching is not limited to classrooms, and where earning opportunities come directly from your skills.
                       </p>
-                      <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
-                        <p className="text-blue-700 font-medium text-lg italic">
+                      <div className="bg-blue-50 p-5 rounded-lg border border-gray-100">
+                        <p className="text-[#0A2540] font-medium text-base italic">
                           This is the world we dream of. A world where learning never stops, where opportunities don't depend on wealth or location, and where anyone, anywhere, can rise by lifting others.
                         </p>
                       </div>
@@ -380,10 +380,10 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <Rocket size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <Rocket size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">Our Mission</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">Our Mission</h2>
                       </div>
                       <p className="text-gray-700 leading-relaxed text-lg mb-6 font-medium">
                         To democratize mastery: transforming every individual into a lifelong learner, teacher, and innovator, and turning knowledge into a global currency of impact and opportunity.
@@ -409,11 +409,11 @@ const About = () => {
                         ].map((item, index) => (
                           <motion.div
                             key={index}
-                            whileHover={{ y: -5 }}
-                            className="bg-gradient-to-b from-white to-blue-50 p-6 rounded-xl border border-blue-100 shadow-sm hover:shadow-md transition-all"
+                            whileHover={{ y: -3 }}
+                            className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-all"
                           >
-                            <h3 className="font-semibold text-blue-800 mb-3 text-lg">{item.title}</h3>
-                            <p className="text-gray-700">{item.desc}</p>
+                            <h3 className="font-semibold text-[#0A2540] mb-3 text-base">{item.title}</h3>
+                            <p className="text-gray-600 text-sm leading-relaxed">{item.desc}</p>
                           </motion.div>
                         ))}
                       </div>
@@ -432,10 +432,10 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <Star size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <Star size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">What Makes Us Unique?</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">What Makes Us Unique?</h2>
                       </div>
                       <div className="space-y-6">
                         {[
@@ -479,10 +479,10 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <Award size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <Award size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">The Impact We Aim For</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">The Impact We Aim For</h2>
                       </div>
                       <div className="grid md:grid-cols-2 gap-6 mb-8">
                         {[
@@ -494,18 +494,18 @@ const About = () => {
                         ].map((impact, index) => (
                           <motion.div
                             key={index}
-                            whileHover={{ y: -5 }}
-                            className="bg-gradient-to-b from-white to-blue-50 p-5 rounded-xl border border-blue-100 shadow-sm hover:shadow-md transition-all"
+                            whileHover={{ y: -3 }}
+                            className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-all"
                           >
-                            <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold mb-3">
+                            <div className="w-8 h-8 bg-[#0A2540] text-white rounded-full flex items-center justify-center font-bold mb-3 text-sm">
                               {index + 1}
                             </div>
-                            <p className="text-gray-700 font-medium">{impact}</p>
+                            <p className="text-gray-700 font-medium text-sm leading-relaxed">{impact}</p>
                           </motion.div>
                         ))}
                       </div>
-                      <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 rounded-xl text-center">
-                        <p className="text-lg font-medium">
+                      <div className="bg-[#0A2540] text-white p-6 rounded-lg text-center">
+                        <p className="text-base font-medium">
                           Our long-term impact is to create a global marketplace of knowledge – where skills are exchanged just like currencies, and education becomes a lifelong journey.
                         </p>
                       </div>
@@ -524,10 +524,10 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <Heart size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <Heart size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">Our Core Values</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">Our Core Values</h2>
                       </div>
                       <div className="space-y-6">
                         {[
@@ -567,13 +567,13 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <Lightbulb size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <Lightbulb size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">Teach, Learn, and Earn – The SkillSwap Hub Way</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">Teach, Learn, and Earn – The SkillSwap Hub Way</h2>
                       </div>
-                      <div className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-8 rounded-2xl text-center shadow-lg shadow-blue-500/30">
-                        <p className="text-xl mb-6 font-medium">
+                      <div className="bg-[#0A2540] text-white p-8 rounded-lg text-center">
+                        <p className="text-lg mb-6 font-medium">
                           At the end of the day, our motto says it all:
                         </p>
                         <p className="text-3xl font-bold mb-6">
@@ -598,13 +598,13 @@ const About = () => {
                         ].map((promise, index) => (
                           <motion.div 
                             key={index}
-                            whileHover={{ x: 5 }}
-                            className="flex items-start space-x-4 bg-blue-50 p-4 rounded-xl"
+                            whileHover={{ x: 3 }}
+                            className="flex items-start space-x-4 bg-blue-50 p-4 rounded-lg border border-gray-100"
                           >
-                            <div className="w-6 h-6 bg-blue-200 text-blue-800 rounded-full flex items-center justify-center font-bold flex-shrink-0">
+                            <div className="w-6 h-6 bg-[#0A2540] text-white rounded-full flex items-center justify-center font-bold flex-shrink-0 text-xs">
                               ✓
                             </div>
-                            <p className="text-gray-700">{promise}</p>
+                            <p className="text-gray-700 text-sm leading-relaxed">{promise}</p>
                           </motion.div>
                         ))}
                       </div>
@@ -623,10 +623,10 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <Users size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <Users size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">Our Team</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">Our Team</h2>
                       </div>
                       <p className="text-gray-700 leading-relaxed text-lg mb-6">
                         Behind SkillSwap Hub is a passionate and visionary team of educators, technologists, innovators, and dreamers, united by a single belief: knowledge should be accessible to everyone. Our mission is to build a platform that empowers learners and tutors alike, enabling them to seek, teach, and earn in a seamless, engaging, and meaningful way.
@@ -634,8 +634,8 @@ const About = () => {
                       <p className="text-gray-700 leading-relaxed text-lg mb-6">
                         Our team brings together expertise from diverse domains — education, software development, AI, design, and entrepreneurship — to create a platform that is not just functional but also transformative. We are learners ourselves, so we deeply understand the challenges of finding quality, affordable, and accessible education. Every feature we build is guided by empathy, inclusivity, and innovation, ensuring that our platform addresses real user needs while creating a supportive community.
                       </p>
-                      <div className="bg-blue-50 p-6 rounded-xl border border-blue-100">
-                        <p className="text-blue-700 font-medium text-lg">
+                      <div className="bg-blue-50 p-5 rounded-lg border border-gray-100">
+                        <p className="text-[#0A2540] font-medium text-base">
                           More than just a team, we see ourselves as the first members of this global learning community, working tirelessly to ensure SkillSwap Hub grows into a movement that changes the way people learn, teach, and earn.
                         </p>
                       </div>
@@ -682,8 +682,8 @@ const About = () => {
                           />
                         ))}
                       </div>
-                      <div className="mt-10 bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 rounded-2xl text-center">
-                        <p className="text-lg font-medium">
+                      <div className="mt-10 bg-[#0A2540] text-white p-6 rounded-lg text-center">
+                        <p className="text-base font-medium">
                           Together, these five co-founders combine their vision, expertise, and passion to make SkillSwap Hub a global hub for learning, teaching, and earning.
                         </p>
                       </div>
@@ -702,10 +702,10 @@ const About = () => {
                   <motion.div variants={itemVariants}>
                     <SectionCard>
                       <div className="flex items-center mb-6">
-                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 mr-4">
-                          <Rocket size={24} />
+                        <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-[#0A2540] mr-4">
+                          <Rocket size={22} />
                         </div>
-                        <h2 className="text-3xl font-bold text-blue-800">The Future of SkillSwap Hub</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540]">The Future of SkillSwap Hub</h2>
                       </div>
                       <div className="grid md:grid-cols-2 gap-8">
                         {[
@@ -749,8 +749,8 @@ const About = () => {
                           />
                         ))}
                       </div>
-                      <div className="mt-12 bg-gradient-to-r from-blue-600 to-blue-500 text-white p-8 rounded-2xl text-center">
-                        <p className="text-xl font-medium">
+                      <div className="mt-12 bg-[#0A2540] text-white p-8 rounded-lg text-center">
+                        <p className="text-lg font-medium">
                           These upcoming features will ensure that SkillSwap Hub is not just another platform, but a next-gen ecosystem where learning feels personal, futuristic, and limitless.
                         </p>
                       </div>
@@ -764,7 +764,7 @@ const About = () => {
       </div>
 
       {/* Call to Action */}
-      <div className="relative bg-gradient-to-r from-blue-700 to-blue-500 text-white overflow-hidden py-20">
+      <div className="relative bg-gradient-to-r from-[#0A2540] to-[#1e3a8a] text-white overflow-hidden py-16">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48ZyBmaWxsPSJub25lIiBzdHJva2U9IiMzODg0ZTMiIHN0cm9rZS13aWR0aD0iMSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMTUiLz48L2c+PC9zdmc+')] opacity-10"></div>
         
         <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
@@ -794,20 +794,20 @@ const About = () => {
             viewport={{ once: true }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <motion.button 
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-white text-blue-700 rounded-xl font-semibold flex items-center justify-center space-x-2 shadow-lg"
-            >
-              <Link to="/home">
+            <Link to="/home">
+              <motion.button 
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-8 py-3 bg-white text-[#0A2540] rounded-lg font-semibold flex items-center justify-center space-x-2 shadow-sm hover:shadow-md transition-all"
+              >
                 <span>Get Started</span>
-              </Link>
-              <ArrowRight size={20} />
-            </motion.button>
+                <ArrowRight size={18} />
+              </motion.button>
+            </Link>
             <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 border border-white text-white rounded-xl font-semibold hover:bg-white/20 transition-colors"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className="px-8 py-3 border-2 border-white text-white rounded-lg font-semibold hover:bg-white hover:text-[#0A2540] transition-all"
             >
               Learn More
             </motion.button>
