@@ -26,6 +26,9 @@ router.post('/applications/:id/reject', requireAuth, ctrl.rejectApplication);
 // Get requests for user (or all if admin)
 router.get('/requests', requireAuth, ctrl.getUserRequests);
 
+// Get single interview request by ID
+router.get('/requests/:id', requireAuth, ctrl.getRequestById);
+
 // Admin: get all requests
 router.get('/all-requests', requireAuth, ctrl.getAllRequests);
 

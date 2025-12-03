@@ -12,7 +12,6 @@ import StatsSection from "./interviewSection/StatsSection";
 import PastInterviewsPreview from "./interviewSection/PastInterviewsPreview";
 import TopInterviewers from "./interviewSection/TopInterviewers";
 import FAQSection from "./interviewSection/FAQ";
-// Removed TopInterviewPerformance and full PastInterviewSection per request
 
 
 const howItWorksSteps = [
@@ -338,7 +337,7 @@ function BookInterviewModal({ isOpen, onClose }) {
                     Recommended Interviewers
                   </h4>
                   <div className="space-y-2">
-                    {matchedInterviewers.map((m) => (
+                    {matchedInterviewers.filter(m => m.user && m.user._id).map((m) => (
                       <label
                         key={m.application._id}
                         className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
@@ -370,7 +369,7 @@ function BookInterviewModal({ isOpen, onClose }) {
                               )}
                             </div>
                             <div className={`text-sm ${selectedInterviewer === String(m.user._id) ? 'text-blue-100' : 'text-gray-600'}`}>
-                              {m.user.college || m.application.company} • {m.application.qualification}
+                              {m.user?.college || m.application?.company} • {m.application?.qualification}
                             </div>
                             {/* Interview Count - Always show */}
                             <div className={`text-xs mt-1 flex items-center gap-3 ${selectedInterviewer === String(m.user._id) ? 'text-blue-200' : 'text-gray-500'}`}>

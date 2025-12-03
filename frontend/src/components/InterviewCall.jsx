@@ -158,36 +158,55 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
         const onSharedImage = (data) => { if (data && data.imageUrl) setSharedImage(data.imageUrl); };
         const onRemoveImage = () => setSharedImage(null);
 
-        const onUserJoined = async (payload) => {
-          console.debug('[signaling] user-joined received', payload);
-          // Ensure peer connection exists and local tracks are attached
+        const onStartCall = async (payload) => {
+          console.log('[INTERVIEW] start-call received - initiating offer', payload);
+          // Only the second joiner gets this event and creates the offer
           const pc = createPeerConnection();
           try {
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            console.debug('[signaling] emitting offer');
+            console.log('[INTERVIEW] emitting offer to sessionId:', sessionId);
             socket.emit('offer', { sessionId, offer });
-          } catch (err) { console.error('[signaling] onUserJoined error', err); }
+          } catch (err) { console.error('[INTERVIEW] onStartCall error', err); }
+        };
+
+        const onPeerJoined = (payload) => {
+          console.log('[INTERVIEW] peer-joined received - waiting for offer', payload);
+          // First joiner gets this - just create peer connection and wait for offer
+          createPeerConnection();
+        };
+
+        const onUserJoined = async (payload) => {
+          console.log('[INTERVIEW] user-joined received (legacy)', payload);
+          // This is for backward compatibility with regular sessions
+          const pc = createPeerConnection();
+          try {
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            console.log('[INTERVIEW] emitting offer to sessionId:', sessionId);
+            socket.emit('offer', { sessionId, offer });
+          } catch (err) { console.error('[INTERVIEW] onUserJoined error', err); }
         };
 
         const onOffer = async (data) => {
-          console.debug('[signaling] offer received', !!data?.offer);
+          console.log('[INTERVIEW] offer received', !!data?.offer);
           try {
             const pc = peerConnectionRef.current || createPeerConnection();
-            console.debug('[signaling] pc signalingState before setRemoteDescription:', pc.signalingState);
+            console.log('[INTERVIEW] pc signalingState before setRemoteDescription:', pc.signalingState);
             await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
             // If we were in the middle of local offer (glare), createAnswer will resolve
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
-            console.debug('[signaling] emitting answer');
+            console.log('[INTERVIEW] emitting answer');
             socket.emit('answer', { sessionId, answer });
-          } catch (err) { console.error('[signaling] onOffer error', err); }
+          } catch (err) { console.error('[INTERVIEW] onOffer error', err); }
         };
 
         const onAnswer = async (data) => {
-          console.debug('[signaling] answer received');
+          console.log('[INTERVIEW] answer received');
           try {
             await peerConnectionRef.current?.setRemoteDescription(new RTCSessionDescription(data.answer));
+            console.log('[INTERVIEW] Connection established!');
             setIsConnected(true);
             // If remote stream already attached via ontrack, callStartTime will be set there; otherwise rely on remoteStream state
             if (remoteStream && !callStartTime) { setCallStartTime(Date.now()); setElapsedSeconds(0); }
@@ -221,6 +240,8 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
         socket.on('shared-image', onSharedImage);
         socket.on('remove-image', onRemoveImage);
 
+        socket.on('start-call', onStartCall);
+        socket.on('peer-joined', onPeerJoined);
         socket.on('user-joined', onUserJoined);
         socket.on('offer', onOffer);
         socket.on('answer', onAnswer);
@@ -247,11 +268,12 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
         socket.on('annotation-draw', handleRemoteDraw);
         socket.on('annotation-clear', handleRemoteClear);
 
-        // Now join the session (after listeners attached) and request shared image
-        socket.emit('join-session', { sessionId, userRole, username });
+        // Now join the interview session (after listeners attached) and request shared image
+        console.log('[INTERVIEW] Joining interview session:', sessionId, 'as', userRole, username);
+        socket.emit('join-interview-session', { sessionId, userRole, username });
         socket.emit('request-shared-image', { sessionId });
 
-        setIsConnected(true);
+        // Don't set isConnected true here - wait for peer connection
       } catch (error) {
         console.error('[DEBUG] Error accessing media devices:', error);
         alert('Unable to access camera/microphone. Please check permissions.');
@@ -316,20 +338,53 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
   const createPeerConnection = useCallback(() => {
     const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
     const pc = new RTCPeerConnection(configuration);
-    if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(track => { try { pc.addTrack(track, localStreamRef.current); } catch (e) { console.warn('[DEBUG] addTrack failed:', e); } }); }
+    
+    console.log('[INTERVIEW] Creating peer connection, adding local tracks:', localStreamRef.current?.getTracks().length);
+    if (localStreamRef.current) { 
+      localStreamRef.current.getTracks().forEach(track => { 
+        try { 
+          console.log('[INTERVIEW] Adding track:', track.kind, track.label);
+          pc.addTrack(track, localStreamRef.current); 
+        } catch (e) { 
+          console.warn('[INTERVIEW] addTrack failed:', e); 
+        } 
+      }); 
+    }
+    
     pc.ontrack = (event) => {
       const [stream] = event.streams || [];
-      console.debug('[peer] ontrack - got remote stream', !!stream);
+      console.log('[INTERVIEW] ontrack event - got remote stream:', !!stream, 'tracks:', stream?.getTracks().length, stream?.getTracks().map(t => t.kind));
       setRemoteStream(stream || null);
       if (remoteVideoRef.current) {
-        try { remoteVideoRef.current.srcObject = stream || null; applySinkId(remoteVideoRef.current, selectedAudioDevice); } catch (e) { console.warn('[peer] set remote srcObject failed', e); }
+        try { 
+          console.log('[INTERVIEW] Setting remote video srcObject');
+          remoteVideoRef.current.srcObject = stream || null; 
+          applySinkId(remoteVideoRef.current, selectedAudioDevice); 
+        } catch (e) { 
+          console.warn('[INTERVIEW] set remote srcObject failed', e); 
+        }
       }
       // start call timer when we receive a remote track
       if (stream && !callStartTime) { setCallStartTime(Date.now()); setElapsedSeconds(0); }
     };
-    pc.onicecandidate = (event) => { if (event.candidate) socket.emit('ice-candidate', { sessionId, candidate: event.candidate }); };
+    
+    pc.onicecandidate = (event) => { 
+      if (event.candidate) {
+        console.log('[INTERVIEW] Sending ICE candidate');
+        socket.emit('ice-candidate', { sessionId, candidate: event.candidate }); 
+      }
+    };
+    
+    pc.oniceconnectionstatechange = () => {
+      console.log('[INTERVIEW] ICE connection state:', pc.iceConnectionState);
+    };
+    
+    pc.onconnectionstatechange = () => {
+      console.log('[INTERVIEW] Connection state:', pc.connectionState);
+    };
+    
     peerConnectionRef.current = pc;
-    console.debug('[peer] createPeerConnection created pc and attached local tracks');
+    console.log('[INTERVIEW] Peer connection created');
     return pc;
   }, [selectedAudioDevice, sessionId]);
 

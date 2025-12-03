@@ -8,6 +8,35 @@ const fs = require('fs');
 const os = require('os');
 const supabase = require('../utils/supabaseClient');
 
+// Get single interview request by ID
+exports.getRequestById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    
+    const request = await InterviewRequest.findById(id)
+      .populate('requester', 'firstName lastName username email')
+      .populate('assignedInterviewer', 'firstName lastName username email');
+    
+    if (!request) {
+      return res.status(404).json({ message: 'Interview request not found' });
+    }
+    
+    // Check if user is part of this interview
+    const isRequester = String(request.requester?._id) === String(userId);
+    const isInterviewer = String(request.assignedInterviewer?._id) === String(userId);
+    
+    if (!isRequester && !isInterviewer) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    return res.json(request);
+  } catch (err) {
+    console.error('Error fetching interview request:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // Multer memory storage for uploading resume directly to Supabase
 // Accept only PDF up to 2MB
 const upload = multer({

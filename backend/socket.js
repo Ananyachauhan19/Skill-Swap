@@ -1,4 +1,3 @@
-    
 const User = require('./models/User');
 const SessionRequest = require('./models/SessionRequest');
 const Session = require('./models/Session');
@@ -890,7 +889,48 @@ module.exports = (io) => {
       }
     }
 
-    // Join session room for video calling
+    // Join interview session room for video calling (interview calls only)
+    socket.on('join-interview-session', async ({ sessionId, userRole, username }) => {
+      console.log('[INTERVIEW] User joining interview session:', { sessionId, userRole, username, socketId: socket.id });
+      
+      // Check if there's already someone in the room before joining
+      const existingUsers = sessionRooms.get(sessionId);
+      const wasAlreadyOccupied = existingUsers && existingUsers.size > 0;
+      
+      console.log('[INTERVIEW] Room state - wasAlreadyOccupied:', wasAlreadyOccupied, 'existing count:', existingUsers?.size || 0);
+      
+      socket.join(sessionId);
+      if (!sessionRooms.has(sessionId)) {
+        sessionRooms.set(sessionId, new Set());
+      }
+      sessionRooms.get(sessionId).add(socket.id);
+      
+      console.log('[INTERVIEW] After join - room size:', sessionRooms.get(sessionId).size);
+      
+      if (wasAlreadyOccupied) {
+        // Second user joining - tell them to initiate the offer
+        console.log('[INTERVIEW] Second user joined, telling them to start call');
+        socket.emit('start-call', { sessionId, userRole, username });
+        // Notify the first user that someone joined (but don't make them create offer)
+        socket.to(sessionId).emit('peer-joined', { sessionId, userRole, username });
+      } else {
+        // First user joining - just wait for the second user
+        console.log('[INTERVIEW] First user joined, waiting for peer');
+      }
+
+      // If this is an interview request room and it has an image, share it to participants
+      try {
+        const InterviewRequest = require('./models/InterviewRequest');
+        const req = await InterviewRequest.findById(sessionId).select('questionImageUrl');
+        if (req && req.questionImageUrl) {
+          io.to(sessionId).emit('shared-image', { imageUrl: req.questionImageUrl });
+        }
+      } catch (e) {
+        // Not an interview request or no image; ignore
+      }
+    });
+
+    // Join session room for video calling (one-on-one sessions)
     socket.on('join-session', async ({ sessionId, userRole, username }) => {
       socket.join(sessionId);
       if (!sessionRooms.has(sessionId)) {
