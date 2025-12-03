@@ -13,11 +13,11 @@ const Home = () => {
     <main className="bg-home-bg text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] pt-8">
       <motion.div initial="visible" animate="visible">
         <HeroSection />
+        <ExploreOpportunitiesSection />
         <ActivityStatsSection />
         <TopPerformersSection />
         <WhyChooseSection />
         <WhoAreWeSection />
-        <ExploreOpportunitiesSection />
         <LetsStartSection />
       </motion.div>
     </main>

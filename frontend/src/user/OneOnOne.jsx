@@ -8,88 +8,55 @@ import Blog from '../user/company/Blog';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const HowItWorks = () => {
-  const [clickedIndex, setClickedIndex] = useState(null);
-
-  const handleCardClick = (index) => {
-    setClickedIndex(clickedIndex === index ? null : index);
-  };
-
   return (
-    <section className="relative rounded-3xl mb-8 w-full max-w-7xl mx-auto overflow-hidden bg-white border border-gray-100 shadow-sm">
-      <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col gap-6 sm:gap-8">
-        <div className="flex flex-col items-center gap-4 mb-4 sm:mb-6">
-          <div className="flex items-center justify-center gap-3 w-full flex-wrap">
-            <div className="w-8 sm:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-[#1e3a8a] text-center">
-              🚀 How It Works
-            </h2>
-            <div className="w-8 sm:w-12 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-          </div>
-          <p className="text-center text-gray-600 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto px-2">
-            Connect with expert tutors and accelerate your learning journey
-          </p>
-        </div>
+    <section className="bg-white rounded-xl p-6 sm:p-8 border border-gray-200">
+      <div className="mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">
+          How It Works
+        </h2>
+        <p className="text-center text-gray-600">
+          Connect with expert tutors and accelerate your learning journey
+        </p>
+      </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-          {[
-            {
-              emoji: "🔍",
-              title: "Search Expert",
-              desc: "Select class, subject, or topic to find the perfect tutor",
-              bgGradient: "from-[#3b82f6] to-[#2563eb]",
-              lightBg: "from-[#dbeafe] to-[#bfdbfe]",
-              borderColor: "border-[#93c5fd]",
-            },
-            {
-              emoji: "🎓",
-              title: "Connect & Learn",
-              desc: "Get real-time guidance from experienced tutors",
-              bgGradient: "from-[#2563eb] to-[#1e40af]",
-              lightBg: "from-[#bfdbfe] to-[#93c5fd]",
-              borderColor: "border-[#60a5fa]",
-            },
-            {
-              emoji: "💰",
-              title: "Silver Coin System",
-              desc: "Pay 0.25 rupees per minute of learning",
-              bgGradient: "from-[#1e40af] to-[#1e3a8a]",
-              lightBg: "from-[#93c5fd] to-[#60a5fa]",
-              borderColor: "border-[#3b82f6]",
-            },
-            {
-              emoji: "⏱️",
-              title: "Example",
-              desc: "40 min = 10 Coins\n60 min = 15 Coins",
-              bgGradient: "from-[#3b82f6] to-[#2563eb]",
-              lightBg: "from-[#dbeafe] to-[#bfdbfe]",
-              borderColor: "border-[#60a5fa]",
-            }
-          ].map((item, index) => (
-            <div
-              key={index}
-              onClick={() => handleCardClick(index)}
-              className="group relative flex flex-col items-center text-center p-5 sm:p-6 bg-white rounded-xl border border-gray-100 transition-all duration-300 hover:shadow-md overflow-hidden cursor-pointer"
-            >
-              <div className="absolute top-0 left-0 right-0 h-1 bg-blue-500"></div>
-
-              <div 
-                className={`relative z-10 flex items-center justify-center w-14 sm:w-16 h-14 sm:h-16 rounded-full bg-blue-50 mb-4 transition-all duration-300 text-2xl ${
-                  clickedIndex === index ? 'scale-110 rotate-12' : 'group-hover:scale-110'
-                }`}
-              >
-                {item.emoji}
-              </div>
-
-              <h3 className="relative z-10 text-lg sm:text-xl font-bold text-[#1e3a8a] mb-2">
-                {item.title}
-              </h3>
-
-              <p className="relative z-10 text-xs sm:text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-                {item.desc}
-              </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          {
+            emoji: "🔍",
+            title: "Search Expert",
+            desc: "Select class, subject, or topic to find the perfect tutor",
+          },
+          {
+            emoji: "🎓",
+            title: "Connect & Learn",
+            desc: "Get real-time guidance from experienced tutors",
+          },
+          {
+            emoji: "💰",
+            title: "Silver Coin System",
+            desc: "Pay 0.25 rupees per minute of learning",
+          },
+          {
+            emoji: "⏱️",
+            title: "Example",
+            desc: "40 min = 10 Coins\n60 min = 15 Coins",
+          }
+        ].map((item, index) => (
+          <div
+            key={index}
+            className="flex flex-col items-center text-center p-6 bg-gray-50 rounded-lg border border-gray-200"
+          >
+            <div className="text-4xl mb-3">
+              {item.emoji}
             </div>
-          ))}
-        </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {item.title}
+            </h3>
+            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+              {item.desc}
+            </p>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -265,15 +232,12 @@ const OneOnOne = () => {
       {/* Main Content */}
       <main className="w-full max-w-7xl mx-auto flex flex-col gap-12 sm:gap-16 px-4 sm:px-8 py-8 sm:py-12 lg:py-16">
         {/* Search Section */}
-        <section className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 border border-gray-100 shadow-sm overflow-hidden">
-          <div className="flex flex-col items-center gap-4 mb-8 pb-6 border-b border-gray-200">
-            <div className="flex items-center justify-center gap-3 w-full flex-wrap">
-              <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1e3a8a] text-center">
-                🔍 Find Your Expert
-              </h2>
-              <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-            </div>
+        <section className="bg-white rounded-xl p-6 sm:p-8 border border-gray-200">
+          <div className="mb-8">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">
+              Find Your Expert
+            </h2>
+            <p className="text-center text-gray-600 text-sm">Search by class, subject, and topic</p>
           </div>
 
           <SearchBar

@@ -152,11 +152,11 @@ const InterviewSearchBox = ({ onSearch }) => {
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md p-4 max-w-6xl w-full mx-auto mt-8 sm:p-8 md:p-10 lg:p-12 xl:p-16">
-        <div className="relative w-full max-w-3xl mx-auto flex items-center gap-2">
+      <div className="bg-white rounded-xl border border-gray-200 p-8 max-w-6xl w-full mx-auto mt-8">
+        <div className="relative w-full max-w-3xl mx-auto flex items-center gap-3">
           <input
             ref={searchInputRef}
-            className="px-4 py-3 rounded-lg border border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base shadow-sm w-full transition-all duration-200 bg-blue-50 hover:bg-blue-100"
+            className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base w-full"
             placeholder="Search by job, course, branch, or session title..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
@@ -167,7 +167,7 @@ const InterviewSearchBox = ({ onSearch }) => {
           />
           <button
             onClick={handleSearch}
-            className="ml-2 px-4 py-3 rounded-lg bg-green-600 text-white font-semibold shadow-md hover:bg-green-700 transition-all duration-200 whitespace-nowrap"
+            className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors whitespace-nowrap"
           >
             Search
           </button>

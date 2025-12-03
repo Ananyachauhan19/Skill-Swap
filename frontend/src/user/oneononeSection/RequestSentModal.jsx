@@ -11,14 +11,14 @@ const RequestSentNotification = ({ tutor, onCancel }) => {
     // window.dispatchEvent(new CustomEvent('removeRequestSentNotification', { detail: { tutor } }));
   };
   return (
-    <div className="flex flex-col gap-2 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-lg shadow mb-2 animate-fadeIn">
-      <div className="font-semibold text-blue-900">Request Sent</div>
-      <div className="text-blue-800 text-sm">
+    <div className="flex flex-col gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg mb-2">
+      <div className="font-semibold text-gray-900">Request Sent</div>
+      <div className="text-gray-700 text-sm">
         Your session request has been sent to <span className="font-semibold">{tutor.name}</span>. Please wait for them to accept.
       </div>
-      <div className="flex gap-2 mt-2">
+      <div>
         <button
-          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm font-semibold"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
           onClick={handleCancel}
         >
           Cancel Request

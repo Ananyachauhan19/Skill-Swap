@@ -30,28 +30,31 @@ const PastExpertsSection = () => {
   }, []);
 
   return (
-    <section className="w-full flex flex-col items-center py-12 bg-blue-50">
-      <div className="bg-white rounded-lg shadow-md p-6 w-full max-w-5xl">
-        <h4 className="text-xl sm:text-2xl font-bold text-blue-800 mb-6 text-center">Past Experts Who Led Mock Interviews</h4>
+    <section className="w-full bg-home-bg py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-10">
+          <h4 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">Past Expert Interviewers</h4>
+          <p className="text-center text-gray-600">Professionals who conducted mock interviews</p>
+        </div>
         {loading ? (
-          <div className="text-blue-700 text-lg font-semibold py-12 text-center">Loading...</div>
+          <div className="text-gray-600 py-12 text-center">Loading...</div>
         ) : error ? (
-          <div className="text-red-600 text-lg font-semibold py-12 text-center">{error}</div>
+          <div className="text-red-600 py-12 text-center">{error}</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {experts.length === 0 ? (
-              <div className="col-span-full text-gray-500 text-center">No data found</div>
+              <div className="col-span-full text-gray-500 text-center py-8">No data found</div>
             ) : (
               experts.map((expert, idx) => (
-                <div key={idx} className="flex flex-col items-center bg-white rounded-lg shadow p-4 gap-2 border border-blue-100">
+                <div key={idx} className="flex flex-col items-center bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 transition-colors">
                   <img
                     src={getProfilePic(expert.profilePic, expert.name)}
                     alt={expert.name}
-                    className="w-14 h-14 rounded-full object-cover border border-blue-200 mb-2"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-blue-200 mb-4"
                   />
-                  <div className="font-semibold text-blue-900 text-base text-center">{expert.name}</div>
-                  <div className="text-xs text-gray-600 mt-1 text-center">{expert.miniBio}</div>
-                  <div className="text-xs text-gray-700 mt-2 text-center font-medium bg-blue-50 rounded p-2 border border-blue-100">{expert.description}</div>
+                  <div className="font-semibold text-gray-900 text-center text-base mb-2">{expert.name}</div>
+                  <div className="text-xs text-gray-600 text-center mb-3">{expert.miniBio}</div>
+                  <div className="text-sm text-gray-700 text-center bg-blue-50 rounded-lg p-3 border border-blue-200 w-full">{expert.description}</div>
                 </div>
               ))
             )}

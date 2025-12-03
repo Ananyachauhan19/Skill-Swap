@@ -96,53 +96,45 @@ const TopInterviewers = () => {
     const trophy = getTrophyColor(index);
     
     return (
-      <div
-        className="relative bg-white rounded-2xl p-4 sm:p-6 border-2 border-[#93c5fd] shadow-md overflow-hidden"
-      >
-        {/* Rank Badge */}
-        <div className="absolute top-3 sm:top-4 right-3 sm:right-4 text-2xl sm:text-4xl">{trophy.icon}</div>
+      <div className="bg-white rounded-xl p-6 border border-gray-200">
+        <div className="absolute top-4 right-4 text-3xl">{trophy.icon}</div>
         
-        {/* Gradient accent */}
-        <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#3b82f6] to-[#2563eb]`}></div>
-        
-        <div className="flex items-center gap-3 sm:gap-4 mb-4 relative z-10">
-          <div className="relative flex-shrink-0">
-            <div className={`absolute inset-0 bg-gradient-to-br from-[#3b82f6] to-[#2563eb] opacity-20 rounded-full blur-md`}></div>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex-shrink-0">
             <img
               src={person.user?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(person.user?.firstName || person.user?.username || 'User')}&background=3b82f6&color=fff&bold=true`}
               alt={person.user?.firstName || person.user?.username || 'User'}
-              className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-3 border-white shadow-lg ring-2 ring-[#3b82f6]"
+              className="w-16 h-16 rounded-full object-cover border-2 border-blue-200"
             />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm sm:text-lg font-bold text-[#1e3a8a] truncate">
+            <h4 className="text-lg font-semibold text-gray-900 truncate">
               {person.user?.firstName || person.user?.username || 'N/A'} {person.user?.lastName || ''}
             </h4>
-            <p className="text-xs sm:text-sm text-[#2563eb] font-semibold flex items-center gap-1">
-              {type === 'conducted' ? '🎯 Top Interviewer' : '⭐ Top Candidate'}
+            <p className="text-sm text-gray-600 flex items-center gap-1">
+              {type === 'conducted' ? 'Top Interviewer' : 'Top Candidate'}
             </p>
           </div>
         </div>
 
-        <div className="space-y-2 sm:space-y-3 relative z-10">
-          <div className="flex items-center justify-between p-2 sm:p-3 bg-[#f0f9ff] border border-[#93c5fd] rounded-lg sm:rounded-xl">
-            <span className="text-xs sm:text-sm text-[#1e3a8a] font-bold flex items-center gap-1 sm:gap-2">
-              <FaVideo className="text-[#3b82f6] text-xs sm:text-base" />
-              <span className="hidden sm:inline">{type === 'conducted' ? 'Conducted' : 'Attended'}</span>
-              <span className="sm:hidden">{type === 'conducted' ? 'Done' : 'Joined'}</span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <span className="text-sm text-gray-900 font-medium flex items-center gap-2">
+              <FaVideo className="text-blue-600" />
+              {type === 'conducted' ? 'Conducted' : 'Attended'}
             </span>
-            <span className="text-xl sm:text-2xl font-black text-[#2563eb]">{person.count || 0}</span>
+            <span className="text-xl font-bold text-blue-600">{person.count || 0}</span>
           </div>
 
           {person.avgRating > 0 && (
-            <div className="flex items-center justify-between p-2 sm:p-3 bg-[#f0f9ff] border border-[#93c5fd] rounded-lg sm:rounded-xl">
-              <span className="text-xs sm:text-sm text-[#1e3a8a] font-bold flex items-center gap-1 sm:gap-2">
-                <FaStar className="text-[#3b82f6] text-xs sm:text-base" />
+            <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <span className="text-sm text-gray-900 font-medium flex items-center gap-2">
+                <FaStar className="text-yellow-500" />
                 Rating
               </span>
-              <div className="flex items-center gap-0.5 sm:gap-1">
-                <span className="text-lg sm:text-2xl font-black text-[#1e40af]">{person.avgRating.toFixed(1)}</span>
-                <span className="text-xs sm:text-sm text-[#2563eb]">/5</span>
+              <div className="flex items-center gap-1">
+                <span className="text-xl font-bold text-gray-900">{person.avgRating.toFixed(1)}</span>
+                <span className="text-sm text-gray-600">/5</span>
               </div>
             </div>
           )}
@@ -167,30 +159,25 @@ const TopInterviewers = () => {
   }
 
   return (
-    <section className="relative w-full overflow-hidden bg-home-bg">
-      <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col gap-8 sm:gap-10 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col items-center gap-4 mb-4 sm:mb-6">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 w-full flex-wrap">
-            <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1e3a8a] text-center">
-              🏆 Top Performers
-            </h2>
-            <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-          </div>
+    <section className="bg-home-bg py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">
+            Top Performers
+          </h2>
+          <p className="text-center text-gray-600 text-sm">Outstanding interviewers and active candidates</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-          {/* Top Interviewers */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {topConducted.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 p-3 sm:p-4 bg-[#f0f9ff] border-2 border-[#93c5fd] rounded-xl sm:rounded-2xl">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#3b82f6] to-[#2563eb] rounded-lg sm:rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-lg flex-shrink-0">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl flex-shrink-0">
                   🎯
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-lg sm:text-xl font-bold text-[#1e3a8a]">Top Interviewers</h3>
-                  <p className="text-xs sm:text-sm text-[#2563eb] truncate">Most experienced professionals</p>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Top Interviewers</h3>
+                  <p className="text-sm text-gray-600">Most experienced professionals</p>
                 </div>
               </div>
               <div className="space-y-4">
@@ -201,16 +188,15 @@ const TopInterviewers = () => {
             </div>
           )}
 
-          {/* Top Candidates */}
           {topRequested.length > 0 && (
             <div>
-              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 p-3 sm:p-4 bg-[#f0f9ff] border-2 border-[#93c5fd] rounded-xl sm:rounded-2xl">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[#3b82f6] to-[#2563eb] rounded-lg sm:rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-lg flex-shrink-0">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-2xl flex-shrink-0">
                   ⭐
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-lg sm:text-xl font-bold text-[#1e3a8a]">Top Candidates</h3>
-                  <p className="text-xs sm:text-sm text-[#2563eb] truncate">Most active seekers</p>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Top Candidates</h3>
+                  <p className="text-sm text-gray-600">Most active seekers</p>
                 </div>
               </div>
               <div className="space-y-4">
