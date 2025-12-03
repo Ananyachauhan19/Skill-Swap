@@ -7,7 +7,6 @@ import { FaTimes, FaCheckCircle, FaUserTie, FaCalendarAlt, FaComment, FaClock, F
 import { BACKEND_URL } from "../config.js";
 import { useAuth } from "../context/AuthContext";
 import { COMPANIES, POSITIONS } from "../constants/interviewData";
-import InterviewRatingModal from "../components/InterviewRatingModal";
 import StatsSection from "./interviewSection/StatsSection";
 import PastInterviewsPreview from "./interviewSection/PastInterviewsPreview";
 import TopInterviewers from "./interviewSection/TopInterviewers";
@@ -723,14 +722,6 @@ function ScheduledInterviewSection() {
           ))}
         </div>
         )}
-        
-        {/* Rating Modal */}
-        <InterviewRatingModal
-          isOpen={showRatingModal}
-          onClose={() => setShowRatingModal(false)}
-          interviewData={selectedInterview}
-          onRatingSubmitted={handleRatingSubmitted}
-        />
       </div>
     </section>
   );

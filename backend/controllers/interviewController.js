@@ -874,17 +874,26 @@ exports.getInterviewStats = async (req, res) => {
       $or: [{ requester: userId }, { assignedInterviewer: userId }]
     });
 
-    // Count interviews by status (as requester)
+    // Count interviews by status (as requester/participant)
     const myRequests = allInterviews.filter(i => String(i.requester) === String(userId));
     const totalRequested = myRequests.length;
-    const totalCompleted = myRequests.filter(i => i.status === 'completed').length;
+    const totalCompletedAsRequester = myRequests.filter(i => i.status === 'completed').length;
     const totalScheduled = myRequests.filter(i => i.status === 'scheduled').length;
     const totalPending = myRequests.filter(i => i.status === 'pending').length;
 
-    // Calculate success rate
-    const successRate = totalRequested > 0 ? Math.round((totalCompleted / totalRequested) * 100) : 0;
+    // Count interviews conducted as interviewer
+    const asConductor = allInterviews.filter(i => String(i.assignedInterviewer) === String(userId));
+    const totalConducted = asConductor.length;
+    const totalCompletedAsConductor = asConductor.filter(i => i.status === 'completed').length;
 
-    // Count unique experts
+    // Total interviews (both as participant and interviewer)
+    const totalInterviews = totalRequested + totalConducted;
+    const totalCompleted = totalCompletedAsRequester + totalCompletedAsConductor;
+
+    // Calculate success rate based on all interviews
+    const successRate = totalInterviews > 0 ? Math.round((totalCompleted / totalInterviews) * 100) : 0;
+
+    // Count unique experts (when user was a participant)
     const uniqueExperts = new Set();
     myRequests.forEach(i => {
       if (i.assignedInterviewer) {
@@ -897,12 +906,8 @@ exports.getInterviewStats = async (req, res) => {
     let asInterviewer = null;
     
     if (interviewerApp && interviewerApp.status === 'approved') {
-      const conducted = allInterviews.filter(i => 
-        String(i.assignedInterviewer) === String(userId) && i.status === 'completed'
-      );
-
       asInterviewer = {
-        totalConducted: conducted.length,
+        totalConducted: totalCompletedAsConductor,
         averageRating: interviewerApp.averageRating || 0,
         totalRatings: interviewerApp.totalRatings || 0,
         conductedInterviews: interviewerApp.conductedInterviews || 0
@@ -910,14 +915,14 @@ exports.getInterviewStats = async (req, res) => {
     }
 
     res.json({
-      // For StatsSection component
-      totalInterviews: totalRequested,
+      // For StatsSection component - includes both participant and interviewer interviews
+      totalInterviews,
       successRate,
       totalExperts: uniqueExperts.size,
       // Detailed breakdown
       asRequester: {
         totalRequested,
-        totalCompleted,
+        totalCompleted: totalCompletedAsRequester,
         totalScheduled,
         totalPending
       },

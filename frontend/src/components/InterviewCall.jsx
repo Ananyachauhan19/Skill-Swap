@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import socket from '../socket.js';
+import InterviewSessionRatingModal from './InterviewSessionRatingModal.jsx';
+import { BACKEND_URL } from '../config.js';
 
 // InterviewCall: same features as VideoCall but without coin/skill-coin logic
 const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', onEnd }) => {
@@ -71,6 +73,11 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
   // Audio outputs
   const [audioDevices, setAudioDevices] = useState([]);
   const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
+
+  // Rating modal state
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [interviewerName, setInterviewerName] = useState('');
+  const hasEndedRef = useRef(false);
 
   // Constants for whiteboard
   const CANVAS_WIDTH = 2000;
@@ -390,6 +397,52 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
 
   const applySinkId = async (videoEl, sinkId) => { if (!videoEl || typeof videoEl.setSinkId !== 'function' || !sinkId) return; try { await videoEl.setSinkId(sinkId); localStorage.setItem('preferredSinkId', sinkId); } catch (err) { console.warn('[DEBUG] setSinkId failed:', err); } };
 
+  const submitInterviewRating = async ({ rating, feedback }) => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/interview/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ requestId: sessionId, rating, feedback })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to submit rating');
+      }
+
+      setShowRatingModal(false);
+      onEnd && onEnd();
+    } catch (err) {
+      console.error('Failed to submit rating:', err);
+      alert(err.message || 'Failed to submit rating. Please try again.');
+    }
+  };
+
+  // Fetch interviewer name for rating modal
+  useEffect(() => {
+    const fetchInterviewDetails = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/interview/requests/${sessionId}`, {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const interview = await res.json();
+          const interviewer = interview.assignedInterviewer;
+          if (interviewer) {
+            setInterviewerName(`${interviewer.firstName || ''} ${interviewer.lastName || ''}`.trim() || interviewer.username);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch interview details:', error);
+      }
+    };
+
+    if (sessionId && userRole === 'student') {
+      fetchInterviewDetails();
+    }
+  }, [sessionId, userRole]);
+
   const cleanup = () => {
     try {
       localStreamRef.current?.getTracks()?.forEach(t => t.stop());
@@ -440,7 +493,34 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
 
   const sendReaction = (type) => { socket.emit('reaction', { sessionId, type, username }); setReactions(prev => [...prev, { type, username, timestamp: Date.now() }]); setTimeout(() => { setReactions(prev => prev.filter(r => Date.now() - r.timestamp < 5000)); }, 5000); setShowReactionsMenu(false); };
 
-  const handleEndCall = () => { socket.emit('end-call', { sessionId }); cleanup(); setCallStartTime(null); setElapsedSeconds(0); onEnd && onEnd(); };
+  const handleEndCall = async () => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
+
+    try {
+      socket.emit('end-call', { sessionId });
+      cleanup();
+      setCallStartTime(null);
+      setElapsedSeconds(0);
+
+      // Show rating modal for students only - compulsory, cannot close without submitting
+      // Interview will be marked as completed when rating is submitted
+      if (userRole === 'student') {
+        setShowRatingModal(true);
+      } else {
+        // Interviewer can exit immediately
+        onEnd && onEnd();
+      }
+    } catch (error) {
+      console.error('Error ending call:', error);
+      // Still show rating modal even on error
+      if (userRole === 'student') {
+        setShowRatingModal(true);
+      } else {
+        onEnd && onEnd();
+      }
+    }
+  };
 
   const toggleMute = () => { const audioTrack = localStreamRef.current?.getAudioTracks?.()[0]; if (!audioTrack) return; audioTrack.enabled = !audioTrack.enabled; setIsMuted(!audioTrack.enabled); };
 
@@ -548,6 +628,13 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
         <button onClick={toggleFullScreen} className={`p-1 sm:p-2 rounded-full transition-colors ${isFullScreen ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={isFullScreen ? 'Exit full screen' : 'Enter full screen'} aria-pressed={isFullScreen} aria-label="Toggle fullscreen"><Icon.Full on={isFullScreen} /></button>
         {userRole === 'tutor' && (<div className="relative"><button onClick={() => imageInputRef.current?.click()} className="p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors" title="Add question image" aria-label="Add question image"><Icon.Question /></button><input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" aria-hidden="true" /></div>)}
       </footer>
+
+      {/* Rating Modal for Students */}
+      <InterviewSessionRatingModal
+        open={showRatingModal}
+        onSubmit={submitInterviewRating}
+        interviewerName={interviewerName}
+      />
     </div>
   );
 };
