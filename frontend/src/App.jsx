@@ -120,25 +120,25 @@ const appRoutes = [
       },
     ],
   },
-  ...accountSettingsRoutes.map(route => ({
+  ...(Array.isArray(accountSettingsRoutes) ? accountSettingsRoutes.map(route => ({
     ...route,
     element: <ProtectedRoute>{route.element}</ProtectedRoute>,
-  })),
+  })) : []),
   {
     path: '/profile',
     element: <ProtectedRoute><PrivateProfile /></ProtectedRoute>,
-    children: privateProfileRoutes.map(route => ({
+    children: Array.isArray(privateProfileRoutes) ? privateProfileRoutes.map(route => ({
       ...route,
       element: <ProtectedRoute>{route.element}</ProtectedRoute>,
-    })),
+    })) : [],
   },
   {
     path: '/public-profile',
     element: <ProtectedRoute><PublicProfile /></ProtectedRoute>,
-    children: publicProfileRoutes.map(route => ({
+    children: Array.isArray(publicProfileRoutes) ? publicProfileRoutes.map(route => ({
       ...route,
       element: <ProtectedRoute>{route.element}</ProtectedRoute>,
-    })),
+    })) : [],
   },
 ];
 

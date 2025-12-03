@@ -193,7 +193,7 @@ export default function Applications() {
               <div className="text-sm text-gray-600">No applications found.</div>
             ) : (
               <div className="space-y-3">
-                {applications.map(app => {
+                {Array.isArray(applications) && applications.map(app => {
                   const isTutorCategory = category === 'tutor';
                   const tutorApp = isTutorCategory ? (app.tutorApplication || app) : null;
                   const statusValue = isTutorCategory ? (tutorApp?.status || app.status) : app.status;
@@ -231,12 +231,12 @@ export default function Applications() {
                       </div>
                       {isTutorCategory && tutorApp && (
                         <div className="flex flex-wrap gap-1">
-                          {(tutorApp.skills || []).map((s,i)=>(
+                          {Array.isArray(tutorApp?.skills) && tutorApp.skills.map((s,i)=>(
                             <span key={i} className="text-[11px] bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">
-                              {s.class ? `${s.class} • ` : ''}{s.subject}{s.topic ? ` : ${s.topic === 'ALL' ? 'ALL Topics' : s.topic}` : ''}
+                              {s?.class ? `${s.class} • ` : ''}{s?.subject}{s?.topic ? ` : ${s.topic === 'ALL' ? 'ALL Topics' : s.topic}` : ''}
                             </span>
                           ))}
-                          {(!tutorApp.skills || tutorApp.skills.length===0) && <span className="text-[11px] text-gray-400">No skills</span>}
+                          {(!Array.isArray(tutorApp?.skills) || tutorApp.skills.length===0) && <span className="text-[11px] text-gray-400">No skills</span>}
                         </div>
                       )}
                       {isTutorCategory && tutorApp && (

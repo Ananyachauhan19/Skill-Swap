@@ -61,29 +61,29 @@ export default function Analytics() {
     return () => clearInterval(id);
   }, [autoRefresh, range, startDate, endDate]);
 
-  const userDaily = data?.userDaily || [];
-  const sessionDaily = data?.sessionDaily || [];
-  const interviewDaily = data?.interviewDaily || [];
-  const roleDistribution = data?.roleDistribution || [];
+  const userDaily = Array.isArray(data?.userDaily) ? data.userDaily : [];
+  const sessionDaily = Array.isArray(data?.sessionDaily) ? data.sessionDaily : [];
+  const interviewDaily = Array.isArray(data?.interviewDaily) ? data.interviewDaily : [];
+  const roleDistribution = Array.isArray(data?.roleDistribution) ? data.roleDistribution : [];
 
   const userLine = {
-    labels: userDaily.map(d => d.date.slice(5)),
-    datasets: [{ label: 'New Users', data: userDaily.map(d => d.count), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.3)', tension: 0.3, fill: true }],
+    labels: userDaily.map(d => d?.date?.slice(5) || ''),
+    datasets: [{ label: 'New Users', data: userDaily.map(d => d?.count || 0), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.3)', tension: 0.3, fill: true }],
   };
   const sessionBar = {
-    labels: sessionDaily.map(d => d.date.slice(5)),
-    datasets: [{ label: 'Sessions', data: sessionDaily.map(d => d.count), backgroundColor: '#10b981' }],
+    labels: sessionDaily.map(d => d?.date?.slice(5) || ''),
+    datasets: [{ label: 'Sessions', data: sessionDaily.map(d => d?.count || 0), backgroundColor: '#10b981' }],
   };
   const interviewBar = {
-    labels: interviewDaily.map(d => d.date.slice(5)),
+    labels: interviewDaily.map(d => d?.date?.slice(5) || ''),
     datasets: [
-      { label: 'Pending', data: interviewDaily.map(d => d.pending), backgroundColor: '#f59e0b' },
-      { label: 'Assigned', data: interviewDaily.map(d => d.assigned), backgroundColor: '#6366f1' },
+      { label: 'Pending', data: interviewDaily.map(d => d?.pending || 0), backgroundColor: '#f59e0b' },
+      { label: 'Assigned', data: interviewDaily.map(d => d?.assigned || 0), backgroundColor: '#6366f1' },
     ],
   };
   const rolePie = {
-    labels: roleDistribution.map(r => r.role),
-    datasets: [{ label: 'Users', data: roleDistribution.map(r => r.count), backgroundColor: ['#3b82f6', '#10b981', '#6366f1'] }],
+    labels: roleDistribution.map(r => r?.role || ''),
+    datasets: [{ label: 'Users', data: roleDistribution.map(r => r?.count || 0), backgroundColor: ['#3b82f6', '#10b981', '#6366f1'] }],
   };
 
   const applyCustomRange = () => {

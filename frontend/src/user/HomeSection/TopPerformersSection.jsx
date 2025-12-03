@@ -52,7 +52,7 @@ const TopPerformersSection = () => {
 
     switch (activeTab) {
       case 'all':
-        usersToDisplay = performers.allStars.map((user, idx) => ({
+        usersToDisplay = Array.isArray(performers?.allStars) ? performers.allStars.map((user, idx) => ({
           ...user,
           type: 'all',
           title: 'All-Star Performer',
@@ -68,10 +68,10 @@ const TopPerformersSection = () => {
           color: 'blue',
           badge: 'All-Star',
           rank: idx
-        }));
+        })) : [];
         break;
       case 'active':
-        usersToDisplay = performers.mostActive.map((user, idx) => ({
+        usersToDisplay = Array.isArray(performers?.mostActive) ? performers.mostActive.map((user, idx) => ({
           ...user,
           type: 'active',
           title: 'Most Active Learner',
@@ -81,10 +81,10 @@ const TopPerformersSection = () => {
           color: 'orange',
           badge: 'Dedicated',
           rank: idx
-        }));
+        })) : [];
         break;
       case 'rated':
-        usersToDisplay = performers.topRated.map((user, idx) => ({
+        usersToDisplay = Array.isArray(performers?.topRated) ? performers.topRated.map((user, idx) => ({
           ...user,
           type: 'rated',
           title: 'Top Rated Tutor',
@@ -94,10 +94,10 @@ const TopPerformersSection = () => {
           color: 'yellow',
           badge: 'Expert',
           rank: idx
-        }));
+        })) : [];
         break;
       case 'earner':
-        usersToDisplay = performers.topEarners.map((user, idx) => ({
+        usersToDisplay = Array.isArray(performers?.topEarners) ? performers.topEarners.map((user, idx) => ({
           ...user,
           type: 'earner',
           title: 'Top Earner',
@@ -107,7 +107,7 @@ const TopPerformersSection = () => {
           color: 'green',
           badge: 'Pro',
           rank: idx
-        }));
+        })) : [];
         break;
     }
 

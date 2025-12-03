@@ -124,9 +124,10 @@ const Testimonial = ({ showAll = false }) => {
     return () => { active = false; };
   }, []);
 
-  const ratingCounts = [5, 4, 3, 2, 1].map(star => testimonials.filter(t => Number(t.rating) === star).length);
+  const safeTestimonials = Array.isArray(testimonials) ? testimonials : [];
+  const ratingCounts = [5, 4, 3, 2, 1].map(star => safeTestimonials.filter(t => Number(t?.rating) === star).length);
   const totalRatings = ratingCounts.reduce((a, b) => a + b, 0);
-  const averageRating = totalRatings ? (testimonials.reduce((sum, t) => sum + Number(t.rating), 0) / totalRatings).toFixed(1) : '0.0';
+  const averageRating = totalRatings ? (safeTestimonials.reduce((sum, t) => sum + Number(t?.rating || 0), 0) / totalRatings).toFixed(1) : '0.0';
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -160,7 +161,7 @@ const Testimonial = ({ showAll = false }) => {
     }
   };
 
-  const visibleTestimonials = showAll ? testimonials : testimonials.slice(0, 3);
+  const visibleTestimonials = showAll ? safeTestimonials : safeTestimonials.slice(0, 3);
 
   return (
     <div className="w-full bg-gradient-to-br from-blue-50 to-blue-100 py-12 px-4 sm:px-6 lg:px-8 mt-12 border-t border-blue-300">
@@ -297,7 +298,7 @@ const Testimonial = ({ showAll = false }) => {
         </motion.div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-          {visibleTestimonials.length === 0 ? (
+          {!Array.isArray(visibleTestimonials) || visibleTestimonials.length === 0 ? (
             <div className="col-span-full text-gray-500 text-center">No ratings found.</div>
           ) : (
             visibleTestimonials.map((t, idx) => (
@@ -309,17 +310,17 @@ const Testimonial = ({ showAll = false }) => {
                 className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center hover:shadow-xl transition-all duration-300 border border-blue-300"
               >
                 <div className="mb-3">
-                  <Avatar name={t.username} src={t.profilePic} size={80} />
+                  <Avatar name={t?.username} src={t?.profilePic} size={80} />
                 </div>
-                <div className="font-semibold text-blue-900 text-lg">{t.username}</div>
-                <StarRating rating={Number(t.rating)} size="text-blue-600 text-xl" />
-                <div className="text-gray-700 mt-3 text-center text-sm">{t.description}</div>
+                <div className="font-semibold text-blue-900 text-lg">{t?.username}</div>
+                <StarRating rating={Number(t?.rating || 0)} size="text-blue-600 text-xl" />
+                <div className="text-gray-700 mt-3 text-center text-sm">{t?.description}</div>
               </motion.div>
             ))
           )}
         </div>
       )}
-      {!showAll && !loading && !error && testimonials.length > 3 && (
+      {!showAll && !loading && !error && safeTestimonials.length > 3 && (
         <div className="flex justify-center mt-8">
           <motion.a
             whileHover={{ scale: 1.05 }}

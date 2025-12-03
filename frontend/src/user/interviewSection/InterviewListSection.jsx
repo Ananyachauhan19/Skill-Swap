@@ -74,7 +74,7 @@ const InterviewCard = ({ interview }) => (
       {interview.seats}/5 Students Available
     </div>
     <div className="flex flex-wrap gap-2 mb-4">
-      {interview.tags.map((tag, idx) => (
+      {Array.isArray(interview?.tags) && interview.tags.map((tag, idx) => (
         <span key={idx} className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">{tag}</span>
       ))}
     </div>
@@ -103,11 +103,11 @@ const InterviewListSection = ({ interviews, loading, error, directionMsg }) => {
         ) : (
           <div>
             <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-center w-full">
-              {interviews && interviews.length === 0 ? (
+              {!Array.isArray(interviews) || interviews.length === 0 ? (
                 <div className="col-span-full text-gray-500 text-center">No interviews found</div>
               ) : (
-                (interviews || []).map(interview => (
-                  <InterviewCard key={interview.id} interview={interview} />
+                interviews.map(interview => (
+                  <InterviewCard key={interview?.id || Math.random()} interview={interview} />
                 ))
               )}
             </div>

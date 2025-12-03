@@ -70,7 +70,7 @@ const Dashboard = () => {
 
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2">
-        {tabs.map(t => (
+        {Array.isArray(tabs) && tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setActiveTab(t.id)}
@@ -87,13 +87,13 @@ const Dashboard = () => {
 
       {/* Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {currentCards.map(c => (
+        {Array.isArray(currentCards) && currentCards.map(c => (
           <div key={c.label} className="p-4 rounded-lg bg-white border border-gray-100 shadow-sm flex flex-col">
             <p className="text-xs text-gray-500 uppercase tracking-wide">{c.label}</p>
             <p className="mt-2 text-2xl font-bold text-blue-700">{loading ? '…' : numberFmt(c.value)}</p>
           </div>
         ))}
-        {!loading && currentCards.length === 0 && (
+        {!loading && (!Array.isArray(currentCards) || currentCards.length === 0) && (
           <div className="p-4 rounded-lg bg-white border border-gray-100 shadow-sm text-sm text-gray-600">No data for this tab.</div>
         )}
       </div>
