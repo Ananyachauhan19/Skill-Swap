@@ -46,6 +46,18 @@ const CreateSession = () => {
     return [...new Set(userSkills.map(skill => skill.subject))].filter(Boolean);
   }, [userSkills, isTutorRole]);
 
+  // Check if user has ALL topics for a given subject
+  const hasAllTopics = useMemo(() => {
+    if (!isTutorRole) return {};
+    const allTopicsMap = {};
+    userSkills.forEach(skill => {
+      if (skill.topic === 'ALL' && skill.subject) {
+        allTopicsMap[skill.subject] = true;
+      }
+    });
+    return allTopicsMap;
+  }, [userSkills, isTutorRole]);
+
   const tutorTopicsBySubject = useMemo(() => {
     if (!isTutorRole) return {};
     return userSkills.reduce((acc, skill) => {
@@ -53,11 +65,17 @@ const CreateSession = () => {
         if (!acc[skill.subject]) {
           acc[skill.subject] = [];
         }
-        acc[skill.subject].push(skill.topic);
+        // If user has 'ALL', include all available topics from Google Sheet
+        if (skill.topic === 'ALL') {
+          const allTopicsForSubject = topicsBySubject[skill.subject] || [];
+          acc[skill.subject] = [...new Set([...acc[skill.subject], ...allTopicsForSubject])];
+        } else {
+          acc[skill.subject].push(skill.topic);
+        }
       }
       return acc;
     }, {});
-  }, [userSkills, isTutorRole]);
+  }, [userSkills, isTutorRole, topicsBySubject]);
 
   // Get available classes based on teacher's skills
   const availableClasses = useMemo(() => {
@@ -70,10 +88,14 @@ const CreateSession = () => {
       // Find classes that contain this subject and topic combination
       Object.entries(subjectsByClass).forEach(([className, subjects]) => {
         if (subjects.includes(skill.subject)) {
-          // Check if this subject has the topic in the Google Sheet
-          const topicsForSubject = topicsBySubject[skill.subject] || [];
-          if (topicsForSubject.includes(skill.topic)) {
+          // If skill has 'ALL' topics or the specific topic exists in Google Sheet
+          if (skill.topic === 'ALL') {
             classSet.add(className);
+          } else {
+            const topicsForSubject = topicsBySubject[skill.subject] || [];
+            if (topicsForSubject.includes(skill.topic)) {
+              classSet.add(className);
+            }
           }
         }
       });
@@ -286,9 +308,10 @@ const CreateSession = () => {
     }
 
     // Check if user has the selected skill
+    // If user has 'ALL' for the subject, they can teach any topic in that subject
     const hasSkill = userSkills.some(skill =>
       skill.class === form.subject &&
-      skill.subject === form.topic
+      (skill.subject === form.topic || skill.topic === 'ALL')
     );
 
     if (!hasSkill) {
@@ -649,7 +672,7 @@ const CreateSession = () => {
                     value={form.subject}
                     onChange={e => { handleChange(e); setShowCourseDropdown(true); setHighlightedCourseIdx(-1); }}
                     onFocus={() => setShowCourseDropdown(true)}
-                    onBlus={() => setTimeout(() => { setShowCourseDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
+                    onBlur={() => setTimeout(() => { setShowCourseDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
                     onKeyDown={e => {
                       if (!showCourseDropdown || courseList.length === 0) return;
                       if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {

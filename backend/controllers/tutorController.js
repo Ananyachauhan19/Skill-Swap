@@ -42,6 +42,7 @@ exports.apply = async (req, res) => {
       if (!s.class || !s.subject || !s.topic) {
         return res.status(400).json({ message: 'Each skill requires class, subject and topic' });
       }
+      // Allow 'ALL' as a valid topic to indicate all topics in the subject
     }
 
     // Files

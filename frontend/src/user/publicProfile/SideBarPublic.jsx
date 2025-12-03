@@ -419,7 +419,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 <ul className="flex flex-wrap gap-2">
                   {profile.skillsToTeach.map((s, i) => (
                     <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
-                      {s.class ? `${s.class} • ` : ''}{s.subject} {s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
+                      {s.class ? `${s.class} • ` : ''}{s.subject} {s.topic === 'ALL' ? ' > ALL Topics' : s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
                     </li>
                   ))}
                 </ul>

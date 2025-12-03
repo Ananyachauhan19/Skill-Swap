@@ -124,6 +124,11 @@ const SkillSelector = ({ classes, subjectsByClass, topicsBySubject, value, onCha
           />
           {value.subject && topicFocused && (
             <div className="absolute left-0 right-0 z-10 max-h-40 overflow-y-auto border rounded mt-2 bg-white shadow-sm divide-y">
+              <button
+                type="button"
+                onMouseDown={() => { onChange({ ...value, topic: 'ALL' }); setTopicQuery('ALL'); }}
+                className={`w-full text-left px-3 py-1 text-sm font-semibold bg-blue-50 hover:bg-blue-100 ${value.topic === 'ALL' ? 'bg-blue-200' : ''}`}
+              >ALL (Complete Subject)</button>
               {filteredTopics.map(t => (
                 <button
                   key={t}

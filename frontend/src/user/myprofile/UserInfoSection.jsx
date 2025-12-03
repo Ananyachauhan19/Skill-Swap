@@ -190,6 +190,7 @@ const UserInfoSection = ({
                       disabled={!s.subject}
                     >
                       <option value="">Select Topic</option>
+                      <option value="ALL" className="font-semibold bg-blue-50">ALL (Complete Subject)</option>
                       {(topicsBySubject[s.subject] || []).map((topic) => (
                         <option key={topic} value={topic}>{topic}</option>
                       ))}

@@ -454,7 +454,7 @@ const Users = () => {
                         <div className="flex flex-wrap gap-2">
                           {userDetails.user.skillsToTeach.map((skill, idx) => (
                             <span key={idx} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-                              {skill.subject} - {skill.topic}
+                              {skill.class ? `${skill.class} • ` : ''}{skill.subject} - {skill.topic === 'ALL' ? 'ALL Topics' : skill.topic}
                             </span>
                           ))}
                         </div>
