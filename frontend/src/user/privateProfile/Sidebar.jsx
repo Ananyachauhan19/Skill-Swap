@@ -55,6 +55,9 @@ const fetchUserProfile = async () => {
         profile.tutorApplication = statusData.application;
         profile.activationRemainingMs = statusData.activationRemainingMs;
         profile.isTutor = statusData.isTutor; // override if activated
+      } else if (statusRes.status === 404) {
+        // No application found - user hasn't applied yet
+        profile.tutorApplication = null;
       }
     } catch (e) {
       // ignore errors silently
@@ -125,6 +128,11 @@ const Sidebar = () => {
     setError(null);
     try {
       const data = await fetchUserProfile();
+      console.log('[Sidebar] User data loaded:', { 
+        isTutor: data.isTutor, 
+        hasApplication: !!data.tutorApplication,
+        applicationStatus: data.tutorApplication?.status 
+      });
       setUser(data);
     } catch (err) {
       setError(err.message);
@@ -135,8 +143,18 @@ const Sidebar = () => {
 
   useEffect(() => {
     loadUser();
+    
+    // Refresh user data every 30 seconds to catch tutor activation
+    const interval = setInterval(loadUser, 30000);
+    
     window.addEventListener("profileUpdated", loadUser);
-    return () => window.removeEventListener("profileUpdated", loadUser);
+    window.addEventListener("tutorStatusChanged", loadUser);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("profileUpdated", loadUser);
+      window.removeEventListener("tutorStatusChanged", loadUser);
+    };
   }, []);
 
   const isActive = (path) =>
@@ -306,7 +324,7 @@ const Sidebar = () => {
 
                   {/* Tutor application status */}
                   <div className="w-full sm:w-auto text-xs mt-2 sm:mt-0 flex flex-col gap-1 items-center sm:items-start">
-                    {!user?.tutorApplication && !user?.isTutor && (
+                    {!user?.isTutor && !user?.tutorApplication && (
                       <button
                         onClick={() => navigate('/tutor/apply')}
                         className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition"
@@ -324,7 +342,7 @@ const Sidebar = () => {
                       </span>
                     )}
                     {user?.isTutor && (
-                      <span className="px-3 py-1 rounded-full bg-green-600 text-white font-medium">Tutor Functions Active</span>
+                      <span className="px-3 py-1 rounded-full bg-green-600 text-white font-medium">✓ Tutor Active</span>
                     )}
                   </div>
                 </div>
