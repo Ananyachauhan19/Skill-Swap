@@ -219,7 +219,11 @@ const TutorApplication = () => {
         const res = await fetch(`${BACKEND_URL}/api/skills-list`);
         if (!res.ok) throw new Error('Failed to load subjects/topics');
         const data = await res.json();
-        setClasses(data.classes || []);
+        // If user has pre-added skillsToTeach with class, restrict classes to those
+        const userClasses = Array.isArray(user?.skillsToTeach) ? Array.from(new Set(user.skillsToTeach.map(s => s.class).filter(Boolean))) : [];
+        const available = data.classes || [];
+        const restricted = userClasses.length ? available.filter(c => userClasses.includes(c)) : available;
+        setClasses(restricted);
         setSubjectsByClass(data.subjectsByClass || {});
         setTopicsBySubject(data.topicsBySubject || {});
       } catch (e) {

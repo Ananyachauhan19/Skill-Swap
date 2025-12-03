@@ -13,7 +13,6 @@ const CreateSession = () => {
   const [form, setForm] = useState({
     subject: '',
     topic: '',
-    subtopic: '',
     description: '',
     date: '',
     time: '',
@@ -21,10 +20,8 @@ const CreateSession = () => {
   const [scheduled, setScheduled] = useState(false);
   const [showCourseDropdown, setShowCourseDropdown] = useState(false);
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
-  const [showSubtopicDropdown, setShowSubtopicDropdown] = useState(false);
   const [highlightedCourseIdx, setHighlightedCourseIdx] = useState(-1);
   const [highlightedUnitIdx, setHighlightedUnitIdx] = useState(-1);
-  const [highlightedSubtopicIdx, setHighlightedSubtopicIdx] = useState(-1);
   const [scheduledSessions, setScheduledSessions] = useState([]);
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -228,16 +225,6 @@ const CreateSession = () => {
     });
   }, [tutorSubjects, isTutorRole]);
 
-  const fuseTopics = useMemo(() => {
-    if (!isTutorRole || !form.topic || !tutorTopicsBySubject[form.topic]) return null;
-    const topicList = tutorTopicsBySubject[form.topic] || [];
-    return new Fuse(topicList, {
-      threshold: 0.3,
-      distance: 100,
-      keys: ['']
-    });
-  }, [form.topic, tutorTopicsBySubject, isTutorRole]);
-
 
   // Filter using Fuse.js fuzzy search
   const courseList = useMemo(() => {
@@ -257,15 +244,6 @@ const CreateSession = () => {
     return results.map(result => result.item);
   }, [form.topic, tutorSubjects, fuseSubjects, isTutorRole]);
 
-  const topicDropdownList = useMemo(() => {
-    if (!isTutorRole || !form.topic) return [];
-    const baseList = tutorTopicsBySubject[form.topic] || [];
-    if ((form.subtopic || '').trim() === '') return baseList;
-    if (!fuseTopics) return baseList;
-    const results = fuseTopics.search(form.subtopic);
-    return results.map(result => result.item);
-  }, [form.subtopic, form.topic, tutorTopicsBySubject, fuseTopics, isTutorRole]);
-
 
   // Helper computed values for dropdown lists
   const unitList = useMemo(() => {
@@ -273,17 +251,11 @@ const CreateSession = () => {
     return tutorSubjects;
   }, [tutorSubjects, isTutorRole]);
 
-  const topicList = useMemo(() => {
-    if (!isTutorRole || !form.topic) return [];
-    return tutorTopicsBySubject[form.topic] || [];
-  }, [form.topic, tutorTopicsBySubject, isTutorRole]);
-
 
   const handleChange = e => {
     const { name, value } = e.target;
     setForm(prev => {
-      if (name === 'subject') return { ...prev, subject: value, topic: '', subtopic: '' };
-      if (name === 'topic') return { ...prev, topic: value, subtopic: '' };
+      if (name === 'subject') return { ...prev, subject: value, topic: '' };
       return { ...prev, [name]: value };
     });
   };
@@ -306,20 +278,21 @@ const CreateSession = () => {
   const handleSubmit = async e => {
     e.preventDefault();
 
-    // Check if user is a learner
-    if (currentUser?.role !== 'teacher') {
+    // Check tutor capability: teacher, both, or activated tutor
+    const canTutor = currentUser?.role === 'teacher' || currentUser?.role === 'both' || currentUser?.isTutor;
+    if (!canTutor) {
       alert('Only teachers can create sessions. Please register as a teacher and add skills to your profile.');
       return;
     }
 
     // Check if user has the selected skill
     const hasSkill = userSkills.some(skill =>
-      skill.subject === form.topic &&
-      skill.topic === form.subtopic
+      skill.class === form.subject &&
+      skill.subject === form.topic
     );
 
     if (!hasSkill) {
-      alert('You can only create sessions for your registered skills (Subject and Topic).');
+      alert('You can only create sessions for your registered skills (Class and Subject).');
       return;
     }
 
@@ -372,7 +345,6 @@ const CreateSession = () => {
       setForm({
         subject: '',
         topic: '',
-        subtopic: '',
         description: '',
         date: '',
         time: '',
@@ -389,7 +361,6 @@ const CreateSession = () => {
     setForm({
       subject: session.subject || '',
       topic: session.topic || '',
-      subtopic: session.subtopic || '',
       description: session.description || '',
       date: session.date || '',
       time: session.time || '',
@@ -658,7 +629,7 @@ const CreateSession = () => {
                   className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
                   onClick={() => {
                     setScheduled(false);
-                    setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
+                    setForm({ subject: '', topic: '', description: '', date: '', time: '' });
                   }}
                 >
                   Schedule Another
@@ -678,7 +649,7 @@ const CreateSession = () => {
                     value={form.subject}
                     onChange={e => { handleChange(e); setShowCourseDropdown(true); setHighlightedCourseIdx(-1); }}
                     onFocus={() => setShowCourseDropdown(true)}
-                    onBlur={() => setTimeout(() => { setShowCourseDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
+                    onBlus={() => setTimeout(() => { setShowCourseDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
                     onKeyDown={e => {
                       if (!showCourseDropdown || courseList.length === 0) return;
                       if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
@@ -689,7 +660,7 @@ const CreateSession = () => {
                         setHighlightedCourseIdx(idx => (idx - 1 + courseList.length) % courseList.length);
                       } else if (e.key === 'Enter') {
                         if (highlightedCourseIdx >= 0 && highlightedCourseIdx < courseList.length) {
-                          setForm(prev => ({ ...prev, subject: courseList[highlightedCourseIdx], topic: '', subtopic: '' }));
+                          setForm(prev => ({ ...prev, subject: courseList[highlightedCourseIdx], topic: '' }));
                           setShowCourseDropdown(false);
                           setHighlightedCourseIdx(-1);
                         }
@@ -707,7 +678,7 @@ const CreateSession = () => {
                           key={idx}
                           className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedCourseIdx === idx ? 'bg-blue-200' : ''}`}
                           onMouseDown={() => {
-                            setForm(prev => ({ ...prev, subject: s, topic: '', subtopic: '' }));
+                            setForm(prev => ({ ...prev, subject: s, topic: '' }));
                             setShowCourseDropdown(false);
                             setHighlightedCourseIdx(-1);
                           }}
@@ -737,7 +708,7 @@ const CreateSession = () => {
                         setHighlightedUnitIdx(idx => (idx - 1 + unitDropdownList.length) % unitDropdownList.length);
                       } else if (e.key === 'Enter') {
                         if (highlightedUnitIdx >= 0 && highlightedUnitIdx < unitDropdownList.length) {
-                          setForm(prev => ({ ...prev, topic: unitDropdownList[highlightedUnitIdx], subtopic: '' }));
+                          setForm(prev => ({ ...prev, topic: unitDropdownList[highlightedUnitIdx] }));
                           setShowUnitDropdown(false);
                           setHighlightedUnitIdx(-1);
                         }
@@ -756,7 +727,7 @@ const CreateSession = () => {
                           key={idx}
                           className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedUnitIdx === idx ? 'bg-blue-200' : ''}`}
                           onMouseDown={() => {
-                            setForm(prev => ({ ...prev, topic: u, subtopic: '' }));
+                            setForm(prev => ({ ...prev, topic: u }));
                             setShowUnitDropdown(false);
                             setHighlightedUnitIdx(-1);
                           }}
@@ -764,55 +735,6 @@ const CreateSession = () => {
                           {u}
                         </li>
                       )) : <li className="px-4 py-2 text-gray-500">No matching subjects found in your skills.</li>}
-                    </ul>
-                  )}
-                </div>
-                <div className="relative">
-                  <label className="block text-blue-900 font-medium mb-1 font-lora">Topic</label>
-                  <input
-                    type="text"
-                    name="subtopic"
-                    value={form.subtopic}
-                    onChange={e => { handleChange(e); setShowSubtopicDropdown(true); setHighlightedSubtopicIdx(-1); }}
-                    onFocus={() => setShowSubtopicDropdown(true)}
-                    onBlur={() => setTimeout(() => { setShowSubtopicDropdown(false); setHighlightedSubtopicIdx(-1); }, 120)}
-                    onKeyDown={e => {
-                      if (!showSubtopicDropdown || topicDropdownList.length === 0) return;
-                      if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
-                        e.preventDefault();
-                        setHighlightedSubtopicIdx(idx => (idx + 1) % topicDropdownList.length);
-                      } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
-                        e.preventDefault();
-                        setHighlightedSubtopicIdx(idx => (idx - 1 + topicDropdownList.length) % topicDropdownList.length);
-                      } else if (e.key === 'Enter') {
-                        if (highlightedSubtopicIdx >= 0 && highlightedSubtopicIdx < topicDropdownList.length) {
-                          setForm(prev => ({ ...prev, subtopic: topicDropdownList[highlightedSubtopicIdx] }));
-                          setShowSubtopicDropdown(false);
-                          setHighlightedSubtopicIdx(-1);
-                        }
-                      }
-                    }}
-                    placeholder="Search Topic..."
-                    className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
-                    required={!!form.topic}
-                    autoComplete="off"
-                    disabled={!form.topic || topicList.length === 0}
-                  />
-                  {showSubtopicDropdown && form.topic && (
-                    <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
-                      {topicDropdownList.length > 0 ? topicDropdownList.map((t, idx) => (
-                        <li
-                          key={idx}
-                          className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedSubtopicIdx === idx ? 'bg-blue-200' : ''}`}
-                          onMouseDown={() => {
-                            setForm(prev => ({ ...prev, subtopic: t }));
-                            setShowSubtopicDropdown(false);
-                            setHighlightedSubtopicIdx(-1);
-                          }}
-                        >
-                          {t}
-                        </li>
-                      )) : <li className="px-4 py-2 text-gray-500">No matching topics found for this subject in your skills.</li>}
                     </ul>
                   )}
                 </div>
@@ -867,7 +789,7 @@ const CreateSession = () => {
                       className="flex-1 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
                       onClick={() => {
                         setEditId(null);
-                        setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
+                        setForm({ subject: '', topic: '', description: '', date: '', time: '' });
                       }}
                     >
                       Cancel Edit
@@ -914,7 +836,7 @@ const CreateSession = () => {
                         )}
                       </div>
                       <div className="font-semibold text-blue-900 mb-1 text-lg truncate font-lora">
-                        {[session.subject, session.topic, session.subtopic].filter(x => x && x.trim()).join(' - ')}
+                        {[session.subject, session.topic].filter(x => x && x.trim()).join(' - ')}
                       </div>
                       <div className="text-gray-600 text-sm mb-2 line-clamp-3 font-nunito">{session.description}</div>
                       <div className="text-gray-500 text-xs mb-4 font-nunito">{session.date} at {session.time}</div>
