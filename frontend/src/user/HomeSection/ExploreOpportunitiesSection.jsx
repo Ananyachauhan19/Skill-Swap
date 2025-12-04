@@ -7,14 +7,15 @@ const ExploreOpportunitiesSection = () => {
   const opportunities = [
     {
       title: 'Live Arena sessions',
-      description: 'Connect with peers and exchange skills in live arena sessions.',
+    
       icon: <FaUserFriends />,
       color: 'blue',
+     description: 'Join interactive live sessions hosted by experts in real-time.',
       backgroundImage: '/assets/exploreopportunities/livesession.webp'
     },
     {
       title: 'One on One Sessions',
-      description: 'Join interactive live sessions hosted by experts in real-time.',
+       description: 'Connect with peers and exchange skills in peer to peer Sessions.',
       icon: <FaVideo />,
       color: 'purple',
       link: '/one-on-one',
