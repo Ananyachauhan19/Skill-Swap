@@ -392,19 +392,19 @@ const About = () => {
                         {[
                           {
                             title: "Knowledge as Currency",
-                            desc: "Hum sirf learning nahi, balki ek aisa ecosystem create kar rahe hain jahan skills, ideas aur expertise ka real-world value hai—jaise ek global economy of knowledge."
+                            desc: "We're not just building a learning platform, but creating an ecosystem where skills, ideas, and expertise hold real-world value—like a global economy of knowledge."
                           },
                           {
                             title: "Everyone Can Lead",
-                            desc: "Har learner sirf seekhne wala nahi, balki teacher aur influencer bhi ban sakta hai, chahe wo small town se ho ya global city se."
+                            desc: "Every learner can become not just a student, but also a teacher and influencer, whether they're from a small town or a global city."
                           },
                           {
                             title: "Lifelong Innovation",
-                            desc: "Learning ko finite activity nahi, balki lifelong journey aur innovation ka source banaya ja raha hai."
+                            desc: "Learning is not a finite activity, but a lifelong journey and a continuous source of innovation and growth."
                           },
                           {
                             title: "Impact Beyond Borders",
-                            desc: "Yeh mission education aur earning ko connect karta hai, aur har ek individual ko empower karta hai to make tangible impact in their community and the world."
+                            desc: "This mission connects education with earning, empowering every individual to make a tangible impact in their community and the world."
                           }
                         ].map((item, index) => (
                           <motion.div
