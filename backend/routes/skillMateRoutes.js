@@ -153,7 +153,7 @@ router.post('/request', requireAuth, async (req, res) => {
       userId: recipient._id,
       type: 'skillmate-requested',
       message: `${requester.firstName} ${requester.lastName} has sent you a SkillMate request.`,
-      skillMateId: skillMateRequest._id,
+      requestId: skillMateRequest._id,
       requesterId: requesterId,
       requesterName: `${requester.firstName} ${requester.lastName}`,
       timestamp: Date.now(),
@@ -164,7 +164,7 @@ router.post('/request', requireAuth, async (req, res) => {
     io.to(recipient._id.toString()).emit('notification', {
       type: 'skillmate-requested',
       message: `${requester.firstName} ${requester.lastName} has sent you a SkillMate request.`,
-      skillMateId: skillMateRequest._id,
+      requestId: skillMateRequest._id,
       requesterId: requesterId,
       requesterName: `${requester.firstName} ${requester.lastName}`,
       timestamp: Date.now(),

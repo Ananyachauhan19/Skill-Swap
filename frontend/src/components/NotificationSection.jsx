@@ -21,8 +21,14 @@ const NotificationSection = ({ userId }) => {
   const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState({});
   const dropdownRef = useRef();
+  const showRef = useRef(show);
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Keep showRef in sync with show state
+  useEffect(() => {
+    showRef.current = show;
+  }, [show]);
 
   // Fetch notifications on mount
   useEffect(() => {
@@ -53,19 +59,37 @@ const NotificationSection = ({ userId }) => {
         // Fetch SkillMate request details for skillmate-requested notifications
         const skillMateRequests = await Promise.all(
           data
-            .filter((n) => n.type === 'skillmate-requested' && n.requestId)
+            .filter((n) => n.type === 'skillmate-requested')
             .map(async (n) => {
+              // If requestId is missing, fetch all received requests and find by requesterId
               const res = await fetch(`${BACKEND_URL}/api/skillmates/requests/received`, {
                 credentials: 'include',
               });
               if (res.ok) {
-                const skillMateRequests = await res.json();
-                const skillMateRequest = skillMateRequests.find((r) => r._id === n.requestId);
+                const allRequests = await res.json();
+                
+                // Convert requesterId to string if it's an object
+                const requesterIdStr = typeof n.requesterId === 'object' ? n.requesterId._id || n.requesterId.toString() : n.requesterId;
+                
+                // Find by requestId if available, otherwise by requesterId
+                const skillMateRequest = n.requestId 
+                  ? allRequests.find((r) => r._id === n.requestId)
+                  : allRequests.find((r) => r.requester?._id === requesterIdStr && r.status === 'pending');
+                
+                // If request is not found or already approved/rejected, mark notification for removal
+                if (!skillMateRequest || skillMateRequest.status !== 'pending') {
+                  return null; // Mark for removal
+                }
+                
+                // If we found a request and didn't have requestId, add it to the notification
+                if (skillMateRequest && !n.requestId) {
+                  return { ...n, requestId: skillMateRequest._id, skillMateRequest };
+                }
                 return { ...n, skillMateRequest };
               }
               return n;
             })
-        );
+        ).then(results => results.filter(r => r !== null)); // Remove null entries
 
         // Fetch chat message details for chat-message notifications
         const chatMessages = await Promise.all(
@@ -88,10 +112,16 @@ const NotificationSection = ({ userId }) => {
           const matchingSession = sessionRequests.find((sr) => sr._id === n._id);
           const matchingSkillMate = skillMateRequests.find((sm) => sm._id === n._id);
           const matchingChat = chatMessages.find((cm) => cm._id === n._id);
+          
+          // For SkillMate requests, the skillMateRequests array already has the updated notification
+          // with requestId and skillMateRequest, so we use it directly
+          if (matchingSkillMate) {
+            return matchingSkillMate;
+          }
+          
           return {
             ...n,
             sessionRequest: matchingSession?.sessionRequest || n.sessionRequest,
-            skillMateRequest: matchingSkillMate?.skillMateRequest || n.skillMateRequest,
             chatMessage: matchingChat?.chatMessage || n.chatMessage,
           };
         });
@@ -104,12 +134,86 @@ const NotificationSection = ({ userId }) => {
     fetchNotifications();
   }, []);
 
-  // Join Socket.IO room and listen for notifications
+  // Listen for notifications from ToastSocketBridge via custom event
   useEffect(() => {
     if (!userId) return;
-    socket.emit('join', userId);
-    socket.on('notification', (notification) => {
-      setNotifications((prev) => [notification, ...prev]);
+    
+    const handleSocketNotification = async (event) => {
+      const notification = event.detail;
+      if (!notification) return;
+      
+      // Fetch additional details for specific notification types
+      if (notification.type === 'session-requested' && notification.sessionId) {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/session-requests/active`, {
+            credentials: 'include',
+          });
+          if (res.ok) {
+            const sessionData = await res.json();
+            if (sessionData.activeSession?.sessionRequest) {
+              notification.sessionRequest = sessionData.activeSession.sessionRequest;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching session request for real-time notification:', error);
+        }
+      }
+      
+      // If it's a skillmate-requested notification, fetch the request details to get requestId
+      if (notification.type === 'skillmate-requested') {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/skillmates/requests/received`, {
+            credentials: 'include',
+          });
+          if (res.ok) {
+            const allRequests = await res.json();
+            
+            // Convert requesterId to string if it's an object
+            const requesterIdStr = typeof notification.requesterId === 'object' 
+              ? notification.requesterId._id || notification.requesterId.toString() 
+              : notification.requesterId;
+            
+            // Find by requestId if available, otherwise by requesterId
+            const skillMateRequest = notification.requestId 
+              ? allRequests.find((r) => r._id === notification.requestId)
+              : allRequests.find((r) => r.requester?._id === requesterIdStr && r.status === 'pending');
+            
+            // Add requestId to the notification if found
+            if (skillMateRequest) {
+              notification.requestId = skillMateRequest._id;
+              notification.skillMateRequest = skillMateRequest;
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching SkillMate request for real-time notification:', error);
+        }
+      }
+      
+      console.log('[Socket.IO] Received notification:', {
+        type: notification.type,
+        message: notification.message,
+        currentNotificationsCount: notifications.length,
+        dropdownOpen: showRef.current
+      });
+      
+      setNotifications((prev) => {
+        const updated = [notification, ...prev];
+        console.log('[Socket.IO] Updated notifications state. New count:', updated.length);
+        // Also update localStorage to ensure persistence
+        localStorage.setItem('notifications', JSON.stringify(updated));
+        return updated;
+      });
+      
+      // Force dropdown to refresh by toggling if it's open
+      if (showRef.current) {
+        console.log('[Socket.IO] Dropdown is open, forcing refresh...');
+        setShow(false);
+        setTimeout(() => {
+          console.log('[Socket.IO] Reopening dropdown...');
+          setShow(true);
+        }, 50);
+      }
+      
       try {
         // If the notification implies the user's role changed (approved/rejected), trigger auth refresh
         if (notification && notification.type && ['interviewer-approved', 'interviewer-rejected'].includes(notification.type)) {
@@ -119,9 +223,11 @@ const NotificationSection = ({ userId }) => {
       } catch (e) {
         console.error('Failed to trigger auth refresh from notification', e);
       }
-    });
+    };
+    
+    window.addEventListener('socket-notification', handleSocketNotification);
     return () => {
-      socket.off('notification');
+      window.removeEventListener('socket-notification', handleSocketNotification);
     };
   }, [userId]);
 
@@ -221,6 +327,74 @@ const NotificationSection = ({ userId }) => {
     }
   };
 
+  // Handle approve SkillMate request
+  const handleApproveSkillMate = async (requestId, index) => {
+    if (!requestId || requestId === 'undefined') {
+      alert('Unable to approve: Request ID not found. Please refresh and try again.');
+      return;
+    }
+    setLoading((prev) => ({ ...prev, [`approve-${index}`]: true }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/approve/${requestId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to approve SkillMate request');
+      
+      // Delete the notification from backend
+      const notificationId = notifications[index]._id;
+      if (notificationId) {
+        await fetch(`${BACKEND_URL}/api/notifications/${notificationId}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+      }
+      
+      setNotifications((prev) => prev.filter((_, i) => i !== index));
+      localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
+    } catch (error) {
+      console.error('Error approving SkillMate:', error);
+      alert('Failed to approve SkillMate request. Please try again.');
+    } finally {
+      setLoading((prev) => ({ ...prev, [`approve-${index}`]: false }));
+    }
+  };
+
+  // Handle reject SkillMate request
+  const handleRejectSkillMate = async (requestId, index) => {
+    if (!requestId || requestId === 'undefined') {
+      alert('Unable to reject: Request ID not found. Please refresh and try again.');
+      return;
+    }
+    setLoading((prev) => ({ ...prev, [`reject-${index}`]: true }));
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/reject/${requestId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to reject SkillMate request');
+      
+      // Delete the notification from backend
+      const notificationId = notifications[index]._id;
+      if (notificationId) {
+        await fetch(`${BACKEND_URL}/api/notifications/${notificationId}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+      }
+      
+      setNotifications((prev) => prev.filter((_, i) => i !== index));
+      localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
+    } catch (error) {
+      console.error('Error rejecting SkillMate:', error);
+      alert('Failed to reject SkillMate request. Please try again.');
+    } finally {
+      setLoading((prev) => ({ ...prev, [`reject-${index}`]: false }));
+    }
+  };
+
   // Filter notifications based on tab
   const getFilteredNotifications = () => {
     let filtered = filterNotifications(notifications);
@@ -296,7 +470,7 @@ const NotificationSection = ({ userId }) => {
     </svg>
     {unreadCounts.all > 0 && (
       <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[7px] sm:text-[9px] font-bold rounded-full px-1 sm:px-1.5 py-0.5 shadow-md animate-pulse">
-        {unreadCounts.all}
+        {unreadCounts.all > 9 ? '9+' : unreadCounts.all}
       </span>
     )}
   </button>
@@ -306,74 +480,100 @@ const NotificationSection = ({ userId }) => {
       {show && (
         <div
           ref={dropdownRef}
-          className="absolute right-0 mt-2 w-[90vw] max-w-[20rem] sm:w-[20rem] md:w-[24rem] bg-white border border-blue-200 rounded-xl shadow-xl z-[2000] overflow-hidden backdrop-blur-sm bg-opacity-95 transition-all duration-300 ease-in-out hover:shadow-2xl"
+          className="absolute right-0 mt-3 w-[95vw] max-w-md sm:w-[28rem] bg-white rounded-2xl shadow-2xl z-[2000] overflow-hidden border border-gray-100"
         >
-          <div className="flex items-center justify-between px-2 py-1 sm:px-3 sm:py-2 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200">
-            <span className="font-bold text-sm sm:text-base text-blue-900">Notifications</span>
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+            <h3 className="font-semibold text-lg text-gray-900">Notifications</h3>
             <button
-              className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-200"
+              className="text-xs text-gray-500 hover:text-blue-600 hover:underline transition-colors duration-200 font-medium"
               onClick={handleClear}
             >
               Clear All
             </button>
           </div>
-          <div className="flex bg-blue-50 border-b border-blue-200">
+          
+          {/* Tabs */}
+          <div className="flex bg-white border-b border-gray-100 px-2">
             <button
-              className={`flex-1 py-1 sm:py-2 text-xs sm:text-sm font-semibold relative transition-colors duration-200 ${
+              className={`flex-1 py-3 px-4 text-sm font-medium relative transition-all duration-200 ${
                 activeTab === 'all'
-                  ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-500'
-                  : 'text-blue-600 hover:bg-blue-100'
+                  ? 'text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
               onClick={() => setActiveTab('all')}
             >
-              All
-              {unreadCounts.all > 0 && (
-                <span className="absolute top-0.5 right-1 sm:right-2 bg-red-600 text-white text-[8px] sm:text-xs font-bold rounded-full px-1 sm:px-1.5 py-0.5 shadow-sm animate-pulse">
-                  {unreadCounts.all}
-                </span>
+              <span className="flex items-center justify-center gap-2">
+                All
+                {unreadCounts.all > 0 && (
+                  <span className="bg-blue-100 text-blue-600 text-[10px] font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                    {unreadCounts.all}
+                  </span>
+                )}
+              </span>
+              {activeTab === 'all' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full"></div>
               )}
             </button>
             <button
-              className={`flex-1 py-1 sm:py-2 text-xs sm:text-sm font-semibold relative transition-colors duration-200 ${
+              className={`flex-1 py-3 px-4 text-sm font-medium relative transition-all duration-200 ${
                 activeTab === 'session'
-                  ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-500'
-                  : 'text-blue-600 hover:bg-blue-100'
+                  ? 'text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
               onClick={() => setActiveTab('session')}
             >
-              Session
-              {unreadCounts.session > 0 && (
-                <span className="absolute top-0.5 right-1 sm:right-2 bg-red-600 text-white text-[8px] sm:text-xs font-bold rounded-full px-1 sm:px-1.5 py-0.5 shadow-sm animate-pulse">
-                  {unreadCounts.session}
-                </span>
+              <span className="flex items-center justify-center gap-2">
+                Session
+                {unreadCounts.session > 0 && (
+                  <span className="bg-blue-100 text-blue-600 text-[10px] font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                    {unreadCounts.session}
+                  </span>
+                )}
+              </span>
+              {activeTab === 'session' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full"></div>
               )}
             </button>
             <button
-              className={`flex-1 py-1 sm:py-2 text-xs sm:text-sm font-semibold relative transition-colors duration-200 ${
+              className={`flex-1 py-3 px-4 text-sm font-medium relative transition-all duration-200 ${
                 activeTab === 'skillmate'
-                  ? 'bg-blue-100 text-blue-900 border-b-2 border-blue-500'
-                  : 'text-blue-600 hover:bg-blue-100'
+                  ? 'text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
               onClick={() => setActiveTab('skillmate')}
             >
-              SkillMate
-              {unreadCounts.skillmate > 0 && (
-                <span className="absolute top-0.5 right-1 sm:right-2 bg-red-600 text-white text-[8px] sm:text-xs font-bold rounded-full px-1 sm:px-1.5 py-0.5 shadow-sm animate-pulse">
-                  {unreadCounts.skillmate}
-                </span>
+              <span className="flex items-center justify-center gap-2">
+                SkillMate
+                {unreadCounts.skillmate > 0 && (
+                  <span className="bg-blue-100 text-blue-600 text-[10px] font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                    {unreadCounts.skillmate}
+                  </span>
+                )}
+              </span>
+              {activeTab === 'skillmate' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full"></div>
               )}
             </button>
           </div>
-          <ul className="max-h-[60vh] sm:max-h-[70vh] overflow-y-auto divide-y divide-blue-100">
+          
+          {/* Notifications List */}
+          <ul className="max-h-[65vh] overflow-y-auto bg-gray-50">
             {filteredNotifications.length === 0 ? (
-              <li className="px-2 py-3 sm:px-3 sm:py-4 text-center text-gray-600 text-xs sm:text-sm font-medium">
-                No {activeTab === 'all' ? '' : activeTab} notifications
+              <li className="px-6 py-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                  </svg>
+                </div>
+                <p className="text-gray-500 text-sm font-medium">No {activeTab === 'all' ? '' : activeTab} notifications</p>
               </li>
             ) : (
-              filteredNotifications.map((n, idx) => (
+              filteredNotifications.map((n, idx) => {
+                return (
                 <li
                   key={n._id || idx}
-                  className="notification-item px-2 py-2 sm:px-3 sm:py-3 text-blue-800 text-xs sm:text-sm hover:bg-blue-50 cursor-pointer transition-colors duration-200"
+                  className="notification-item mx-3 my-3 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
                 >
                   {n.type === 'session-requested' && n.sessionRequest ? (
                     <SessionRequestNotification
@@ -395,340 +595,511 @@ const NotificationSection = ({ userId }) => {
                       onClose={() => handleNotificationRead(n._id, idx)}
                     />
                   ) : n.type === 'session-started' ? (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full"></div>
-                        <span className="font-semibold text-blue-700 text-xs sm:text-sm">Session Started</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Session Started</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-blue-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className="flex items-center justify-center w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <p className="text-blue-600 text-xs sm:text-sm py-1 px-2 rounded-md bg-blue-50 shadow-sm">
+                      <p className="text-sm text-gray-700 mb-4">
                         {n.message || 'Session started.'}
                       </p>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
-                        <div className="flex gap-1 sm:gap-2">
-                          <button
-                            onClick={() => {
-                              if (n.onJoin) n.onJoin();
-                              handleNotificationRead(n._id, idx);
-                            }}
-                            className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-green-500 to-green-600 text-white text-[10px] sm:text-xs rounded-md hover:from-green-600 hover:to-green-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                            disabled={loading[`approve-${idx}`]}
-                          >
-                            {loading[`approve-${idx}`] ? (
-                              <span className="flex items-center">
-                                <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-white mr-1"></div>
-                                Joining...
-                              </span>
-                            ) : (
-                              'Join'
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (n.onCancel) n.onCancel();
-                              handleNotificationRead(n._id, idx);
-                            }}
-                            className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-[10px] sm:text-xs rounded-md hover:from-red-600 hover:to-red-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                            disabled={loading[`reject-${idx}`]}
-                          >
-                            {loading[`reject-${idx}`] ? (
-                              <span className="flex items-center">
-                                <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-white mr-1"></div>
-                                Cancelling...
-                              </span>
-                            ) : (
-                              'Cancel'
-                            )}
-                          </button>
-                          <button
-                            onClick={() => handleNotificationRead(n._id, idx)}
-                            className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                          >
-                            Mark as Read
-                          </button>
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (n.onJoin) n.onJoin();
+                            handleNotificationRead(n._id, idx);
+                          }}
+                          className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
+                          disabled={loading[`approve-${idx}`]}
+                        >
+                          {loading[`approve-${idx}`] ? 'Joining...' : 'Join Session'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (n.onCancel) n.onCancel();
+                            handleNotificationRead(n._id, idx);
+                          }}
+                          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors duration-200"
+                          disabled={loading[`reject-${idx}`]}
+                        >
+                          {loading[`reject-${idx}`] ? 'Cancelling...' : 'Cancel'}
+                        </button>
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </div>
                   ) : n.type === 'session-approved' ? (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
-                        <span className="font-semibold text-green-700 text-xs sm:text-sm">Session Approved</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Session Approved</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-green-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className="flex items-center justify-center w-2 h-2 bg-green-600 rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <p className="text-green-600 text-xs sm:text-sm py-1 px-2 rounded-md bg-green-50 shadow-sm">
+                      <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'Your session request has been approved.'}
                       </p>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
-                        <button
-                          onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                        >
-                          Mark as Read
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
                     </div>
                   ) : n.type === 'session-rejected' ? (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full"></div>
-                        <span className="font-semibold text-red-700 text-xs sm:text-sm">Session Rejected</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Session Rejected</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-red-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className="flex items-center justify-center w-2 h-2 bg-red-600 rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <p className="text-red-600 text-xs sm:text-sm py-1 px-2 rounded-md bg-red-50 shadow-sm">
+                      <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'Your session request has been rejected.'}
                       </p>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
-                        <button
-                          onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                        >
-                          Mark as Read
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
                     </div>
                   ) : n.type === 'session-cancelled' ? (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-orange-500 rounded-full"></div>
-                        <span className="font-semibold text-orange-700 text-xs sm:text-sm">Session Cancelled</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Session Cancelled</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-orange-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className="flex items-center justify-center w-2 h-2 bg-orange-600 rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <p className="text-orange-600 text-xs sm:text-sm py-1 px-2 rounded-md bg-orange-50 shadow-sm">
+                      <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'Your session has been cancelled.'}
                       </p>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
-                        <button
-                          onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                        >
-                          Mark as Read
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
                     </div>
                   ) : n.type === 'skillmate-requested' && n.skillMateRequest ? (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full"></div>
-                        <span className="font-semibold text-blue-700 text-xs sm:text-sm">SkillMate Request</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">New SkillMate Request</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-blue-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className="flex items-center justify-center w-2 h-2 bg-purple-600 rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <div className="relative bg-blue-50 border border-blue-200 rounded-md p-2 sm:p-3 shadow-sm">
-                        <p className="text-blue-600 text-xs sm:text-sm">
-                          {n.skillMateRequest.requester?.firstName} {n.skillMateRequest.requester?.lastName} has sent you a SkillMate request.
-                        </p>
-                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-t-md"></div>
+                      <p className="text-sm text-gray-700 mb-3">
+                        <span className="font-medium">{n.skillMateRequest.requester?.firstName} {n.skillMateRequest.requester?.lastName}</span> wants to connect with you as a SkillMate.
+                      </p>
+                      <div className="flex items-center gap-2 mb-3">
+                        <button
+                          onClick={() => handleApproveSkillMate(n.requestId || n.skillMateRequest._id, idx)}
+                          className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-1"
+                          disabled={loading[`approve-${idx}`]}
+                        >
+                          {loading[`approve-${idx}`] ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
+                              Approving...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                              Approve
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleRejectSkillMate(n.requestId || n.skillMateRequest._id, idx)}
+                          className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-1"
+                          disabled={loading[`reject-${idx}`]}
+                        >
+                          {loading[`reject-${idx}`] ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
+                              Rejecting...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Reject
+                            </>
+                          )}
+                        </button>
                       </div>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
+                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                         <button
                           onClick={() => {
                             navigate(`/profile/${n.skillMateRequest.requester?.username || n.skillMateRequest.requester?._id}`);
                             setShow(false);
                           }}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-[10px] sm:text-xs rounded-md hover:from-blue-600 hover:to-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                          className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
                         >
                           View Profile
                         </button>
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                          className="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
                         >
                           Mark as Read
                         </button>
                       </div>
-                      <p className="text-[10px] sm:text-xs text-gray-500">Check the request section to approve or reject.</p>
                     </div>
                   ) : n.type === 'skillmate-approved' ? (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
-                        <span className="font-semibold text-green-700 text-xs sm:text-sm">SkillMate Approved</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">SkillMate Approved</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-green-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className="flex items-center justify-center w-2 h-2 bg-green-600 rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <p className="text-green-600 text-xs sm:text-sm py-1 px-2 rounded-md bg-green-50 shadow-sm">
+                      <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'Your SkillMate request has been approved.'}
                       </p>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
-                        <button
-                          onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                        >
-                          Mark as Read
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
                     </div>
                   ) : n.type === 'skillmate-rejected' ? (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full"></div>
-                        <span className="font-semibold text-red-700 text-xs sm:text-sm">SkillMate Rejected</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">SkillMate Rejected</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-red-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className="flex items-center justify-center w-2 h-2 bg-red-600 rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <p className="text-red-600 text-xs sm:text-sm py-1 px-2 rounded-md bg-red-50 shadow-sm">
+                      <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'Your SkillMate request has been rejected.'}
                       </p>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
-                        <button
-                          onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                        >
-                          Mark as Read
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
                     </div>
                   ) : n.type === 'skillmate-removed' ? (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-orange-500 rounded-full"></div>
-                        <span className="font-semibold text-orange-700 text-xs sm:text-sm">SkillMate Removed</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">SkillMate Removed</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-orange-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className="flex items-center justify-center w-2 h-2 bg-orange-600 rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <p className="text-orange-600 text-xs sm:text-sm py-1 px-2 rounded-md bg-orange-50 shadow-sm">
-                        {n.message || 'You have been removed as a SkillMate.'}
+                      <p className="text-sm text-gray-700 mb-3">
+                        {n.message || 'A SkillMate connection has been removed.'}
                       </p>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
-                        <button
-                          onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                        >
-                          Mark as Read
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
                     </div>
                   ) : n.type === 'chat-message' && n.chatMessage ? (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full"></div>
-                        <span className="font-semibold text-blue-700 text-xs sm:text-sm">New Chat Message</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">New Message</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              From {n.chatMessage.sender?.firstName} {n.chatMessage.sender?.lastName}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-blue-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className="flex items-center justify-center w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></span>
                         )}
                       </div>
-                      <div className="relative bg-blue-50 border border-blue-200 rounded-md p-2 sm:p-3 shadow-sm">
-                        <p className="text-blue-600 text-xs sm:text-sm">
-                          {n.chatMessage.sender?.firstName} {n.chatMessage.sender?.lastName}: {n.chatMessage.content}
-                        </p>
-                        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-t-md"></div>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
-                        <button
-                          onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
-                        >
-                          Mark as Read
-                        </button>
-                      </div>
+                      <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+                        {n.chatMessage.content}
+                      </p>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
                     </div>
                   ) : (
-                    <div className="space-y-1 sm:space-y-2">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-200 rounded-full"></div>
-                        <span className="font-semibold text-blue-700 text-xs sm:text-sm">General Notification</span>
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            n.message?.toLowerCase().includes('skillmate request') 
+                              ? 'bg-purple-50' 
+                              : 'bg-gray-50'
+                          }`}>
+                            <svg className={`w-5 h-5 ${
+                              n.message?.toLowerCase().includes('skillmate request')
+                                ? 'text-purple-600'
+                                : 'text-gray-600'
+                            }`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              {n.message?.toLowerCase().includes('skillmate request') ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              )}
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">
+                              {n.message?.toLowerCase().includes('skillmate request') ? 'New SkillMate Request' : 'Notification'}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
                         {!n.read && (
-                          <span className="bg-blue-500 text-white text-[8px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded-full shadow-sm">NEW</span>
+                          <span className={`flex items-center justify-center w-2 h-2 rounded-full flex-shrink-0 ${
+                            n.message?.toLowerCase().includes('skillmate request')
+                              ? 'bg-purple-600'
+                              : 'bg-gray-600'
+                          }`}></span>
                         )}
                       </div>
-                      <p className="text-blue-600 text-xs sm:text-sm py-1 px-2 rounded-md bg-blue-50 shadow-sm">
-                        {n.message || 'General notification.'}
+                      <p className="text-sm text-gray-700 mb-3">
+                        {n.message || 'You have a new notification.'}
                       </p>
-                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="text-[10px] sm:text-xs text-blue-500 font-medium">
-                          {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          }) : 'Unknown time'}
-                        </span>
+                      {(n.type === 'skillmate-requested' || n.message?.toLowerCase().includes('skillmate')) ? (
+                        <>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                // Navigate to requester's profile using requesterId or requesterName
+                                const profileId = n.requesterId || n.requesterName?.replace(/\s+/g, '').toLowerCase();
+                                if (profileId) {
+                                  navigate(`/profile/${profileId}`);
+                                  setShow(false);
+                                }
+                              }}
+                              className="flex-1 px-2 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-1 shadow-sm hover:shadow"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                              <span>View</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                const reqId = n.requestId || n.skillMateRequest?._id || n.skillMateId;
+                                handleApproveSkillMate(reqId, idx);
+                              }}
+                              className="flex-1 px-2 py-1.5 bg-green-600 hover:bg-green-700 text-white text-[11px] font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-1 shadow-sm hover:shadow disabled:opacity-70 disabled:cursor-not-allowed"
+                              disabled={loading[`approve-${idx}`]}
+                            >
+                              {loading[`approve-${idx}`] ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-2.5 w-2.5 border-2 border-white border-t-transparent"></div>
+                                  <span>...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                  <span>Approve</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => {
+                                const reqId = n.requestId || n.skillMateRequest?._id || n.skillMateId;
+                                handleRejectSkillMate(reqId, idx);
+                              }}
+                              className="flex-1 px-2 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] font-medium rounded-md transition-all duration-200 flex items-center justify-center gap-1 shadow-sm hover:shadow disabled:opacity-70 disabled:cursor-not-allowed"
+                              disabled={loading[`reject-${idx}`]}
+                            >
+                              {loading[`reject-${idx}`] ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-2.5 w-2.5 border-2 border-white border-t-transparent"></div>
+                                  <span>...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                  <span>Reject</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-end pt-2 mt-2 border-t border-gray-100">
+                            <button
+                              onClick={() => handleNotificationRead(n._id, idx)}
+                              className="text-[11px] text-gray-400 hover:text-gray-600 transition-colors duration-200 font-medium"
+                            >
+                              Mark as Read
+                            </button>
+                          </div>
+                        </>
+                      ) : (
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}
-                          className="px-2 py-1 sm:px-3 sm:py-1 bg-gradient-to-r from-gray-500 to-gray-600 text-white text-[10px] sm:text-xs rounded-md hover:from-gray-600 hover:to-gray-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
                         >
                           Mark as Read
                         </button>
-                      </div>
+                      )}
                     </div>
                   )}
                 </li>
-              ))
+              );
+              })
             )}
           </ul>
         </div>
