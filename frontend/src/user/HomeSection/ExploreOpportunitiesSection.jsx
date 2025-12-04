@@ -6,12 +6,11 @@ import { FaUserFriends, FaVideo, FaBriefcase, FaArrowRight } from 'react-icons/f
 const ExploreOpportunitiesSection = () => {
   const opportunities = [
     {
-      title: 'Peer-to-Peer Learning',
-      description: 'Connect with peers to exchange skills and knowledge directly.',
+      title: 'Live Arena sessions',
+      description: 'Connect with peers and exchange skills in live arena sessions.',
       icon: <FaUserFriends />,
       color: 'blue',
-      link: '/StartSkillSwap',
-      backgroundImage: '/assets/exploreopportunities/peertopeer.webp'
+      backgroundImage: '/assets/exploreopportunities/livesession.webp'
     },
     {
       title: 'One on One Sessions',
@@ -22,12 +21,12 @@ const ExploreOpportunitiesSection = () => {
       backgroundImage: '/assets/exploreopportunities/peertopeer.webp'
     },
     {
-      title: 'Live Interview Practice',
+      title: 'Mock Interview Practice',
       description: 'Practice interviews live with mentors and get feedback.',
       icon: <FaBriefcase />,
       color: 'green',
       link: '/interview',
-       backgroundImage: '/assets/exploreopportunities/peertopeer.webp'
+       backgroundImage: '/assets/exploreopportunities/mockinterview.webp'
     }
   ];
 
@@ -185,9 +184,7 @@ const ExploreOpportunitiesSection = () => {
           transition={{ delay: 0.6 }}
           className="mt-12 text-center"
         >
-          <p className="text-gray-500 text-sm">
-            Trusted by thousands of learners worldwide. <span className="text-blue-600 font-semibold cursor-pointer hover:underline">Join them today.</span>
-          </p>
+          
         </motion.div>
       </div>
     </section>
