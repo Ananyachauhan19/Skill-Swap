@@ -14,7 +14,7 @@ const tutorApplicationSchema = new mongoose.Schema({
   classOrYear: { type: String, required: true },
   marksheetUrl: { type: String, required: true },
   videoUrl: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'approved', 'rejected', 'reverted'], default: 'pending' },
   submittedAt: { type: Date, default: Date.now },
   approvedAt: { type: Date },
   rejectionReason: { type: String },

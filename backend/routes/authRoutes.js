@@ -409,6 +409,62 @@ router.get('/profile', requireAuth, async (req, res) => {
   }
 });
 
+// Unregister as tutor: set role to learner and disable tutor status
+router.post('/unregister-tutor', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update role and tutor status
+    user.role = 'learner';
+    user.isTutor = false;
+    user.tutorActivationAt = undefined;
+    // Clear previously merged tutor skills so profile shows no tutor skills
+    user.skillsToTeach = [];
+    // Do not delete tutorApplicationId to preserve audit trail
+
+    await user.save();
+
+    // If there is an associated tutor application, mark it as reverted
+    if (user.tutorApplicationId) {
+      try {
+        const TutorApplication = require('../models/TutorApplication');
+        const app = await TutorApplication.findById(user.tutorApplicationId);
+        if (app) {
+          app.status = 'reverted';
+          app.approvedAt = undefined;
+          app.rejectionReason = undefined;
+          await app.save();
+        }
+      } catch (e) {
+        console.warn('[DEBUG] Failed to mark tutor application as reverted:', e.message);
+      }
+    }
+
+    // Broadcast activity if socket is available
+    try {
+      const io = req.app.get('io');
+      await trackActivity({
+        userId: req.user._id,
+        activityType: ACTIVITY_TYPES.PROFILE_UPDATED,
+        activityId: `tutor-unregister-${Date.now()}`,
+        io,
+      });
+    } catch (_) {}
+
+    return res.json({
+      message: 'Unregistered as tutor successfully',
+      role: user.role,
+      isTutor: user.isTutor,
+    });
+  } catch (err) {
+    console.error('[DEBUG] Unregister tutor error:', err);
+    return res.status(500).json({ message: 'Failed to unregister as tutor', error: err.message });
+  }
+});
+
 // Sync /api/user/profile update to /api/auth/user/profile
 router.put('/profile', requireAuth, async (req, res) => {
   const {
