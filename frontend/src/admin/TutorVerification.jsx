@@ -48,7 +48,8 @@ export default function TutorVerification({ selected }) {
   const statusClass = {
     pending: 'bg-yellow-100 text-yellow-700',
     approved: 'bg-green-100 text-green-700',
-    rejected: 'bg-red-100 text-red-700'
+    rejected: 'bg-red-100 text-red-700',
+    reverted: 'bg-purple-100 text-purple-700'
   }[tutorApp.status] || 'bg-gray-100 text-gray-700';
 
   return (
@@ -69,6 +70,9 @@ export default function TutorVerification({ selected }) {
           )}
           {tutorApp.status === 'approved' && user.isTutor && (
             <div className="text-[11px] text-green-600 mt-1">Tutor active</div>
+          )}
+          {tutorApp.status === 'reverted' && (
+            <div className="text-[11px] text-purple-600 mt-1">Reverted by user</div>
           )}
           {tutorApp.status === 'rejected' && tutorApp.rejectionReason && (
             <div className="text-[11px] text-red-600 mt-1" title={tutorApp.rejectionReason}>Reason: {tutorApp.rejectionReason}</div>
@@ -105,6 +109,9 @@ export default function TutorVerification({ selected }) {
           )}
           {tutorApp.status === 'approved' && user.isTutor && (
             <span className="text-[11px] text-green-600">Tutor active</span>
+          )}
+          {tutorApp.status === 'reverted' && (
+            <span className="text-[11px] text-purple-600">Reverted by user</span>
           )}
         </div>
       </div>

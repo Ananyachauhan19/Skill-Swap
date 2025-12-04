@@ -12,6 +12,85 @@ import {
   FaEllipsisH
 } from "react-icons/fa";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { useAuth } from '../../context/AuthContext.jsx';
+function TutorStatusBadge() {
+  const { user, setUser } = useAuth();
+  const navigate = useNavigate();
+  const [status, setStatus] = useState({ isTutor: false, appStatus: null, activationRemainingMs: 0 });
+  const [countdown, setCountdown] = useState('');
+
+  useEffect(() => {
+    let timer;
+    (async () => {
+      try {
+        const { BACKEND_URL } = await import('../../config.js');
+        const res = await fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          const appStatus = data?.application?.status || null;
+          const isTutor = !!data?.isTutor;
+          const activationRemainingMs = data?.activationRemainingMs || 0;
+          setStatus({ isTutor, appStatus, activationRemainingMs });
+          // If user has reverted, refetch full profile to clear any stale tutor skills in UI
+          if (appStatus === 'reverted') {
+            try {
+              const prof = await fetch(`${BACKEND_URL}/api/auth/user/profile`, { credentials: 'include' });
+              if (prof.ok) {
+                const fresh = await prof.json();
+                setUser(prev => ({ ...(prev || {}), ...fresh }));
+              }
+            } catch (_) {}
+          }
+          if (!isTutor && appStatus === 'approved' && activationRemainingMs > 0) {
+            const start = Date.now();
+            const tick = async () => {
+              const elapsed = Date.now() - start;
+              const ms = Math.max(0, activationRemainingMs - elapsed);
+              const m = Math.floor(ms / 60000);
+              const s = Math.floor((ms % 60000) / 1000);
+              setCountdown(ms > 0 ? `Unlocks in ${m}m ${s}s` : 'Activating...');
+              if (ms === 0) {
+                try {
+                  const check = await fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' });
+                  if (check.ok) {
+                    const fresh = await check.json();
+                    setStatus({
+                      isTutor: !!fresh?.isTutor,
+                      appStatus: fresh?.application?.status || null,
+                      activationRemainingMs: fresh?.activationRemainingMs || 0,
+                    });
+                  }
+                } catch {}
+                clearInterval(timer);
+              }
+            };
+            tick();
+            timer = setInterval(tick, 1000);
+          }
+        }
+      } catch (_) {}
+    })();
+    return () => { if (timer) clearInterval(timer); };
+  }, []);
+
+  if (status.isTutor) {
+    return <span className="px-3 py-1 rounded-full bg-green-600 text-white font-medium">✓ Tutor Active</span>;
+  }
+  if (status.appStatus === 'approved' && status.activationRemainingMs > 0) {
+    return (
+      <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 font-medium">{countdown || 'Unlocks soon'}</span>
+    );
+  }
+  if (status.appStatus === 'pending') {
+    return <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium">Tutor Application: Pending Review</span>;
+  }
+  if (status.appStatus === 'rejected') {
+    return <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 font-medium">Tutor Application: Rejected</span>;
+  }
+  return (
+    <button onClick={() => navigate('/tutor/apply')} className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition">Apply as Tutor</button>
+  );
+}
 import { BACKEND_URL } from '../../config.js';
 import { useSkillMates } from '../../context/SkillMatesContext.jsx';
 
@@ -322,29 +401,8 @@ const Sidebar = () => {
                     </div>
                   )}
 
-                  {/* Tutor application status */}
-                  <div className="w-full sm:w-auto text-xs mt-2 sm:mt-0 flex flex-col gap-1 items-center sm:items-start">
-                    {!user?.isTutor && !user?.tutorApplication && (
-                      <button
-                        onClick={() => navigate('/tutor/apply')}
-                        className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition"
-                      >Apply as Tutor</button>
-                    )}
-                    {user?.tutorApplication && user?.tutorApplication.status === 'pending' && (
-                      <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium">Tutor Application: Pending Review</span>
-                    )}
-                    {user?.tutorApplication && user?.tutorApplication.status === 'rejected' && (
-                      <span className="px-3 py-1 rounded-full bg-red-100 text-red-700 font-medium">Tutor Application: Rejected</span>
-                    )}
-                    {user?.tutorApplication && user?.tutorApplication.status === 'approved' && !user?.isTutor && (
-                      <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 font-medium">
-                        Approved – Unlocks in {Math.ceil((user.activationRemainingMs || 0)/60000)} min
-                      </span>
-                    )}
-                    {user?.isTutor && (
-                      <span className="px-3 py-1 rounded-full bg-green-600 text-white font-medium">✓ Tutor Active</span>
-                    )}
-                  </div>
+                  {/* Tutor application status (fetched) */}
+                    <TutorStatusBadge />
                 </div>
                 {(uploadError || uploadStatus==='success') && (
                   <div className="mt-2 w-full text-center sm:text-left">

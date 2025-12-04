@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from '../../context/AuthContext.jsx';
 import {
   MapPin,
   GraduationCap,
@@ -58,6 +59,9 @@ const SidebarCard = ({
   onSaveEdit,
 }) => {
   const navigate = useNavigate();
+  const { user, setUser } = useAuth();
+  const [tutorStatus, setTutorStatus] = useState({ isTutor: false, activationRemainingMs: 0, appStatus: null });
+  const [countdownText, setCountdownText] = useState('');
   const [locationQuery, setLocationQuery] = useState("");
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationInputRef = useRef(null);
@@ -73,6 +77,54 @@ const SidebarCard = ({
       setLocationQuery(fieldDraft.country || "");
     }
   }, [editingField, fieldDraft.country]);
+
+  // Fetch tutor status for pending/approved-but-not-active states
+  useEffect(() => {
+    let timer;
+    (async () => {
+      try {
+        const { BACKEND_URL } = await import('../../config.js');
+        const res = await fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          const appStatus = data?.application?.status || null;
+          const isTutor = !!data?.isTutor;
+          const activationRemainingMs = data?.activationRemainingMs || 0;
+          setTutorStatus({ isTutor, activationRemainingMs, appStatus });
+          if (!isTutor && activationRemainingMs > 0) {
+            const start = Date.now();
+            const tick = async () => {
+              const elapsed = Date.now() - start;
+              const ms = Math.max(0, activationRemainingMs - elapsed);
+              const m = Math.floor(ms / 60000);
+              const s = Math.floor((ms % 60000) / 1000);
+              setCountdownText(ms > 0 ? `Unlocks in ${m}m ${s}s` : 'Activating...');
+              if (ms === 0) {
+                // Optional: refetch status once when it hits zero
+                try {
+                  const check = await fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' });
+                  if (check.ok) {
+                    const fresh = await check.json();
+                    setTutorStatus({
+                      isTutor: !!fresh?.isTutor,
+                      activationRemainingMs: fresh?.activationRemainingMs || 0,
+                      appStatus: fresh?.application?.status || null,
+                    });
+                  }
+                } catch {}
+                clearInterval(timer);
+              }
+            };
+            tick();
+            timer = setInterval(tick, 1000);
+          } else {
+            setCountdownText('');
+          }
+        }
+      } catch (_) {}
+    })();
+    return () => { if (timer) clearInterval(timer); };
+  }, []);
 
   useEffect(() => {
     if (!showLocationDropdown) return;
@@ -456,15 +508,66 @@ const SidebarCard = ({
       </div>
       <div className="flex flex-col gap-4">
         {/* Apply as Tutor / Verified Tutor Button */}
-        {profile.isTutor ? (
-          <div className="text-white px-4 py-4 rounded-xl shadow-lg flex items-center justify-center gap-3 border-2" style={{ background: 'linear-gradient(135deg, rgb(22, 163, 74) 0%, rgb(34, 197, 94) 100%)', borderColor: 'rgb(134, 239, 172)' }}>
+        {(user?.isTutor === true) ? (
+          <button
+            type="button"
+            className="group relative px-5 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:-translate-y-0.5 flex items-center justify-center gap-3 overflow-hidden bg-red-600 hover:bg-red-700 text-white border-2 border-red-300"
+            onClick={async () => {
+              const confirmed = window.confirm('Unregister as Tutor? This will switch your role to learner and disable tutor features.');
+              if (!confirmed) return;
+                try {
+                const { BACKEND_URL } = await import('../../config.js');
+                const res = await fetch(`${BACKEND_URL}/api/auth/unregister-tutor`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: { 'Content-Type': 'application/json' },
+                });
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({ message: 'Request failed' }));
+                  alert(err.message || 'Failed to unregister as tutor');
+                  return;
+                }
+                const data = await res.json();
+                alert('You are now a learner. Tutor features disabled.');
+                // Refetch fresh profile to ensure global consistency
+                try {
+                  const refetch = await fetch(`${BACKEND_URL}/api/auth/user/profile`, { credentials: 'include' });
+                  if (refetch.ok) {
+                    const fresh = await refetch.json();
+                    // update global auth context too
+                    setUser(prev => ({ ...(prev || {}), ...fresh }));
+                    if (typeof onSaveEdit === 'function') {
+                      onSaveEdit(fresh);
+                    }
+                  } else {
+                    if (typeof onSaveEdit === 'function') {
+                      onSaveEdit({ ...profile, isTutor: false, role: 'learner' });
+                    }
+                  }
+                } catch {
+                  if (typeof onSaveEdit === 'function') {
+                    onSaveEdit({ ...profile, isTutor: false, role: 'learner' });
+                  }
+                }
+              } catch (e) {
+                alert('Network error while unregistering as tutor');
+              }
+            }}
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
-            <div className="flex flex-col items-start">
-              <span className="text-sm font-bold">Verified Tutor</span>
-              <span className="text-xs opacity-90">Active Member</span>
-            </div>
+            <span className="text-sm font-bold">Unregister as Tutor</span>
+          </button>
+        ) : tutorStatus.appStatus === 'approved' && tutorStatus.activationRemainingMs > 0 ? (
+          <div className="px-5 py-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 shadow-sm flex items-center justify-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" /></svg>
+            <span className="text-sm font-medium">{countdownText || 'Unlocks soon'}</span>
+          </div>
+        ) : tutorStatus.appStatus === 'pending' ? (
+          <div className="px-5 py-4 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-800 shadow-sm flex items-center justify-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" /></svg>
+            <span className="text-sm font-medium">Pending review</span>
           </div>
         ) : (
           <button

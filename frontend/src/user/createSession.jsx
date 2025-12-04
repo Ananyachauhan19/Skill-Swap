@@ -40,8 +40,8 @@ const CreateSession = () => {
   const [subjectsByClass, setSubjectsByClass] = useState({});
   const [topicsBySubject, setTopicsBySubject] = useState({});
 
-  // Treat 'both' role same as 'teacher' for tutor capabilities
-  const isTutorRole = currentUser?.role === 'teacher' || currentUser?.role === 'both';
+  // Treat 'both' role same as 'teacher' for tutor capabilities and require isTutor flag
+  const isTutorRole = (currentUser?.role === 'teacher' || currentUser?.role === 'both') && currentUser?.isTutor === true;
 
   // Derived skill lists for tutor-capable user
   const tutorClasses = useMemo(() => {
@@ -610,6 +610,16 @@ const CreateSession = () => {
   useEffect(() => {
     fetchUserSessions();
   }, []);
+
+  // Block non-tutor users from creating sessions
+  if (!isTutorRole) {
+    return (
+      <div className="max-w-2xl mx-auto mt-10 p-6 bg-yellow-50 border border-yellow-200 rounded-xl">
+        <h2 className="text-xl font-semibold text-yellow-800 mb-2">Tutor access required</h2>
+        <p className="text-yellow-700">You are currently a learner. To create sessions, apply and get approved as a tutor. If you recently unregistered, tutor features are disabled.</p>
+      </div>
+    );
+  }
 
   useEffect(() => {
     // Socket listeners for real-time updates
