@@ -1,6 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useContext } from 'react';
 import VideoCard from '../privateProfile/VideoCard';
 import { useNavigate } from "react-router-dom";
+import { BACKEND_URL } from '../../config.js';
+import { ProfileContext } from './SideBarPublic';
 
 const PublicVideos = () => {
   const [videos, setVideos] = useState([]);
@@ -9,78 +11,44 @@ const PublicVideos = () => {
   const [openMenuIdx, setOpenMenuIdx] = useState(null);
   const menuRefs = useRef([]); 
   const navigate = useNavigate();
+  const { profileUserId } = useContext(ProfileContext) || {};
 
-  // Fetch uploaded videos from Videos.jsx (localStorage or backend)
+  // Fetch uploaded videos from backend
   useEffect(() => {
-    setTimeout(() => {
-      try {
-        // Load from localStorage (matches Videos.jsx)
-        const savedVideos = JSON.parse(localStorage.getItem("uploadedVideos") || "[]");
-        const initialVideos = savedVideos.length > 0 ? savedVideos : [
-          {
-            id: "1",
-            title: 'React Hooks Tutorial',
-            description: 'Learn React Hooks in depth.',
-            thumbnail: 'https://placehold.co/320x180?text=React+Hooks',
-            videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
-            uploadDate: new Date().toLocaleString(),
-            lastEdited: new Date().toLocaleString(),
-            userId: 'user123',
-            skillmates: 5,
-            views: 120,
-            likes: 20,
-            dislikes: 1,
-            isLive: false,
-            scheduledTime: null,
-            isDraft: false,
-            isArchived: false,
-          },
-          {
-            id: "2",
-            title: 'Node.js Crash Course',
-            description: 'A quick start to Node.js.',
-            thumbnail: 'https://placehold.co/320x180?text=Node+JS',
-            videoUrl: 'https://www.w3schools.com/html/movie.mp4',
-            uploadDate: new Date().toLocaleString(),
-            lastEdited: new Date().toLocaleString(),
-            userId: 'user456',
-            skillmates: 3,
-            views: 80,
-            likes: 10,
-            dislikes: 0,
-            isLive: false,
-            scheduledTime: null,
-            isDraft: false,
-            isArchived: false,
-          },
-        ];
-        setVideos(initialVideos.filter(video => !video.isDraft && !video.isArchived && !video.isLive)); // Exclude drafts, archived, and live videos
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to fetch videos');
-        setLoading(false);
-      }
-    }, 0);
-    
-    // Backend fetch (commented for demo)
-    /*
     const fetchPublicVideos = async () => {
       try {
-        const res = await fetch('/api/user/videos?userId=public', {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        setLoading(true);
+        const userId = profileUserId || new URLSearchParams(window.location.search).get('userId');
+        
+        if (!userId) {
+          setError('No user ID found');
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(`${BACKEND_URL}/api/videos/user/${userId}`, {
+          method: 'GET',
+          credentials: 'include'
         });
-        if (!res.ok) throw new Error('Failed to fetch videos');
-        const data = await res.json();
-        setVideos(data.filter(video => !video.isDraft && !video.isArchived && !video.isLive));
-        setLoading(false);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch videos');
+        }
+
+        const data = await response.json();
+        setVideos(data.videos || []);
+        setError(null);
       } catch (err) {
+        console.error('Fetch public videos error:', err);
         setError('Failed to fetch videos');
+        setVideos([]);
+      } finally {
         setLoading(false);
       }
     };
+
     fetchPublicVideos();
-    */
-  }, []);
+  }, [profileUserId]);
 
   // Close menu on outside click
   useEffect(() => {
@@ -150,7 +118,6 @@ const PublicVideos = () => {
   return (
     <div className="w-full bg-gradient-to-br from-blue-50 to-cream-100 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl w-full">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-dark-blue tracking-tight">Uploaded Videos</h2>
         {loading && <p className="text-gray-600 text-sm">Loading...</p>}
         {error && <p className="text-red-500 text-sm">{error}</p>}
         {videos.length === 0 && !loading && (
@@ -159,14 +126,17 @@ const PublicVideos = () => {
         <div className="space-y-6">
           {videos.map((video, idx) => (
             <VideoCard
-              key={idx}
+              key={video._id || idx}
               video={{
                 ...video,
-                uploadDate: `Uploaded: ${video.uploadDate}`, // Format for display
-                lastEdited: `Last Edited: ${video.lastEdited}`, // Include lastEdited
+                id: video._id,
+                thumbnail: video.thumbnailUrl,
+                likes: video.likes?.length || 0,
+                dislikes: video.dislikes?.length || 0,
+                userId: typeof video.userId === 'object' ? (video.userId?.username || `${video.userId?.firstName || ''} ${video.userId?.lastName || ''}`.trim() || 'Unknown') : (video.userId || 'Unknown'),
               }}
               menuOptions={menuOptions}
-              onReport={(video) => handleReport(video)}
+              onReport={() => handleReport(video)}
               onSave={() => handleSave(video)}
               onShare={() => handleShare(video)}
               openMenu={openMenuIdx === idx}

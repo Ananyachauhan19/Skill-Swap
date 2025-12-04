@@ -43,64 +43,13 @@ const History = () => {
   const observer = useRef(null);
 
   // Static data for testing (remove when backend is ready)
-  const staticHistoryData = [
-    {
-      videoId: "vid1",
-      userId: "user123",
-      title: "Cooking Tutorial: Pasta",
-      thumbnail: "https://via.placeholder.com/360x202?text=Pasta",
-      videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-      isLive: false,
-      scheduledTime: null,
-      watchDate: "2025-07-10T14:30:00Z",
-      description: "Learn to make delicious pasta at home!",
-      views: 1500,
-      likes: 120,
-      dislikes: 10,
-    },
-    {
-      videoId: "vid2",
-      userId: "user123",
-      title: "Live Coding Session",
-      thumbnail: "https://via.placeholder.com/360x202?text=Coding",
-      videoUrl: null,
-      isLive: true,
-      scheduledTime: null,
-      watchDate: "2025-07-10T10:00:00Z",
-      description: "Join our live coding session on React!",
-      views: 800,
-      likes: 50,
-      dislikes: 5,
-    },
-    {
-      videoId: "vid3",
-      userId: "user456",
-      title: "Yoga for Beginners",
-      thumbnail: "https://via.placeholder.com/360x202?text=Yoga",
-      videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4",
-      isLive: false,
-      scheduledTime: null,
-      watchDate: "2025-07-09T18:45:00Z",
-      description: "A beginner-friendly yoga session.",
-      views: 2000,
-      likes: 180,
-      dislikes: 15,
-    },
-    {
-      videoId: "vid4",
-      userId: "user123",
-      title: "Travel Vlog: Paris",
-      thumbnail: "https://via.placeholder.com/360x202?text=Paris",
-      videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_5mb.mp4",
-      isLive: false,
-      scheduledTime: null,
-      watchDate: "2025-07-01T09:15:00Z",
-      description: "Exploring the streets of Paris!",
-      views: 3000,
-      likes: 250,
-      dislikes: 20,
-    },
-  ];
+  const staticHistoryData = [];
+  // TODO: Implement backend watch history feature
+  // Backend requirements:
+  // 1. Add watchHistory field to User model: watchHistory: [{ videoId: ObjectId, watchedAt: Date }]
+  // 2. Create API endpoint: GET /api/user/history
+  // 3. Update video view tracking to also save to user's watch history
+  // 4. Return populated video data with watch timestamps
 
   // Load watch history
   useEffect(() => {

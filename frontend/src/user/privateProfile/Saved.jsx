@@ -14,51 +14,21 @@ const Saved = () => {
   const [openMenuIdx, setOpenMenuIdx] = useState(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const menuRefs = useRef([]);
   const observer = useRef(null);
+  const menuRefs = useRef([]);
   const navigate = useNavigate();
 
   // Load saved videos from localStorage or static data
   useEffect(() => {
     setTimeout(() => {
       try {
+        // TODO: Replace with backend API call when saved/bookmarked videos feature is implemented
+        // Backend should have a User model field like savedVideos: [{ type: ObjectId, ref: 'Video' }]
+        // API endpoint: GET /api/videos/saved
+        // For now, returning empty array to remove static data
         const savedVideos = JSON.parse(localStorage.getItem("savedVideos") || "[]");
-        const initialVideos = savedVideos.length > 0 ? savedVideos : [
-          {
-            id: "1",
-            title: "Saved React Session",
-            description: "This session is saved.",
-            thumbnail: "https://placehold.co/320x180?text=Saved+1",
-            videoUrl: "",
-            uploadDate: new Date().toLocaleString(),
-            lastEdited: new Date().toLocaleString(),
-            userId: "user123",
-            isLive: false,
-            viewers: 0,
-            likes: 0,
-            dislikes: 0,
-            skillmates: 5,
-            views: 120,
-          },
-          {
-            id: "2",
-            title: "Saved Node.js Session",
-            description: "This session is saved.",
-            thumbnail: "https://placehold.co/320x180?text=Saved+2",
-            videoUrl: "",
-            uploadDate: new Date().toLocaleString(),
-            lastEdited: new Date().toLocaleString(),
-            userId: "user456",
-            isLive: false,
-            viewers: 0,
-            likes: 0,
-            dislikes: 0,
-            skillmates: 3,
-            views: 80,
-          },
-        ];
-        setSaved(initialVideos);
-        setFilteredSaved(initialVideos);
+        setSaved(savedVideos);
+        setFilteredSaved(savedVideos);
         setLoading(false);
       } catch (err) {
         setError("Failed to load saved videos");
@@ -99,7 +69,6 @@ const Saved = () => {
       if (observer.current) observer.current.disconnect();
     };
   }, [filteredSaved]);
-
   // Close menu on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -262,15 +231,19 @@ const Saved = () => {
               <section className="space-y-4 overflow-y-auto">
                 {filteredSaved.map((video, idx) => (
                   <motion.article
-                    key={video.id || idx}
+                    key={video._id || video.id || idx}
                     variants={itemVariants}
                     className="video-card"
                   >
                     <VideoCard
                       video={{
                         ...video,
-                        uploadDate: `Saved: ${video.uploadDate}`,
-                        lastEdited: `Last Edited: ${video.lastEdited}`,
+                        userId: typeof video.userId === 'object' ? (video.userId?.username || video.userId?.firstName || 'Unknown') : (video.userId || 'Unknown'),
+                        thumbnail: video.thumbnailUrl || video.thumbnail,
+                        likes: Array.isArray(video.likes) ? video.likes.length : (video.likes || 0),
+                        views: video.views || 0,
+                        uploadDate: `Saved: ${video.uploadDate || new Date(video.createdAt).toLocaleString()}`,
+                        lastEdited: `Last Edited: ${video.lastEdited || new Date(video.updatedAt).toLocaleString()}`,
                       }}
                       menuOptions={["report", "remove", "share"]}
                       onReport={() => handleReport(video)}

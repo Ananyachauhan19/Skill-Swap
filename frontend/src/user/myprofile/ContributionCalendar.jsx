@@ -87,7 +87,7 @@ const getIntensityLabel = (count) => {
   return 'Very high activity';
 };
 
-const ContributionCalendar = () => {
+const ContributionCalendar = ({ userId: propUserId }) => {
   const [contributions, setContributions] = useState({});
   const [currentDate, setCurrentDate] = useState(new Date());
   const [months, setMonths] = useState(generateMonths(new Date()));
@@ -96,6 +96,7 @@ const ContributionCalendar = () => {
   const [hoveredDay, setHoveredDay] = useState(null);
   const [contributionStats, setContributionStats] = useState({ total: 0, maxStreak: 0, currentStreak: 0 });
   const { user } = useAuth();
+  const effectiveUserId = propUserId || (user && user._id);
 
   // Set current date + calendar update
   useEffect(() => {
@@ -136,11 +137,11 @@ const ContributionCalendar = () => {
   // Fetch contribution history
   useEffect(() => {
     const run = async () => {
-      if (!user || !user._id) return;
+      if (!effectiveUserId) return;
       setLoading(true);
       setError(null);
       try {
-        const items = await fetchContributions(user._id, 365);
+        const items = await fetchContributions(effectiveUserId, 365);
         const contribMap = buildContributionMap(currentDate, items);
         setContributions(contribMap);
         
@@ -156,14 +157,14 @@ const ContributionCalendar = () => {
       }
     };
     run();
-  }, [currentDate, user]);
+  }, [currentDate, effectiveUserId]);
 
   // Live updates: listen for backend contribution-updated events and refetch
   useEffect(() => {
-    if (!user || !user._id) return;
+    if (!effectiveUserId) return;
     const handler = async () => {
       try {
-        const items = await fetchContributions(user._id, 365);
+        const items = await fetchContributions(effectiveUserId, 365);
         const contribMap = buildContributionMap(new Date(), items);
         setContributions(contribMap);
         
@@ -177,7 +178,7 @@ const ContributionCalendar = () => {
     };
     socket.on('contribution-updated', handler);
     return () => socket.off('contribution-updated', handler);
-  }, [user]);
+  }, [effectiveUserId]);
 
   return (
     <>
