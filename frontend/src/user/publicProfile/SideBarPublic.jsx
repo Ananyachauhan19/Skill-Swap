@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, createContext } from 'react';
+import React, { useEffect, useRef, useState, createContext } from "react";
 import {
   FaLinkedin,
   FaGithub,
@@ -13,37 +13,45 @@ import {
   FaCode,
   FaChalkboardTeacher,
   FaChevronDown,
-} from 'react-icons/fa';
-import { useNavigate, Outlet, NavLink, useParams } from 'react-router-dom';
-import ContributionCalendar from '../myprofile/ContributionCalendar';
-import Chat from '../../components/Chat';
-import SearchBar from '../privateProfile/SearchBar';
-import { BACKEND_URL } from '../../config.js';
-import { useToast } from '../../components/ToastContext.js';
+} from "react-icons/fa";
+import { useNavigate, useParams } from "react-router-dom";
+import ContributionCalendar from "../myprofile/ContributionCalendar";
+import Chat from "../../components/Chat";
+import SearchBar from "../privateProfile/SearchBar";
+import { BACKEND_URL } from "../../config.js";
+import { useToast } from "../../components/ToastContext.js";
+import PublicHome from "./PublicHome";
+import PublicLive from "./PublicLive";
+import PublicVideos from "./PublicVideos";
 
 export const ProfileContext = createContext();
 
 const contributions = {
-  '2024-01-01': 5,
-  '2024-01-02': 2,
+  "2024-01-01": 5,
+  "2024-01-02": 2,
 };
 
 const months = [
-  { name: 'Jan', year: 2024, days: 31 },
-  { name: 'Feb', year: 2024, days: 29 },
+  { name: "Jan", year: 2024, days: 31 },
+  { name: "Feb", year: 2024, days: 29 },
 ];
 
 const currentDate = new Date();
 
 const getContributionColor = (count) => {
-  if (count === 0) return 'bg-gray-100';
-  if (count <= 2) return 'bg-blue-100';
-  if (count <= 5) return 'bg-blue-300';
-  if (count <= 8) return 'bg-blue-500';
-  return 'bg-blue-700';
+  if (count === 0) return "bg-gray-100";
+  if (count <= 2) return "bg-blue-100";
+  if (count <= 5) return "bg-blue-300";
+  if (count <= 8) return "bg-blue-500";
+  return "bg-blue-700";
 };
 
-const fetchUserProfile = async (username, userId, retries = 3, delay = 1000) => {
+const fetchUserProfile = async (
+  username,
+  userId,
+  retries = 3,
+  delay = 1000
+) => {
   try {
     const url = username
       ? `${BACKEND_URL}/api/auth/user/public/${username}`
@@ -52,36 +60,40 @@ const fetchUserProfile = async (username, userId, retries = 3, delay = 1000) => 
       : `${BACKEND_URL}/api/auth/user/profile`;
 
     const res = await fetch(url, {
-      method: 'GET',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      method: "GET",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
     });
 
-    if (!res.ok) throw new Error('Failed to fetch user profile');
+    if (!res.ok) throw new Error("Failed to fetch user profile");
     const user = await res.json();
     return {
       ...user,
-      fullName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User',
+      fullName:
+        `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+        "Unknown User",
     };
   } catch (error) {
     if (retries > 0) {
       await new Promise((resolve) => setTimeout(resolve, delay));
       return fetchUserProfile(username, userId, retries - 1, delay * 2);
     }
-    throw new Error('Failed to fetch user profile after retries');
+    throw new Error("Failed to fetch user profile after retries");
   }
 };
 
 const SideBarPublic = ({ username, setNotFound }) => {
   const navigate = useNavigate();
   const { username: paramUsername } = useParams();
-  const activeTab = 'border-b-2 border-blue-600 text-dark-blue font-semibold';
-  const normalTab = 'text-gray-600 hover:text-dark-blue';
+  const [activeTab, setActiveTab] = useState("home");
+  const activeTabStyle =
+    "border-b-2 border-blue-600 text-dark-blue font-semibold";
+  const normalTabStyle = "text-gray-600 hover:text-dark-blue";
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSkillMate, setIsSkillMate] = useState(false);
   const [pendingRequest, setPendingRequest] = useState(null);
   const [requestLoading, setRequestLoading] = useState(false);
@@ -95,7 +107,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
   useEffect(() => {
     const targetUsername = paramUsername || username;
-    const userId = new URLSearchParams(window.location.search).get('userId');
+    const userId = new URLSearchParams(window.location.search).get("userId");
 
     async function loadProfile() {
       setLoading(true);
@@ -116,46 +128,53 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
     if (targetUsername || userId) loadProfile();
     else {
-      setError('No username or userId provided');
+      setError("No username or userId provided");
       setLoading(false);
     }
 
-    window.addEventListener('profileUpdated', loadProfile);
-    return () => window.removeEventListener('profileUpdated', loadProfile);
+    window.addEventListener("profileUpdated", loadProfile);
+    return () => window.removeEventListener("profileUpdated", loadProfile);
   }, [paramUsername, username, setNotFound]);
 
   const checkSkillMateStatus = async (userId) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/skillmates/check/${userId}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to check SkillMate status');
+      const response = await fetch(
+        `${BACKEND_URL}/api/skillmates/check/${userId}`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to check SkillMate status");
       const data = await response.json();
       setIsSkillMate(data.isSkillMate);
       setPendingRequest(data.pendingRequest);
-    } catch (error) { console.warn('SkillMate status check failed:', error?.message); }
+    } catch (error) {
+      console.warn("SkillMate status check failed:", error?.message);
+    }
   };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setShowDropdown(false);
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) setShowMobileMenu(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target))
+        setShowDropdown(false);
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target))
+        setShowMobileMenu(false);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const sendSkillMateRequest = async (recipientId) => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/skillmates/request`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ recipientId }),
       });
-      if (!response.ok) throw new Error('Failed to send SkillMate request');
+      if (!response.ok) throw new Error("Failed to send SkillMate request");
       return await response.json();
     } catch (error) {
       throw error;
@@ -168,9 +187,19 @@ const SideBarPublic = ({ username, setNotFound }) => {
     try {
       await sendSkillMateRequest(profile._id);
       setPendingRequest({ isRequester: true });
-      addToast({ title: 'Request Sent', message: 'SkillMate request sent successfully.', variant: 'success', timeout: 3000 });
+      addToast({
+        title: "Request Sent",
+        message: "SkillMate request sent successfully.",
+        variant: "success",
+        timeout: 3000,
+      });
     } catch (error) {
-      addToast({ title: 'Error', message: error.message || 'Failed to send SkillMate request', variant: 'error', timeout: 4000 });
+      addToast({
+        title: "Error",
+        message: error.message || "Failed to send SkillMate request",
+        variant: "error",
+        timeout: 4000,
+      });
     } finally {
       setRequestLoading(false);
     }
@@ -178,12 +207,15 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
   const removeSkillMate = async (skillMateId) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/skillmates/remove/${skillMateId}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to remove SkillMate');
+      const response = await fetch(
+        `${BACKEND_URL}/api/skillmates/remove/${skillMateId}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to remove SkillMate");
       return await response.json();
     } catch (error) {
       throw error;
@@ -198,9 +230,19 @@ const SideBarPublic = ({ username, setNotFound }) => {
       setIsSkillMate(false);
       setPendingRequest(null);
       setShowDropdown(false);
-      addToast({ title: 'Removed', message: 'SkillMate removed successfully.', variant: 'success', timeout: 3000 });
+      addToast({
+        title: "Removed",
+        message: "SkillMate removed successfully.",
+        variant: "success",
+        timeout: 3000,
+      });
     } catch (error) {
-      addToast({ title: 'Error', message: error.message || 'Failed to remove SkillMate', variant: 'error', timeout: 4000 });
+      addToast({
+        title: "Error",
+        message: error.message || "Failed to remove SkillMate",
+        variant: "error",
+        timeout: 4000,
+      });
     } finally {
       setRequestLoading(false);
     }
@@ -208,12 +250,15 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
   const approveSkillMateRequest = async (requestId) => {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/skillmates/requests/approve/${requestId}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to approve SkillMate request');
+      const response = await fetch(
+        `${BACKEND_URL}/api/skillmates/requests/approve/${requestId}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (!response.ok) throw new Error("Failed to approve SkillMate request");
       return await response.json();
     } catch (error) {
       throw error;
@@ -227,9 +272,19 @@ const SideBarPublic = ({ username, setNotFound }) => {
       await approveSkillMateRequest(pendingRequest.id);
       setIsSkillMate(true);
       setPendingRequest(null);
-      addToast({ title: 'Approved', message: 'You are now SkillMates.', variant: 'success', timeout: 3000 });
+      addToast({
+        title: "Approved",
+        message: "You are now SkillMates.",
+        variant: "success",
+        timeout: 3000,
+      });
     } catch (error) {
-      addToast({ title: 'Error', message: error.message || 'Failed to approve SkillMate request', variant: 'error', timeout: 4000 });
+      addToast({
+        title: "Error",
+        message: error.message || "Failed to approve SkillMate request",
+        variant: "error",
+        timeout: 4000,
+      });
     } finally {
       setRequestLoading(false);
     }
@@ -239,66 +294,75 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const toggleSearchBar = () => setShowSearchBar((prev) => !prev);
   const toggleMobileMenu = () => setShowMobileMenu((prev) => !prev);
 
-  // Build link to public-profile routes preserving userId when needed
-  const buildPublicLink = (segment = 'Home') => {
-    const qp = profile?._id ? `?userId=${profile._id}` : (window.location.search || '');
-    return `/public-profile/${segment}${qp}`;
-  };
-
   const mobileNavItems = [
-    { icon: FaUser, label: 'Profile', path: buildPublicLink('Home') },
-    { icon: FaGraduationCap, label: 'Education', path: '#education' },
-    { icon: FaBriefcase, label: 'Experience', path: '#experience' },
-    { icon: FaCode, label: 'Skills', path: '#skills' },
-    { icon: FaChalkboardTeacher, label: 'Teach', path: '#teach' },
+    { icon: FaUser, label: "Profile", action: () => setActiveTab("home") },
+    { icon: FaGraduationCap, label: "Education", path: "#education" },
+    { icon: FaBriefcase, label: "Experience", path: "#experience" },
+    { icon: FaCode, label: "Skills", path: "#skills" },
+    { icon: FaChalkboardTeacher, label: "Teach", path: "#teach" },
   ];
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "home":
+        return <PublicHome />;
+      case "live":
+        return <PublicLive />;
+      case "videos":
+        return <PublicVideos />;
+      default:
+        return <PublicHome />;
+    }
+  };
+
   return (
-    <ProfileContext.Provider value={{ searchQuery, setSearchQuery }}>
+    <ProfileContext.Provider value={{ searchQuery, setSearchQuery, profileUserId: profile?._id }}>
       <div className="flex flex-col sm:flex-row min-h-screen w-full bg-gradient-to-br from-blue-50 to-cream-100 font-sans">
-   {/* Scrollable Menu Button */}
-<div className="sm:hidden px-4 py-2 relative">
-  <button
-    onClick={toggleMobileMenu}
-    className="text-dark-blue"
-    aria-label="Open menu"
-  >
-    <FaBars className="text-2xl" />
-  </button>
+        {/* Scrollable Menu Button */}
+        <div className="sm:hidden px-4 py-2 relative">
+          <button
+            onClick={toggleMobileMenu}
+            className="text-dark-blue"
+            aria-label="Open menu"
+          >
+            <FaBars className="text-2xl" />
+          </button>
 
-  {/* Dropdown appears OVER page content */}
-  {showMobileMenu && (
-    <div className="absolute top-full left-0 mt-2 w-screen bg-blue-100 z-50 shadow-md">
-      <div className="p-4 max-w-md mx-auto rounded-md">
-        <ul className="space-y-3">
-          {mobileNavItems.map((item, index) => (
-            <li key={index}>
-              <a
-                href={item.path}
-                className="flex items-center gap-3 p-2 rounded-md text-dark-blue hover:bg-blue-200"
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleMobileMenu();
-                  navigate(item.path);
-                }}
-              >
-                <item.icon className="text-lg" />
-                <span className="text-sm">{item.label}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  )}
-</div>
-
+          {/* Dropdown appears OVER page content */}
+          {showMobileMenu && (
+            <div className="absolute top-full left-0 mt-2 w-screen bg-blue-100 z-50 shadow-md">
+              <div className="p-4 max-w-md mx-auto rounded-md">
+                <ul className="space-y-3">
+                  {mobileNavItems.map((item, index) => (
+                    <li key={index}>
+                      <a
+                        href={item.path || "#"}
+                        className="flex items-center gap-3 p-2 rounded-md text-dark-blue hover:bg-blue-200"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          toggleMobileMenu();
+                          if (item.action) {
+                            item.action();
+                          } else if (item.path && item.path !== "#") {
+                            window.location.hash = item.path;
+                          }
+                        }}
+                      >
+                        <item.icon className="text-lg" />
+                        <span className="text-sm">{item.label}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Sidebar - Web Version */}
         <aside className="hidden sm:flex sm:w-64 min-h-screen bg-blue-50 px-6 pt-8 border-r border-blue-200">
           <div className="w-full">
             <div className="mb-8">
-            
               <div className="flex flex-col gap-3">
                 {profile?.linkedin && (
                   <a
@@ -335,7 +399,11 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 )}
                 {profile?.website && (
                   <a
-                    href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                    href={
+                      profile.website.startsWith("http")
+                        ? profile.website
+                        : `https://${profile.website}`
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm"
@@ -348,7 +416,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
 
             <div className="mb-8">
-              <div className="font-semibold text-dark-blue mb-3 text-lg">Education</div>
+              <div className="font-semibold text-dark-blue mb-3 text-lg">
+                Education
+              </div>
               {loading ? (
                 <span className="text-gray-600 text-sm">Loading...</span>
               ) : error ? (
@@ -356,7 +426,10 @@ const SideBarPublic = ({ username, setNotFound }) => {
               ) : profile?.education && profile.education.length > 0 ? (
                 <ul className="flex flex-col gap-4">
                   {profile.education.map((edu, i) => (
-                    <li key={i} className="text-xs text-gray-600 whitespace-pre-line">
+                    <li
+                      key={i}
+                      className="text-xs text-gray-600 whitespace-pre-line"
+                    >
                       {edu.course && <div>{edu.course}</div>}
                       {edu.branch && <div>{edu.branch}</div>}
                       {edu.college && <div>{edu.college}</div>}
@@ -371,7 +444,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
 
             <div className="mb-8">
-              <div className="font-semibold text-dark-blue mb-3 text-lg">Experience</div>
+              <div className="font-semibold text-dark-blue mb-3 text-lg">
+                Experience
+              </div>
               {loading ? (
                 <span className="text-gray-600 text-sm">Loading...</span>
               ) : error ? (
@@ -381,9 +456,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   {profile.experience.map((exp, i) => (
                     <li key={i} className="text-xs text-gray-600">
                       <span className="font-medium">{exp.title}</span>
-                      {exp.company ? ` at ${exp.company}` : ''}
-                      {exp.duration ? ` (${exp.duration})` : ''}
-                      {exp.description ? `: ${exp.description}` : ''}
+                      {exp.company ? ` at ${exp.company}` : ""}
+                      {exp.duration ? ` (${exp.duration})` : ""}
+                      {exp.description ? `: ${exp.description}` : ""}
                     </li>
                   ))}
                 </ul>
@@ -393,7 +468,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
 
             <div className="mb-8">
-              <div className="font-semibold text-dark-blue mb-3 text-lg">Skills</div>
+              <div className="font-semibold text-dark-blue mb-3 text-lg">
+                Skills
+              </div>
               {loading ? (
                 <span className="text-gray-600 text-sm">Loading...</span>
               ) : error ? (
@@ -401,7 +478,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
               ) : profile?.skills && profile.skills.length > 0 ? (
                 <ul className="flex flex-col gap-3">
                   {profile.skills.map((skill, i) => (
-                    <li key={i} className="text-xs text-gray-600">{skill}</li>
+                    <li key={i} className="text-xs text-gray-600">
+                      {skill}
+                    </li>
                   ))}
                 </ul>
               ) : (
@@ -410,7 +489,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
 
             <div className="mb-8">
-              <div className="font-semibold text-dark-blue mb-3 text-lg">What I Can Teach</div>
+              <div className="font-semibold text-dark-blue mb-3 text-lg">
+                What I Can Teach
+              </div>
               {loading ? (
                 <span className="text-gray-600 text-sm">Loading...</span>
               ) : error ? (
@@ -418,8 +499,18 @@ const SideBarPublic = ({ username, setNotFound }) => {
               ) : profile?.skillsToTeach && profile.skillsToTeach.length > 0 ? (
                 <ul className="flex flex-wrap gap-2">
                   {profile.skillsToTeach.map((s, i) => (
-                    <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
-                      {s.class ? `${s.class} • ` : ''}{s.subject} {s.topic === 'ALL' ? ' > ALL Topics' : s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
+                    <li
+                      key={i}
+                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1"
+                    >
+                      {s.class ? `${s.class} • ` : ""}
+                      {s.subject}{" "}
+                      {s.topic === "ALL"
+                        ? " > ALL Topics"
+                        : s.topic
+                        ? `> ${s.topic}`
+                        : ""}{" "}
+                      {s.subtopic ? `> ${s.subtopic}` : ""}
                     </li>
                   ))}
                 </ul>
@@ -453,46 +544,107 @@ const SideBarPublic = ({ username, setNotFound }) => {
               ) : (
                 <>
                   <img
-                    src={profile?.profilePic || 'https://placehold.co/100x100?text=User'}
-                    alt={`${profile?.fullName || 'User'}'s profile picture`}
+                    src={
+                      profile?.profilePic ||
+                      "https://placehold.co/100x100?text=User"
+                    }
+                    alt={`${profile?.fullName || "User"}'s profile picture`}
                     className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] rounded-full object-cover border-2 border-blue-200 mx-auto sm:mx-0"
                   />
                   <div className="mt-4 sm:mt-0 sm:ml-6 flex-1 flex flex-col items-center sm:items-start relative">
-                    <h1 className="text-xl sm:text-3xl font-bold text-dark-blue text-center sm:text-left">{profile?.fullName || 'Full Name'}</h1>
-                    <p className="text-sm text-gray-600 text-center sm:text-left">{profile?.username ? `@${profile.username}` : '@username'}</p>
+                    <h1 className="text-xl sm:text-3xl font-bold text-dark-blue text-center sm:text-left">
+                      {profile?.fullName || "Full Name"}
+                    </h1>
+                    <p className="text-sm text-gray-600 text-center sm:text-left">
+                      {profile?.username ? `@${profile.username}` : "@username"}
+                    </p>
                     <p className="text-sm text-gray-600 mt-2 max-w-md text-center sm:text-left">
-                      {profile?.bio || 'Your bio goes here, set it in Setup Profile.'}
+                      {profile?.bio ||
+                        "Your bio goes here, set it in Setup Profile."}
                     </p>
                     <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center sm:justify-start relative z-10">
                       <button
                         className={`border border-blue-200 text-dark-blue px-6 sm:px-8 py-2 rounded-lg text-sm font-medium max-w-xs flex items-center justify-between ${
-                          isSkillMate ? 'bg-green-50 border-green-200' : pendingRequest ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 hover:bg-blue-100'
+                          isSkillMate
+                            ? "bg-green-50 border-green-200"
+                            : pendingRequest
+                            ? "bg-yellow-50 border-yellow-200"
+                            : "bg-blue-50 hover:bg-blue-100"
                         }`}
-                        onClick={isSkillMate ? toggleDropdown : pendingRequest ? (pendingRequest.isRequester ? null : handleApproveRequest) : handleAddSkillMate}
-                        disabled={requestLoading || (pendingRequest && pendingRequest.isRequester)}
-                        title={isSkillMate ? 'Manage SkillMate' : pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 'Add SkillMate'}
+                        onClick={
+                          isSkillMate
+                            ? toggleDropdown
+                            : pendingRequest
+                            ? pendingRequest.isRequester
+                              ? null
+                              : handleApproveRequest
+                            : handleAddSkillMate
+                        }
+                        disabled={
+                          requestLoading ||
+                          (pendingRequest && pendingRequest.isRequester)
+                        }
+                        title={
+                          isSkillMate
+                            ? "Manage SkillMate"
+                            : pendingRequest
+                            ? pendingRequest.isRequester
+                              ? "Request Pending"
+                              : "Approve Request"
+                            : "Add SkillMate"
+                        }
                       >
                         {requestLoading ? (
                           <span className="flex items-center justify-center w-full">
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            <svg
+                              className="animate-spin -ml-1 mr-2 h-4 w-4"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
                             </svg>
                             Processing...
                           </span>
                         ) : (
                           <span className="flex-1 text-center">
-                            {isSkillMate ? 'SkillMate' : pendingRequest ? (pendingRequest.isRequester ? 'Request Pending' : 'Approve Request') : 'Add SkillMate'}
+                            {isSkillMate
+                              ? "SkillMate"
+                              : pendingRequest
+                              ? pendingRequest.isRequester
+                                ? "Request Pending"
+                                : "Approve Request"
+                              : "Add SkillMate"}
                           </span>
                         )}
                         {isSkillMate && <FaChevronDown className="text-sm" />}
                       </button>
                       {showDropdown && (
-                        <div ref={dropdownRef} className="absolute z-20 mt-12 w-44 bg-blue-50 border border-blue-200 rounded-lg shadow-lg">
+                        <div
+                          ref={dropdownRef}
+                          className="absolute z-20 mt-12 w-44 bg-blue-50 border border-blue-200 rounded-lg shadow-lg"
+                        >
                           <button
                             className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
                             onClick={() => {
-                              addToast({ title: 'Notifications', message: 'Notifications turned ON', variant: 'info', timeout: 2500 });
+                              addToast({
+                                title: "Notifications",
+                                message: "Notifications turned ON",
+                                variant: "info",
+                                timeout: 2500,
+                              });
                               setShowDropdown(false);
                             }}
                           >
@@ -501,7 +653,12 @@ const SideBarPublic = ({ username, setNotFound }) => {
                           <button
                             className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
                             onClick={() => {
-                              addToast({ title: 'Notifications', message: 'Notifications muted', variant: 'warning', timeout: 2500 });
+                              addToast({
+                                title: "Notifications",
+                                message: "Notifications muted",
+                                variant: "warning",
+                                timeout: 2500,
+                              });
                               setShowDropdown(false);
                             }}
                           >
@@ -533,7 +690,6 @@ const SideBarPublic = ({ username, setNotFound }) => {
             {/* Social Section (Mobile) */}
             <div className="sm:hidden mb-8">
               <div className="flex flex-col items-center w-full max-w-sm">
-            
                 <div className="flex flex-col gap-3 w-full">
                   {profile?.linkedin && (
                     <a
@@ -570,7 +726,11 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   )}
                   {profile?.website && (
                     <a
-                      href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`}
+                      href={
+                        profile.website.startsWith("http")
+                          ? profile.website
+                          : `https://${profile.website}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue"
@@ -583,60 +743,72 @@ const SideBarPublic = ({ username, setNotFound }) => {
               </div>
             </div>
 
-            {/* Contribution Calendar */}
-            <div className="mb-8 overflow-x-auto">
-              <div className="max-w-full">
-                <ContributionCalendar 
-                  contributions={contributions} 
-                  months={months} 
-                  currentDate={currentDate} 
-                  getContributionColor={getContributionColor}
-                  className="w-full"
-                />
-              </div>
-            </div>
+            {/* Contribution Calendar removed here; appears in Home tab only */}
 
             {/* Tab Navigation */}
             <div className="px-2 sm:px-0 pt-4 sm:pt-6">
               <div className="flex flex-wrap gap-2 sm:gap-4 border-b border-blue-200 mb-6">
-                <NavLink
-                  to={buildPublicLink('Home')}
-                  className={({ isActive }) => `pb-2 px-3 text-sm font-medium ${isActive ? activeTab : normalTab}`}
-                  end
+                <button
+                  onClick={() => setActiveTab('home')}
+                  className={`pb-2 px-3 text-sm font-medium ${
+                    activeTab === 'home' ? activeTabStyle : normalTabStyle
+                  }`}
                 >
                   Home
-                </NavLink>
-                <NavLink
-                  to={buildPublicLink('live')}
-                  className={({ isActive }) => `pb-2 px-3 text-sm font-medium ${isActive ? activeTab : normalTab}`}
+                </button>
+                <button
+                  onClick={() => setActiveTab('live')}
+                  className={`pb-2 px-3 text-sm font-medium ${
+                    activeTab === 'live' ? activeTabStyle : normalTabStyle
+                  }`}
                 >
                   Live
-                </NavLink>
-                <NavLink
-                  to={buildPublicLink('videos')}
-                  className={({ isActive }) => `pb-2 px-3 text-sm font-medium ${isActive ? activeTab : normalTab}`}
+                </button>
+                <button
+                  onClick={() => setActiveTab('videos')}
+                  className={`pb-2 px-3 text-sm font-medium ${
+                    activeTab === 'videos' ? activeTabStyle : normalTabStyle
+                  }`}
                 >
                   Videos
-                </NavLink>
+                </button>
               </div>
             </div>
 
-            {/* Tab Content Outlet */}
+            {/* Tab Content */}
             <div className="relative min-h-[calc(100vh-28rem)] sm:min-h-[calc(100vh-32rem)]">
               <div className="absolute top-0 right-0 p-2 sm:p-4 flex items-center space-x-2">
-                <button onClick={toggleSearchBar} className="text-dark-blue hover:text-blue-700" aria-label="Toggle search bar">
+                <button
+                  onClick={toggleSearchBar}
+                  className="text-dark-blue hover:text-blue-700"
+                  aria-label="Toggle search bar"
+                >
                   <FaSearch className="text-xl" />
                 </button>
-                <div className={`transition-all duration-300 ease-in-out ${showSearchBar ? 'translate-x-0 opacity-100' : 'translate-x-10 opacity-0'}`}>
-                  {showSearchBar && <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />}
+                <div
+                  className={`transition-all duration-300 ease-in-out ${
+                    showSearchBar
+                      ? "translate-x-0 opacity-100"
+                      : "translate-x-10 opacity-0"
+                  }`}
+                >
+                  {showSearchBar && (
+                    <SearchBar
+                      searchQuery={searchQuery}
+                      setSearchQuery={setSearchQuery}
+                    />
+                  )}
                 </div>
               </div>
-              <Outlet />
+              {renderTabContent()}
             </div>
           </div>
         </main>
         {activeChatId && (
-          <Chat skillMateId={activeChatId} onClose={() => setActiveChatId(null)} />
+          <Chat
+            skillMateId={activeChatId}
+            onClose={() => setActiveChatId(null)}
+          />
         )}
       </div>
     </ProfileContext.Provider>

@@ -26,42 +26,6 @@ const getRelativeTime = (dateStr) => {
   return `${Math.floor(diffInSeconds / 31536000)} years ago`;
 };
 
-// Static video data (fallback for API failure)
-const staticVideos = [
-  {
-    id: "1",
-    title: "Sample Video 1",
-    description: "This is a sample video description",
-    thumbnail: "https://via.placeholder.com/320x180",
-    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-    uploadDate: new Date(Date.now() - 86400000).toLocaleString(),
-    userId: "user123",
-    skillmates: 10,
-    views: 100,
-    likes: 5,
-    dislikes: 0,
-    isLive: false,
-    scheduledTime: null,
-    isDraft: false,
-  },
-  {
-    id: "2",
-    title: "Sample Video 2",
-    description: "Another sample video description",
-    thumbnail: "https://via.placeholder.com/320x180",
-    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4",
-    uploadDate: new Date(Date.now() - 172800000).toLocaleString(),
-    userId: "user123",
-    skillmates: 8,
-    views: 80,
-    likes: 3,
-    dislikes: 1,
-    isLive: false,
-    scheduledTime: null,
-    isDraft: false,
-  },
-];
-
 const Videos = () => {
   // State management
   const [showUpload, setShowUpload] = useState(false);
@@ -98,17 +62,26 @@ const Videos = () => {
         throw new Error('Failed to fetch videos');
       }
       const data = await response.json();
-      return data.videos || data || [];
+      return data.videos || [];
     } catch (err) {
-      return staticVideos; // Fallback to static data
+      console.error('Fetch videos error:', err);
+      return [];
     }
   };
 
   const uploadVideo = async (videoData) => {
     const formData = new FormData();
-    Object.entries(videoData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
+    formData.append('title', videoData.title);
+    formData.append('description', videoData.description);
+    formData.append('isDraft', videoData.isDraft || false);
+    
+    if (videoData.videoFile) {
+      formData.append('video', videoData.videoFile);
+    }
+    if (videoData.thumbnailFile) {
+      formData.append('thumbnail', videoData.thumbnailFile);
+    }
+
     try {
       const response = await fetch(`${BACKEND_URL}/api/videos/upload`, {
         method: 'POST',
@@ -116,19 +89,30 @@ const Videos = () => {
         body: formData
       });
       if (!response.ok) {
-        throw new Error('Failed to upload video');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to upload video');
       }
-      return await response.json();
+      const data = await response.json();
+      return data.video;
     } catch (err) {
-      throw new Error('Failed to upload video');
+      console.error('Upload video error:', err);
+      throw err;
     }
   };
 
   const updateVideo = async (id, videoData) => {
     const formData = new FormData();
-    Object.entries(videoData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
+    formData.append('title', videoData.title);
+    formData.append('description', videoData.description);
+    formData.append('isDraft', videoData.isDraft || false);
+    
+    if (videoData.videoFile) {
+      formData.append('video', videoData.videoFile);
+    }
+    if (videoData.thumbnailFile) {
+      formData.append('thumbnail', videoData.thumbnailFile);
+    }
+
     try {
       const response = await fetch(`${BACKEND_URL}/api/videos/${id}`, {
         method: 'PUT',
@@ -136,11 +120,14 @@ const Videos = () => {
         body: formData
       });
       if (!response.ok) {
-        throw new Error('Failed to update video');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update video');
       }
-      return await response.json();
+      const data = await response.json();
+      return data.video;
     } catch (err) {
-      throw new Error('Failed to update video');
+      console.error('Update video error:', err);
+      throw err;
     }
   };
 
@@ -184,14 +171,22 @@ const Videos = () => {
   useEffect(() => {
     const loadVideos = async () => {
       setLoading(true);
+      
+      // Clear any old localStorage cache (remove this after testing)
+      localStorage.removeItem('uploadedVideos');
+      console.log('[Videos] Cleared localStorage cache');
+      
       try {
+        console.log('[Videos] Fetching videos from backend...');
         const videosData = await fetchVideos();
+        console.log('[Videos] Received videos:', videosData);
         setVideos(videosData);
         setFilteredVideos(videosData);
+        setError(null);
       } catch (err) {
+        console.error('[Videos] Error loading videos:', err);
         setError("Failed to load videos");
-        setVideos(staticVideos); // Fallback to static data
-        setFilteredVideos(staticVideos);
+        console.error('Load videos error:', err);
       } finally {
         setLoading(false);
       }
@@ -257,116 +252,102 @@ const Videos = () => {
   };
 
   // Save draft
-  const handleSaveDraft = (e) => {
+  const handleSaveDraft = async (e) => {
     e.preventDefault();
-    const draftVideo = {
-      draftId: (location.state && location.state.editDraft && location.state.editDraft.draftId) || Date.now().toString(),
-      title,
-      description,
-      thumbnail: thumbnailPreview,
-      videoUrl: videoPreview,
-      uploadDate: (location.state && location.state.editDraft && location.state.editDraft.uploadDate) || new Date().toLocaleString(),
-      userId: "user123",
-      skillmates: 0,
-      views: 0,
-      likes: 0,
-      dislikes: 0,
-      isLive: false,
-      scheduledTime: null,
-      isDraft: true,
-    };
-    let drafts = JSON.parse(localStorage.getItem("videoDrafts") || "[]");
-    if (location.state && location.state.editDraft && location.state.editDraft.draftId) {
-      drafts = drafts.map((draft) => draft.draftId === location.state.editDraft.draftId ? draftVideo : draft);
-    } else {
-      drafts.unshift(draftVideo);
+    
+    if (!title || !description || !videoFile || !thumbnail) {
+      setError('All fields are required to save draft');
+      return;
     }
-    localStorage.setItem("videoDrafts", JSON.stringify(drafts));
-    setShowUpload(false);
-    resetForm();
-    navigate("/profile/drafts");
+
+    try {
+      setLoading(true);
+      
+      const videoData = {
+        title,
+        description,
+        isDraft: true,
+        videoFile: videoFile,
+        thumbnailFile: thumbnail
+      };
+
+      const draftVideo = await uploadVideo(videoData);
+      
+      setVideos((prev) => [draftVideo, ...prev]);
+      setShowUpload(false);
+      resetForm();
+      setError(null);
+      navigate("/profile/drafts");
+    } catch (err) {
+      setError(err.message || "Failed to save draft");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle upload
   const handleUpload = async (e) => {
     e.preventDefault();
-    let newVideo;
-    if (editVideoIdx !== null && videos[editVideoIdx]) {
-      const existingVideo = videos[editVideoIdx];
-      newVideo = {
-        ...existingVideo,
-        title,
-        description,
-        thumbnail: thumbnailPreview || existingVideo.thumbnail,
-        videoUrl: videoPreview || existingVideo.videoUrl,
-        uploadDate: existingVideo.uploadDate,
-        isDraft: false,
-      };
-      try {
-        const updatedVideo = await updateVideo(existingVideo.id, newVideo);
+    
+    if (!title || !description) {
+      setError('Title and description are required');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      if (editVideoIdx !== null && videos[editVideoIdx]) {
+        // Update existing video
+        const existingVideo = videos[editVideoIdx];
+        const videoData = {
+          title,
+          description,
+          isDraft: false,
+          videoFile: videoFile,
+          thumbnailFile: thumbnail
+        };
+
+        const updatedVideo = await updateVideo(existingVideo._id, videoData);
+        
         setVideos((prev) => {
           const updated = [...prev];
           updated[editVideoIdx] = updatedVideo;
-          localStorage.setItem("uploadedVideos", JSON.stringify(updated));
           return updated;
         });
-        setFilteredVideos((prev) => {
-          let filtered = [...prev];
-          filtered = filtered.map((v, i) => (i === editVideoIdx ? updatedVideo : v));
-          if (statusFilter !== "all") {
-            filtered = filtered.filter((video) =>
-              statusFilter === "draft" ? video.isDraft : !video.isDraft
-            );
-          }
-          return filtered;
-        });
-      } catch (err) {
-        setError("Failed to update video");
-        return;
+      } else {
+        // Upload new video
+        if (!videoFile || !thumbnail) {
+          setError('Both video and thumbnail files are required');
+          setLoading(false);
+          return;
+        }
+
+        const videoData = {
+          title,
+          description,
+          isDraft: false,
+          videoFile: videoFile,
+          thumbnailFile: thumbnail
+        };
+
+        const uploadedVideo = await uploadVideo(videoData);
+        
+        setVideos((prev) => [uploadedVideo, ...prev]);
       }
-    } else {
-      newVideo = {
-        id: Date.now().toString(),
-        title,
-        description,
-        thumbnail: thumbnailPreview,
-        videoUrl: videoPreview,
-        uploadDate: new Date().toLocaleString(),
-        userId: "user123",
-        skillmates: 0,
-        views: 0,
-        likes: 0,
-        dislikes: 0,
-        isLive: false,
-        scheduledTime: null,
-        isDraft: false,
-      };
-      try {
-        const uploadedVideo = await uploadVideo(newVideo);
-        setVideos((prev) => {
-          const updated = [uploadedVideo, ...prev];
-          localStorage.setItem("uploadedVideos", JSON.stringify(updated));
-          return updated;
-        });
-        setFilteredVideos((prev) => {
-          let filtered = [uploadedVideo, ...prev];
-          if (statusFilter !== "all") {
-            filtered = filtered.filter((video) =>
-              statusFilter === "draft" ? video.isDraft : !video.isDraft
-            );
-          }
-          return filtered;
-        });
-      } catch (err) {
-        setError("Failed to upload video");
-        return;
+
+      setShowUpload(false);
+      resetForm();
+      setEditVideoIdx(null);
+      setError(null);
+      
+      if (location.pathname !== "/profile/panel/videos") {
+        navigate("/profile/panel/videos");
       }
-    }
-    setShowUpload(false);
-    resetForm();
-    setEditVideoIdx(null);
-    if (location.pathname !== "/profile/panel/videos") {
-      navigate("/profile/panel/videos");
+    } catch (err) {
+      setError(err.message || "Failed to upload video");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -376,7 +357,7 @@ const Videos = () => {
     setTitle(video.title || "");
     setDescription(video.description || "");
     setThumbnail(null);
-    setThumbnailPreview(video.thumbnail || null);
+    setThumbnailPreview(video.thumbnailUrl || null);
     setVideoFile(null);
     setVideoPreview(video.videoUrl || null);
     setShowUpload(true);
@@ -385,33 +366,21 @@ const Videos = () => {
   const handleArchive = async (idx) => {
     const video = videos[idx];
     try {
-      await archiveVideo(video.id);
-      setVideos((prev) => {
-        const updated = prev.filter((_, i) => i !== idx);
-        localStorage.setItem("uploadedVideos", JSON.stringify(updated));
-        return updated;
-      });
-      setFilteredVideos((prev) => {
-        let filtered = prev.filter((_, i) => i !== idx);
-        if (statusFilter !== "all") {
-          filtered = filtered.filter((video) =>
-            statusFilter === "draft" ? video.isDraft : !video.isDraft
-          );
-        }
-        return filtered;
-      });
-      const archive = JSON.parse(localStorage.getItem("archivedVideos") || "[]");
-      archive.unshift({ ...video, isArchived: true });
-      localStorage.setItem("archivedVideos", JSON.stringify(archive));
+      setLoading(true);
+      await archiveVideo(video._id);
+      setVideos((prev) => prev.filter((_, i) => i !== idx));
+      setError(null);
     } catch (err) {
-      setError("Failed to archive video");
+      setError(err.message || "Failed to archive video");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSave = (idx) => {
     const video = videos[idx];
     const saved = JSON.parse(localStorage.getItem("savedVideos") || "[]");
-    if (!saved.some((v) => v.id === video.id)) {
+    if (!saved.some((v) => v._id === video._id)) {
       saved.unshift(video);
       localStorage.setItem("savedVideos", JSON.stringify(saved));
     }
@@ -419,7 +388,7 @@ const Videos = () => {
 
   const handleShare = (idx) => {
     const video = videos[idx];
-    navigator.clipboard.writeText(window.location.origin + "/video/" + video.id);
+    navigator.clipboard.writeText(window.location.origin + "/video/" + video._id);
     alert("Video link copied to clipboard!");
   };
 
@@ -431,24 +400,15 @@ const Videos = () => {
     if (showDeleteConfirm === null || !videos[showDeleteConfirm]) return;
     const video = videos[showDeleteConfirm];
     try {
-      await deleteVideo(video.id);
-      setVideos((prev) => {
-        const updated = prev.filter((_, i) => i !== showDeleteConfirm);
-        localStorage.setItem("uploadedVideos", JSON.stringify(updated));
-        return updated;
-      });
-      setFilteredVideos((prev) => {
-        let filtered = prev.filter((_, i) => i !== showDeleteConfirm);
-        if (statusFilter !== "all") {
-          filtered = filtered.filter((video) =>
-            statusFilter === "draft" ? video.isDraft : !video.isDraft
-          );
-        }
-        return filtered;
-      });
+      setLoading(true);
+      await deleteVideo(video._id);
+      setVideos((prev) => prev.filter((_, i) => i !== showDeleteConfirm));
       setShowDeleteConfirm(null);
+      setError(null);
     } catch (err) {
-      setError("Failed to delete video");
+      setError(err.message || "Failed to delete video");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -566,12 +526,24 @@ const Videos = () => {
                   <section className="space-y-4 overflow-y-auto">
                     {filteredVideos.map((video, idx) => (
                       <motion.article
-                        key={video.id || idx}
+                        key={video._id || idx}
                         variants={itemVariants}
                         className="video-card"
                       >
                         <VideoCard
-                          video={{ ...video, uploadDate: getRelativeTime(video.uploadDate) }}
+                          video={{ 
+                            ...video, 
+                            id: video._id,
+                            thumbnail: video.thumbnailUrl,
+                            likes: video.likes?.length || 0,
+                            dislikes: video.dislikes?.length || 0,
+                            uploadDate: getRelativeTime(video.uploadDate || video.createdAt),
+                            userId: typeof video.userId === 'object' 
+                              ? (video.userId?.username || video.userId?.firstName || 'Unknown')
+                              : video.userId,
+                            skillmates: 0,
+                            views: video.views || 0
+                          }}
                           onEdit={() => handleEdit(video, idx)}
                           onArchive={() => handleArchive(idx)}
                           onDelete={() => handleDelete(idx)}

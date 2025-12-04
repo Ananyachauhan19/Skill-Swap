@@ -9,13 +9,17 @@ const cors = require('cors');
 const socketIO = require('socket.io');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
+const path = require('path');
+
+// Load environment variables FIRST before any other imports that use them
+dotenv.config();
+require('./config/passport');
+
+// Now load routes that depend on environment variables
 const questionRoutes = require('./routes/questionRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const chatRoutes = require('./routes/chatRoutes');
-const path = require('path');
-
-dotenv.config();
-require('./config/passport');
+const videoRoutes = require('./routes/videoRoutes');
 
 const authRoutes = require('./routes/authRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
@@ -84,6 +88,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/videos', videoRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/interview', interviewRoutes);
 app.use('/api', skillsRoutes);

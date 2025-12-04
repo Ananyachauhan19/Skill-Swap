@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { lazy } from "react";
-import { FiSearch } from "react-icons/fi"; // Import search icon from react-icons
+import { FiSearch } from "react-icons/fi";
+import { BACKEND_URL } from '../../config.js';
 
 // Lazy load VideoCard component
 const VideoCard = lazy(() => import("./VideoCard"));
@@ -17,48 +18,73 @@ const Archive = () => {
   const menuRefs = useRef([]);
   const observer = useRef(null);
 
-  // Load archived videos from localStorage or static data
+  // Backend API functions
+  const fetchArchived = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos?status=archived`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch archived videos");
+      const data = await response.json();
+      return data.videos || [];
+    } catch (err) {
+      console.error('Fetch archived error:', err);
+      return [];
+    }
+  };
+
+  const unarchiveVideo = async (id) => {
+    const formData = new FormData();
+    formData.append('isArchived', false);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}`, {
+        method: "PUT",
+        credentials: 'include',
+        body: formData
+      });
+      if (!response.ok) throw new Error("Failed to unarchive video");
+      return await response.json();
+    } catch (err) {
+      console.error('Unarchive error:', err);
+      throw err;
+    }
+  };
+
+  const deleteVideo = async (id) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}`, {
+        method: "DELETE",
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error("Failed to delete video");
+      return await response.json();
+    } catch (err) {
+      console.error('Delete video error:', err);
+      throw err;
+    }
+  };
+
+  // Load archived videos from backend
   useEffect(() => {
-    setTimeout(() => {
+    async function loadArchived() {
+      setLoading(true);
+      setError(null);
       try {
-        const savedArchived = JSON.parse(
-          localStorage.getItem("archivedVideos") || "[]"
-        );
-        const initialArchived =
-          savedArchived.length > 0
-            ? savedArchived
-            : [
-                {
-                  id: "1",
-                  title: "Archived React Session",
-                  description: "This session is archived.",
-                  thumbnail: "https://placehold.co/320x180?text=Archived+1",
-                  videoUrl: "",
-                  uploadDate: new Date().toLocaleString(),
-                  lastEdited: new Date().toLocaleString(),
-                  userId: "user123",
-                  isArchived: true,
-                },
-                {
-                  id: "2",
-                  title: "Archived Node.js Session",
-                  description: "This session is archived.",
-                  thumbnail: "https://placehold.co/320x180?text=Archived+2",
-                  videoUrl: "",
-                  uploadDate: new Date().toLocaleString(),
-                  lastEdited: new Date().toLocaleString(),
-                  userId: "user456",
-                  isArchived: true,
-                },
-              ];
-        setArchived(initialArchived);
-        setFilteredArchived(initialArchived);
-        setLoading(false);
+        const fetchedArchived = await fetchArchived();
+        setArchived(fetchedArchived);
+        setFilteredArchived(fetchedArchived);
       } catch (err) {
         setError("Failed to load archived videos");
+      } finally {
         setLoading(false);
       }
-    }, 0);
+    }
+    loadArchived();
   }, []);
 
   // Filter videos based on search query
@@ -105,47 +131,42 @@ const Archive = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenuIdx]);
 
-  // Unarchive: move video back to uploadedVideos
-  const handleUnarchive = (idx) => {
-    const video = archived[idx];
-    const updatedVideo = {
-      ...video,
-      isArchived: false,
-      lastEdited: new Date().toLocaleString(),
-    };
-    const updated = archived.filter((_, i) => i !== idx);
-    setArchived(updated);
-    setFilteredArchived(updated);
-    localStorage.setItem("archivedVideos", JSON.stringify(updated));
-    const videos = JSON.parse(localStorage.getItem("uploadedVideos") || "[]");
-    videos.unshift(updatedVideo);
-    localStorage.setItem("uploadedVideos", JSON.stringify(videos));
+  // Unarchive: move video back to active videos
+  const handleUnarchive = async (video) => {
+    try {
+      await unarchiveVideo(video._id);
+      const updated = archived.filter((v) => v._id !== video._id);
+      setArchived(updated);
+      setFilteredArchived(updated);
+    } catch (err) {
+      alert('Failed to unarchive video');
+    }
   };
 
   // Delete from archive
-  const handleDelete = (idx) => {
-    const updated = archived.filter((_, i) => i !== idx);
-    setArchived(updated);
-    setFilteredArchived(updated);
-    localStorage.setItem("archivedVideos", JSON.stringify(updated));
+  const handleDelete = async (video) => {
+    try {
+      await deleteVideo(video._id);
+      const updated = archived.filter((v) => v._id !== video._id);
+      setArchived(updated);
+      setFilteredArchived(updated);
+    } catch (err) {
+      alert('Failed to delete video');
+    }
   };
 
-  // Unarchive all: move all videos back to uploadedVideos
-  const handleUnarchiveAll = () => {
+  // Unarchive all: move all videos back to active
+  const handleUnarchiveAll = async () => {
     if (archived.length === 0) return;
-    const updatedVideos = archived.map((video) => ({
-      ...video,
-      isArchived: false,
-      lastEdited: new Date().toLocaleString(),
-    }));
-    setArchived([]);
-    setFilteredArchived([]);
-    localStorage.setItem("archivedVideos", JSON.stringify([]));
-    const videos = JSON.parse(localStorage.getItem("uploadedVideos") || "[]");
-    localStorage.setItem(
-      "uploadedVideos",
-      JSON.stringify([...updatedVideos, ...videos])
-    );
+    if (window.confirm('Are you sure you want to unarchive all videos?')) {
+      try {
+        await Promise.all(archived.map(video => unarchiveVideo(video._id)));
+        setArchived([]);
+        setFilteredArchived([]);
+      } catch (err) {
+        alert('Failed to unarchive all videos');
+      }
+    }
   };
 
   // Animation variants
@@ -263,18 +284,22 @@ const Archive = () => {
               <section className="space-y-4 overflow-y-auto">
                 {filteredArchived.map((video, idx) => (
                   <motion.article
-                    key={video.id || idx}
+                    key={video._id || idx}
                     variants={itemVariants}
                     className="video-card"
                   >
                     <VideoCard
                       video={{
                         ...video,
-                        uploadDate: `Archived: ${video.uploadDate}`,
-                        lastEdited: `Last Edited: ${video.lastEdited}`,
+                        userId: typeof video.userId === 'object' ? (video.userId?.username || video.userId?.firstName || 'Unknown') : video.userId,
+                        thumbnail: video.thumbnailUrl,
+                        likes: video.likes?.length || 0,
+                        views: video.views || 0,
+                        uploadDate: `Archived: ${new Date(video.createdAt).toLocaleString()}`,
+                        lastEdited: `Last Edited: ${new Date(video.updatedAt).toLocaleString()}`,
                       }}
-                      onDelete={() => handleDelete(idx)}
-                      onUnArchive={() => handleUnarchive(idx)}
+                      onDelete={() => handleDelete(video)}
+                      onUnArchive={() => handleUnarchive(video)}
                       menuOptions={["unarchive", "delete"]}
                       openMenu={openMenuIdx === idx}
                       setOpenMenu={(open) => setOpenMenuIdx(open ? idx : null)}

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, Suspense, lazy } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { FiSearch } from "react-icons/fi";
+import { BACKEND_URL } from '../../config.js';
 
 // Lazy load components
 const VideoCard = lazy(() => import("./VideoCard"));
@@ -21,126 +22,100 @@ const Draft = () => {
   const observer = useRef(null);
   const navigate = useNavigate();
 
-  // Backend API functions (commented for future implementation)
-  /*
+  // Backend API functions
   const fetchDrafts = async () => {
     try {
-      const res = await fetch("/api/drafts", {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      const response = await fetch(`${BACKEND_URL}/api/videos?status=draft`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      if (!res.ok) throw new Error("Failed to fetch drafts");
-      const data = await res.json();
-      return data;
+      if (!response.ok) throw new Error("Failed to fetch drafts");
+      const data = await response.json();
+      return data.videos || [];
     } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const saveDraft = async (draftData) => {
-    const formData = new FormData();
-    Object.entries(draftData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
-    try {
-      const res = await fetch("/api/drafts", {
-        method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: formData
-      });
-      if (!res.ok) throw new Error("Failed to save draft");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
-    }
-  };
-
-  const updateDraft = async (id, draftData) => {
-    const formData = new FormData();
-    Object.entries(draftData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
-    try {
-      const res = await fetch(`/api/drafts/${id}`, {
-        method: "PUT",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-        body: formData
-      });
-      if (!res.ok) throw new Error("Failed to update draft");
-      return await res.json();
-    } catch (err) {
-      throw new Error(err.message);
+      console.error('Fetch drafts error:', err);
+      return [];
     }
   };
 
   const deleteDraft = async (id) => {
     try {
-      const res = await fetch(`/api/drafts/${id}`, {
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}`, {
         method: "DELETE",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        credentials: 'include',
       });
-      if (!res.ok) throw new Error("Failed to delete draft");
-      return await res.json();
+      if (!response.ok) throw new Error("Failed to delete draft");
+      return await response.json();
     } catch (err) {
-      throw new Error(err.message);
+      console.error('Delete draft error:', err);
+      throw err;
     }
   };
 
-  const postVideo = async (videoData) => {
+  const updateDraft = async (id, draftData) => {
     const formData = new FormData();
-    Object.entries(videoData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
+    formData.append('title', draftData.title);
+    formData.append('description', draftData.description);
+    formData.append('isDraft', true);
+    
+    if (draftData.videoFile) {
+      formData.append('video', draftData.videoFile);
+    }
+    if (draftData.thumbnailFile) {
+      formData.append('thumbnail', draftData.thumbnailFile);
+    }
+
     try {
-      const res = await fetch("/api/videos/upload", {
-        method: "POST",
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}`, {
+        method: "PUT",
+        credentials: 'include',
         body: formData
       });
-      if (!res.ok) throw new Error("Failed to post video");
-      return await res.json();
+      if (!response.ok) throw new Error("Failed to update draft");
+      return await response.json();
     } catch (err) {
-      throw new Error(err.message);
+      console.error('Update draft error:', err);
+      throw err;
     }
   };
-  */
 
-  // Load drafts from localStorage or static data
+  const publishDraft = async (id) => {
+    const formData = new FormData();
+    formData.append('isDraft', false);
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}`, {
+        method: "PUT",
+        credentials: 'include',
+        body: formData
+      });
+      if (!response.ok) throw new Error("Failed to publish draft");
+      return await response.json();
+    } catch (err) {
+      console.error('Publish draft error:', err);
+      throw err;
+    }
+  };
+
+  // Load drafts from backend
   useEffect(() => {
-    setTimeout(() => {
+    async function loadDrafts() {
+      setLoading(true);
+      setError(null);
       try {
-        const savedDrafts = JSON.parse(localStorage.getItem("videoDrafts") || "[]");
-        const initialDrafts = savedDrafts.length > 0 ? savedDrafts : [
-          {
-            draftId: "d1",
-            title: "React Custom Hooks",
-            description: "Draft for custom hooks session.",
-            thumbnail: "https://placehold.co/320x180?text=Draft+1",
-            videoUrl: "",
-            uploadDate: new Date().toLocaleString(),
-            lastEdited: new Date().toLocaleString(),
-            userId: "user123",
-            isDraft: true,
-          },
-          {
-            draftId: "d2",
-            title: "Node.js Streams",
-            description: "Draft for Node.js streams.",
-            thumbnail: "https://placehold.co/320x180?text=Draft+2",
-            videoUrl: "",
-            uploadDate: new Date().toLocaleString(),
-            lastEdited: new Date().toLocaleString(),
-            userId: "user456",
-            isDraft: true,
-          },
-        ];
-        setDrafts(initialDrafts);
-        setFilteredDrafts(initialDrafts);
-        setLoading(false);
+        const fetchedDrafts = await fetchDrafts();
+        setDrafts(fetchedDrafts);
+        setFilteredDrafts(fetchedDrafts);
       } catch (err) {
         setError("Failed to load drafts");
+      } finally {
         setLoading(false);
       }
-    }, 1000);
+    }
+    loadDrafts();
   }, []);
 
   // Filter drafts based on search query
@@ -230,20 +205,25 @@ const Draft = () => {
   };
 
   // Delete draft
-  const handleDelete = (idx) => {
-    const updatedDrafts = drafts.filter((_, i) => i !== idx);
-    localStorage.setItem("videoDrafts", JSON.stringify(updatedDrafts));
-    setDrafts(updatedDrafts);
-    setFilteredDrafts(
-      searchQuery
-        ? updatedDrafts.filter(
-            (draft) =>
-              draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (draft.description &&
-                draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
-          )
-        : updatedDrafts
-    );
+  const handleDelete = async (idx) => {
+    const draft = drafts[idx];
+    try {
+      await deleteDraft(draft._id);
+      const updatedDrafts = drafts.filter((_, i) => i !== idx);
+      setDrafts(updatedDrafts);
+      setFilteredDrafts(
+        searchQuery
+          ? updatedDrafts.filter(
+              (draft) =>
+                draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (draft.description &&
+                  draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            )
+          : updatedDrafts
+      );
+    } catch (err) {
+      alert('Failed to delete draft');
+    }
   };
 
   // Edit draft: show form with existing data
@@ -252,35 +232,27 @@ const Draft = () => {
     setShowDraftForm(true);
   };
 
-  // Post draft: move to videos
-  const handlePost = (idx) => {
+  // Post draft: publish to videos
+  const handlePost = async (idx) => {
     const draft = drafts[idx];
-    const postedVideo = {
-      ...draft,
-      isDraft: false,
-      id: draft.draftId,
-      views: 0,
-      likes: 0,
-      dislikes: 0,
-      skillmates: 0,
-    };
-    const updatedDrafts = drafts.filter((_, i) => i !== idx);
-    localStorage.setItem("videoDrafts", JSON.stringify(updatedDrafts));
-    setDrafts(updatedDrafts);
-    setFilteredDrafts(
-      searchQuery
-        ? updatedDrafts.filter(
-            (draft) =>
-              draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (draft.description &&
-                draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
-          )
-        : updatedDrafts
-    );
-    const videos = JSON.parse(localStorage.getItem("uploadedVideos") || "[]");
-    videos.unshift(postedVideo);
-    localStorage.setItem("uploadedVideos", JSON.stringify(videos));
-    navigate("/profile/panel/videos");
+    try {
+      await publishDraft(draft._id);
+      const updatedDrafts = drafts.filter((_, i) => i !== idx);
+      setDrafts(updatedDrafts);
+      setFilteredDrafts(
+        searchQuery
+          ? updatedDrafts.filter(
+              (draft) =>
+                draft.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (draft.description &&
+                  draft.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            )
+          : updatedDrafts
+      );
+      navigate("/profile/panel/videos");
+    } catch (err) {
+      alert('Failed to publish draft');
+    }
   };
 
   // Close draft form
@@ -372,10 +344,16 @@ const Draft = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className="w-full sm:w-auto bg-blue-800 text-white px-4 py-1.5 rounded-md font-semibold hover:bg-blue-900 transition-all duration-300 text-sm sm:text-base"
-                  onClick={() => {
-                    setDrafts([]);
-                    setFilteredDrafts([]);
-                    localStorage.removeItem("videoDrafts");
+                  onClick={async () => {
+                    if (window.confirm('Are you sure you want to delete all drafts?')) {
+                      try {
+                        await Promise.all(drafts.map(draft => deleteDraft(draft._id)));
+                        setDrafts([]);
+                        setFilteredDrafts([]);
+                      } catch (err) {
+                        alert('Failed to delete all drafts');
+                      }
+                    }
                   }}
                 >
                   Delete All
@@ -422,15 +400,19 @@ const Draft = () => {
               ) : (
                 filteredDrafts.map((video, idx) => (
                   <motion.article
-                    key={video.draftId || idx}
+                    key={video._id || idx}
                     variants={itemVariants}
                     className="video-card"
                   >
                     <VideoCard
                       video={{
                         ...video,
-                        uploadDate: `Saved: ${video.uploadDate}`,
-                        lastEdited: `Last Edited: ${video.lastEdited}`,
+                        userId: typeof video.userId === 'object' ? (video.userId?.username || video.userId?.firstName || 'Unknown') : video.userId,
+                        thumbnail: video.thumbnailUrl,
+                        likes: video.likes?.length || 0,
+                        views: video.views || 0,
+                        uploadDate: `Saved: ${new Date(video.createdAt).toLocaleString()}`,
+                        lastEdited: `Last Edited: ${new Date(video.updatedAt).toLocaleString()}`,
                       }}
                       onEdit={() => handleEdit(video, idx)}
                       onDelete={() => handleDelete(idx)}

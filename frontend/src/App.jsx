@@ -134,14 +134,6 @@ const appRoutes = [
       element: <ProtectedRoute>{route.element}</ProtectedRoute>,
     })) : [],
   },
-  {
-    path: '/public-profile',
-    element: <ProtectedRoute><PublicProfile /></ProtectedRoute>,
-    children: Array.isArray(publicProfileRoutes) ? publicProfileRoutes.map(route => ({
-      ...route,
-      element: <ProtectedRoute>{route.element}</ProtectedRoute>,
-    })) : [],
-  },
 ];
 
 // Define admin-only routes (restrict everything else when admin email logged in)
