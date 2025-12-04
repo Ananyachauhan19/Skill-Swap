@@ -20,6 +20,10 @@ const ToastSocketBridge = () => {
 
     const onNotification = (n) => {
       if (!n || !n.type) return;
+      
+      // Re-emit for other components like NotificationSection
+      window.dispatchEvent(new CustomEvent('socket-notification', { detail: n }));
+      
       // SkillMate notifications
       if (n.type === 'skillmate-requested') {
         const requester = n.requesterName || 'A user';
