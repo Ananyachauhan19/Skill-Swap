@@ -12,7 +12,8 @@ const multer = require('multer');
 const path = require('path');
 
 // Load environment variables FIRST before any other imports that use them
-dotenv.config();
+// Use an explicit path to avoid CWD issues in PM2/systemd
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 require('./config/passport');
 
 // Now load routes that depend on environment variables
@@ -39,6 +40,11 @@ const cron = require('node-cron');
 const app = express();
 const server = http.createServer(app);
 
+// Trust reverse proxy (needed for secure cookies behind Nginx/ALB)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 const io = socketIO(server, {
   cors: { 
     origin: ['http://localhost:5173', 'http://localhost:5174','https://www.skillswaphub.in', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
@@ -53,23 +59,56 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// Validate critical envs and harden session store
+const MONGO_URI = process.env.MONGO_URI;
+const SESSION_SECRET = process.env.SESSION_SECRET || process.env.COOKIE_SECRET || 'change-me-in-prod';
+
+if (!MONGO_URI) {
+  console.error('[Startup] MONGO_URI is not set. Set it in environment or .env.');
+  // Fail fast to avoid cryptic connect-mongo runtime errors
+  process.exit(1);
+}
+if (process.env.NODE_ENV === 'production' && (!SESSION_SECRET || SESSION_SECRET === 'change-me-in-prod')) {
+  console.warn('[Startup] SESSION_SECRET is weak or missing; set a strong secret in production.');
+}
+
+const sessionStore = MongoStore.create({
+  mongoUrl: MONGO_URI,
+  collectionName: 'sessions',
+  ttl: 14 * 24 * 60 * 60, // 14 days in seconds
+  touchAfter: 24 * 3600, // lazy session update (in seconds)
+  autoRemove: 'native',
+  mongoOptions: {
+    // Stable defaults for Node Mongo driver in many environments
+    // (driver will ignore options it doesn't support on newer versions)
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 5000,
+  },
+});
+
+sessionStore.on('error', (err) => {
+  console.error('[SessionStore] Error:', err);
+});
+
+// Support secret rotation: first item is used to sign new cookies, others validate old ones
+const SESSION_SECRETS = [SESSION_SECRET].concat(
+  (process.env.SESSION_SECRET_PREVIOUS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
+
 app.use(session({
-  secret: 'secret_key',
+  secret: SESSION_SECRETS,
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
-    touchAfter: 24 * 3600, // lazy session update (in seconds)
-    crypto: {
-      secret: 'secret_key'
-    }
-  }),
+  store: sessionStore,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // use secure cookies in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  },
 }));
 
 app.use(passport.initialize());
