@@ -40,8 +40,15 @@ const CreateSession = () => {
   const [subjectsByClass, setSubjectsByClass] = useState({});
   const [topicsBySubject, setTopicsBySubject] = useState({});
 
-  // Treat 'both' role same as 'teacher' for tutor capabilities and require isTutor flag
-  const isTutorRole = (currentUser?.role === 'teacher' || currentUser?.role === 'both') && currentUser?.isTutor === true;
+  // Allow all roles except explicit 'learner' to create sessions
+  // Also allow if user has isTutor flag (approved tutors)
+  const isTutorRole = (
+    currentUser && (
+      currentUser.isTutor === true ||
+      (currentUser.role && currentUser.role.toString().trim().toLowerCase() !== 'learner')
+    )
+  );
+  const authReady = !!currentUser;
 
   // Derived skill lists for tutor-capable user
   const tutorClasses = useMemo(() => {
@@ -51,8 +58,16 @@ const CreateSession = () => {
 
   const tutorSubjects = useMemo(() => {
     if (!isTutorRole) return [];
+    // Filter subjects based on selected class
+    if (form.subject) {
+      return [...new Set(
+        userSkills
+          .filter(skill => skill.class === form.subject)
+          .map(skill => skill.subject)
+      )].filter(Boolean);
+    }
     return [...new Set(userSkills.map(skill => skill.subject))].filter(Boolean);
-  }, [userSkills, isTutorRole]);
+  }, [userSkills, isTutorRole, form.subject]);
 
   // Check if user has ALL topics for a given subject
   const hasAllTopics = useMemo(() => {
@@ -69,6 +84,10 @@ const CreateSession = () => {
   const tutorTopicsBySubject = useMemo(() => {
     if (!isTutorRole) return {};
     return userSkills.reduce((acc, skill) => {
+      // Filter by selected class if specified
+      if (form.subject && skill.class !== form.subject) {
+        return acc;
+      }
       if (skill.subject && skill.topic) {
         if (!acc[skill.subject]) {
           acc[skill.subject] = [];
@@ -83,7 +102,7 @@ const CreateSession = () => {
       }
       return acc;
     }, {});
-  }, [userSkills, isTutorRole, topicsBySubject]);
+  }, [userSkills, isTutorRole, topicsBySubject, form.subject]);
 
   // Get available classes based on teacher's skills
   const availableClasses = useMemo(() => {
@@ -278,7 +297,7 @@ const CreateSession = () => {
   const unitList = useMemo(() => {
     if (!isTutorRole) return [];
     return tutorSubjects;
-  }, [tutorSubjects, isTutorRole]);
+  }, [tutorSubjects, isTutorRole, form.subject]);
 
   const topicList = useMemo(() => {
     if (!isTutorRole || !form.topic) return [];
@@ -313,10 +332,11 @@ const CreateSession = () => {
   const handleSubmit = async e => {
     e.preventDefault();
 
-    // Check tutor capability: teacher, both, or activated tutor
-    const canTutor = currentUser?.role === 'teacher' || currentUser?.role === 'both' || currentUser?.isTutor;
+    // Check tutor capability: block only explicit learners without isTutor flag
+    const canTutor = currentUser?.isTutor === true || 
+                     (currentUser?.role && currentUser.role.toLowerCase() !== 'learner');
     if (!canTutor) {
-      alert('Only teachers can create sessions. Please register as a teacher and add skills to your profile.');
+      alert('Tutor access required. Please apply and get approved as a tutor.');
       return;
     }
 
@@ -611,8 +631,8 @@ const CreateSession = () => {
     fetchUserSessions();
   }, []);
 
-  // Block non-tutor users from creating sessions
-  if (!isTutorRole) {
+  // Block non-tutor users from creating sessions once auth is ready
+  if (authReady && !isTutorRole) {
     return (
       <div className="max-w-2xl mx-auto mt-10 p-6 bg-yellow-50 border border-yellow-200 rounded-xl">
         <h2 className="text-xl font-semibold text-yellow-800 mb-2">Tutor access required</h2>

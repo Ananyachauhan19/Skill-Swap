@@ -124,7 +124,7 @@ const SidebarCard = ({
       } catch (_) {}
     })();
     return () => { if (timer) clearInterval(timer); };
-  }, []);
+  }, [profile.tutorApplicationId, profile.isTutor]);
 
   useEffect(() => {
     if (!showLocationDropdown) return;
@@ -528,26 +528,47 @@ const SidebarCard = ({
                   return;
                 }
                 const data = await res.json();
+                
+                // Update profile state immediately with cleared skills
+                const updatedProfile = {
+                  ...profile,
+                  skillsToTeach: [],
+                  isTutor: false,
+                  role: 'learner',
+                  tutorActivationAt: null
+                };
+                
+                // Update global auth context
+                setUser(prev => ({
+                  ...(prev || {}),
+                  ...updatedProfile
+                }));
+                
+                // Update local profile via callback
+                if (typeof onSaveEdit === 'function') {
+                  onSaveEdit(updatedProfile);
+                }
+                
+                // Force re-render by updating tutor status
+                setTutorStatus({
+                  appStatus: null,
+                  activationRemainingMs: 0
+                });
+                
                 alert('You are now a learner. Tutor features disabled.');
-                // Refetch fresh profile to ensure global consistency
+                
+                // Refetch to ensure consistency (background update)
                 try {
                   const refetch = await fetch(`${BACKEND_URL}/api/auth/user/profile`, { credentials: 'include' });
                   if (refetch.ok) {
                     const fresh = await refetch.json();
-                    // update global auth context too
                     setUser(prev => ({ ...(prev || {}), ...fresh }));
                     if (typeof onSaveEdit === 'function') {
                       onSaveEdit(fresh);
                     }
-                  } else {
-                    if (typeof onSaveEdit === 'function') {
-                      onSaveEdit({ ...profile, isTutor: false, role: 'learner' });
-                    }
                   }
-                } catch {
-                  if (typeof onSaveEdit === 'function') {
-                    onSaveEdit({ ...profile, isTutor: false, role: 'learner' });
-                  }
+                } catch (e) {
+                  console.warn('Background profile refresh failed:', e);
                 }
               } catch (e) {
                 alert('Network error while unregistering as tutor');

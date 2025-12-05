@@ -16,6 +16,12 @@ exports.uploadFields = upload.fields([
   { name: 'video', maxCount: 1 },
 ]);
 
+// Optional upload for skills-update flow (marksheet/video may be omitted)
+exports.uploadOptionalFields = upload.fields([
+  { name: 'marksheet', maxCount: 1 },
+  { name: 'video', maxCount: 1 },
+]);
+
 // Create / update application (idempotent per user)
 exports.apply = async (req, res) => {
   try {
@@ -93,6 +99,7 @@ exports.apply = async (req, res) => {
     let application = await TutorApplication.findOne({ user: userId });
     if (application) {
       application.skills = parsedSkills;
+      application.applicationType = 'initial';
       application.educationLevel = educationLevel;
       application.institutionName = institutionName;
       application.classOrYear = classOrYear;
@@ -106,6 +113,7 @@ exports.apply = async (req, res) => {
       application = await TutorApplication.create({
         user: userId,
         skills: parsedSkills,
+        applicationType: 'initial',
         educationLevel,
         institutionName,
         classOrYear,
@@ -164,11 +172,33 @@ exports.status = async (req, res) => {
   }
 };
 
+// Prefill defaults for apply/tutor form using last verified/approved or latest pending application
+exports.prefillApplyDefaults = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    // Prefer approved application; else fall back to most recent application
+    let app = await TutorApplication.findOne({ user: userId, status: 'approved' });
+    if (!app) {
+      app = await TutorApplication.findOne({ user: userId });
+    }
+    if (!app) {
+      return res.status(200).json({ educationLevel: '', institutionName: '', classOrYear: '' });
+    }
+    return res.status(200).json({
+      educationLevel: app.educationLevel || '',
+      institutionName: app.institutionName || '',
+      classOrYear: app.classOrYear || '',
+    });
+  } catch (e) {
+    return res.status(500).json({ message: 'Server error', details: e.message });
+  }
+};
+
 // Admin list all applications
 exports.list = async (req, res) => {
   try {
     // Include tutor activation fields so admin can see countdown
-    const apps = await TutorApplication.find().populate('user', 'username email firstName lastName tutorActivationAt isTutor');
+    const apps = await TutorApplication.find().populate('user', 'username email firstName lastName tutorActivationAt isTutor skillsToTeach');
     return res.status(200).json(apps);
   } catch (e) {
     return res.status(500).json({ message: 'Server error', details: e.message });
@@ -208,6 +238,12 @@ exports.approve = async (req, res) => {
     userDoc.tutorActivationAt = activationAt;
     userDoc.isTutor = false; // remains locked until activation time
     userDoc.tutorApplicationId = app._id;
+    
+    // Update role: if learner, change to teacher; if already teacher/both, keep as-is
+    if (userDoc.role === 'learner') {
+      userDoc.role = 'teacher';
+    }
+    
     await userDoc.save();
 
     return res.status(200).json({ message: 'Approved. Tutor functions unlock after 5 mins.', application: app });
@@ -235,6 +271,23 @@ exports.reject = async (req, res) => {
   }
 };
 
+// User-initiated revert: clear any pending skills-update so a fresh edit can start
+exports.revertPendingUpdate = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const app = await TutorApplication.findOne({ user: userId });
+    if (!app) return res.status(404).json({ message: 'No application found' });
+    if (app.status === 'pending' && app.applicationType === 'skills-update') {
+      app.status = 'reverted';
+      await app.save();
+      return res.status(200).json({ message: 'Pending skills update reverted' });
+    }
+    return res.status(200).json({ message: 'No pending skills update to revert' });
+  } catch (e) {
+    return res.status(500).json({ message: 'Server error', details: e.message });
+  }
+};
+
 // Middleware to finalize activation if time passed
 exports.ensureTutorActivation = async (req, res, next) => {
   try {
@@ -256,8 +309,95 @@ exports.ensureTutorActivation = async (req, res, next) => {
 exports.requireActiveTutor = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-    if (!user || !user.isTutor) return res.status(403).json({ message: 'Tutor functions locked or not approved yet.' });
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
+    // Allow all roles except explicit 'learner'
+    if (user.role && user.role.toLowerCase() === 'learner') {
+      return res.status(403).json({ message: 'Tutor functions are not available for learners.' });
+    }
     next();
+  } catch (e) {
+    return res.status(500).json({ message: 'Server error', details: e.message });
+  }
+};
+
+// Request a skills update (no files) — stores in TutorApplication as pending
+exports.requestSkillsUpdate = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { skillsToTeach } = req.body;
+
+    if (!Array.isArray(skillsToTeach) || skillsToTeach.length === 0) {
+      return res.status(400).json({ message: 'Provide at least one skill to update.' });
+    }
+    for (const s of skillsToTeach) {
+      if (!s.class || !s.subject || !s.topic) {
+        return res.status(400).json({ message: 'Each skill requires class, subject and topic' });
+      }
+    }
+
+    let application = await TutorApplication.findOne({ user: userId });
+    if (!application) {
+      application = await TutorApplication.create({ user: userId, skills: skillsToTeach, applicationType: 'skills-update' });
+    } else {
+      // Preserve previously verified education/institution/class info by default
+      application.skills = skillsToTeach;
+      application.applicationType = 'skills-update';
+    }
+
+    // Handle optional new uploads (marksheet/pdf and video). If provided, replace URLs; else keep old.
+    const marksheetFile = req.files?.marksheet?.[0];
+    const videoFile = req.files?.video?.[0];
+
+    if (marksheetFile) {
+      if (marksheetFile.mimetype !== 'application/pdf') {
+        return res.status(400).json({ message: 'Marksheet must be a PDF' });
+      }
+      if (marksheetFile.size > 1024 * 1024) {
+        return res.status(400).json({ message: 'Marksheet must be <= 1MB' });
+      }
+      const marksheetPath = `marksheets/${userId}-${Date.now()}-${marksheetFile.originalname}`;
+      const { error: mErr } = await supabase.storage
+        .from('marksheets')
+        .upload(marksheetPath, marksheetFile.buffer, {
+          contentType: marksheetFile.mimetype,
+          upsert: false,
+        });
+      if (mErr) {
+        console.error('[Supabase] Marksheet upload error:', mErr);
+        return res.status(500).json({ message: 'Failed to upload marksheet' });
+      }
+      const url = supabase.storage.from('marksheets').getPublicUrl(marksheetPath).data.publicUrl;
+      application.marksheetUrl = application.marksheetUrl || url; // keep legacy field for compatibility
+      application.marksheetUrls = Array.isArray(application.marksheetUrls) ? application.marksheetUrls : [];
+      application.marksheetUrls.push(url);
+    }
+
+    if (videoFile) {
+      const videoExt = path.extname(videoFile.originalname) || '.mp4';
+      const videoPath = `tutor-videos/${userId}-${Date.now()}${videoExt}`;
+      const { error: vErr } = await supabase.storage
+        .from('tutor-videos')
+        .upload(videoPath, videoFile.buffer, {
+          contentType: videoFile.mimetype,
+          upsert: false,
+        });
+      if (vErr) {
+        console.error('[Supabase] Video upload error:', vErr);
+        return res.status(500).json({ message: 'Failed to upload video' });
+      }
+      const url = supabase.storage.from('tutor-videos').getPublicUrl(videoPath).data.publicUrl;
+      application.videoUrl = application.videoUrl || url; // keep legacy field for compatibility
+      application.videoUrls = Array.isArray(application.videoUrls) ? application.videoUrls : [];
+      application.videoUrls.push(url);
+    }
+    application.status = 'pending';
+    application.approvedAt = undefined;
+    application.rejectionReason = undefined;
+    await application.save();
+
+    await User.findByIdAndUpdate(userId, { tutorApplicationId: application._id });
+
+    return res.status(200).json({ message: 'Skills update request submitted', application });
   } catch (e) {
     return res.status(500).json({ message: 'Server error', details: e.message });
   }

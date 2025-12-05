@@ -35,6 +35,24 @@ const UserInfoSection = ({
   const [classes, setClasses] = useState([]);
   const [subjectsByClass, setSubjectsByClass] = useState({});
   const [topicsBySubject, setTopicsBySubject] = useState({});
+  const [originalSkills, setOriginalSkills] = useState([]);
+  const [pendingUpdate, setPendingUpdate] = useState(null); // { applicationType, status }
+
+  // Normalize skills for deep compare
+  const normalizeSkills = (skills) =>
+    (Array.isArray(skills) ? skills : [])
+      .map((s) => ({
+        class: s.class || '',
+        subject: s.subject || '',
+        topic: s.topic || '',
+      }))
+      .sort((a, b) => (a.class + a.subject + a.topic).localeCompare(b.class + b.subject + b.topic));
+
+  const areSkillsEqual = (a, b) => {
+    const na = normalizeSkills(a);
+    const nb = normalizeSkills(b);
+    return JSON.stringify(na) === JSON.stringify(nb);
+  };
   const handleCertFileUpload = async (index, file) => {
     if (!file) return;
     if (!file.type.includes('pdf')) {
@@ -50,11 +68,90 @@ const UserInfoSection = ({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    const editedSkills = fieldDraft.skillsToTeach || [];
+    const skillsChanged = !areSkillsEqual(originalSkills, editedSkills);
+
+    // Check if user only removed skills (no additions)
+    const approved = Array.isArray(profile?.skillsToTeach) ? profile.skillsToTeach : [];
+    const key = (x) => `${(x.class||'').toLowerCase()}::${(x.subject||'').toLowerCase()}::${(x.topic||'').toLowerCase()}`;
+    const approvedSet = new Set(approved.map(key));
+    const editedSet = new Set(editedSkills.map(key));
+    
+    // Check if any new skills were added (skills in edited but not in approved)
+    const hasNewSkills = editedSkills.some(s => !approvedSet.has(key(s)));
+    const onlyRemovedSkills = skillsChanged && !hasNewSkills;
+
+    // If only removing skills, save immediately without approval
+    if (onlyRemovedSkills) {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/auth/profile`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            skillsToTeach: editedSkills,
+            certificates: fieldDraft.certificates || profile.certificates || [],
+            experience: fieldDraft.experience || profile.experience || [],
+          }),
+        });
+        
+        if (!response.ok) {
+          const err = await response.json();
+          toast.error(err.message || 'Failed to update profile');
+          return;
+        }
+        
+        const updatedUser = await response.json();
+        const updatedProfile = {
+          ...profile,
+          ...fieldDraft,
+          skillsToTeach: editedSkills,
+        };
+        
+        if (onSaveEdit) {
+          onSaveEdit(updatedProfile);
+        }
+        toast.success('Skills updated successfully');
+        cancelEdit();
+        return;
+      } catch (error) {
+        toast.error('Failed to update profile');
+        return;
+      }
+    }
+
+    // If skills changed with additions, navigate to Tutor Verification
+    if (skillsChanged && hasNewSkills) {
+      try {
+        // Clear any server-side pending skills-update so a fresh request is created
+        try {
+          await fetch(`${BACKEND_URL}/api/tutor/skills/revert-pending`, { method: 'POST', credentials: 'include' });
+        } catch (_) {}
+        const DRAFT_KEY = 'tutorApplicationDraft_v1';
+        // Exclude already-approved skills and dedupe
+        const seen = new Set();
+        const filtered = (editedSkills || []).filter(s => {
+          const k = key(s);
+          if (approvedSet.has(k)) return false; // skip already approved
+          if (seen.has(k)) return false; // skip duplicate in edited list
+          seen.add(k);
+          return true;
+        });
+        const payload = {
+          step: 2,
+          skills: filtered,
+          currentSkill: { class: '', subject: '', topic: '' },
+        };
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify(payload)); } catch {}
+      } catch {}
+    }
+
+    // Save non-skills fields locally via onSaveEdit, but keep existing skills until approval
     const updatedProfile = {
       ...profile,
       ...fieldDraft,
-      skillsToTeach: fieldDraft.skillsToTeach || profile.skillsToTeach || [],
+      skillsToTeach: skillsChanged && hasNewSkills ? profile.skillsToTeach || [] : editedSkills,
       certificates: fieldDraft.certificates || profile.certificates || [],
       experience: fieldDraft.experience || profile.experience || [],
     };
@@ -62,6 +159,17 @@ const UserInfoSection = ({
       onSaveEdit(updatedProfile);
     }
     cancelEdit();
+
+    // Navigate to apply/tutor for verification when new skills added
+    if (skillsChanged && hasNewSkills) {
+      try {
+        // Use location navigation via window to avoid hook
+        window.location.href = '/tutor/apply';
+      } catch {
+        // fallback toast
+        toast('Navigate to Tutor Verification to complete review');
+      }
+    }
   };
 
   // Load classes/subjects/topics from CSV-backed endpoint
@@ -80,8 +188,29 @@ const UserInfoSection = ({
         setTopicsBySubject({});
       }
     };
+    const loadStatus = async () => {
+      try {
+        const s = await fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' });
+        if (!s.ok) return;
+        const j = await s.json();
+        const app = j?.application;
+        if (app && app.applicationType === 'skills-update' && app.status === 'pending') {
+          setPendingUpdate({ applicationType: app.applicationType, status: app.status });
+        } else {
+          setPendingUpdate(null);
+        }
+      } catch (_) {
+        setPendingUpdate(null);
+      }
+    };
     loadSkillsList();
+    loadStatus();
   }, []);
+
+  // Track original skills from current profile when editor opens OR when profile changes
+  useEffect(() => {
+    setOriginalSkills(profile.skillsToTeach || []);
+  }, [editingField, profile.skillsToTeach]);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 sm:p-8 flex flex-col md:flex-row gap-4 sm:gap-8 items-center mb-2">
@@ -97,6 +226,11 @@ const UserInfoSection = ({
             )}
           </div>
         </div>
+        {pendingUpdate?.applicationType === 'skills-update' && pendingUpdate.status === 'pending' && (
+          <div className="mb-2 text-xs bg-yellow-100 text-yellow-800 border border-yellow-200 px-3 py-2 rounded">
+            Your updated skills are awaiting admin approval. Until approved, your profile and tutor access continue to use your existing skills.
+          </div>
+        )}
         {editingField === 'userInfo' ? (
           <>
             {/* Certificates */}
@@ -252,13 +386,45 @@ const UserInfoSection = ({
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button onClick={handleSave} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 flex items-center gap-1">
+              <button
+                onClick={handleSave}
+                disabled={areSkillsEqual(originalSkills, fieldDraft.skillsToTeach || [])}
+                className={`px-3 py-1 rounded flex items-center gap-1 ${
+                  areSkillsEqual(originalSkills, fieldDraft.skillsToTeach || [])
+                    ? 'bg-green-600/50 text-white cursor-not-allowed'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
                 <Save size={16} /> Save
               </button>
               <button onClick={cancelEdit} className="bg-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-400 flex items-center gap-1">
                 <XCircle size={16} /> Cancel
               </button>
             </div>
+            {(() => {
+              const editedSkills = fieldDraft.skillsToTeach || [];
+              const approved = Array.isArray(profile?.skillsToTeach) ? profile.skillsToTeach : [];
+              const key = (x) => `${(x.class||'').toLowerCase()}::${(x.subject||'').toLowerCase()}::${(x.topic||'').toLowerCase()}`;
+              const approvedSet = new Set(approved.map(key));
+              const hasNewSkills = editedSkills.some(s => !approvedSet.has(key(s)));
+              const skillsChanged = !areSkillsEqual(originalSkills, editedSkills);
+              const onlyRemoving = skillsChanged && !hasNewSkills;
+              
+              if (onlyRemoving) {
+                return (
+                  <div className="mt-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-200">
+                    ℹ️ Removing skills will update immediately without admin approval
+                  </div>
+                );
+              } else if (skillsChanged && hasNewSkills) {
+                return (
+                  <div className="mt-2 text-xs text-yellow-700 bg-yellow-50 px-2 py-1 rounded border border-yellow-200">
+                    ⚠️ Adding new skills requires admin approval and verification documents
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </>
         ) : (
           <>

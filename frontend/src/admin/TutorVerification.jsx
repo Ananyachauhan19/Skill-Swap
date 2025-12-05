@@ -10,6 +10,8 @@ export default function TutorVerification({ selected }) {
   // Support data coming either directly on object or nested under tutorApplication
   const tutorApp = selected.tutorApplication || selected;
   const user = tutorApp.user || selected.user || {};
+  const isSkillsUpdate = tutorApp.applicationType === 'skills-update';
+  const approvedSkills = Array.isArray(user?.skillsToTeach) ? user.skillsToTeach : [];
 
   const approve = async (id) => {
     if (!window.confirm('Approve this tutor application?')) return;
@@ -57,6 +59,11 @@ export default function TutorVerification({ selected }) {
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">Tutor Verification
           <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${statusClass}`}>{tutorApp.status}</span>
+          {isSkillsUpdate && (
+            <span className="px-2 py-1 rounded-full text-[11px] font-medium bg-indigo-100 text-indigo-700" title="Updated skills Approval Request">
+              Updated skills Approval Request
+            </span>
+          )}
         </h2>
         <p className="text-xs text-gray-500">Only selected tutor application is shown here.</p>
       </div>
@@ -72,7 +79,9 @@ export default function TutorVerification({ selected }) {
             <div className="text-[11px] text-green-600 mt-1">Tutor active</div>
           )}
           {tutorApp.status === 'reverted' && (
-            <div className="text-[11px] text-purple-600 mt-1">Reverted by user</div>
+            <div className="text-[11px] text-purple-600 mt-1 font-medium">
+              ⚠️ User unregistered as tutor - All data preserved for audit trail
+            </div>
           )}
           {tutorApp.status === 'rejected' && tutorApp.rejectionReason && (
             <div className="text-[11px] text-red-600 mt-1" title={tutorApp.rejectionReason}>Reason: {tutorApp.rejectionReason}</div>
@@ -83,19 +92,46 @@ export default function TutorVerification({ selected }) {
           <div>{tutorApp.educationLevel} • {tutorApp.institutionName} • {tutorApp.classOrYear}</div>
         </div>
         <div className="bg-white border rounded-lg p-3 text-xs shadow-sm">
-          <div className="font-medium text-gray-700 mb-2 flex items-center gap-2">Skills <span className="text-gray-400">({tutorApp.skills?.length || 0})</span></div>
+          <div className="font-medium text-gray-700 mb-2 flex items-center gap-2">
+            {tutorApp.status === 'reverted' ? 'Previously Approved Skills (Before Unregister)' : 'Skills in Application'} 
+            <span className="text-gray-400">({tutorApp.skills?.length || 0})</span>
+          </div>
           <div className="flex flex-wrap gap-1">
             {tutorApp.skills && tutorApp.skills.map((s,i)=>(
-              <span key={i} className="text-[11px] bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+              <span key={i} className={`text-[11px] px-2 py-0.5 rounded ${
+                tutorApp.status === 'reverted' 
+                  ? 'bg-purple-50 border border-purple-200' 
+                  : 'bg-indigo-50 border border-indigo-200'
+              }`}>
                 {s.class} • {s.subject} : {s.topic === 'ALL' ? 'ALL Topics' : s.topic}
               </span>
             ))}
             {(!tutorApp.skills || tutorApp.skills.length===0) && <span className="text-[11px] text-gray-400">No skills</span>}
           </div>
         </div>
-        <div className="flex gap-4 text-xs">
-          <a href={tutorApp.marksheetUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">Marksheet</a>
-          <a href={tutorApp.videoUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">Video</a>
+        {tutorApp.status !== 'reverted' && (
+          <div className="bg-white border rounded-lg p-3 text-xs shadow-sm">
+            <div className="font-medium text-gray-700 mb-2 flex items-center gap-2">Currently Approved Skills <span className="text-gray-400">({approvedSkills.length})</span></div>
+            <div className="flex flex-wrap gap-1">
+              {approvedSkills.map((s,i)=>(
+                <span key={i} className="text-[11px] bg-green-50 border border-green-200 px-2 py-0.5 rounded">
+                  {s.class} • {s.subject} : {s.topic === 'ALL' ? 'ALL Topics' : s.topic}
+                </span>
+              ))}
+              {approvedSkills.length === 0 && <span className="text-[11px] text-gray-400">No approved skills</span>}
+            </div>
+          </div>
+        )}
+        <div className="flex flex-col gap-2 text-xs">
+          <div className="font-medium text-gray-700">Submitted Documents</div>
+          <div className="flex flex-wrap gap-3">
+            {(Array.isArray(tutorApp.marksheetUrls) ? tutorApp.marksheetUrls : (tutorApp.marksheetUrl ? [tutorApp.marksheetUrl] : [])).map((u, i) => (
+              <a key={`m-${i}`} href={u} target="_blank" rel="noreferrer" className="text-blue-600 underline">Marksheet #{i+1}</a>
+            ))}
+            {(Array.isArray(tutorApp.videoUrls) ? tutorApp.videoUrls : (tutorApp.videoUrl ? [tutorApp.videoUrl] : [])).map((u, i) => (
+              <a key={`v-${i}`} href={u} target="_blank" rel="noreferrer" className="text-blue-600 underline">Video #{i+1}</a>
+            ))}
+          </div>
         </div>
         <div className="flex gap-2">
           {tutorApp.status === 'pending' && (
@@ -111,7 +147,10 @@ export default function TutorVerification({ selected }) {
             <span className="text-[11px] text-green-600">Tutor active</span>
           )}
           {tutorApp.status === 'reverted' && (
-            <span className="text-[11px] text-purple-600">Reverted by user</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-[11px] text-purple-600 font-medium">User unregistered as tutor</span>
+              <span className="text-[11px] text-gray-500">Application data preserved for audit trail</span>
+            </div>
           )}
         </div>
       </div>

@@ -242,6 +242,9 @@ const TutorApplication = () => {
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [loadedDraft, setLoadedDraft] = useState(false);
+  const [prefillLoaded, setPrefillLoaded] = useState(false);
+  const [pendingUpdate, setPendingUpdate] = useState(null); // { applicationType, status }
+  const [draftOverride, setDraftOverride] = useState(false);
 
   // Load subjects/topics
   useEffect(() => {
@@ -266,6 +269,47 @@ const TutorApplication = () => {
     })();
   }, []);
 
+  // Prefill education/institution/class defaults and any pending edited skills from application
+  useEffect(() => {
+    (async () => {
+      try {
+        const [defaultsResp, statusResp] = await Promise.all([
+          fetch(`${BACKEND_URL}/api/tutor/apply/defaults`, { credentials: 'include' }),
+          fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' })
+        ]);
+        if (defaultsResp.ok) {
+          const d = await defaultsResp.json();
+          if (d.educationLevel) setEducationLevel(d.educationLevel);
+          if (d.institutionName) setInstitutionName(d.institutionName);
+          if (d.classOrYear) {
+            // If school, classOrYear holds class; if college, we cannot infer track/course from a single string; keep as display only.
+            setClassOrYear(d.classOrYear);
+          }
+        }
+        if (statusResp.ok && !draftOverride) {
+          const s = await statusResp.json();
+          const app = s?.application;
+          if (Array.isArray(app?.skills) && app.applicationType === 'skills-update' && app.status === 'pending') {
+            // Show edited skills by default (pending update request), excluding already-approved skills
+            const approved = Array.isArray(user?.skillsToTeach) ? user.skillsToTeach : [];
+            const key = (x) => `${(x.class||'').toLowerCase()}::${(x.subject||'').toLowerCase()}::${(x.topic||'').toLowerCase()}`;
+            const approvedSet = new Set(approved.map(key));
+            const filtered = app.skills.filter(s => !approvedSet.has(key(s))).slice(0, MAX_SKILLS);
+            // Only override skills if we actually have new ones; otherwise keep draft/prefilled skills
+            if (filtered.length > 0) {
+              setSkills(filtered);
+            }
+            setPendingUpdate({ applicationType: app.applicationType, status: app.status });
+          }
+        }
+      } catch (_) {
+        // silent fail; user can fill manually
+      } finally {
+        setPrefillLoaded(true);
+      }
+    })();
+  }, []);
+
   // Load draft from localStorage on first mount (after meta loaded so subjects available)
   useEffect(() => {
     if (loadedDraft) return; // prevent re-run
@@ -278,7 +322,18 @@ const TutorApplication = () => {
         if (draft.classOrYear) setClassOrYear(draft.classOrYear);
         if (draft.collegeTrack) setCollegeTrack(draft.collegeTrack);
         if (draft.courseName) setCourseName(draft.courseName);
-        if (Array.isArray(draft.skills)) setSkills(draft.skills.slice(0, MAX_SKILLS));
+        if (Array.isArray(draft.skills)) {
+          const key = (x) => `${(x.class||'').toLowerCase()}::${(x.subject||'').toLowerCase()}::${(x.topic||'').toLowerCase()}`;
+          const seen = new Set();
+          const deduped = draft.skills.filter(s => {
+            const k = key(s);
+            if (seen.has(k)) return false;
+            seen.add(k);
+            return true;
+          }).slice(0, MAX_SKILLS);
+          setSkills(deduped);
+          setDraftOverride(true);
+        }
         if (draft.currentSkill) setCurrentSkill(draft.currentSkill);
         if (draft.step) {
           const numericStep = Number(draft.step);
@@ -330,6 +385,7 @@ const TutorApplication = () => {
 
   // Validation per step
   const stepValid = useMemo(() => {
+    const isSkillsUpdate = pendingUpdate?.applicationType === 'skills-update';
     if (step === 1) {
       if (!educationLevel) return false;
       if (!institutionName.trim()) return false;
@@ -338,6 +394,7 @@ const TutorApplication = () => {
       return true;
     }
     if (step === 2) {
+      // For updates, require at least one new (non-approved) skill to proceed
       return skills.length > 0 && skills.length <= MAX_SKILLS;
     }
     if (step === 3) {
@@ -346,7 +403,11 @@ const TutorApplication = () => {
       if (marksheetFile.size > 1024 * 1024) return false;
       return true;
     }
-    if (step === 4) return true; // review step always valid
+    if (step === 4) {
+      // Block submission if no new skills in update flow
+      if (isSkillsUpdate && skills.length === 0) return false;
+      return true;
+    }
     return false;
   }, [step, educationLevel, institutionName, classOrYear, collegeTrack, courseName, skills, marksheetFile, videoFile]);
 
@@ -379,7 +440,9 @@ const TutorApplication = () => {
       fd.append('skills', JSON.stringify(skills));
       fd.append('marksheet', marksheetFile);
       fd.append('video', videoFile);
-      await axios.post(`${BACKEND_URL}/api/tutor/apply`, fd, {
+      const isSkillsUpdate = pendingUpdate?.applicationType === 'skills-update';
+      const endpoint = isSkillsUpdate ? `${BACKEND_URL}/api/tutor/skills/update-request` : `${BACKEND_URL}/api/tutor/apply`;
+      await axios.post(endpoint, fd, {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' },
         onUploadProgress: (evt) => {
@@ -388,11 +451,17 @@ const TutorApplication = () => {
           setUploadProgress(pct);
         }
       });
-      setSubmitSuccess('Application submitted! Logging out...');
+      setSubmitSuccess(isSkillsUpdate ? 'Skills update submitted for admin review.' : 'Application submitted! Logging out...');
       // Clear draft after successful submission
       try { localStorage.removeItem(DRAFT_KEY); } catch {}
-      try { await axios.post(`${BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true }); } catch {}
-      setTimeout(() => navigate('/login'), 1800);
+      if (isSkillsUpdate) {
+        // For updates, keep user logged in and navigate to profile status
+        setTimeout(() => navigate('/my/profile'), 1200);
+      } else {
+        // Initial application: logout per original flow
+        try { await axios.post(`${BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true }); } catch {}
+        setTimeout(() => navigate('/login'), 1800);
+      }
     } catch (err) {
       setSubmitError(err.response?.data?.message || 'Submission failed');
     } finally {
@@ -510,6 +579,11 @@ const TutorApplication = () => {
                   ))}
                   {!skills.length && <p className="text-sm text-gray-500 text-center py-8">No skills added yet.</p>}
                 </div>
+                {pendingUpdate?.applicationType === 'skills-update' && skills.length === 0 && (
+                  <div className="text-xs text-yellow-800 bg-yellow-100 border border-yellow-200 px-3 py-2 rounded">
+                    No new skills detected in your update. Please add at least one skill that isn’t already approved.
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -588,6 +662,9 @@ const TutorApplication = () => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-xs text-blue-800">
             After submission, an admin will review your application. If approved, tutor features unlock automatically 5 minutes after approval.
           </div>
+          {pendingUpdate?.applicationType === 'skills-update' && skills.length === 0 && (
+            <div className="p-3 bg-red-100 text-red-700 text-sm rounded-lg font-medium">Provide at least one skill to update.</div>
+          )}
           {submitError && <div className="p-3 bg-red-100 text-red-700 text-sm rounded-lg font-medium">{submitError}</div>}
           {submitSuccess && <div className="p-3 bg-green-100 text-green-700 text-sm rounded-lg font-medium">{submitSuccess}</div>}
           {submitting && (
@@ -609,6 +686,14 @@ const TutorApplication = () => {
           <p className="text-sm text-gray-600 max-w-2xl mx-auto">
             Complete the 4-step process to submit your credentials and teaching preview.
           </p>
+          {!prefillLoaded && (
+            <p className="text-xs text-gray-400 mt-2">Prefilling your verified defaults…</p>
+          )}
+          {pendingUpdate?.applicationType === 'skills-update' && pendingUpdate.status === 'pending' && (
+            <div className="mt-3 inline-block text-xs bg-yellow-100 text-yellow-800 border border-yellow-200 px-3 py-1 rounded">
+              Your updated skills are awaiting admin approval. Until approved, your profile and tutor access continue to use your existing skills.
+            </div>
+          )}
         </div>
 
         {/* Step Indicator */}

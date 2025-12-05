@@ -15,6 +15,7 @@ const { trackDailyLogin, trackActivity, ACTIVITY_TYPES } = require('../utils/con
 
 // Sanitize array fields to remove invalid keys (e.g., _id)
 const sanitizeArrayFields = (data, validKeys) => {
+  if (!Array.isArray(data)) return [];
   return data.map(item => {
     const sanitized = {};
     validKeys.forEach(key => {
@@ -242,17 +243,20 @@ router.get('/search', async (req, res) => {
 // Get user profile
 router.get('/user/profile', requireAuth, async (req, res) => {
   try {
+    console.log('[DEBUG] Fetching user profile for ID:', req.user._id);
     const user = await User.findById(req.user._id).select('-password -otp -otpExpires');
     if (!user) {
       console.info('[DEBUG] User not found for /user/profile:', req.user._id);
       return res.status(404).json({ message: 'User not found' });
     }
+    console.log('[DEBUG] User found, preparing response. isTutor:', user.isTutor, 'role:', user.role);
     res.json({
       _id: user._id,
       firstName: user.firstName,
       lastName: user.lastName,
       username: user.username,
       email: user.email,
+      role: user.role,
       profilePic: user.profilePic,
       profileImageUrl: user.profileImageUrl,
       bio: user.bio,
@@ -347,6 +351,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       lastName: user.lastName,
       username: user.username,
       email: user.email,
+      role: user.role,
       profilePic: user.profilePic,
       profileImageUrl: user.profileImageUrl,
       bio: user.bio,
@@ -364,7 +369,10 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       goldCoins: user.goldCoins,
       silverCoins: user.silverCoins,
       badges: user.badges,
-      rank: user.rank
+      rank: user.rank,
+      isTutor: user.isTutor,
+      tutorActivationAt: user.tutorActivationAt,
+      tutorApplicationId: user.tutorApplicationId
     });
   } catch (err) {
     console.error('[DEBUG] Profile update error:', err);
