@@ -297,6 +297,14 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
       });
     });
 
+    // Listen for coin balance updates
+    socket.on('coins-updated', (data) => {
+      if (data && typeof data.golden === 'number' && typeof data.silver === 'number') {
+        setGoldenCoins(data.golden);
+        setSilverCoins(data.silver);
+      }
+    });
+
     return () => {
       socket.off('session-request-received');
       socket.off('session-request-updated');
@@ -309,8 +317,9 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
       socket.off('skillmate-request-sent');
       socket.off('skillmate-request-approved');
       socket.off('skillmate-request-rejected');
+      socket.off('coins-updated');
     };
-  }, [setNotifications, setActiveVideoCall]);
+  }, [setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins]);
 }
 
 const Navbar = () => {
@@ -333,6 +342,47 @@ const Navbar = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
 
+  // Fetch coins from backend
+  const fetchCoins = async () => {
+    try {
+      console.log('[Navbar] Fetching coins from:', `${BACKEND_URL}/api/auth/coins`);
+      const response = await fetch(`${BACKEND_URL}/api/auth/coins`, {
+        credentials: 'include',
+      });
+      console.log('[Navbar] Coins response status:', response.status);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[Navbar] Coins data received:', data);
+        setGoldenCoins(data.golden || 0);
+        setSilverCoins(data.silver || 0);
+        console.log('[Navbar] Coins state updated - Golden:', data.golden, 'Silver:', data.silver);
+      } else {
+        console.warn('[Navbar] Coins fetch failed with status:', response.status);
+      }
+    } catch (error) {
+      console.error('[Navbar] Failed to fetch coins:', error);
+    }
+  };
+
+  // Verify login via backend (useful after OAuth redirects)
+  const verifyLogin = async () => {
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/auth/me`, { credentials: 'include' });
+      if (resp.ok) {
+        const me = await resp.json();
+        const userObj = me && me.user ? me.user : me;
+        if (userObj && userObj._id) {
+          setIsLoggedIn(true);
+          try {
+            Cookies.set('user', JSON.stringify(userObj), { sameSite: 'none', secure: true });
+          } catch {}
+          socket.emit('register', userObj._id);
+          await fetchCoins();
+        }
+      }
+    } catch {}
+  };
+
   // Load notifications from localStorage and sync with socket
   useEffect(() => {
     const savedNotifications = localStorage.getItem('notifications');
@@ -350,6 +400,11 @@ const Navbar = () => {
     const user = userCookie ? JSON.parse(userCookie) : null;
     if (user && user._id) {
       socket.emit('register', user._id);
+      // Fetch coins on mount if logged in
+      fetchCoins();
+    } else {
+      // Attempt to verify session from backend (handles OAuth callback flows)
+      verifyLogin();
     }
   }, []);
 
@@ -390,21 +445,12 @@ const Navbar = () => {
         setIsLoggedIn(newLoginState);
         lastCookie = userCookie;
         if (newLoginState) {
-          try {
-            const response = await fetch(`${BACKEND_URL}/api/auth/coins`, {
-              credentials: 'include',
-            });
-            const data = await response.json();
-            setGoldenCoins(data.golden || 0);
-            setSilverCoins(data.silver || 0);
-            // Re-register socket on login
-            const user = userCookie ? JSON.parse(userCookie) : null;
-            if (user && user._id) {
-              socket.emit('register', user._id);
-            }
-          } catch {
-            setGoldenCoins(0);
-            setSilverCoins(0);
+          // Fetch coins on login
+          fetchCoins();
+          // Re-register socket on login
+          const user = userCookie ? JSON.parse(userCookie) : null;
+          if (user && user._id) {
+            socket.emit('register', user._id);
           }
         } else {
           setGoldenCoins(0);
@@ -420,9 +466,12 @@ const Navbar = () => {
 
     window.addEventListener('storage', handleAuthChange);
     window.addEventListener('authChanged', handleAuthChange);
+    // Also try backend verification shortly after auth change
+    const verifyTimer = setTimeout(() => verifyLogin(), 300);
 
     return () => {
       clearInterval(cookiePoll);
+      clearTimeout(verifyTimer);
       window.removeEventListener('storage', handleAuthChange);
       window.removeEventListener('authChanged', handleAuthChange);
     };
@@ -720,20 +769,32 @@ const Navbar = () => {
                     </svg>
                   </button>
                   {showCoinsDropdown && (
-                    <div className="absolute right-0 mt-2 w-40 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50">
+                    <div className="absolute right-0 mt-2 w-44 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50">
                       <div className="p-3 space-y-2 text-xs font-medium text-gray-700">
-                        {/* <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
+                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
                           <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
                             <span className="text-[10px] font-bold text-blue-900">G</span>
                           </div>
                           <span className="text-gray-800">Golden: {goldenCoins}</span>
-                        </div> */}
+                        </div>
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
                           <div className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
                             <span className="text-[10px] font-bold text-blue-900">S</span>
                           </div>
                           <span className="text-gray-800">Silver: {silverCoins}</span>
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fetchCoins();
+                          }}
+                          className="w-full mt-1 p-2 text-xs text-blue-600 hover:bg-blue-50 rounded-md transition flex items-center justify-center gap-1"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Refresh
+                        </button>
                       </div>
                     </div>
                   )}
