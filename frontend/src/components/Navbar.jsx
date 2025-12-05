@@ -10,7 +10,7 @@ import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 
 // useSessionSocketNotifications hook for handling socket notifications
-function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
+function useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins) {
   useEffect(() => {
     const userCookie = Cookies.get('user');
     const user = userCookie ? JSON.parse(userCookie) : null;
@@ -298,12 +298,14 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
     });
 
     // Listen for coin balance updates
-    socket.on('coins-updated', (data) => {
-      if (data && typeof data.golden === 'number' && typeof data.silver === 'number') {
-        setGoldenCoins(data.golden);
-        setSilverCoins(data.silver);
-      }
-    });
+    if (typeof setGoldenCoins === 'function' && typeof setSilverCoins === 'function') {
+      socket.on('coins-updated', (data) => {
+        if (data && typeof data.golden === 'number' && typeof data.silver === 'number') {
+          setGoldenCoins(data.golden);
+          setSilverCoins(data.silver);
+        }
+      });
+    }
 
     return () => {
       socket.off('session-request-received');
@@ -317,7 +319,9 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall) {
       socket.off('skillmate-request-sent');
       socket.off('skillmate-request-approved');
       socket.off('skillmate-request-rejected');
-      socket.off('coins-updated');
+      if (typeof setGoldenCoins === 'function' && typeof setSilverCoins === 'function') {
+        socket.off('coins-updated');
+      }
     };
   }, [setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins]);
 }
@@ -570,7 +574,7 @@ const Navbar = () => {
     };
   }, []);
 
-  useSessionSocketNotifications(setNotifications, setActiveVideoCall);
+  useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins);
 
   // Live suggestions: fetch users from backend on query change (debounced)
   useEffect(() => {
