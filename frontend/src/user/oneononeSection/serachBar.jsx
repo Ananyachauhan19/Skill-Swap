@@ -330,6 +330,26 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
         </div>
       </div>
 
+      {/* Question/Doubt Input - Required */}
+      <div className="flex flex-col gap-2">
+        <label className="block text-sm font-semibold text-slate-900">
+          Write Your Doubt/Question <span className="text-red-600">*</span>
+        </label>
+        <textarea
+          value={questionValue}
+          onChange={e => setQuestionValue(e.target.value)}
+          placeholder="Describe your doubt or question in detail..."
+          className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm outline-none hover:border-slate-400 transition-colors resize-none"
+          rows="4"
+          required
+        />
+        {questionValue.trim() === '' && (
+          <p className="text-xs text-slate-500">
+            Please describe your doubt or question to help tutors understand what you need.
+          </p>
+        )}
+      </div>
+
       {/* Find Expert Button */}
       <button
         type="button"
@@ -337,7 +357,7 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
         onClick={() => {
           if (onFindTutor) onFindTutor({ questionValue, questionPhoto });
         }}
-        disabled={!courseValue || !unitValue || !topicValue}
+        disabled={!courseValue || !unitValue || !topicValue || !questionValue.trim()}
       >
         Search Available Sessions
       </button>
