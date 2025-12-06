@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useRoutes, Navigate, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -12,6 +12,7 @@ import ToastSocketBridge from './components/ToastSocketBridge.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext.jsx';
 import RegisterInterviewer from './user/RegisterInterviewer.jsx';
+import LoadingScreen from './components/LoadingScreen.jsx';
 import socket from './socket';
 
 // Pages
@@ -206,9 +207,26 @@ function App() {
   const isRatingPage = location.pathname.startsWith('/rate/');
   const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'skillswaphubb@gmail.com').toLowerCase();
   const isAdminUser = !!(user && user.email && user.email.toLowerCase() === adminEmail);
+  
+  // App initialization state with fade transition
+  const [isAppReady, setIsAppReady] = useState(false);
+  const [showContent, setShowContent] = useState(false);
 
   // Choose route set based on admin status
   const element = useRoutes(isAdminUser ? adminOnlyRoutes : appRoutes);
+
+  // Initial app loading - wait for auth to complete, then show content with fade
+  useEffect(() => {
+    if (!loading) {
+      // Auth is complete, mark app as ready
+      setIsAppReady(true);
+      // Small delay for smooth fade-in transition
+      const timer = setTimeout(() => {
+        setShowContent(true);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   // Enforce redirect for admin to /admin regardless of prior location
   useEffect(() => {
@@ -273,8 +291,9 @@ function App() {
     }
   }, [location.pathname, navigate]);
 
-  if (loading) {
-    return <div>Loading...</div>;
+  // Show loading screen until app is ready
+  if (loading || !isAppReady) {
+    return <LoadingScreen />;
   }
 
   return (
@@ -285,11 +304,19 @@ function App() {
           <ModalBodyScrollLock />
           <GlobalModals />
           <SkillMatesModal />
-          {!isAdminUser && !isAuthPage && !isRatingPage && <Navbar />}
-          <div className={location.pathname === '/home' ? '' : 'pt-8'}>
-            {element}
+          
+          {/* Main content with fade-in transition */}
+          <div 
+            className={`transition-opacity duration-500 ${
+              showContent ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {!isAdminUser && !isAuthPage && !isRatingPage && <Navbar />}
+            <div className={location.pathname === '/home' ? '' : 'pt-8'}>
+              {element}
+            </div>
+            {!isAdminUser && !isAuthPage && !isRatingPage && <Footer />}
           </div>
-          {!isAdminUser && !isAuthPage && !isRatingPage && <Footer />}
         </SkillMatesProvider>
       </ModalProvider>
     </ToastProvider>
