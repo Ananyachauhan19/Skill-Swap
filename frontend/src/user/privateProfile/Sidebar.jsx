@@ -80,7 +80,7 @@ const fetchUserProfile = async () => {
       fullName: userData.firstName && userData.lastName 
         ? `${userData.firstName} ${userData.lastName}` 
         : userData.firstName || userData.username || 'User',
-      userId: userData.username || userData._id || 'viveksemwal',
+      userId: userData.username || userData._id || 'User',
       profilePic: userData.profilePic || null,
       profilePicPreview: userData.profilePic || null,
       bio: userData.bio || 'Your bio goes here, set it in Setup Profile.',
