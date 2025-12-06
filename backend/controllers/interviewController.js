@@ -736,22 +736,25 @@ exports.getScheduledForUserOrInterviewer = async (req, res) => {
     // Fetch interviewer stats for each scheduled interview
     const scheduledWithStats = await Promise.all(scheduled.map(async (interview) => {
       const interviewObj = interview.toObject();
-      
-      // Get interviewer stats if assignedInterviewer exists
+
+      // Get interviewer stats and application details if assignedInterviewer exists
       if (interview.assignedInterviewer) {
-        const interviewerApp = await InterviewerApplication.findOne({ 
-          user: interview.assignedInterviewer._id 
-        });
-        
+        const assignedUserId = interview.assignedInterviewer._id || interview.assignedInterviewer;
+        const interviewerApp = await InterviewerApplication.findOne({ user: assignedUserId });
+
         if (interviewerApp) {
           interviewObj.interviewerStats = {
             conductedInterviews: interviewerApp.conductedInterviews || 0,
             averageRating: interviewerApp.averageRating || 0,
             totalRatings: interviewerApp.totalRatings || 0
           };
+          interviewObj.interviewerApp = {
+            company: interviewerApp.company || '',
+            position: interviewerApp.position || interviewerApp.qualification || '',
+          };
         }
       }
-      
+
       return interviewObj;
     }));
 
@@ -889,21 +892,24 @@ exports.getMyInterviews = async (req, res) => {
     .populate('assignedInterviewer', 'username firstName lastName profilePic')
     .sort({ createdAt: -1 });
 
-    // Fetch interviewer stats for each interview
+    // Fetch interviewer stats and application details for each interview
     const interviewsWithStats = await Promise.all(interviews.map(async (interview) => {
       const interviewObj = interview.toObject();
       
-      // Get interviewer stats if assignedInterviewer exists
+      // Get interviewer stats and application details if assignedInterviewer exists
       if (interview.assignedInterviewer) {
-        const interviewerApp = await InterviewerApplication.findOne({ 
-          user: interview.assignedInterviewer._id 
-        });
+        const assignedUserId = interview.assignedInterviewer._id || interview.assignedInterviewer;
+        const interviewerApp = await InterviewerApplication.findOne({ user: assignedUserId });
         
         if (interviewerApp) {
           interviewObj.interviewerStats = {
             conductedInterviews: interviewerApp.conductedInterviews || 0,
             averageRating: interviewerApp.averageRating || 0,
             totalRatings: interviewerApp.totalRatings || 0
+          };
+          interviewObj.interviewerApp = {
+            company: interviewerApp.company || '',
+            position: interviewerApp.position || interviewerApp.qualification || '',
           };
         }
       }

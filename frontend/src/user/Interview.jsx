@@ -105,7 +105,7 @@ function BookInterviewModal({ isOpen, onClose }) {
   // Tabs: 'simple' (existing flow) and 'search' (browse experts)
   const [activeTab, setActiveTab] = useState('simple');
   const [allInterviewers, setAllInterviewers] = useState([]);
-  const [searchMode, setSearchMode] = useState('company'); // 'company' | 'position'
+  const [searchMode, setSearchMode] = useState('company');
   const [searchText, setSearchText] = useState('');
   const formRef = useRef(null);
 
@@ -305,36 +305,50 @@ function BookInterviewModal({ isOpen, onClose }) {
                   {allInterviewers.map((m) => (
                     <div
                       key={m.application?._id || m.user?._id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-white border border-gray-200"
+                      className="p-4 rounded-lg bg-white border border-gray-200"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="font-semibold">
-                          {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="font-semibold text-gray-900 text-base">
+                            {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-sm">
+                            <div>
+                              <div className="text-gray-500">Company</div>
+                              <div className="text-gray-800 font-medium">{m.application?.company || m.user?.college || '—'}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">Position</div>
+                              <div className="text-gray-800 font-medium">{m.application?.position || m.application?.qualification || '—'}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">Total Interviews</div>
+                              <div className="text-gray-800 font-medium">{m.stats?.conductedInterviews || 0}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">Overall Rating</div>
+                              <div className="flex items-center gap-1 text-gray-800 font-medium">
+                                <FaStar className="text-yellow-500" />
+                                {(m.stats?.averageRating || 0).toFixed(1)}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          {m.application?.company || m.user?.college || '—'} • {m.application?.position || m.application?.qualification || '—'}
-                        </div>
-                        {m.stats && m.stats.averageRating > 0 && (
-                          <span className="flex items-center gap-1 text-xs text-yellow-600">
-                            <FaStar className="text-xs" /> {m.stats.averageRating.toFixed(1)}
-                          </span>
-                        )}
-                        <span className="text-xs text-gray-500">📊 {m.stats?.conductedInterviews || 0} interviews</span>
+                        <button
+                          onClick={() => {
+                            setSelectedInterviewer(String(m.user?._id));
+                            setSelectedInterviewerObj(m);
+                            setLockSelected(true);
+                            setActiveTab('simple');
+                            setMatchedInterviewers([]);
+                            // reveal form
+                            setTimeout(() => { try { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_){} }, 100);
+                          }}
+                          className="h-fit px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                        >
+                          Book
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          setSelectedInterviewer(String(m.user?._id));
-                              setSelectedInterviewerObj(m);
-                              setLockSelected(true);
-                          setActiveTab('simple');
-                              setMatchedInterviewers([]);
-                          // reveal form
-                          setTimeout(() => { try { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_){} }, 100);
-                        }}
-                        className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-                      >
-                        Book
-                      </button>
                     </div>
                   ))}
                   {allInterviewers.length === 0 && (
@@ -444,34 +458,36 @@ function BookInterviewModal({ isOpen, onClose }) {
                     <FaUserTie />
                     Selected Interviewer
                   </h4>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-gray-200">
-                    <div className="flex items-center gap-3 flex-1">
+                  <div className="p-4 rounded-lg bg-white border border-gray-200">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <div className="font-semibold flex items-center gap-2">
+                        <div className="font-semibold text-gray-900 text-base">
                           {selectedInterviewerObj.user?.firstName || selectedInterviewerObj.user?.username} {selectedInterviewerObj.user?.lastName || ''}
-                          {selectedInterviewerObj.stats && selectedInterviewerObj.stats.averageRating > 0 && (
-                            <span className="flex items-center gap-1 text-xs text-yellow-500">
-                              <FaStar className="text-xs" />
-                              {selectedInterviewerObj.stats.averageRating.toFixed(1)}
-                            </span>
-                          )}
                         </div>
-                        <div className="text-sm text-gray-600">
-                          {selectedInterviewerObj.user?.college || selectedInterviewerObj.application?.company} • {selectedInterviewerObj.application?.qualification}
-                        </div>
-                        <div className="text-xs mt-1 flex items-center gap-3 text-gray-500">
-                          <span>
-                            📊 {selectedInterviewerObj.stats?.conductedInterviews || 0} interview{(selectedInterviewerObj.stats?.conductedInterviews || 0) !== 1 ? 's' : ''}
-                          </span>
-                          {selectedInterviewerObj.stats?.totalRatings > 0 && (
-                            <span>
-                              • {selectedInterviewerObj.stats.totalRatings} rating{selectedInterviewerObj.stats.totalRatings !== 1 ? 's' : ''}
-                            </span>
-                          )}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-sm">
+                          <div>
+                            <div className="text-gray-500">Company</div>
+                            <div className="text-gray-800 font-medium">{selectedInterviewerObj.application?.company || selectedInterviewerObj.user?.college || '—'}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Position</div>
+                            <div className="text-gray-800 font-medium">{selectedInterviewerObj.application?.position || selectedInterviewerObj.application?.qualification || '—'}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Total Interviews</div>
+                            <div className="text-gray-800 font-medium">{selectedInterviewerObj.stats?.conductedInterviews || 0}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Overall Rating</div>
+                            <div className="flex items-center gap-1 text-gray-800 font-medium">
+                              <FaStar className="text-yellow-500" />
+                              {(selectedInterviewerObj.stats?.averageRating || 0).toFixed(1)}
+                            </div>
+                          </div>
                         </div>
                       </div>
+                      <FaCheckCircle className="text-blue-600" />
                     </div>
-                    <FaCheckCircle className="text-blue-600" />
                   </div>
                 </div>
               )}
@@ -667,6 +683,7 @@ function ScheduledInterviewSection() {
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
+  const [interviewerDirectory, setInterviewerDirectory] = useState(new Map());
   const { user } = useAuth() || {};
   const navigate = useNavigate();
 
@@ -701,7 +718,7 @@ function ScheduledInterviewSection() {
         const list = Array.isArray(data) ? data : [];
         const scheduledOnly = list.filter(item => {
           const status = (item.status || '').toLowerCase();
-          return status === 'scheduled' || (item.scheduledAt && new Date(item.scheduledAt) > new Date());
+          return status === 'scheduled';
         });
         setScheduled(scheduledOnly);
         setLoading(false);
@@ -715,11 +732,35 @@ function ScheduledInterviewSection() {
         const list = Array.isArray(data) ? data : [...(data.sent || []), ...(data.received || [])];
         const scheduledOnly = list.filter(item => {
           const status = (item.status || '').toLowerCase();
-          return status === 'scheduled' || (item.scheduledAt && new Date(item.scheduledAt) > new Date());
+          return status === 'scheduled';
         });
         setScheduled(scheduledOnly);
       } else {
         setScheduled([]);
+      }
+
+      // Also load approved interviewer directory to enrich cards with interviewer company/position
+      try {
+        const resDir = await fetch(`${BACKEND_URL}/api/interview/interviewers`, { credentials: 'include' });
+        if (resDir.ok) {
+          const list = await resDir.json();
+          const map = new Map();
+          (Array.isArray(list) ? list : []).forEach((item) => {
+            const uid = item.user?._id;
+            if (uid) {
+              map.set(String(uid), {
+                company: item.application?.company || item.user?.college || '',
+                position: item.application?.position || item.application?.qualification || '',
+                stats: item.stats || null,
+              });
+            }
+          });
+          setInterviewerDirectory(map);
+        } else {
+          setInterviewerDirectory(new Map());
+        }
+      } catch (_) {
+        setInterviewerDirectory(new Map());
       }
     } catch (e) {
       console.error('Failed to fetch scheduled interviews', e);
@@ -774,14 +815,17 @@ function ScheduledInterviewSection() {
 
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 text-lg">
-                    {s.company || s.subject || 'Interview Session'}
-                  </h3>
-                  {(s.position || s.topic) && (
-                    <p className="text-sm text-gray-600 mt-1">
-                      {s.position || s.topic}
+                  
+                  <div className="mt-1">
+                    <p className="text-sm text-gray-700 flex items-center gap-2">
+                      <span className="text-gray-500 font-medium">Requested for:</span>
                     </p>
-                  )}
+                    <p className="text-sm text-gray-800 flex items-center gap-2">
+                      <span className="font-medium">{s.company || s.subject || '—'}</span>
+                      <span>•</span>
+                      <span>{s.position || s.topic || '—'}</span>
+                    </p>
+                  </div>
                 </div>
                 <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-medium rounded-md whitespace-nowrap ml-2">
                   {(s.status || 'Scheduled').charAt(0).toUpperCase() + (s.status || 'Scheduled').slice(1)}
@@ -789,45 +833,72 @@ function ScheduledInterviewSection() {
               </div>
               
               <div className="space-y-3 text-sm text-gray-700 mb-5">
-                <div className="flex items-center gap-2">
-                  <FaUserTie className="text-blue-600 text-sm" />
-                  <span className="font-medium flex items-center gap-2 flex-wrap">
-                    <span>With: {(() => {
-                      try {
-                        const uid = String(user._id);
-                        const requesterId = s.requester?._id || s.requester;
-                        const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
-                        let other = null;
-                        let isInterviewer = false;
-                        if (String(assignedId) === uid) {
-                          other = s.requester;
-                        } else {
-                          other = s.assignedInterviewer;
-                          isInterviewer = true;
-                        }
-                        if (!other) return 'TBD';
-                        const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
-                        return name;
-                      } catch (e) {
-                        return 'TBD';
-                      }
-                    })()}</span>
-                    {/* Show interviewer stats if current user is the requester */}
-                    {String(s.requester?._id || s.requester) === String(user._id) && s.interviewerStats && (
-                      <span className="flex items-center gap-2 text-xs">
-                        {s.interviewerStats.averageRating > 0 && (
-                          <span className="flex items-center gap-1 text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">
-                            <FaStar className="text-xs" />
-                            {s.interviewerStats.averageRating.toFixed(1)}
-                          </span>
+                {/* Interviewer Details with headings */}
+                <div className="p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-start gap-3">
+                    <FaUserTie className="text-blue-600 text-sm mt-0.5" />
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900">
+                        {(() => {
+                          try {
+                            const uid = String(user._id);
+                            const requesterId = s.requester?._id || s.requester;
+                            const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+                            let other = null;
+                            if (String(assignedId) === uid) {
+                              other = s.requester;
+                            } else {
+                              other = s.assignedInterviewer;
+                            }
+                            if (!other) return 'TBD';
+                            const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
+                            return name;
+                          } catch (e) {
+                            return 'TBD';
+                          }
+                        })()}
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                        {/* Interviewer's fixed company/position from their application */}
+                        {(() => {
+                          const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+                          const dir = assignedId ? interviewerDirectory.get(String(assignedId)) : null;
+                          const interviewerCompany = s.interviewerApp?.company || dir?.company || '—';
+                          const interviewerPosition = s.interviewerApp?.position || dir?.position || '—';
+                          return (
+                            <>
+                              <div>
+                                <div className="text-gray-500">Company</div>
+                                <div className="text-gray-800 font-medium">{interviewerCompany}</div>
+                              </div>
+                              <div>
+                                <div className="text-gray-500">Position</div>
+                                <div className="text-gray-800 font-medium">{interviewerPosition}</div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                        {s.interviewerStats && (
+                          <>
+                            <div>
+                              <div className="text-gray-500">Total Interviews</div>
+                              <div className="text-gray-800 font-medium">{s.interviewerStats.conductedInterviews || 0}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">Overall Rating</div>
+                              <div className="flex items-center gap-1 text-gray-800 font-medium">
+                                <FaStar className="text-yellow-500" />
+                                {(s.interviewerStats.averageRating || 0).toFixed(1)}
+                              </div>
+                            </div>
+                          </>
                         )}
-                        <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                          📊 {s.interviewerStats.conductedInterviews || 0} interviews
-                        </span>
-                      </span>
-                    )}
-                  </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Schedule info */}
                 <div className="flex items-center gap-2">
                   <FaCalendarAlt className="text-blue-600 text-sm" />
                   <span className="font-medium">

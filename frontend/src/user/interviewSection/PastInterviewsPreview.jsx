@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-// no navigation used here
-import { FaCalendarAlt, FaUser, FaStar, FaArrowRight, FaClock } from 'react-icons/fa';
+import { FaCalendarAlt, FaUserTie, FaStar, FaArrowRight, FaComment } from 'react-icons/fa';
 import { BACKEND_URL } from '../../config.js';
 import { useAuth } from '../../context/AuthContext';
 
@@ -17,6 +16,7 @@ const PastInterviewsPreview = () => {
   }, [user?._id]);
 
   const [error, setError] = useState(null);
+  const [interviewerDirectory, setInterviewerDirectory] = useState(new Map());
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
     const d = new Date(dateStr);
@@ -71,6 +71,30 @@ const PastInterviewsPreview = () => {
       });
 
       setInterviews(past);
+
+      // Enrich with interviewer directory for company/position
+      try {
+        const resDir = await fetch(`${BACKEND_URL}/api/interview/interviewers`, { credentials: 'include' });
+        if (resDir.ok) {
+          const listDir = await resDir.json();
+          const map = new Map();
+          (Array.isArray(listDir) ? listDir : []).forEach((item) => {
+            const uidMap = item.user?._id;
+            if (uidMap) {
+              map.set(String(uidMap), {
+                company: item.application?.company || item.user?.college || '',
+                position: item.application?.position || item.application?.qualification || '',
+                stats: item.stats || null,
+              });
+            }
+          });
+          setInterviewerDirectory(map);
+        } else {
+          setInterviewerDirectory(new Map());
+        }
+      } catch (_) {
+        setInterviewerDirectory(new Map());
+      }
     } catch {
       setError('Failed to load past interviews.');
     } finally {
@@ -131,63 +155,114 @@ const PastInterviewsPreview = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-            {displayedInterviews.map((interview, idx) => (
-              <div
-                key={interview._id || interview.id || idx}
-                className="relative bg-white rounded-2xl p-4 sm:p-6 border-2 border-[#93c5fd] shadow-md"
-              >
-                {/* Color accent bar */}
-                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#3b82f6] to-[#2563eb]"></div>
-                
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-[#60a5fa] to-[#3b82f6] flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-lg flex-shrink-0">
-                    {((interview.interviewerName || interview.interviewer?.firstName || interview.assignedInterviewer?.firstName || interview.assignedInterviewer?.username || 'I') + '').charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-[#1e3a8a] text-sm sm:text-lg truncate">
-                      {interview.interviewerName || interview.interviewer?.firstName || interview.assignedInterviewer?.firstName || interview.assignedInterviewer?.username || 'Interviewer'}
-                    </h3>
-                    <p className="text-xs sm:text-sm text-[#1e40af] truncate">{interview.domain || interview.subject || 'General'}</p>
-                    {/* Interviewer Stats */}
-                    {interview.interviewerStats && (
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                        {interview.interviewerStats.averageRating > 0 && (
-                          <span className="flex items-center gap-1 text-yellow-600">
-                            <FaStar className="text-xs" />
-                            {interview.interviewerStats.averageRating.toFixed(1)}
-                          </span>
-                        )}
-                        <span className="text-gray-400">•</span>
-                        <span>📊 {interview.interviewerStats.conductedInterviews || 0} interviews</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-[#1e3a8a] bg-[#f0f9ff] rounded-lg p-2 sm:p-3 flex-wrap">
-                    <FaCalendarAlt className="w-3 h-3 sm:w-4 sm:h-4 text-[#3b82f6] flex-shrink-0" />
-                    <span className="font-medium">{formatDate(interview.date || interview.scheduledAt || interview.updatedAt)}</span>
-                    <span className="text-[#3b82f6] mx-1">•</span>
-                    <span>{interview.time || 'N/A'}</span>
-                  </div>
-                  
-                  <div className="text-xs sm:text-sm text-[#1e3a8a] bg-[#f0f9ff] rounded-lg p-2 sm:p-3">
-                    <span className="font-semibold text-[#1e40af] flex items-center gap-1">💬 Feedback:</span>
-                    <p className="mt-1 line-clamp-2">{interview.feedback || 'No feedback provided yet.'}</p>
-                  </div>
-                </div>
-
-                {interview.rating && (
-                  <div className="flex items-center gap-2 pt-3 border-t border-[#93c5fd]">
-                    <div className="flex items-center gap-0.5 sm:gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <FaStar key={i} className={i < interview.rating ? 'text-[#3b82f6]' : 'text-gray-300'} size={14} />
-                      ))}
+            {displayedInterviews.map((s, idx) => (
+              <div key={s._id || idx} className="bg-white border border-gray-200 rounded-xl p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="mt-1">
+                      <p className="text-sm text-gray-700 flex items-center gap-2">
+                        <span className="text-gray-500 font-medium">Requested for:</span>
+                      </p>
+                      <p className="text-sm text-gray-800 flex items-center gap-2">
+                        <span className="font-medium">{s.company || s.subject || '—'}</span>
+                        <span>•</span>
+                        <span>{s.position || s.topic || '—'}</span>
+                      </p>
                     </div>
-                    <span className="text-xs sm:text-sm font-bold text-[#1e3a8a] ml-2">{interview.rating}/5</span>
                   </div>
-                )}
+                  <span className="px-2.5 py-1 bg-gray-600 text-white text-xs font-medium rounded-md whitespace-nowrap ml-2">
+                    {(s.status || 'Completed').charAt(0).toUpperCase() + (s.status || 'Completed').slice(1)}
+                  </span>
+                </div>
+
+                <div className="space-y-3 text-sm text-gray-700 mb-5">
+                  <div className="p-3 bg-white rounded-lg border border-gray-200">
+                    <div className="flex items-start gap-3">
+                      <FaUserTie className="text-blue-600 text-sm mt-0.5" />
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">
+                          {(() => {
+                            try {
+                              const requesterId = s.requester?._id || s.requester;
+                              const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+                              let other = s.assignedInterviewer; // show interviewer name
+                              if (!other) return 'TBD';
+                              const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
+                              return name;
+                            } catch (e) {
+                              return 'TBD';
+                            }
+                          })()}
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                          {(() => {
+                            const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+                            const dir = assignedId ? interviewerDirectory.get(String(assignedId)) : null;
+                            const interviewerCompany = s.interviewerApp?.company || dir?.company || '—';
+                            const interviewerPosition = s.interviewerApp?.position || dir?.position || '—';
+                            return (
+                              <>
+                                <div>
+                                  <div className="text-gray-500">Company</div>
+                                  <div className="text-gray-800 font-medium">{interviewerCompany}</div>
+                                </div>
+                                <div>
+                                  <div className="text-gray-500">Position</div>
+                                  <div className="text-gray-800 font-medium">{interviewerPosition}</div>
+                                </div>
+                              </>
+                            );
+                          })()}
+                          {s.interviewerStats && (
+                            <>
+                              <div>
+                                <div className="text-gray-500">Total Interviews</div>
+                                <div className="text-gray-800 font-medium">{s.interviewerStats.conductedInterviews || 0}</div>
+                              </div>
+                              <div>
+                                <div className="text-gray-500">Overall Rating</div>
+                                <div className="flex items-center gap-1 text-gray-800 font-medium">
+                                  <FaStar className="text-yellow-500" />
+                                  {(s.interviewerStats.averageRating || 0).toFixed(1)}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Date row */}
+                  <div className="flex items-center gap-2">
+                    <FaCalendarAlt className="text-blue-600 text-sm" />
+                    <span className="font-medium">
+                      {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'Date N/A'}
+                    </span>
+                  </div>
+
+                  {/* Rating + Feedback row */}
+                  {(s.rating || s.feedback) && (
+                    <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <FaComment className="text-blue-600 text-sm flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        {typeof s.rating !== 'undefined' && (
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-0.5">
+                              {[...Array(5)].map((_, i) => (
+                                <FaStar key={i} className={i < (s.rating || 0) ? 'text-yellow-500' : 'text-gray-300'} size={14} />
+                              ))}
+                            </div>
+                            <span className="text-xs font-semibold text-gray-700">{s.rating}/5</span>
+                          </div>
+                        )}
+                        {s.feedback && (
+                          <span className="text-xs text-gray-700 line-clamp-3">{s.feedback}</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
