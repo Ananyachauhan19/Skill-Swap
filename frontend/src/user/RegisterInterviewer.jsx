@@ -130,7 +130,12 @@ const RegisterInterviewer = () => {
       const response = await fetch(`${BACKEND_URL}/api/interview/apply`, {
         method: 'POST', credentials: 'include', body: form,
       });
-      let json = null; try { json = await response.json(); } catch (_) {}
+      let json = null; 
+      try { 
+        json = await response.json(); 
+      } catch (error) {
+        console.error('Error parsing response:', error);
+      }
       if (!response.ok) throw new Error((json && json.message) || 'Failed to submit');
       navigate('/');
     } catch (err) {

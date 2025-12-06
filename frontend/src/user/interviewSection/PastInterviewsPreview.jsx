@@ -105,82 +105,82 @@ const PastInterviewsPreview = () => {
   const displayedInterviews = activeTab === 'recent' ? interviews.slice(0, 2) : interviews;
 
   return (
-    <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#f0f9ff] via-[#e0f2fe] to-[#e0f2fe]">
-      <div className="relative z-10 px-4 sm:px-8 lg:px-12 py-8 sm:py-12 flex flex-col gap-6 sm:gap-8 max-w-7xl mx-auto">
+    <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-5 lg:p-8 border border-slate-200/50 shadow-sm">
+      <div className="flex flex-col gap-4 sm:gap-6">
         {/* Header with Tabs */}
-        <div className="flex flex-col items-center gap-4 sm:gap-6">
-          <div className="flex items-center justify-center gap-2 sm:gap-3 w-full flex-wrap">
-            <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1e3a8a] text-center">
-              📚 Past Interviews
+        <div className="flex flex-col items-center gap-3 sm:gap-4">
+          <div className="text-center">
+            <h2 className="text-base sm:text-xl lg:text-2xl xl:text-3xl font-bold text-slate-900 mb-1 sm:mb-2 tracking-tight">
+              Past Interviews
             </h2>
-            <div className="w-6 sm:w-8 h-0.5 bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent rounded-full"></div>
+            <p className="text-slate-500 text-[10px] sm:text-xs lg:text-sm">Review your completed interview history</p>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 p-1.5 sm:p-2 bg-white border-2 border-[#93c5fd] rounded-xl sm:rounded-2xl shadow-inner w-full sm:w-auto flex-wrap sm:flex-nowrap justify-center">
+          <div className="flex gap-2 p-1.5 bg-white border border-slate-200 rounded-xl shadow-sm w-full sm:w-auto flex-wrap sm:flex-nowrap justify-center">
             <button
               onClick={() => setActiveTab('recent')}
-              className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base transition-all duration-300 ${
+              className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
                 activeTab === 'recent'
-                  ? 'bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white shadow-lg'
-                  : 'text-[#1e40af] hover:bg-[#dbeafe]/50'
+                  ? 'bg-blue-900 text-white shadow-md'
+                  : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
-              📌 Recent (2)
+              Recent (2)
             </button>
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base transition-all duration-300 ${
+              className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold text-xs sm:text-sm transition-all ${
                 activeTab === 'all'
-                  ? 'bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white shadow-lg'
-                  : 'text-[#1e40af] hover:bg-[#dbeafe]/50'
+                  ? 'bg-blue-900 text-white shadow-md'
+                  : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
-              📋 All History ({interviews.length})
+              All History ({interviews.length})
             </button>
           </div>
         </div>
         
         {loading ? (
           <div className="flex justify-center items-center h-32">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-[#3b82f6] border-t-transparent"></div>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-900 border-t-transparent"></div>
           </div>
         ) : error ? (
-          <div className="text-red-500 text-center text-sm sm:text-base">{error}</div>
+          <div className="text-red-500 text-center text-xs sm:text-sm">{error}</div>
         ) : displayedInterviews.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-5xl sm:text-6xl mb-4">📝</div>
-            <p className="text-[#9ca3af] text-base sm:text-lg">No past interviews found.</p>
+            <div className="w-16 h-16 bg-blue-900/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p className="text-slate-500 text-sm sm:text-base">No past interviews found.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
             {displayedInterviews.map((s, idx) => (
-              <div key={s._id || idx} className="bg-white border border-gray-200 rounded-xl p-6">
-                <div className="flex items-start justify-between mb-4">
+              <div key={s._id || idx} className="bg-white border border-gray-200 rounded-lg p-2 sm:p-3 lg:p-4">
+                <div className="flex flex-col gap-1.5 sm:gap-2 mb-2 sm:mb-3">
                   <div className="flex-1">
-                    <div className="mt-1">
-                      <p className="text-sm text-gray-700 flex items-center gap-2">
-                        <span className="text-gray-500 font-medium">Requested for:</span>
-                      </p>
-                      <p className="text-sm text-gray-800 flex items-center gap-2">
-                        <span className="font-medium">{s.company || s.subject || '—'}</span>
-                        <span>•</span>
-                        <span>{s.position || s.topic || '—'}</span>
-                      </p>
-                    </div>
+                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium mb-0.5">Requested for:</p>
+                    <p className="text-xs sm:text-sm text-gray-800 font-medium truncate">
+                      {s.company || s.subject || '—'}
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-gray-600 truncate">
+                      {s.position || s.topic || '—'}
+                    </p>
                   </div>
-                  <span className="px-2.5 py-1 bg-gray-600 text-white text-xs font-medium rounded-md whitespace-nowrap ml-2">
+                  <span className="px-1.5 py-0.5 bg-gray-600 text-white text-[9px] sm:text-[10px] font-medium rounded self-start">
                     {(s.status || 'Completed').charAt(0).toUpperCase() + (s.status || 'Completed').slice(1)}
                   </span>
                 </div>
 
-                <div className="space-y-3 text-sm text-gray-700 mb-5">
-                  <div className="p-3 bg-white rounded-lg border border-gray-200">
-                    <div className="flex items-start gap-3">
-                      <FaUserTie className="text-blue-600 text-sm mt-0.5" />
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900">
+                <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs text-gray-700 mb-2 sm:mb-3">
+                  <div className="p-1.5 sm:p-2 bg-white rounded border border-gray-200">
+                    <div className="flex items-start gap-1 sm:gap-2">
+                      <FaUserTie className="text-blue-600 text-[10px] sm:text-xs mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 truncate text-[10px] sm:text-xs">
                           {(() => {
                             try {
                               const requesterId = s.requester?._id || s.requester;
@@ -194,39 +194,26 @@ const PastInterviewsPreview = () => {
                             }
                           })()}
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                        <div className="space-y-1 mt-1">
                           {(() => {
                             const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
                             const dir = assignedId ? interviewerDirectory.get(String(assignedId)) : null;
                             const interviewerCompany = s.interviewerApp?.company || dir?.company || '—';
                             const interviewerPosition = s.interviewerApp?.position || dir?.position || '—';
                             return (
-                              <>
-                                <div>
-                                  <div className="text-gray-500">Company</div>
-                                  <div className="text-gray-800 font-medium">{interviewerCompany}</div>
-                                </div>
-                                <div>
-                                  <div className="text-gray-500">Position</div>
-                                  <div className="text-gray-800 font-medium">{interviewerPosition}</div>
-                                </div>
-                              </>
+                              <div className="text-[9px] sm:text-[10px] text-gray-600 truncate">
+                                {interviewerCompany} • {interviewerPosition}
+                              </div>
                             );
                           })()}
                           {s.interviewerStats && (
-                            <>
-                              <div>
-                                <div className="text-gray-500">Total Interviews</div>
-                                <div className="text-gray-800 font-medium">{s.interviewerStats.conductedInterviews || 0}</div>
-                              </div>
-                              <div>
-                                <div className="text-gray-500">Overall Rating</div>
-                                <div className="flex items-center gap-1 text-gray-800 font-medium">
-                                  <FaStar className="text-yellow-500" />
-                                  {(s.interviewerStats.averageRating || 0).toFixed(1)}
-                                </div>
-                              </div>
-                            </>
+                            <div className="flex items-center gap-2 text-[9px] sm:text-[10px]">
+                              <span className="text-gray-600">{s.interviewerStats.conductedInterviews || 0} interviews</span>
+                              <span className="flex items-center gap-0.5 text-gray-800 font-medium">
+                                <FaStar className="text-yellow-500 text-[8px]" />
+                                {(s.interviewerStats.averageRating || 0).toFixed(1)}
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -234,32 +221,22 @@ const PastInterviewsPreview = () => {
                   </div>
 
                   {/* Date row */}
-                  <div className="flex items-center gap-2">
-                    <FaCalendarAlt className="text-blue-600 text-sm" />
-                    <span className="font-medium">
-                      {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : 'Date N/A'}
+                  <div className="flex items-center gap-1">
+                    <FaCalendarAlt className="text-blue-600 text-[9px] sm:text-[10px]" />
+                    <span className="font-medium text-[9px] sm:text-[10px] truncate">
+                      {s.scheduledAt ? new Date(s.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
                     </span>
                   </div>
 
-                  {/* Rating + Feedback row */}
-                  {(s.rating || s.feedback) && (
-                    <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <FaComment className="text-blue-600 text-sm flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        {typeof s.rating !== 'undefined' && (
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className="flex items-center gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <FaStar key={i} className={i < (s.rating || 0) ? 'text-yellow-500' : 'text-gray-300'} size={14} />
-                              ))}
-                            </div>
-                            <span className="text-xs font-semibold text-gray-700">{s.rating}/5</span>
-                          </div>
-                        )}
-                        {s.feedback && (
-                          <span className="text-xs text-gray-700 line-clamp-3">{s.feedback}</span>
-                        )}
+                  {/* Rating - show only on larger screens or if exists */}
+                  {s.rating && (
+                    <div className="flex items-center gap-1 p-1 sm:p-1.5 bg-yellow-50 rounded border border-yellow-200">
+                      <div className="flex items-center gap-0.5">
+                        {[...Array(5)].map((_, i) => (
+                          <FaStar key={i} className={i < (s.rating || 0) ? 'text-yellow-500' : 'text-gray-300'} size={8} />
+                        ))}
                       </div>
+                      <span className="text-[9px] sm:text-[10px] font-semibold text-gray-700">{s.rating}/5</span>
                     </div>
                   )}
                 </div>
@@ -269,13 +246,13 @@ const PastInterviewsPreview = () => {
         )}
         
         {activeTab === 'recent' && interviews.length > 2 && (
-          <div className="flex justify-center mt-4 sm:mt-6">
+          <div className="flex justify-center mt-3 sm:mt-4">
             <button
               onClick={() => setActiveTab('all')}
-              className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white font-bold text-sm sm:text-base rounded-xl hover:shadow-lg"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 lg:px-6 lg:py-3 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white font-bold text-[10px] sm:text-xs lg:text-sm rounded-lg sm:rounded-xl hover:shadow-lg"
             >
               View all {interviews.length} interviews
-              <FaArrowRight className="text-sm" />
+              <FaArrowRight className="text-[10px] sm:text-xs" />
             </button>
           </div>
         )}

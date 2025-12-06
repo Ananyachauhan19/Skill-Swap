@@ -13,101 +13,292 @@ import TopInterviewers from "./interviewSection/TopInterviewers";
 import FAQSection from "./interviewSection/FAQ";
 
 
-const howItWorksSteps = [
-  {
-    icon: <FaCalendarAlt className="w-8 h-8" />, 
-    title: "📅 Book Interview",
-    desc: "Choose your domain and schedule with an expert interviewer",
-    emoji: "📅",
-    bgGradient: "from-[#3b82f6] to-[#2563eb]",
-    lightBg: "from-[#dbeafe] to-[#bfdbfe]",
-    borderColor: "border-[#93c5fd]",
-    textColor: "text-[#1e40af]"
-  },
-  {
-    icon: <FaVideo className="w-8 h-8" />, 
-    title: "🎥 Live Session",
-    desc: "Attend a real-time mock interview and get actionable feedback",
-    emoji: "🎥",
-    bgGradient: "from-[#2563eb] to-[#1e40af]",
-    lightBg: "from-[#bfdbfe] to-[#93c5fd]",
-    borderColor: "border-[#60a5fa]",
-    textColor: "text-[#1e3a8a]"
-  },
-  {
-    icon: <FaCheckCircle className="w-8 h-8" />, 
-    title: "✅ Get Evaluated",
-    desc: "Receive detailed feedback and improvement suggestions",
-    emoji: "✅",
-    bgGradient: "from-[#1e40af] to-[#1e3a8a]",
-    lightBg: "from-[#93c5fd] to-[#60a5fa]",
-    borderColor: "border-[#3b82f6]",
-    textColor: "text-[#1e3a8a]"
-  },
-  {
-    icon: <FaClock className="w-8 h-8" />, 
-    title: "💰 ₹500 Session",
-    desc: "Affordable pricing for quality interview preparation",
-    emoji: "💰",
-    bgGradient: "from-[#3b82f6] to-[#2563eb]",
-    lightBg: "from-[#dbeafe] to-[#bfdbfe]",
-    borderColor: "border-[#60a5fa]",
-    textColor: "text-[#1e40af]"
-  },
-];
+const HowItWorks = () => {
+  const steps = [
+    {
+      number: "01",
+      title: "Book Interview",
+      description: "Choose your domain and schedule with an expert interviewer who understands your target role.",
+      icon: (
+        <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    {
+      number: "02",
+      title: "Live Session",
+      description: "Attend a real-time mock interview and get actionable feedback in a professional setting.",
+      icon: (
+        <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    {
+      number: "03",
+      title: "Get Evaluated",
+      description: "Receive detailed feedback and improvement suggestions to enhance your interview skills.",
+      icon: (
+        <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
+    {
+      number: "04",
+      title: "Affordable Pricing",
+      description: "Quality interview preparation at just ₹500 per session. Invest in your career success.",
+      icon: (
+        <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    }
+  ];
 
-const HowItWorks = () => (
-  <section className="bg-home-bg py-12 sm:py-16">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="mb-10">
-        <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-3">
-          How It Works
+  return (
+    <section className="bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-6 lg:p-10 xl:p-12 border border-slate-200/50 shadow-sm max-w-7xl mx-auto">
+      <div className="mb-4 sm:mb-8 lg:mb-12 text-center">
+        <h2 className="text-lg sm:text-2xl lg:text-3xl xl:text-4xl font-bold text-slate-900 mb-1 sm:mb-2 lg:mb-3 tracking-tight">
+          Your Interview Preparation in 4 Simple Steps
         </h2>
-        <p className="text-center text-gray-600 text-sm sm:text-base max-w-2xl mx-auto">
-          Get ready for your dream job with our expert-led, interactive mock interviews
+        <p className="text-slate-500 text-[10px] sm:text-xs lg:text-sm xl:text-base max-w-2xl mx-auto leading-relaxed px-1 sm:px-2">
+          From booking to feedback - get ready for your dream job with our expert-led mock interviews
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {howItWorksSteps.map((item, index) => (
-          <div
-            key={index}
-            className="flex flex-col items-center text-center p-6 bg-white rounded-xl border border-gray-200"
-          >
-            <div className="text-4xl mb-3">
-              {item.emoji}
+      <div className="relative">
+        <div className="hidden lg:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-900/20 via-blue-900/40 to-blue-900/20" style={{ top: '4rem' }}></div>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 xl:gap-8 relative">
+          {steps.map((step, index) => (
+            <div key={index} className="relative">
+              <div className="bg-white rounded-md sm:rounded-lg lg:rounded-xl p-2 sm:p-3 lg:p-6 border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg group">
+                <div className="absolute -top-1.5 -left-1.5 sm:-top-2 sm:-left-2 lg:-top-4 lg:-left-4 w-6 h-6 sm:w-8 sm:h-8 lg:w-12 lg:h-12 bg-blue-900 text-white rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs lg:text-lg shadow-lg group-hover:scale-110 transition-transform">
+                  {step.number}
+                </div>
+                
+                <div className="mb-1 sm:mb-2 lg:mb-4 mt-0.5 sm:mt-1 lg:mt-2 flex justify-center">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-16 lg:h-16 bg-blue-900/10 rounded-lg sm:rounded-xl lg:rounded-2xl flex items-center justify-center group-hover:bg-blue-900/20 transition-colors">
+                    <div className="scale-50 sm:scale-75 lg:scale-100">{step.icon}</div>
+                  </div>
+                </div>
+                
+                <h3 className="text-[10px] sm:text-xs lg:text-base xl:text-lg font-bold text-slate-900 mb-0.5 sm:mb-1 lg:mb-3 text-center tracking-tight leading-tight">
+                  {step.title}
+                </h3>
+                <p className="text-[8px] sm:text-[10px] lg:text-sm text-slate-600 leading-relaxed text-center hidden sm:block">
+                  {step.description}
+                </p>
+              </div>
+
+              {index < steps.length - 1 && (
+                <div className="hidden lg:block absolute top-16 -right-4 z-10">
+                  <svg className="w-8 h-8 text-blue-900/30" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {item.title}
-            </h3>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              {item.desc}
-            </p>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
-);
+
+      <div className="mt-4 sm:mt-8 lg:mt-12 text-center bg-blue-900/5 rounded-md sm:rounded-lg lg:rounded-xl p-3 sm:p-4 lg:p-6 border border-blue-900/10">
+        <p className="text-slate-900 font-semibold text-xs sm:text-sm lg:text-base mb-0.5 sm:mb-1 lg:mb-2">Ready to ace your interview?</p>
+        <p className="text-slate-600 text-[10px] sm:text-xs lg:text-sm">Book your mock interview session and get expert guidance to land your dream job!</p>
+      </div>
+    </section>
+  );
+};
+
+// Browse Interviewers Section
+function BrowseInterviewersSection({ onBookSession }) {
+  const [allInterviewers, setAllInterviewers] = useState([]);
+  const [searchMode, setSearchMode] = useState('company');
+  const [searchText, setSearchText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  // Load all interviewers on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${BACKEND_URL}/api/interview/interviewers`, { credentials: 'include' });
+        if (!res.ok) { setAllInterviewers([]); return; }
+        const data = await res.json();
+        let filtered = data || [];
+        if (searchText.trim()) {
+          const lower = searchText.toLowerCase();
+          filtered = filtered.filter(m => {
+            if (searchMode === 'company') {
+              const cName = m.application?.company || m.user?.college || '';
+              return cName.toLowerCase().includes(lower);
+            } else {
+              const pos = m.application?.position || m.application?.qualification || '';
+              return pos.toLowerCase().includes(lower);
+            }
+          });
+        }
+        setAllInterviewers(filtered);
+      } catch (e) {
+        console.error('Failed to load interviewers', e);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [searchText, searchMode]);
+
+  return (
+    <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-5 lg:p-8 border border-slate-200/50 shadow-sm">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-lg sm:text-2xl lg:text-3xl font-bold text-slate-900 mb-1 sm:mb-2 tracking-tight">
+          Browse Expert Interviewers
+        </h2>
+        <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
+          Discover and connect with approved industry experts for your mock interview sessions
+        </p>
+      </div>
+
+      {/* Search Controls */}
+      <div className="bg-white rounded-lg p-3 sm:p-4 border border-slate-200/50 mb-4">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            placeholder={`Search by ${searchMode}...`}
+            className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none hover:border-slate-400 transition-colors text-sm"
+          />
+          <select
+            value={searchMode}
+            onChange={e => setSearchMode(e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none bg-white hover:border-slate-400 transition-colors"
+          >
+            <option value="company">Company</option>
+            <option value="position">Position</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Interviewers Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : allInterviewers.length === 0 ? (
+        <div className="text-center py-12">
+          <svg className="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <p className="text-slate-600 text-sm">No interviewers found matching your criteria</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
+          {allInterviewers.map((m) => (
+            <div
+              key={m.application?._id || m.user?._id}
+              className="p-2 sm:p-3 lg:p-4 rounded-lg bg-white border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg flex flex-col"
+            >
+              <div className="flex-1">
+                <div className="font-bold text-slate-900 text-xs sm:text-sm lg:text-base mb-1.5 sm:mb-2 truncate leading-tight">
+                  {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
+                </div>
+                <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs lg:text-sm">
+                  <div>
+                    <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Company</div>
+                    <div className="text-slate-900 font-medium truncate">{m.application?.company || m.user?.college || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Position</div>
+                    <div className="text-slate-900 font-medium truncate">{m.application?.position || m.application?.qualification || '—'}</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Interviews</div>
+                      <div className="text-slate-900 font-medium">{m.stats?.conductedInterviews || 0}</div>
+                    </div>
+                    <div>
+                      <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Rating</div>
+                      <div className="flex items-center gap-1 text-slate-900 font-medium">
+                        <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span className="text-xs">{(m.stats?.averageRating || 0).toFixed(1)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 sm:gap-1.5 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100">
+                <button
+                  onClick={() => navigate(`/profile/${m.user?.username || m.user?._id}`)}
+                  className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-slate-100 text-slate-900 border border-slate-300 rounded text-[10px] sm:text-xs font-medium hover:bg-slate-200 transition-colors"
+                >
+                  View Profile
+                </button>
+                <button
+                  onClick={() => {
+                    if (onBookSession) {
+                      onBookSession({
+                        interviewer: m,
+                        company: m.application?.company || m.user?.college || '',
+                        position: m.application?.position || m.application?.qualification || ''
+                      });
+                    }
+                  }}
+                  className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-900 text-white rounded text-[10px] sm:text-xs font-medium hover:bg-blue-800 transition-colors"
+                >
+                  Book Session
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
 
 // Book Mock Interview Modal
-function BookInterviewModal({ isOpen, onClose }) {
+function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilledData }) {
   const [company, setCompany] = useState('');
   const [position, setPosition] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [matchedInterviewers, setMatchedInterviewers] = useState([]);
   const [selectedInterviewer, setSelectedInterviewer] = useState('');
-  const [selectedInterviewerObj, setSelectedInterviewerObj] = useState(null);
-  const [lockSelected, setLockSelected] = useState(false);
   const { user } = useAuth() || {};
 
-  // Tabs: 'simple' (existing flow) and 'search' (browse experts)
-  const [activeTab, setActiveTab] = useState('simple');
-  const [allInterviewers, setAllInterviewers] = useState([]);
-  const [searchMode, setSearchMode] = useState('company');
-  const [searchText, setSearchText] = useState('');
-  const formRef = useRef(null);
+  // Pre-fill data when provided
+  useEffect(() => {
+    if (preFilledData) {
+      setCompany(preFilledData.company || '');
+      setPosition(preFilledData.position || '');
+    }
+    if (preSelectedInterviewer) {
+      setSelectedInterviewer(String(preSelectedInterviewer.user?._id || ''));
+      setMatchedInterviewers([preSelectedInterviewer]);
+    }
+  }, [preFilledData, preSelectedInterviewer]);
+
+  // Reset when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Small delay to avoid visual glitch
+      setTimeout(() => {
+        if (!isOpen) {
+          setCompany('');
+          setPosition('');
+          setMessage('');
+          setSelectedInterviewer('');
+          setMatchedInterviewers([]);
+        }
+      }, 300);
+    }
+  }, [isOpen]);
 
   // Dropdown states
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
@@ -199,7 +390,6 @@ function BookInterviewModal({ isOpen, onClose }) {
       alert('Interview request submitted successfully!');
       setCompany(''); setPosition(''); setMessage('');
       setMatchedInterviewers([]);
-      setAllInterviewers([]);
       setSelectedInterviewer('');
       onClose();
     } catch (err) {
@@ -229,141 +419,28 @@ function BookInterviewModal({ isOpen, onClose }) {
     return () => clearTimeout(t);
   }, [company, position]);
 
-  // Load all interviewers when modal opens or when switching to search tab
-  useEffect(() => {
-    const loadAll = async () => {
-      try {
-        const url = `${BACKEND_URL}/api/interview/interviewers${searchText ? `?${new URLSearchParams({ [searchMode]: searchText }).toString()}` : ''}`;
-        const res = await fetch(url, { credentials: 'include' });
-        if (!res.ok) { setAllInterviewers([]); return; }
-        const data = await res.json();
-        setAllInterviewers(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error('Failed to load interviewers', e);
-        setAllInterviewers([]);
-      }
-    };
-    if (isOpen && activeTab === 'search') {
-      const t = setTimeout(loadAll, 250);
-      return () => clearTimeout(t);
-    }
-  }, [isOpen, activeTab, searchText, searchMode]);
-
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-blue-600 text-white p-6 rounded-t-xl flex items-center justify-between z-10">
-            <h3 className="text-xl font-bold flex items-center gap-2">
-              <FaCalendarAlt />
-              Book Mock Interview
+          <div className="sticky top-0 bg-blue-900 text-white p-6 rounded-t-xl flex items-center justify-between z-10">
+            <h3 className="text-xl font-bold">
+              Request Mock Interview
             </h3>
-            <button onClick={onClose} className="text-white hover:bg-blue-700 p-2 rounded-lg transition-colors">
+            <button onClick={onClose} className="text-white hover:bg-blue-800 p-2 rounded-lg transition-colors">
               <FaTimes size={18} />
             </button>
           </div>
 
           <div className="p-6 space-y-4">
-            {/* Tabs */}
-            <div className="flex gap-2 mb-2">
-              <button
-                onClick={() => setActiveTab('simple')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium border ${activeTab==='simple' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
-              >Request</button>
-              <button
-                onClick={() => setActiveTab('search')}
-                className={`px-3 py-2 rounded-lg text-sm font-medium border ${activeTab==='search' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
-              >Search Interviewer</button>
-            </div>
-
-            {activeTab === 'simple' && (
-              <p className="text-gray-600 text-sm">Fill in the details below to request a mock interview session</p>
-            )}
-            {activeTab === 'search' && (
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <p className="text-sm text-gray-700 mb-3">Browse approved interviewers. Use the search to filter by company or position, then click Book to pre-select your expert and complete the request.</p>
-                <div className="flex gap-2 items-center mb-3">
-                  <input
-                    type="text"
-                    value={searchText}
-                    onChange={e => setSearchText(e.target.value)}
-                    placeholder={`Search by ${searchMode}...`}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  />
-                  <select
-                    value={searchMode}
-                    onChange={e => setSearchMode(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  >
-                    <option value="company">Company</option>
-                    <option value="position">Position</option>
-                  </select>
-                </div>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {allInterviewers.map((m) => (
-                    <div
-                      key={m.application?._id || m.user?._id}
-                      className="p-4 rounded-lg bg-white border border-gray-200"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="font-semibold text-gray-900 text-base">
-                            {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
-                          </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-sm">
-                            <div>
-                              <div className="text-gray-500">Company</div>
-                              <div className="text-gray-800 font-medium">{m.application?.company || m.user?.college || '—'}</div>
-                            </div>
-                            <div>
-                              <div className="text-gray-500">Position</div>
-                              <div className="text-gray-800 font-medium">{m.application?.position || m.application?.qualification || '—'}</div>
-                            </div>
-                            <div>
-                              <div className="text-gray-500">Total Interviews</div>
-                              <div className="text-gray-800 font-medium">{m.stats?.conductedInterviews || 0}</div>
-                            </div>
-                            <div>
-                              <div className="text-gray-500">Overall Rating</div>
-                              <div className="flex items-center gap-1 text-gray-800 font-medium">
-                                <FaStar className="text-yellow-500" />
-                                {(m.stats?.averageRating || 0).toFixed(1)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setSelectedInterviewer(String(m.user?._id));
-                            setSelectedInterviewerObj(m);
-                            setLockSelected(true);
-                            setActiveTab('simple');
-                            setMatchedInterviewers([]);
-                            // reveal form
-                            setTimeout(() => { try { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_){} }, 100);
-                          }}
-                          className="h-fit px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-                        >
-                          Book
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {allInterviewers.length === 0 && (
-                    <div className="text-sm text-gray-600">No interviewers found.</div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Shared Request Form (visible only in Simple tab) */}
-            {activeTab === 'simple' && (
+            <p className="text-slate-600 text-sm">Fill in the details below to request a mock interview session with an expert</p>
+            
             <>
-            <div ref={formRef} className="space-y-4">
+            <div className="space-y-4">
               <div className="relative">
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Company Name *</label>
+                <label className="block text-sm font-semibold text-slate-900 mb-2">Company Name *</label>
                 <input
                   ref={companyInputRef}
                   type="text"
@@ -377,15 +454,15 @@ function BookInterviewModal({ isOpen, onClose }) {
                   onBlur={() => setTimeout(() => { setShowCompanyDropdown(false); setHighlightedCompanyIdx(-1); }, 150)}
                   onKeyDown={handleCompanyKeyDown}
                   placeholder="Search company..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm outline-none hover:border-slate-400 transition-colors"
                   autoComplete="off"
                 />
                 {showCompanyDropdown && companyList.length > 0 && (
-                  <ul className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2">
+                  <ul className="absolute z-20 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2">
                     {companyList.map((c, idx) => (
                       <li
                         key={idx}
-                        className={`px-4 py-2.5 text-gray-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedCompanyIdx === idx ? 'bg-blue-100' : ''}`}
+                        className={`px-4 py-2.5 text-slate-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedCompanyIdx === idx ? 'bg-blue-100' : ''}`}
                         onMouseDown={() => {
                           setCompany(c);
                           setShowCompanyDropdown(false);
@@ -400,7 +477,7 @@ function BookInterviewModal({ isOpen, onClose }) {
               </div>
 
               <div className="relative">
-                <label className="block text-sm font-semibold text-gray-900 mb-2">Position *</label>
+                <label className="block text-sm font-semibold text-slate-900 mb-2">Position *</label>
                 <input
                   ref={positionInputRef}
                   type="text"
@@ -414,15 +491,15 @@ function BookInterviewModal({ isOpen, onClose }) {
                   onBlur={() => setTimeout(() => { setShowPositionDropdown(false); setHighlightedPositionIdx(-1); }, 150)}
                   onKeyDown={handlePositionKeyDown}
                   placeholder="Search position..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm outline-none hover:border-slate-400 transition-colors"
                   autoComplete="off"
                 />
                 {showPositionDropdown && positionList.length > 0 && (
-                  <ul className="absolute z-20 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2">
+                  <ul className="absolute z-20 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2">
                     {positionList.map((p, idx) => (
                       <li
                         key={idx}
-                        className={`px-4 py-2.5 text-gray-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedPositionIdx === idx ? 'bg-blue-100' : ''}`}
+                        className={`px-4 py-2.5 text-slate-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedPositionIdx === idx ? 'bg-blue-100' : ''}`}
                         onMouseDown={() => {
                           setPosition(p);
                           setShowPositionDropdown(false);
@@ -439,8 +516,7 @@ function BookInterviewModal({ isOpen, onClose }) {
 
 
               <div>
-                <label className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <FaComment />
+                <label className="text-sm font-semibold text-slate-900 mb-2 block">
                   Additional Message (Optional)
                 </label>
                 <textarea
@@ -448,57 +524,13 @@ function BookInterviewModal({ isOpen, onClose }) {
                   onChange={e => setMessage(e.target.value)}
                   placeholder="Any specific topics or areas you'd like to focus on..."
                   rows="4"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm outline-none resize-none hover:border-slate-400 transition-colors"
                 />
               </div>
 
-              {activeTab === 'simple' && selectedInterviewerObj && (
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <FaUserTie />
-                    Selected Interviewer
-                  </h4>
-                  <div className="p-4 rounded-lg bg-white border border-gray-200">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900 text-base">
-                          {selectedInterviewerObj.user?.firstName || selectedInterviewerObj.user?.username} {selectedInterviewerObj.user?.lastName || ''}
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-sm">
-                          <div>
-                            <div className="text-gray-500">Company</div>
-                            <div className="text-gray-800 font-medium">{selectedInterviewerObj.application?.company || selectedInterviewerObj.user?.college || '—'}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-500">Position</div>
-                            <div className="text-gray-800 font-medium">{selectedInterviewerObj.application?.position || selectedInterviewerObj.application?.qualification || '—'}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-500">Total Interviews</div>
-                            <div className="text-gray-800 font-medium">{selectedInterviewerObj.stats?.conductedInterviews || 0}</div>
-                          </div>
-                          <div>
-                            <div className="text-gray-500">Overall Rating</div>
-                            <div className="flex items-center gap-1 text-gray-800 font-medium">
-                              <FaStar className="text-yellow-500" />
-                              {(selectedInterviewerObj.stats?.averageRating || 0).toFixed(1)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-gray-500">Total Ratings</div>
-                            <div className="text-gray-800 font-medium">{selectedInterviewerObj.stats?.totalRatings || 0}</div>
-                          </div>
-                        </div>
-                      </div>
-                      <FaCheckCircle className="text-blue-600" />
-                    </div>
-                  </div>
-                </div>
-              )}
-              {activeTab === 'simple' && !selectedInterviewerObj && matchedInterviewers && matchedInterviewers.length > 0 && (
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <FaUserTie />
+              {matchedInterviewers && matchedInterviewers.length > 0 && (
+                <div className="bg-blue-900/5 p-4 rounded-lg border border-blue-900/10">
+                  <h4 className="text-sm font-semibold text-slate-900 mb-3">
                     Recommended Interviewers
                   </h4>
                   <div className="space-y-2">
@@ -507,8 +539,8 @@ function BookInterviewModal({ isOpen, onClose }) {
                         key={m.application._id}
                         className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
                           selectedInterviewer === String(m.user._id)
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white hover:bg-blue-50 border border-gray-200'
+                            ? 'bg-blue-900 text-white'
+                            : 'bg-white hover:bg-blue-50 border border-slate-200'
                         }`}
                       >
                         <div className="flex items-center gap-3 flex-1">
@@ -576,20 +608,19 @@ function BookInterviewModal({ isOpen, onClose }) {
             <div className="flex gap-3 pt-4">
               <button
                 onClick={onClose}
-                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-100 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={loading || !company || !position}
-                className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 bg-blue-900 text-white rounded-lg font-medium hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
             </>
-            )}
           </div>
         </div>
       </div>
@@ -618,12 +649,11 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div className="bg-white rounded-xl shadow-lg max-w-lg w-full">
-          <div className="bg-blue-600 text-white p-6 rounded-t-xl flex items-center justify-between">
-            <h3 className="text-xl font-bold flex items-center gap-2">
-              <FaUserTie />
+          <div className="bg-blue-900 text-white p-6 rounded-t-xl flex items-center justify-between">
+            <h3 className="text-xl font-bold">
               Become an Interviewer
             </h3>
-            <button onClick={onClose} className="text-white hover:bg-blue-700 p-2 rounded-lg transition-colors">
+            <button onClick={onClose} className="text-white hover:bg-blue-800 p-2 rounded-lg transition-colors">
               <FaTimes size={18} />
             </button>
           </div>
@@ -631,38 +661,40 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
           <div className="p-6 space-y-4">
             {isApproved ? (
               <div className="text-center py-8">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaCheckCircle className="text-blue-600 text-3xl" />
+                <div className="w-16 h-16 bg-blue-900/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-                <h4 className="text-lg font-bold text-gray-900 mb-2">You're Already an Approved Interviewer!</h4>
-                <p className="text-gray-600 text-sm">You can start conducting mock interviews right away.</p>
+                <h4 className="text-lg font-bold text-slate-900 mb-2">You're Already an Approved Interviewer!</h4>
+                <p className="text-slate-600 text-sm">You can start conducting mock interviews right away.</p>
               </div>
             ) : (
               <>
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="font-semibold text-gray-900 mb-2">Why Become an Interviewer?</h4>
-                  <ul className="space-y-2 text-sm text-gray-600">
+                <div className="bg-blue-900/5 p-4 rounded-lg border border-blue-900/10">
+                  <h4 className="font-semibold text-slate-900 mb-2">Why Become an Interviewer?</h4>
+                  <ul className="space-y-2 text-sm text-slate-600">
                     <li className="flex items-start gap-2">
-                      <span className="text-[#2563eb] mt-1">✓</span>
+                      <span className="text-blue-900 mt-1">✓</span>
                       <span>Share your industry experience and help others succeed</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#2563eb] mt-1">✓</span>
+                      <span className="text-blue-900 mt-1">✓</span>
                       <span>Earn while conducting mock interviews</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#2563eb] mt-1">✓</span>
+                      <span className="text-blue-900 mt-1">✓</span>
                       <span>Build your professional network</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#2563eb] mt-1">✓</span>
+                      <span className="text-blue-900 mt-1">✓</span>
                       <span>Flexible scheduling based on your availability</span>
                     </li>
                   </ul>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-gray-700">
+                <div className="bg-blue-900/5 p-4 rounded-lg border border-blue-900/10">
+                  <p className="text-sm text-slate-700">
                     <strong>Note:</strong> Your application will be reviewed by our admin team. You'll be notified once approved.
                   </p>
                 </div>
@@ -672,7 +704,7 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
             <div className="flex gap-3 pt-4">
               <button
                 onClick={onClose}
-                className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-100 transition-colors"
               >
                 Close
               </button>
@@ -682,7 +714,7 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
                     navigate('/register-interviewer');
                     onClose();
                   }}
-                  className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                  className="flex-1 px-6 py-3 bg-blue-900 text-white rounded-lg font-medium hover:bg-blue-800 transition-colors"
                 >
                   Apply Now
                 </button>
@@ -969,6 +1001,17 @@ const Interview = () => {
   const [showBookModal, setShowBookModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [preSelectedInterviewer, setPreSelectedInterviewer] = useState(null);
+  const [preFilledData, setPreFilledData] = useState(null);
+
+  const handleBookSession = (data) => {
+    setPreSelectedInterviewer(data.interviewer);
+    setPreFilledData({
+      company: data.company,
+      position: data.position
+    });
+    setShowBookModal(true);
+  };
 
   // 3D tilt effect on mouse move
   useEffect(() => {
@@ -984,256 +1027,103 @@ const Interview = () => {
 
   return (
     <div className="min-h-screen w-full bg-home-bg">
-      {/* Full Viewport Hero Section - Shifted Up */}
-      <section className="relative min-h-[85vh] w-full flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-6 sm:pb-8 bg-home-bg">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 90, 0],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-blue-200/20 to-transparent rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{
-              scale: [1, 1.3, 1],
-              rotate: [0, -90, 0],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-tl from-blue-200/20 to-transparent rounded-full blur-3xl"
-          />
+      {/* Hero Section */}
+      <section className="relative min-h-[65vh] sm:min-h-[75vh] w-full flex items-center justify-center overflow-hidden pt-12 sm:pt-16 lg:pt-20 pb-4 sm:pb-6 lg:pb-8 bg-gradient-to-b from-slate-50 to-white">
+        {/* Background decoration */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-900/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-900/5 rounded-full blur-3xl"></div>
         </div>
 
-        {/* Hero Content */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8 lg:gap-12">
             {/* Left Content */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="flex-1 text-center lg:text-left space-y-4 sm:space-y-6 max-w-2xl w-full"
-            >
-              {/* Main Heading */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-              >
-                <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-tight mb-4 sm:mb-6 px-2 sm:px-0">
-                  <span className="text-[#1e3a8a] block">Master Your</span>
-                  <span className="block text-[#2563eb]">
-                    Interviews 🚀
-                  </span>
-                </h1>
-                <p className="text-lg sm:text-xl lg:text-2xl text-[#4b5563] leading-relaxed max-w-xl mx-auto lg:mx-0 px-2 sm:px-0">
-                  Practice with industry experts, get real feedback, land your dream job
-                </p>
-              </motion.div>
-
-              {/* CTA Buttons */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2 sm:pt-4 px-2 sm:px-0"
-              >
-                <motion.button
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowBookModal(true)}
-                  className="group relative w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-2xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    <FaCalendarAlt className="text-lg" />
-                    <span>Book Interview</span>
-                  </span>
-                </motion.button>
-
-                <motion.button
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowRegisterModal(true)}
-                  className="group relative w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-[#2563eb] border-2 border-[#2563eb] rounded-2xl font-bold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300 hover:bg-[#2563eb] hover:text-white"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    <FaUserTie className="text-lg" />
-                    <span>Be Interviewer</span>
-                  </span>
-                </motion.button>
-              </motion.div>
-
-              {/* Dynamic Stats Inline */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.6 }}
-              >
-                <StatsSection />
-              </motion.div>
-            </motion.div>
-
-            {/* Right Image with 3D Effect */}
-            <motion.div
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-              className="flex-1 relative hidden lg:block"
-              style={{
-                transform: `perspective(1000px) rotateY(${mousePosition.x * 0.02}deg) rotateX(${-mousePosition.y * 0.02}deg)`,
-                transition: 'transform 0.1s ease-out'
-              }}
-            >
-              <div className="relative">
-                {/* Glow Effect */}
-                <motion.div
-                  animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.3, 0.5, 0.3],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className="absolute inset-0 bg-gradient-to-br from-blue-400/40 to-blue-300/40 rounded-full blur-3xl"
-                />
-                
-                {/* Main Image */}
-                <motion.img
-                  whileHover={{ scale: 1.05, rotate: 2 }}
-                  transition={{ duration: 0.3 }}
-                  src="/assets/interview-illustration.webp"
-                  alt="Mock Interview Illustration"
-                  className="relative z-10 w-full max-w-lg mx-auto object-contain drop-shadow-2xl"
-                />
-
-                {/* Floating Elements */}
-                <motion.div
-                  animate={{
-                    y: [0, -20, 0],
-                    rotate: [0, 5, 0],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className="absolute top-10 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/80 backdrop-blur-sm rounded-2xl p-2 sm:p-3 border border-blue-200 shadow-lg"
-                >
-                  <FaCheckCircle className="w-full h-full text-[#2563eb]" />
-                </motion.div>
-
-                <motion.div
-                  animate={{
-                    y: [0, 20, 0],
-                    rotate: [0, -5, 0],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: 0.5
-                  }}
-                  className="absolute bottom-10 left-0 w-16 h-16 sm:w-20 sm:h-20 bg-white/80 backdrop-blur-sm rounded-2xl p-2 sm:p-3 border border-blue-200 shadow-lg"
-                >
-                  <FaStar className="w-full h-full text-[#3b82f6]" />
-                </motion.div>
+            <div className="flex-1 text-center lg:text-left space-y-3 sm:space-y-4 lg:space-y-6">
+              <div className="inline-block">
+                <span className="px-2.5 py-1 sm:px-3 sm:py-1.5 lg:px-4 lg:py-2 bg-blue-900/10 text-blue-900 rounded-full text-[9px] sm:text-[10px] lg:text-xs font-semibold tracking-wide">
+                  Mock Interview Platform
+                </span>
               </div>
-            </motion.div>
+              
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-slate-900 leading-tight tracking-tight px-1 sm:px-2 lg:px-0">
+                Master Your Interviews with
+                <span className="block text-blue-900 mt-1 sm:mt-1.5 lg:mt-2">
+                  Industry Experts
+                </span>
+              </h1>
+              
+              <p className="text-xs sm:text-sm lg:text-base xl:text-lg text-slate-500 max-w-2xl mx-auto lg:mx-0 px-2 sm:px-4 lg:px-0 leading-relaxed">
+                Practice with industry experts, get real feedback, and land your dream job with confidence.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-3 lg:gap-4 pt-2 sm:pt-3 lg:pt-4 px-2 sm:px-4 lg:px-0">
+                <button
+                  onClick={() => setShowBookModal(true)}
+                  className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-blue-900 text-white rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm lg:text-base hover:bg-blue-800 transition-all hover:shadow-xl"
+                >
+                  Book Mock Interview
+                </button>
+                <button
+                  onClick={() => setShowRegisterModal(true)}
+                  className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-white text-blue-900 border-2 border-blue-900 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm lg:text-base hover:bg-blue-50 transition-all"
+                >
+                  Become Interviewer
+                </button>
+              </div>
+
+              {/* Stats Section Inline */}
+              <div className="pt-4 sm:pt-6">
+                <StatsSection />
+              </div>
+            </div>
+
+            {/* Right Illustration */}
+            {/* Right Illustration */}
+<div className="flex-1 relative hidden lg:block">
+  <div className="relative w-full max-w-[480px] mx-auto scale-80">
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
+    <img
+      src="/assets/interview-illustration.webp"
+      alt="Mock Interview"
+      className="relative w-full h-auto object-contain drop-shadow-2xl"
+    />
+  </div>
+</div>
+
           </div>
         </div>
 
         {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            duration: 1,
-            delay: 0.8,
-            repeat: Infinity,
-            repeatType: "reverse"
-          }}
-          className="absolute bottom-3 sm:bottom-4 left-1/2 transform -translate-x-1/2"
-        >
-          <div className="flex flex-col items-center gap-2 text-[#4b5563]">
-            <span className="text-xs sm:text-sm font-medium">Scroll to explore</span>
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{
-                duration: 1.5,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              <div className="w-5 sm:w-6 h-9 sm:h-10 border-2 border-[#2563eb] rounded-full flex items-start justify-center p-1">
-                <div className="w-1 sm:w-1.5 h-2 sm:h-3 bg-[#2563eb] rounded-full"></div>
-              </div>
-            </motion.div>
-          </div>
-        </motion.div>
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 text-slate-400">
+        </div>
       </section>
 
-      {/* Main Content Sections - Full Width */}
-      <main className="w-full flex flex-col">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <ScheduledInterviewSection />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <PastInterviewsPreview />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <TopInterviewers />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <HowItWorks />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <FAQSection />
-        </motion.div>
+      {/* Main Content */}
+      <main className="w-full max-w-7xl mx-auto flex flex-col gap-4 sm:gap-8 lg:gap-12 xl:gap-16 px-2 sm:px-3 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-12 xl:py-16">
+        <ScheduledInterviewSection />
+        
+        <BrowseInterviewersSection onBookSession={handleBookSession} />
+        
+        <PastInterviewsPreview />
+        
+        <TopInterviewers />
+        
+        <HowItWorks />
+        
+        <FAQSection />
       </main>
 
       {/* Modals */}
-      <BookInterviewModal isOpen={showBookModal} onClose={() => setShowBookModal(false)} />
+      <BookInterviewModal 
+        isOpen={showBookModal} 
+        onClose={() => {
+          setShowBookModal(false);
+          setPreSelectedInterviewer(null);
+          setPreFilledData(null);
+        }} 
+        preSelectedInterviewer={preSelectedInterviewer}
+        preFilledData={preFilledData}
+      />
       <RegisterInterviewerModal isOpen={showRegisterModal} onClose={() => setShowRegisterModal(false)} />
     </div>
   );
