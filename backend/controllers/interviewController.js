@@ -447,6 +447,44 @@ exports.getApprovedInterviewers = async (req, res) => {
         matchType: 'position',
         priorityScore: r.score // Lower = better
       }));
+
+      // Additional word-based matching for role keywords (e.g., developer/development)
+      const norm = (s) => (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      // Use robust stemming for generalization across many role variants
+      let natural;
+      try {
+        natural = require('natural');
+      } catch (_) {
+        natural = null;
+      }
+      const porter = natural && natural.PorterStemmer;
+      const stem = (w) => {
+        const x = (w || '').toLowerCase();
+        if (!x) return '';
+        // Prefer Porter stemming when available; fallback to simple suffix trimming
+        if (porter) return porter.stem(x);
+        return x.replace(/(ing|ers?|ment|tion|ions|ed|ly)$/i, '');
+      };
+      const queryTokens = norm(position).split(' ').map(stem).filter(Boolean);
+      const hasTokenMatch = (app) => {
+        const text = [app.position, app.qualification, app.company].map(norm).join(' ');
+        const tokens = text.split(' ').map(stem).filter(Boolean);
+        const tokenSet = new Set(tokens);
+        return queryTokens.some(t => tokenSet.has(t));
+      };
+      const tokenMatches = apps.filter(hasTokenMatch);
+      // Merge token matches with existing matchedResults ensuring uniqueness and boosting priority
+      tokenMatches.forEach(tm => {
+        const existsIdx = matchedResults.findIndex(mr => mr.item._id.toString() === tm._id.toString());
+        const entry = { item: tm, score: 0.15, matchType: 'position-word', priorityScore: 0.15 };
+        if (existsIdx >= 0) {
+          // Boost existing match
+          matchedResults[existsIdx].matchType = matchedResults[existsIdx].matchType === 'position' ? 'position+word' : matchedResults[existsIdx].matchType;
+          matchedResults[existsIdx].priorityScore = Math.min(matchedResults[existsIdx].priorityScore, 0.15);
+        } else {
+          matchedResults.push(entry);
+        }
+      });
     }
     
     if (company) {

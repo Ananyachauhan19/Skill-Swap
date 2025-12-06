@@ -484,6 +484,10 @@ function BookInterviewModal({ isOpen, onClose }) {
                               {(selectedInterviewerObj.stats?.averageRating || 0).toFixed(1)}
                             </div>
                           </div>
+                          <div>
+                            <div className="text-gray-500">Total Ratings</div>
+                            <div className="text-gray-800 font-medium">{selectedInterviewerObj.stats?.totalRatings || 0}</div>
+                          </div>
                         </div>
                       </div>
                       <FaCheckCircle className="text-blue-600" />
@@ -519,7 +523,6 @@ function BookInterviewModal({ isOpen, onClose }) {
                           <div className="flex-1">
                             <div className="font-semibold flex items-center gap-2">
                               {m.user?.firstName || m.user?.username} {m.user?.lastName || ''}
-                              {/* Rating Display */}
                               {m.stats && m.stats.averageRating > 0 && (
                                 <span className={`flex items-center gap-1 text-xs ${
                                   selectedInterviewer === String(m.user._id) ? 'text-yellow-300' : 'text-yellow-500'
@@ -529,17 +532,32 @@ function BookInterviewModal({ isOpen, onClose }) {
                                 </span>
                               )}
                             </div>
-                            <div className={`text-sm ${selectedInterviewer === String(m.user._id) ? 'text-blue-100' : 'text-gray-600'}`}>
-                              {m.user?.college || m.application?.company} • {m.application?.qualification}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 text-sm">
+                              <div>
+                                <div className={`${selectedInterviewer === String(m.user._id) ? 'text-blue-100' : 'text-gray-500'}`}>Company</div>
+                                <div className={`${selectedInterviewer === String(m.user._id) ? 'text-blue-50' : 'text-gray-800'} font-medium`}>{m.application?.company || m.user?.college || '—'}</div>
+                              </div>
+                              <div>
+                                <div className={`${selectedInterviewer === String(m.user._id) ? 'text-blue-100' : 'text-gray-500'}`}>Position</div>
+                                <div className={`${selectedInterviewer === String(m.user._id) ? 'text-blue-50' : 'text-gray-800'} font-medium`}>{m.application?.position || m.application?.qualification || '—'}</div>
+                              </div>
+                              <div>
+                                <div className={`${selectedInterviewer === String(m.user._id) ? 'text-blue-100' : 'text-gray-500'}`}>Total Interviews</div>
+                                <div className={`${selectedInterviewer === String(m.user._id) ? 'text-blue-50' : 'text-gray-800'} font-medium`}>{m.stats?.conductedInterviews || 0}</div>
+                              </div>
+                              <div>
+                                <div className={`${selectedInterviewer === String(m.user._id) ? 'text-blue-100' : 'text-gray-500'}`}>Overall Rating</div>
+                                <div className={`flex items-center gap-1 ${selectedInterviewer === String(m.user._id) ? 'text-blue-50' : 'text-gray-800'} font-medium`}>
+                                  <FaStar className={`${selectedInterviewer === String(m.user._id) ? 'text-yellow-300' : 'text-yellow-500'}`} />
+                                  {(m.stats?.averageRating || 0).toFixed(1)}
+                                </div>
+                              </div>
                             </div>
-                            {/* Interview Count - Always show */}
-                            <div className={`text-xs mt-1 flex items-center gap-3 ${selectedInterviewer === String(m.user._id) ? 'text-blue-200' : 'text-gray-500'}`}>
-                              <span>
-                                📊 {m.stats?.conductedInterviews || 0} interview{(m.stats?.conductedInterviews || 0) !== 1 ? 's' : ''}
-                              </span>
+                            <div className={`text-xs mt-2 flex items-center gap-3 ${selectedInterviewer === String(m.user._id) ? 'text-blue-200' : 'text-gray-500'}`}>
+
                               {m.stats?.totalRatings > 0 && (
                                 <span>
-                                  • {m.stats.totalRatings} rating{m.stats.totalRatings !== 1 ? 's' : ''}
+                                  • Total : {m.stats.totalRatings} rating{m.stats.totalRatings !== 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
