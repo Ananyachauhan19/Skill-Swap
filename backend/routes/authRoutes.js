@@ -12,6 +12,9 @@ const User = require('../models/User');
 const Session = require('../models/Session');
 const requireAuth = require('../middleware/requireAuth');
 const { trackDailyLogin, trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
+const crypto = require('crypto');
+const { sendMail } = require('../utils/sendMail');
+const T = require('../utils/emailTemplates');
 
 // Sanitize array fields to remove invalid keys (e.g., _id)
 const sanitizeArrayFields = (data, validKeys) => {
@@ -169,6 +172,75 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
   } catch (error) {
     console.error('[DEBUG] LinkedIn OAuth error:', error);
     res.redirect('/api/auth/failure');
+  }
+});
+
+// Forgot password: request reset
+router.post('/password/forgot', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email required' });
+    const user = await User.findOne({ email });
+    // Always respond 200 to avoid user enumeration
+    if (!user) return res.status(200).json({ message: 'If account exists, an email has been sent' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 30 * 60 * 1000);
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = expires;
+    await user.save();
+
+    // Prefer configured frontend URL; otherwise use request Origin header (so dev/mobile click works), fallback by env
+    const originHeader = (req.headers.origin || '').replace(/\/+$/, '');
+    const defaultFrontend = isProd ? 'https://skillswaphub.in' : 'http://localhost:5173';
+    const frontendUrl = (process.env.FRONTEND_URL || originHeader || defaultFrontend).replace(/\/+$/, '');
+    const link = `${frontendUrl}/reset-password?token=${token}`;
+    const fallbackFrontendUrl = defaultFrontend; // explicit fallback to prod domain or localhost
+    const fallbackLink = `${fallbackFrontendUrl}/reset-password?token=${token}`;
+    const useFallback = fallbackLink !== link ? fallbackLink : undefined;
+    console.info('[RESET] Password reset link generated', { email, originHeader, frontendUrl, link, fallbackFrontendUrl, fallbackLink });
+    const tpl = T.passwordReset({ resetLink: link, fallbackLink: useFallback });
+    await sendMail({ to: email, subject: tpl.subject, html: tpl.html });
+    return res.status(200).json({ message: 'If account exists, an email has been sent' });
+  } catch (e) {
+    console.error('Forgot password error:', e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Forgot password: verify token
+router.get('/password/verify', async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ valid: false, message: 'Token required' });
+    const user = await User.findOne({ resetPasswordToken: token, resetPasswordExpires: { $gt: new Date() } });
+    if (!user) return res.status(400).json({ valid: false, message: 'Invalid or expired token' });
+    return res.json({ valid: true });
+  } catch (e) {
+    return res.status(500).json({ valid: false, message: 'Server error' });
+  }
+});
+
+// Forgot password: reset
+router.post('/password/reset', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) return res.status(400).json({ message: 'Token and password required' });
+    const user = await User.findOne({ resetPasswordToken: token, resetPasswordExpires: { $gt: new Date() } });
+    if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
+
+    // Hash password (reuse authController hashing if available)
+    const bcrypt = require('bcryptjs');
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return res.json({ message: 'Password reset successful' });
+  } catch (e) {
+    console.error('Reset password error:', e);
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 

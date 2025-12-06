@@ -7,6 +7,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const supabase = require('../utils/supabaseClient');
+const { sendMail } = require('../utils/sendMail');
+const T = require('../utils/emailTemplates');
 
 // Get single interview request by ID
 exports.getRequestById = async (req, res) => {
@@ -93,6 +95,23 @@ exports.submitRequest = async (req, res) => {
       if (io && admin._id) io.to(admin._id.toString()).emit('notification', notification);
     }
 
+    // Email interviewer if pre-assigned
+    if (reqDoc.assignedInterviewer) {
+      try {
+        const interviewer = await User.findById(reqDoc.assignedInterviewer);
+        if (interviewer?.email) {
+          const tpl = T.interviewAssigned({
+            interviewerName: interviewer.firstName || interviewer.username,
+            company,
+            position,
+            requesterName: `${req.user.firstName} ${req.user.lastName}`
+          });
+          await sendMail({ to: interviewer.email, subject: tpl.subject, html: tpl.html });
+        }
+      } catch (e) {
+        console.error('Failed to send interviewer assignment email', e);
+      }
+    }
     res.status(201).json({ message: 'Interview request submitted', request: reqDoc });
     // No contribution on submit to avoid multi-counting; count when completed (rated)
   } catch (err) {
@@ -662,6 +681,22 @@ exports.scheduleInterview = async (req, res) => {
     });
 
     if (io) io.to(reqDoc.requester._id.toString()).emit('notification', notification);
+
+    // Also send email to requester
+    try {
+      const requester = await User.findById(reqDoc.requester);
+      if (requester?.email) {
+        const tpl = T.interviewScheduled({
+          requesterName: requester.firstName || requester.username,
+          company: reqDoc.company,
+          position: reqDoc.position,
+          scheduledAt: reqDoc.scheduledAt ? reqDoc.scheduledAt.toLocaleString() : 'TBD'
+        });
+        await sendMail({ to: requester.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send interview schedule email', e);
+    }
 
     // Also notify the assigned interviewer (confirmation)
     try {

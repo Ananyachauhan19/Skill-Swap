@@ -12,6 +12,9 @@ const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   otp: { type: String, required: false },
   otpExpires: { type: Date, required: false },
+  // Password reset
+  resetPasswordToken: { type: String, required: false },
+  resetPasswordExpires: { type: Date, required: false },
   role: {
     type: String,
     enum: ['teacher', 'learner', 'both'],

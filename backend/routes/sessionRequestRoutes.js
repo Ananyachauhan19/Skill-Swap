@@ -7,6 +7,8 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const requireAuth = require('../middleware/requireAuth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
+const { sendMail } = require('../utils/sendMail');
+const T = require('../utils/emailTemplates');
 
 // Rate limiter for sensitive endpoints
 const requestLimiter = rateLimit({
@@ -72,8 +74,8 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
     const { tutorId, subject, topic, message } = req.body;
     const requesterId = req.user._id;
 
-    // Check if tutor exists
-    const tutor = await User.findById(tutorId).select('firstName lastName profilePic');
+    // Check if tutor exists (include email for SMTP)
+    const tutor = await User.findById(tutorId).select('firstName lastName profilePic email username');
     if (!tutor) {
       return handleErrors(res, 404, 'Tutor not found');
     }
@@ -106,7 +108,7 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
 
     // Send notification to tutor
     const io = req.app.get('io');
-    const requesterName = `${req.user.firstName} ${req.user.lastName}`;
+    const requesterName = `${req.user.firstName || req.user.username || 'User'} ${req.user.lastName || ''}`.trim();
     const notificationMessage = `${requesterName} has requested a session on ${subject} - ${topic}.`;
     await sendNotification(
       io,
@@ -117,6 +119,24 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
       requesterId,
       requesterName
     );
+
+    // Send email to tutor
+    try {
+      if (tutor && tutor.email) {
+        const tpl = T.sessionRequested({
+          tutorName: tutor.firstName || tutor.username,
+          requesterName,
+          subject,
+          topic
+        });
+        console.info('[MAIL] Preparing session request email', { to: tutor.email, requesterName, subject, topic });
+        await sendMail({ to: tutor.email, subject: tpl.subject, html: tpl.html });
+      } else {
+        console.warn('[MAIL] Tutor email missing; skipping email', { tutorId: tutorId.toString() });
+      }
+    } catch (e) {
+      console.error('Failed to send session request email', e);
+    }
 
     res.status(201).json({
       message: 'Session request sent successfully',
@@ -272,6 +292,22 @@ router.post('/approve/:requestId', requireAuth, requestLimiter, validateRequestI
       tutorName
     );
 
+    // Email requester about approval
+    try {
+      const requester = await User.findById(sessionRequest.requester._id);
+      if (requester?.email) {
+        const tpl = T.sessionApproved({
+          requesterName: requester.firstName || requester.username,
+          tutorName,
+          subject: sessionRequest.subject,
+          topic: sessionRequest.topic
+        });
+        await sendMail({ to: requester.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send approval email', e);
+    }
+
     // Do NOT emit 'session-started' here. That should happen when tutor actually starts the session
     // via POST /api/session-requests/start/:requestId. Keeping flow aligned with UX: approve first, then start.
 
@@ -331,6 +367,22 @@ router.post('/reject/:requestId', requireAuth, requestLimiter, validateRequestId
       tutorId,
       tutorName
     );
+
+    // Email requester about rejection
+    try {
+      const requester = await User.findById(sessionRequest.requester._id);
+      if (requester?.email) {
+        const tpl = T.sessionRejected({
+          requesterName: requester.firstName || requester.username,
+          tutorName,
+          subject: sessionRequest.subject,
+          topic: sessionRequest.topic
+        });
+        await sendMail({ to: requester.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send rejection email', e);
+    }
 
     res.json({
       message: 'Session request rejected',

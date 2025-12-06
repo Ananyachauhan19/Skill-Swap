@@ -283,6 +283,17 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
                 if (isModal && onClose) onClose();
                 openRegister();
               }} className="font-medium text-[#154360] hover:underline">Sign Up</button>
+              <div className="mt-2">
+                <button
+                  onClick={() => {
+                    if (isModal && onClose) onClose();
+                    navigate('/forgot-password');
+                  }}
+                  className="text-blue-700 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
             </div>
           </div>
         </div>

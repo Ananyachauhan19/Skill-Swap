@@ -4,6 +4,8 @@ const Session = require('./models/Session');
 const SkillMate = require('./models/SkillMate');
 const Notification = require('./models/Notification');
 const ChatMessage = require('./models/Chat');
+const { sendMail } = require('./utils/sendMail');
+const T = require('./utils/emailTemplates');
 
 module.exports = (io) => {
   // Store session rooms
@@ -846,6 +848,27 @@ module.exports = (io) => {
 
         socket.emit('tutors-found', { tutors: matchingTutors, searchCriteria });
         console.log(`[Find Tutors] Found ${matchingTutors.length} tutors for criteria:`, searchCriteria);
+
+        // Also send email notifications to matching tutors (live matching)
+        try {
+          const requester = await User.findById(socket.userId).select('firstName lastName username');
+          const requesterName = `${requester?.firstName || requester?.username || 'User'} ${requester?.lastName || ''}`.trim();
+          for (const t of matchingTutors) {
+            const tutorDoc = await User.findById(t.userId).select('email firstName username role');
+            if (tutorDoc?.email && (tutorDoc.role === 'teacher' || tutorDoc.role === 'both')) {
+              const tpl = T.sessionRequested({
+                tutorName: tutorDoc.firstName || tutorDoc.username,
+                requesterName,
+                subject: subjectValue || '',
+                topic: topicValue || ''
+              });
+              console.info('[MAIL] Live matching session request email', { to: tutorDoc.email, requesterName, subject: subjectValue, topic: topicValue });
+              await sendMail({ to: tutorDoc.email, subject: tpl.subject, html: tpl.html });
+            }
+          }
+        } catch (e) {
+          console.error('[Find Tutors] Failed to send live matching emails', e);
+        }
       } catch (error) {
         console.error('[Find Tutors] Error:', error);
         socket.emit('tutors-found', { tutors: [], error: 'Failed to find tutors' });

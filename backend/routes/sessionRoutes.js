@@ -6,6 +6,8 @@ const router = express.Router();
 const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
 const tutorCtrl = require('../controllers/tutorController');
+const { sendMail } = require('../utils/sendMail');
+const T = require('../utils/emailTemplates');
 
 router.get('/search', async (req, res) => {
   try {
@@ -52,6 +54,26 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
       });
     } catch (_) {}
     
+    // Email SkillMates: if requester is a skillmate of creator, notify
+    try {
+      const creator = await User.findById(req.user._id).select('skillMates firstName lastName email username');
+      if (creator && Array.isArray(creator.skillMates) && creator.skillMates.length > 0) {
+        const mates = await User.find({ _id: { $in: creator.skillMates } }).select('email firstName username');
+        for (const m of mates) {
+          if (m.email) {
+            const tpl = T.skillmateSessionCreated({
+              mateName: m.firstName || m.username,
+              creatorName: creator.firstName || creator.username,
+              subject,
+              topic
+            });
+            await sendMail({ to: m.email, subject: tpl.subject, html: tpl.html });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to send skillmate session email', e);
+    }
     res.status(201).json(session);
   } catch (err) {
     res.status(500).json({ message: 'Error creating session', error: err.message });
@@ -198,6 +220,20 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
     if (session.requester && session.requester.socketId) {
       io.to(session.requester.socketId).emit('session-approved', session);
     }
+    // Email requester
+    try {
+      if (session.requester?.email) {
+        const tpl = T.sessionApproved({
+          requesterName: session.requester.firstName || session.requester.username,
+          tutorName: req.user.firstName || req.user.username,
+          subject: session.subject,
+          topic: session.topic
+        });
+        await sendMail({ to: session.requester.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send session approval email', e);
+    }
     res.json(session);
   } catch (error) {
     console.error('Approve error:', error);
@@ -224,6 +260,20 @@ router.post('/:id/reject', requireAuth, async (req, res) => {
     const io = req.app.get('io');
     if (session.requester && session.requester.socketId) {
       io.to(session.requester.socketId).emit('session-rejected', session);
+    }
+    // Email requester
+    try {
+      if (session.requester?.email) {
+        const tpl = T.sessionRejected({
+          requesterName: session.requester.firstName || session.requester.username,
+          tutorName: req.user.firstName || req.user.username,
+          subject: session.subject,
+          topic: session.topic
+        });
+        await sendMail({ to: session.requester.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send session rejection email', e);
     }
     res.json(session);
   } catch (error) {

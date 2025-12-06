@@ -1,5 +1,3 @@
-
-
 // vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -12,5 +10,9 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  server: {
+    host: true, // listen on 0.0.0.0 for LAN access
+    port: 5173,
   },
 });

@@ -1,18 +1,34 @@
 import React, { useState } from 'react';
+import { BACKEND_URL } from '../config.js';
+import { toast } from 'react-hot-toast';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email) {
       setError('Please enter your registered email.');
       return;
     }
     setError('');
-    setSubmitted(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/password/forgot`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (res.ok) {
+        setSubmitted(true);
+        toast.success('If the account exists, an email has been sent');
+      } else {
+        toast.error('Failed to send reset email');
+      }
+    } catch (e) {
+      toast.error('Network error');
+    }
   };
 
   return (
@@ -35,12 +51,7 @@ const ForgotPassword = () => {
               className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
               autoComplete="email"
             />
-            <button
-              type="submit"
-              className="bg-blue-600 text-white rounded py-2 font-semibold hover:bg-blue-700 transition"
-            >
-              Send Reset Link
-            </button>
+            <button type="submit" className="bg-blue-600 text-white rounded py-2 font-semibold hover:bg-blue-700 transition">Send Reset Link</button>
           </>
         )}
       </form>

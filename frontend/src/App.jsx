@@ -66,6 +66,8 @@ import RatingPage from './user/RatingPage.jsx';
 import TutorApplication from './tutor/TutorApplication.jsx';
 import TutorVerificationStatus from './tutor/TutorVerificationStatus.jsx';
 import TutorVerification from './admin/TutorVerification.jsx';
+import ForgotPassword from './auth/ForgotPassword.jsx';
+import ResetPassword from './auth/ResetPassword.jsx';
 
 // Define full (regular user) routes
 const appRoutes = [
@@ -73,6 +75,8 @@ const appRoutes = [
   { path: '/', element: <Navigate to="/home" replace /> },
   { path: '/home', element: <Home /> },
   { path: '/login', element: <Login /> },
+  { path: '/forgot-password', element: <ForgotPassword /> },
+  { path: '/reset-password', element: <ResetPassword /> },
   { path: '/register', element: <Register /> },
   { path: '/tutor/apply', element: <ProtectedRoute><TutorApplication /></ProtectedRoute> },
   { path: '/tutor/status', element: <ProtectedRoute><TutorVerificationStatus /></ProtectedRoute> },
