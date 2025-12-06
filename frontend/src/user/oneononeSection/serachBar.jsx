@@ -172,17 +172,12 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
   };
 
   return (
-    <div ref={ref} className="flex flex-col gap-6 p-6 sm:p-8 bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-lg border-2 border-blue-100 max-w-5xl mx-auto">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div ref={ref} className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {/* Course Input */}
         <div className="relative flex-1">
-          <label className="block text-sm font-bold text-[#1e3a8a] mb-2">Class</label>
+          <label className="block text-sm font-semibold text-slate-900 mb-2">Class</label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3b82f6]">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </span>
             <input
               ref={courseInputRef}
               type="text"
@@ -197,8 +192,8 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
             onFocus={() => setShowDropdown(true)}
             onBlur={() => setTimeout(() => { setShowDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
             onKeyDown={handleCourseKeyDown}
-            placeholder="Search Class..."
-            className="pl-12 pr-4 py-3 rounded-xl bg-white border-2 border-blue-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6] text-base font-medium w-full transition-all duration-300"
+            placeholder="Select your class..."
+            className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm outline-none hover:border-slate-400 transition-colors"
             autoComplete="off"
           />
           <AnimatePresence>
@@ -208,12 +203,12 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
                 initial="hidden"
                 animate="visible"
                 exit="exit"
-                className="absolute z-10 left-0 right-0 bg-white border-2 border-blue-200 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-2"
+                className="absolute z-20 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2"
               >
                 {courseList.map((s, idx) => (
                   <motion.li
                     key={idx}
-                    className={`px-4 py-3 text-gray-700 hover:bg-blue-50 cursor-pointer text-base font-medium transition-colors ${highlightedCourseIdx === idx ? 'bg-blue-100' : ''}`}
+                    className={`px-4 py-2.5 text-slate-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedCourseIdx === idx ? 'bg-blue-100' : ''}`}
                     onMouseDown={() => {
                       setCourseValue(s);
                       setShowDropdown(false);
@@ -234,13 +229,8 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
 
         {/* Unit Input */}
         <div className="relative flex-1">
-          <label className="block text-sm font-bold text-[#1e3a8a] mb-2">Subject</label>
+          <label className="block text-sm font-semibold text-slate-900 mb-2">Subject</label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3b82f6]">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </span>
             <input
               ref={unitInputRef}
               type="text"
@@ -254,8 +244,8 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
               onFocus={() => setShowUnitDropdown(true)}
               onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
               onKeyDown={handleUnitKeyDown}
-              placeholder="Search Subject..."
-              className="pl-12 pr-4 py-3 rounded-xl bg-white border-2 border-blue-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6] text-base font-medium w-full transition-all duration-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              placeholder="Select subject..."
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm outline-none hover:border-slate-400 transition-colors disabled:bg-slate-100 disabled:cursor-not-allowed"
               autoComplete="off"
               disabled={!courseValue || !unitList.length}
             />
@@ -266,12 +256,12 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="absolute z-10 left-0 right-0 bg-white border-2 border-blue-200 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-2"
+                  className="absolute z-20 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2"
                 >
                   {unitDropdownList.map((u, idx) => (
                     <motion.li
                       key={idx}
-                      className={`px-4 py-3 text-gray-700 hover:bg-blue-50 cursor-pointer text-base font-medium transition-colors ${highlightedUnitIdx === idx ? 'bg-blue-100' : ''}`}
+                      className={`px-4 py-2.5 text-slate-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedUnitIdx === idx ? 'bg-blue-100' : ''}`}
                       onMouseDown={() => {
                         setUnitValue(u);
                         setShowUnitDropdown(false);
@@ -291,13 +281,8 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
 
         {/* Topic Input */}
         <div className="relative flex-1">
-          <label className="block text-sm font-bold text-[#1e3a8a] mb-2">Topic</label>
+          <label className="block text-sm font-semibold text-slate-900 mb-2">Topic</label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3b82f6]">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-              </svg>
-            </span>
             <input
               ref={topicInputRef}
               type="text"
@@ -310,8 +295,8 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
               onFocus={() => setShowTopicDropdown(true)}
               onBlur={() => setTimeout(() => { setShowTopicDropdown(false); setHighlightedTopicIdx(-1); }, 150)}
               onKeyDown={handleTopicKeyDown}
-              placeholder="Search Topic..."
-              className="pl-12 pr-4 py-3 rounded-xl bg-white border-2 border-blue-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#3b82f6] focus:border-[#3b82f6] text-base font-medium w-full transition-all duration-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              placeholder="Select topic..."
+              className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm outline-none hover:border-slate-400 transition-colors disabled:bg-slate-100 disabled:cursor-not-allowed"
               autoComplete="off"
               disabled={!unitValue || !topicList.length}
             />
@@ -322,12 +307,12 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
                   initial="hidden"
                   animate="visible"
                   exit="exit"
-                  className="absolute z-10 left-0 right-0 bg-white border-2 border-blue-200 rounded-xl shadow-xl max-h-60 overflow-y-auto mt-2"
+                  className="absolute z-20 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto mt-2"
                 >
                   {topicDropdownList.map((t, idx) => (
                     <motion.li
                       key={idx}
-                      className={`px-4 py-3 text-gray-700 hover:bg-blue-50 cursor-pointer text-base font-medium transition-colors ${highlightedTopicIdx === idx ? 'bg-blue-100' : ''}`}
+                      className={`px-4 py-2.5 text-slate-700 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${highlightedTopicIdx === idx ? 'bg-blue-100' : ''}`}
                       onMouseDown={e => {
                         e.preventDefault();
                         setTopicValue(t);
@@ -345,55 +330,16 @@ const SearchBar = forwardRef(({ courseValue, setCourseValue, unitValue, setUnitV
         </div>
       </div>
 
-      {/* Description and Photo Upload */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-        <div>
-          <label htmlFor="question" className="block text-sm font-bold text-[#1e3a8a] mb-2">
-            Your Question (Optional)
-          </label>
-          <textarea
-            id="question"
-            value={questionValue}
-            onChange={e => setQuestionValue(e.target.value)}
-            placeholder="Describe your question or doubt in detail..."
-            className="block w-full rounded-xl border-2 border-blue-200 shadow-sm focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6] text-base p-3 placeholder-gray-400 transition-all duration-300 resize-none"
-            rows="3"
-          />
-        </div>
-        <div>
-          <label htmlFor="questionPhoto" className="block text-sm font-bold text-[#1e3a8a] mb-2">
-            Upload Photo (Optional)
-          </label>
-          <div className="flex items-center justify-center w-full">
-            <label htmlFor="questionPhoto" className="flex flex-col items-center justify-center w-full h-[108px] border-2 border-blue-200 border-dashed rounded-xl cursor-pointer bg-white hover:bg-blue-50 transition-all duration-300">
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <svg className="w-8 h-8 mb-2 text-[#3b82f6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-                <p className="text-xs text-gray-500">{questionPhoto ? questionPhoto.name : 'Click to upload'}</p>
-              </div>
-              <input
-                id="questionPhoto"
-                type="file"
-                accept="image/*"
-                onChange={e => setQuestionPhoto(e.target.files[0])}
-                className="hidden"
-              />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Find Tutor Button */}
+      {/* Find Expert Button */}
       <button
         type="button"
-        className="mt-6 w-full px-8 py-4 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:scale-102 active:scale-98"
+        className="mt-2 w-full px-6 py-3 bg-blue-900 text-white rounded-lg font-semibold text-base hover:bg-blue-800 transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         onClick={() => {
           if (onFindTutor) onFindTutor({ questionValue, questionPhoto });
         }}
         disabled={!courseValue || !unitValue || !topicValue}
       >
-        🔍 Find Expert Tutors
+        Search Available Sessions
       </button>
     </div>
   );

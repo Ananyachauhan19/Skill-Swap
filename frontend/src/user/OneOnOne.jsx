@@ -6,167 +6,126 @@ import Testimonial from "./Testimonial";
 import TopPerformersSection from "./HomeSection/TopPerformersSection";
 import Blog from '../user/company/Blog'; 
 import { useNavigate, useLocation } from 'react-router-dom';
+import StartSkillSwapSearchForm from './oneononeSection/StartSkillSwapSearchForm';
 
 const HowItWorks = () => {
+  const steps = [
+    {
+      number: "01",
+      title: "Share Your Doubt",
+      description: "Enter your class, subject, and topic. Add your specific question or upload a photo of the problem you need help with.",
+      icon: (
+        <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
+    {
+      number: "02",
+      title: "Get Matched Instantly",
+      description: "Our system finds available expert tutors who specialize in your topic. Browse their profiles, ratings, and availability.",
+      icon: (
+        <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      )
+    },
+    {
+      number: "03",
+      title: "Start Live Session",
+      description: "Connect with your chosen tutor through live video chat. Get personalized explanations and clear your doubts in real-time.",
+      icon: (
+        <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    {
+      number: "04",
+      title: "Pay As You Learn",
+      description: "Simple coin-based pricing: ₹0.25 per minute. A 40-minute session costs only 10 coins, and you only pay for the time you use.",
+      icon: (
+        <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    }
+  ];
+
   return (
-    <section className="bg-white rounded-xl p-6 sm:p-8 border border-gray-200">
-      <div className="mb-8">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">
-          How It Works
+    <section className="bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 rounded-2xl p-8 sm:p-12 border border-slate-200/50 shadow-sm">
+      <div className="mb-12 text-center">
+        <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
+          Your Learning Journey in 4 Simple Steps
         </h2>
-        <p className="text-center text-gray-600">
-          Connect with expert tutors and accelerate your learning journey
+        <p className="text-slate-500 text-base max-w-2xl mx-auto leading-relaxed">
+          From doubt to clarity in minutes. Here's how our one-on-one learning platform works
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-          {
-            emoji: "🔍",
-            title: "Search Expert",
-            desc: "Select class, subject, or topic to find the perfect tutor",
-          },
-          {
-            emoji: "🎓",
-            title: "Connect & Learn",
-            desc: "Get real-time guidance from experienced tutors",
-          },
-          {
-            emoji: "💰",
-            title: "Silver Coin System",
-            desc: "Pay 0.25 rupees per minute of learning",
-          },
-          {
-            emoji: "⏱️",
-            title: "Example",
-            desc: "40 min = 10 Coins\n60 min = 15 Coins",
-          }
-        ].map((item, index) => (
-          <div
-            key={index}
-            className="flex flex-col items-center text-center p-6 bg-gray-50 rounded-lg border border-gray-200"
-          >
-            <div className="text-4xl mb-3">
-              {item.emoji}
+      <div className="relative">
+        {/* Connection Line */}
+        <div className="hidden lg:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-900/20 via-blue-900/40 to-blue-900/20" style={{ top: '4rem' }}></div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+          {steps.map((step, index) => (
+            <div key={index} className="relative">
+              {/* Step Card */}
+              <div className="bg-white rounded-xl p-6 border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg group">
+                {/* Number Badge */}
+                <div className="absolute -top-4 -left-4 w-12 h-12 bg-blue-900 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg group-hover:scale-110 transition-transform">
+                  {step.number}
+                </div>
+                
+                {/* Icon */}
+                <div className="mb-4 mt-2 flex justify-center">
+                  <div className="w-16 h-16 bg-blue-900/10 rounded-2xl flex items-center justify-center group-hover:bg-blue-900/20 transition-colors">
+                    {step.icon}
+                  </div>
+                </div>
+                
+                {/* Content */}
+                <h3 className="text-lg font-bold text-slate-900 mb-3 text-center tracking-tight">
+                  {step.title}
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed text-center">
+                  {step.description}
+                </p>
+              </div>
+
+              {/* Arrow for larger screens */}
+              {index < steps.length - 1 && (
+                <div className="hidden lg:block absolute top-16 -right-4 z-10">
+                  <svg className="w-8 h-8 text-blue-900/30" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {item.title}
-            </h3>
-            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
-              {item.desc}
-            </p>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      {/* Call to Action */}
+      <div className="mt-12 text-center bg-blue-900/5 rounded-xl p-6 border border-blue-900/10">
+        <p className="text-slate-900 font-semibold mb-2">Ready to start learning?</p>
+        <p className="text-slate-600 text-sm">Fill in the form above to find your perfect tutor and begin your personalized learning session today!</p>
       </div>
     </section>
   );
 };
 
 const OneOnOne = () => {
-  const [course, setCourse] = useState('');
-  const [unit, setUnit] = useState('');
-  const [topic, setTopic] = useState('');
-  const [showTutors, setShowTutors] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
-  const searchBarRef = useRef(null);
-
-  useEffect(() => {
-    const { course, unit, topic } = location.state || {};
-    if (course || unit || topic) {
-      setCourse(course || '');
-      setUnit(unit || '');
-      setTopic(topic || '');
-      const fetchData = async () => {
-        setLoading(true);
-        setShowTutors(true);
-        try {
-          const queryParams = new URLSearchParams();
-          if (course) queryParams.append('subject', course);
-          if (unit) queryParams.append('topic', unit);
-          if (topic) queryParams.append('subtopic', topic);
-          const token = localStorage.getItem('token');
-          const res = await fetch(`${BACKEND_URL}/api/sessions/search?${queryParams.toString()}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setSearchResults(data);
-          } else {
-            setSearchResults([]);
-          }
-        } catch {
-          setSearchResults([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchData();
-    }
-  }, [location.state]);
-
-  const handleFindTutor = async () => {
-    setLoading(true);
-    setShowTutors(true);
-
-    try {
-      const queryParams = new URLSearchParams();
-      if (course) queryParams.append('subject', course);
-      if (unit) queryParams.append('topic', unit);
-      if (topic) queryParams.append('subtopic', topic);
-
-      const token = localStorage.getItem('token');
-
-      const res = await fetch(`${BACKEND_URL}/api/sessions/search?${queryParams.toString()}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) throw new Error('Unauthorized or failed request');
-
-      const data = await res.json();
-      setSearchResults(data);
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRequestSession = async (session) => {
-    if (!session._id) {
-      alert('Error: Missing sessionId in session data.');
-      return;
-    }
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/sessions/request/${session._id}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!res.ok) throw new Error('Failed to send session request');
-
-      alert('Session request sent successfully!');
-    } catch {
-      alert('Failed to send session request.');
-    }
-  };
 
   return (
     <div className="min-h-screen w-full bg-home-bg">
       {/* Hero Section */}
-      <section className="relative min-h-[75vh] w-full flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-6 sm:pb-8 bg-home-bg">
+      <section className="relative min-h-[75vh] w-full flex items-center justify-center overflow-hidden pt-16 sm:pt-20 pb-6 sm:pb-8 bg-gradient-to-b from-slate-50 to-white">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 left-10 w-72 h-72 bg-blue-900/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-900/5 rounded-full blur-3xl"></div>
         </div>
 
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -174,137 +133,74 @@ const OneOnOne = () => {
             {/* Left Content */}
             <div className="flex-1 text-center lg:text-left space-y-6">
               <div className="inline-block">
-                <span className="px-4 py-2 bg-blue-100 text-[#1e3a8a] rounded-full text-sm font-semibold">
-                  🎓 One-on-One Learning Platform
+                <span className="px-4 py-2 bg-blue-900/10 text-blue-900 rounded-full text-xs font-semibold tracking-wide">
+                  One-on-One Learning Platform
                 </span>
               </div>
               
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#1e3a8a] leading-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-slate-900 leading-tight tracking-tight">
                 Connect with Experts for
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[#3b82f6] to-[#2563eb] mt-2">
+                <span className="block text-blue-900 mt-2">
                   Personalized Learning
                 </span>
               </h1>
               
-              <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto lg:mx-0">
+              <p className="text-base sm:text-lg text-slate-500 max-w-2xl mx-auto lg:mx-0">
                 Instantly connect with subject experts, get your doubts solved in real-time, and accelerate your learning journey.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
                 <button
                   onClick={() => window.location.href = '/createSession'}
-                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-xl font-bold text-base hover:shadow-2xl transition-all hover:scale-105 transform"
+                  className="w-full sm:w-auto px-8 py-4 bg-blue-900 text-white rounded-xl font-semibold text-base hover:bg-blue-800 transition-all hover:shadow-xl"
                 >
-                  📝 Create a Session
+                  Create a Session
                 </button>
                 <button
                   onClick={() => navigate('/startskillswap')}
-                  className="w-full sm:w-auto px-8 py-4 bg-white text-[#1e3a8a] border-2 border-[#3b82f6] rounded-xl font-bold text-base hover:bg-blue-50 transition-all hover:scale-105 transform shadow-md"
+                  className="w-full sm:w-auto px-8 py-4 bg-white text-blue-900 border-2 border-blue-900 rounded-xl font-semibold text-base hover:bg-blue-50 transition-all"
                 >
-                  🔄 Start SkillSwap
+                  Find Expert Session
                 </button>
               </div>
             </div>
 
             {/* Right Illustration */}
-            <div className="flex-1 relative">
-              <div className="relative w-full max-w-md mx-auto">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/20 to-[#2563eb]/20 rounded-3xl blur-2xl"></div>
-                <img
-                  src="/assets/expert-connect-illustration.webp"
-                  alt="Expert Connect"
-                  className="relative w-full h-auto object-contain drop-shadow-2xl"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+<div className="flex-1 relative">
+  <div className="relative w-full max-w-[480px] mx-auto scale-110">
+    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
+    <img
+      src="/assets/expert-connect-illustration.webp"
+      alt="Expert Connect"
+      className="relative w-full h-auto object-contain drop-shadow-2xl"
+    />
+  </div>
+</div>
+ </div>
+</div>
+
 
         {/* Scroll Indicator */}
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 text-gray-600">
-          <span className="text-xs sm:text-sm font-medium">Scroll to explore</span>
-          <div className="w-6 h-10 border-2 border-[#2563eb] rounded-full flex items-start justify-center p-1">
-            <div className="w-1.5 h-3 bg-[#2563eb] rounded-full animate-bounce"></div>
-          </div>
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col items-center gap-2 text-slate-400">
+       
+          
         </div>
       </section>
 
       {/* Main Content */}
       <main className="w-full max-w-7xl mx-auto flex flex-col gap-12 sm:gap-16 px-4 sm:px-8 py-8 sm:py-12 lg:py-16">
-        {/* Search Section */}
-        <section className="bg-white rounded-xl p-6 sm:p-8 border border-gray-200">
-          <div className="mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">
-              Find Your Expert
+        {/* Start SkillSwap Search Section */}
+        <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-2xl p-8 sm:p-12 border border-slate-200/50 shadow-sm">
+          <div className="mb-10">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 text-center mb-3 tracking-tight">
+              Find Your Perfect Tutor Instantly
             </h2>
-            <p className="text-center text-gray-600 text-sm">Search by class, subject, and topic</p>
+            <p className="text-center text-slate-500 text-sm max-w-3xl mx-auto leading-relaxed">
+              Connect with experts for personalized one-on-one learning. Enter your class, subject, and topic to get matched with the right tutor who can clear your doubts in real-time.
+            </p>
           </div>
 
-          <SearchBar
-            ref={searchBarRef}
-            courseValue={course}
-            setCourseValue={setCourse}
-            unitValue={unit}
-            setUnitValue={setUnit}
-            topicValue={topic}
-            setTopicValue={setTopic}
-            onFindTutor={handleFindTutor}
-            id="oneonone-search-bar"
-          />
-
-          {showTutors && (
-            <div className="flex flex-col gap-6 mt-8">
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-[#3b82f6] border-t-transparent mb-4"></div>
-                  <p className="text-gray-600 text-lg font-semibold">Searching for experts...</p>
-                </div>
-              ) : Array.isArray(searchResults) && searchResults.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-5xl">🔍</span>
-                  </div>
-                  <h3 className="text-2xl font-bold text-[#1e3a8a] mb-2">No Sessions Found</h3>
-                  <p className="text-gray-600 mb-6">Try adjusting your search criteria or create a new session</p>
-                  <button
-                    onClick={() => window.location.href = '/createSession'}
-                    className="px-8 py-4 bg-gradient-to-r from-[#3b82f6] to-[#2563eb] text-white rounded-xl font-bold hover:shadow-2xl transition-all hover:scale-105"
-                  >
-                    📝 Create Session
-                  </button>
-                </div>
-              ) : Array.isArray(searchResults) ? (
-                <>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-[#1e3a8a]">
-                      Found {searchResults.length} {searchResults.length === 1 ? 'Expert' : 'Experts'}
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {searchResults.map((session, idx) => (
-                      <TutorCard
-                        key={idx}
-                        tutor={{
-                          name: `${session.creator?.firstName ?? ''} ${session.creator?.lastName ?? ''}`.trim() || 'Unknown',
-                          profilePic: session.creator?.profilePic || '/default-user.png',
-                          date: session.date,
-                          time: session.time,
-                          skills: [session.subject, session.topic, session.subtopic].filter(Boolean),
-                          status: `${session.status}` === 'pending' ? '🟢 Available' : `🔴 Busy (${session.status})`,
-                          rating: session.creator?.rating || 4.5,
-                        }}
-                        onRequestSession={() => handleRequestSession(session)}
-                      />
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-red-600 text-lg font-semibold">⚠️ Unexpected response format</p>
-                </div>
-              )}
-            </div>
-          )}
+          <StartSkillSwapSearchForm />
         </section>
 
         {/* How It Works */}
