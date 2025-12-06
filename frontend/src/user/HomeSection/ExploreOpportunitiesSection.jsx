@@ -2,6 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaUserFriends, FaVideo, FaBriefcase, FaArrowRight } from 'react-icons/fa';
+import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 
 const ExploreOpportunitiesSection = () => {
   const opportunities = [
@@ -49,6 +51,17 @@ const ExploreOpportunitiesSection = () => {
   };
 
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { openLogin } = useModal();
+
+  const handleNavigate = (link) => {
+    if (!link) return;
+    if (!user) {
+      openLogin();
+      return;
+    }
+    navigate(link);
+  };
 
   return (
     <section id="explore" className="py-6 sm:py-8 bg-home-bg">
@@ -85,7 +98,7 @@ const ExploreOpportunitiesSection = () => {
             <motion.div
               key={index}
               variants={itemVariants}
-              onClick={() => navigate(item.link)}
+              onClick={() => handleNavigate(item.link)}
               className="relative rounded-2xl p-8 shadow-sm border border-gray-100 cursor-pointer overflow-hidden"
               style={{
                 backgroundImage: item.backgroundImage ? `url(${item.backgroundImage})` : 'none',
@@ -113,8 +126,8 @@ const ExploreOpportunitiesSection = () => {
                 </p>
                 <button
                   onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(item.link);
+    e.stopPropagation();
+    handleNavigate(item.link);
                   }}
                   className="flex items-center text-sm font-semibold text-blue-600"
                 >
@@ -166,7 +179,7 @@ const ExploreOpportunitiesSection = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(item.link);
+                      handleNavigate(item.link);
                     }}
                     className="flex items-center text-xs font-semibold text-blue-600"
                   >

@@ -670,8 +670,8 @@ const Navbar = () => {
 
           {/* Right Side: Icons and Search */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Search */}
-            <form onSubmit={handleSearch} className="hidden md:flex items-center" ref={searchRef}>
+            {/* Search - only show when logged in */}
+            {isLoggedIn && <form onSubmit={handleSearch} className="hidden md:flex items-center" ref={searchRef}>
               <div className="relative">
                 <input
                   type="text"
@@ -731,7 +731,7 @@ const Navbar = () => {
                   </div>
                 )}
               </div>
-            </form>
+            </form>}
 
             {isLoggedIn ? (
               <>

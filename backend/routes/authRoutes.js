@@ -264,8 +264,8 @@ router.get('/stats/public', async (req, res) => {
   }
 });
 
-// Search users for SkillMate (navbar search)
-router.get('/search/users', async (req, res) => {
+// Search users for SkillMate (navbar search) - requires authentication
+router.get('/search/users', requireAuth, async (req, res) => {
   try {
     const { q, limit } = req.query;
     if (!q || q.trim().length < 2) {
@@ -295,8 +295,8 @@ router.get('/search/users', async (req, res) => {
   }
 });
 
-// Search users by username
-router.get('/search', async (req, res) => {
+// Search users by username - requires authentication
+router.get('/search', requireAuth, async (req, res) => {
   try {
     const { username } = req.query;
     if (!username) {

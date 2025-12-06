@@ -3,10 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaTrophy, FaStar, FaFire, FaCoins, FaUserGraduate, FaChalkboardTeacher, FaMedal, FaCrown } from 'react-icons/fa';
 import axios from 'axios';
+import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../context/ModalContext';
 
 const TopPerformersSection = () => {
   const [activeTab, setActiveTab] = useState('all');
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { openLogin } = useModal();
+
+  const handleNavigate = (path) => {
+    if (!user) {
+      openLogin();
+      return;
+    }
+    navigate(path);
+  };
   const [performers, setPerformers] = useState({
     allStars: [],
     mostActive: [],
@@ -19,7 +31,10 @@ const TopPerformersSection = () => {
     const fetchTopPerformers = async () => {
       try {
         const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-        const response = await axios.get(`${backendUrl}/api/sessions/top-performers`);
+        // Determine limit based on screen size
+        const isMobile = window.innerWidth < 768;
+        const limit = isMobile ? 4 : 3;
+        const response = await axios.get(`${backendUrl}/api/sessions/top-performers?limit=${limit}`);
         setPerformers(response.data);
       } catch (error) {
         console.error('Error fetching top performers:', error);
@@ -29,6 +44,30 @@ const TopPerformersSection = () => {
     };
 
     fetchTopPerformers();
+
+    // Re-fetch on window resize to adjust user count with debounce
+    let resizeTimer;
+    let previousLimit = window.innerWidth < 768 ? 4 : 3;
+    
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const isMobile = window.innerWidth < 768;
+        const newLimit = isMobile ? 4 : 3;
+        // Only fetch if limit actually changed
+        if (newLimit !== previousLimit) {
+          previousLimit = newLimit;
+          setLoading(true);
+          fetchTopPerformers();
+        }
+      }, 300); // Debounce for 300ms
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
+    };
   }, []);
 
   const tabs = [
@@ -139,67 +178,56 @@ const TopPerformersSection = () => {
   return (
     <section className="py-6 sm:py-8 bg-home-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-8 sm:mb-10">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-block mb-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100"
-          >
-            <span className="text-xs sm:text-sm font-semibold text-blue-600 flex items-center gap-2">
-              <FaTrophy className="text-yellow-500" /> Hall of Fame
-            </span>
-          </motion.div>
+        <div className="text-center mb-6">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#0A2540] mb-3"
+            className="text-2xl md:text-3xl font-bold text-[#0A2540] mb-2"
           >
-            Meet Our Top Performers
+            Top Performers
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-lg text-gray-600 max-w-2xl mx-auto"
+            className="text-sm text-gray-600"
           >
-            Recognizing the most dedicated learners and exceptional tutors in our community.
+            Recognizing our community leaders
           </motion.p>
         </div>
 
-        {/* Tabs - Desktop */}
-        <div className="hidden md:flex justify-center mb-8 flex-wrap gap-3">
+        {/* Tabs - Desktop: Minimal Design */}
+        <div className="hidden md:flex justify-center mb-6 gap-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${activeTab === tab.id
-                ? 'bg-gradient-to-r from-[#0A2540] to-blue-600 text-white shadow-lg scale-105 transform'
-                : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-blue-300'
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.id
+                ? 'bg-blue-900 text-white shadow-md'
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                 }`}
             >
-              <span className={activeTab === tab.id ? 'text-white' : 'text-gray-500'}>{tab.icon}</span>
               {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Tabs - Mobile: Horizontal Scroll */}
-        <div className="md:hidden mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4">
-          <div className="flex gap-3 pb-2">
+        {/* Tabs - Mobile: All Tabs in One Row */}
+        <div className="md:hidden mb-6 px-2">
+          <div className="flex justify-between gap-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 flex-shrink-0 ${activeTab === tab.id
-                  ? 'bg-gradient-to-r from-[#0A2540] to-blue-600 text-white shadow-lg'
-                  : 'bg-white text-gray-700 border-2 border-gray-200'
+                className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 px-1 rounded-md text-[8px] font-semibold transition-all duration-200 ${activeTab === tab.id
+                  ? 'bg-blue-900 text-white shadow-md'
+                  : 'bg-white text-gray-600 border border-gray-200'
                   }`}
               >
-                <span className={activeTab === tab.id ? 'text-white' : 'text-gray-500'}>{tab.icon}</span>
-                {tab.label}
+                <span className="text-xs mb-0.5">{tab.icon}</span>
+                <span className="leading-tight text-center truncate w-full">{tab.label.split(' ')[0]}</span>
               </button>
             ))}
           </div>
@@ -227,7 +255,7 @@ const TopPerformersSection = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-4"
           >
             <AnimatePresence mode="popLayout">
               {getDisplayCards().map((card, index) => {
@@ -238,112 +266,58 @@ const TopPerformersSection = () => {
                     layout
                     variants={cardVariants}
                     whileHover="hover"
-                    onClick={() => navigate(`/profile/${card.username}`)}
-                    className="bg-white rounded-2xl p-6 border-2 border-gray-100 relative overflow-hidden group shadow-sm hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+                    onClick={() => handleNavigate(`/profile/${card.username}`)}
+                    className="bg-white rounded-xl p-4 border border-gray-200 relative overflow-hidden group shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
                   >
                     {/* Rank Badge - Top Left */}
-                    <div className="absolute top-4 left-4 z-20">
-                      <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${rankBadge.color} flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
-                        <span className="text-2xl">{rankBadge.icon}</span>
+                    <div className="absolute top-3 left-3 z-20">
+                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${rankBadge.color} flex items-center justify-center shadow-md`}>
+                        <span className="text-base">{rankBadge.icon}</span>
                       </div>
                     </div>
 
-                    {/* Background Gradient Decoration */}
-                    <div className={`absolute top-0 right-0 w-40 h-40 bg-gradient-to-br ${
-                      card.color === 'orange' ? 'from-orange-50 to-orange-100' :
-                      card.color === 'yellow' ? 'from-yellow-50 to-yellow-100' :
-                      card.color === 'green' ? 'from-green-50 to-green-100' :
-                      'from-blue-50 to-blue-100'
-                    } rounded-full -mr-20 -mt-20 transition-transform group-hover:scale-150 duration-700 opacity-50`} />
-
-                    <div className="relative z-10">
-                      {/* Icon and Badge */}
-                      <div className="flex justify-between items-start mb-6 pt-16">
-                        <div className={`p-3 rounded-xl shadow-md ${
-                          card.color === 'orange' ? 'bg-orange-100' :
-                          card.color === 'yellow' ? 'bg-yellow-100' :
-                          card.color === 'green' ? 'bg-green-100' :
-                          'bg-blue-100'
-                        } text-3xl transform group-hover:rotate-12 transition-transform duration-300`}>
-                          {card.icon}
-                        </div>
-                        <span className={`px-3 py-1.5 rounded-full text-xs font-bold shadow-sm ${
-                          card.color === 'orange' ? 'bg-orange-100 text-orange-700' :
-                          card.color === 'yellow' ? 'bg-yellow-100 text-yellow-700' :
-                          card.color === 'green' ? 'bg-green-100 text-green-700' :
-                          'bg-blue-100 text-blue-700'
-                        }`}>
-                          {card.badge}
-                        </span>
-                      </div>
+                    <div className="relative z-10 pt-10">
 
                       {/* User Info */}
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="relative">
-                          <div className="w-20 h-20 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
-                            <img
-                              src={card.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=128`}
-                              alt={card.username}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=128`;
-                              }}
-                            />
-                          </div>
-                          <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1.5 shadow-md">
-                            {card.role === 'teacher' || card.role === 'both' ? 
-                              <FaChalkboardTeacher className="text-purple-600 text-sm" /> : 
-                              <FaUserGraduate className="text-blue-600 text-sm" />
-                            }
-                          </div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-14 h-14 rounded-full border-2 border-gray-200 shadow-sm overflow-hidden bg-gray-100 flex-shrink-0">
+                          <img
+                            src={card.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=128`}
+                            alt={card.username}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=128`;
+                            }}
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-lg text-gray-900 truncate">
+                          <h3 className="font-semibold text-base text-gray-900 truncate">
                             {card.firstName} {card.lastName}
                           </h3>
-                          <p className="text-sm text-gray-500 truncate">@{card.username}</p>
-                          <p className="text-xs text-gray-400 mt-0.5 capitalize">
-                            {card.role === 'both' ? 'Tutor & Learner' : card.role}
-                          </p>
-                        </div>
-                        {/* Explore Opportunity quick CTA */}
-                        <div className="ml-auto">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate('/StartSkillSwap'); }}
-                            className="px-3 py-1.5 text-xs font-semibold bg-blue-500 text-white rounded-full hover:bg-blue-600"
-                          >
-                            Explore Opportunity
-                          </button>
+                          <p className="text-xs text-gray-500 truncate">@{card.username}</p>
                         </div>
                       </div>
 
                       {/* Stats / Metrics */}
                       {card.type === 'all' ? (
-                        <div className="pt-4 border-t border-gray-100">
-                          <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-3">
-                            {card.title}
-                          </p>
+                        <div className="pt-3 border-t border-gray-100">
                           <div className="grid grid-cols-3 gap-2">
                             {card.metrics.map(m => (
                               <div key={m.label} className="text-center">
-                                <p className="text-[10px] uppercase text-gray-500 font-semibold tracking-wide">{m.label}</p>
-                                <p className="text-lg font-bold text-[#0A2540]">{m.value}</p>
+                                <p className="text-[10px] text-gray-500 font-medium">{m.label}</p>
+                                <p className="text-base font-bold text-[#0A2540]">{m.value}</p>
                               </div>
                             ))}
                           </div>
-                          <p className="text-sm text-gray-600 mt-4 font-medium">{card.subtext}</p>
                         </div>
                       ) : (
-                        <div className="space-y-3 pt-4 border-t border-gray-100">
-                          <p className="text-xs text-gray-500 uppercase tracking-wider font-bold">
-                            {card.title}
-                          </p>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-extrabold text-[#0A2540]">
+                        <div className="pt-3 border-t border-gray-100">
+                          <div className="text-center">
+                            <span className="text-2xl font-bold text-[#0A2540]">
                               {card.stat}
                             </span>
+                            <p className="text-xs text-gray-500 mt-1">{card.subtext}</p>
                           </div>
-                          <p className="text-sm text-gray-600 leading-relaxed">{card.subtext}</p>
                         </div>
                       )}
                     </div>
@@ -353,9 +327,9 @@ const TopPerformersSection = () => {
             </AnimatePresence>
           </motion.div>
 
-          {/* Mobile: Compact Grid - 3 Cards in One Line */}
+          {/* Mobile: Compact Grid */}
           <div className="md:hidden">
-            <div className="grid grid-cols-3 gap-2 px-2">
+            <div className="grid grid-cols-2 gap-3 px-2">
               <AnimatePresence mode="popLayout">
                 {getDisplayCards().map((card, index) => {
                   const rankBadge = getRankBadge(card.rank);
@@ -366,78 +340,56 @@ const TopPerformersSection = () => {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: index * 0.1 }}
-                      onClick={() => navigate(`/profile/${card.username}`)}
-                      className="bg-white rounded-lg p-3 border border-gray-100 relative overflow-hidden shadow-sm cursor-pointer"
+                      onClick={() => handleNavigate(`/profile/${card.username}`)}
+                      className="bg-white rounded-lg p-3 border border-gray-200 relative overflow-hidden shadow-sm cursor-pointer"
                     >
                       {/* Rank Badge */}
                       <div className="absolute top-2 left-2 z-20">
-                        <div className={`w-7 h-7 rounded-full bg-gradient-to-br ${rankBadge.color} flex items-center justify-center shadow-sm`}>
-                          <span className="text-sm">{rankBadge.icon}</span>
+                        <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${rankBadge.color} flex items-center justify-center shadow-sm`}>
+                          <span className="text-xs">{rankBadge.icon}</span>
                         </div>
                       </div>
 
                       <div className="relative z-10">
                         {/* User Avatar - Centered */}
-                        <div className="flex flex-col items-center pt-8 mb-2">
-                          <div className="relative mb-2">
-                            <div className="w-12 h-12 rounded-full border-2 border-white shadow-sm overflow-hidden bg-gray-100">
-                              <img
-                                src={card.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=64`}
-                                alt={card.username}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=64`;
-                                }}
-                              />
-                            </div>
+                        <div className="flex flex-col items-center pt-6 mb-2">
+                          <div className="w-16 h-16 rounded-full border-2 border-gray-200 shadow-sm overflow-hidden bg-gray-100 mb-2">
+                            <img
+                              src={card.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=64`}
+                              alt={card.username}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(card.firstName)}+${encodeURIComponent(card.lastName)}&background=random&size=64`;
+                              }}
+                            />
                           </div>
                           
                           {/* User Name */}
-                          <h3 className="font-bold text-xs text-gray-900 truncate w-full text-center">
-                            {card.firstName}
+                          <h3 className="font-semibold text-sm text-gray-900 truncate w-full text-center">
+                            {card.firstName} {card.lastName}
                           </h3>
-                          <p className="text-[10px] text-gray-500 truncate w-full text-center">@{card.username}</p>
-                        </div>
-
-                        {/* Badge */}
-                        <div className="flex justify-center mb-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                            card.color === 'orange' ? 'bg-orange-100 text-orange-700' :
-                            card.color === 'yellow' ? 'bg-yellow-100 text-yellow-700' :
-                            card.color === 'green' ? 'bg-green-100 text-green-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
-                            {card.badge}
-                          </span>
+                          <p className="text-xs text-gray-500 truncate w-full text-center">@{card.username}</p>
                         </div>
 
                         {/* Stats - Compact */}
                         {card.type === 'all' ? (
-                          <div className="text-center">
-                            <div className="grid grid-cols-3 gap-1 mb-1">
+                          <div className="text-center pt-2 border-t border-gray-100">
+                            <div className="grid grid-cols-3 gap-1">
                               {card.metrics.map(m => (
                                 <div key={m.label} className="text-center">
-                                  <p className="text-[8px] text-gray-500 font-semibold">{m.label}</p>
+                                  <p className="text-[9px] text-gray-500 font-medium">{m.label}</p>
                                   <p className="text-xs font-bold text-[#0A2540]">{m.value}</p>
                                 </div>
                               ))}
                             </div>
                           </div>
                         ) : (
-                          <div className="text-center">
-                            <span className="text-sm font-extrabold text-[#0A2540] block">
+                          <div className="text-center pt-2 border-t border-gray-100">
+                            <span className="text-base font-bold text-[#0A2540] block">
                               {card.stat}
                             </span>
                           </div>
                         )}
-
-                        {/* CTA Button - Compact */}
-                        <button
-                          onClick={(e) => { e.stopPropagation(); navigate('/StartSkillSwap'); }}
-                          className="mt-2 w-full px-2 py-1.5 text-[9px] font-semibold bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                        >
-                          Explore
-                        </button>
                       </div>
                     </motion.div>
                   );

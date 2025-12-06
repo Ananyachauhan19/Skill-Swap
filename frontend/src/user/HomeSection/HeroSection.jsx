@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { BACKEND_URL } from "../../config.js";
+import { useAuth } from "../../context/AuthContext";
+import { useModal } from "../../context/ModalContext";
 
 // Fetch user profile from backend
 const fetchUserProfile = async () => {
@@ -47,9 +49,11 @@ const profileVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
 };
 
-const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegister, closeModals, exploreRef }) => {
+const HeroSection = ({ exploreRef }) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user: authUser } = useAuth();
+  const { openLogin, openRegister } = useModal();
+  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [promptIndex, setPromptIndex] = useState(0);
@@ -62,21 +66,20 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
     "Discover courses to boost your career!",
   ];
 
-  // Debug mode: Force profile section to show for testing (set to false in production)
-  const debugMode = true; // Change to false to rely on actual isLoggedIn state
+  const isLoggedIn = !!authUser;
 
   // Fetch user profile on mount if logged in
   useEffect(() => {
-    if (isLoggedIn || debugMode) {
+    if (isLoggedIn) {
       const loadUser = async () => {
         setLoading(true);
         setError(null);
         try {
           const data = await fetchUserProfile();
-          setUser(data);
+          setUserProfile(data);
         } catch (err) {
           setError(err.message);
-          setUser({ fullName: "Professional", profilePic: "https://placehold.co/100x100?text=User" });
+          setUserProfile({ fullName: "Professional", profilePic: "https://placehold.co/100x100?text=User" });
         } finally {
           setLoading(false);
         }
@@ -84,7 +87,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
       loadUser();
     } else {
       setLoading(false);
-      setUser(null);
+      setUserProfile(null);
     }
   }, [isLoggedIn]);
 
@@ -96,10 +99,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
     return () => clearInterval(interval);
   }, [prompts.length]);
 
-  // Debugging logs
-  useEffect(() => {
-    console.log("HeroSection State:", { isLoggedIn, debugMode, user, loading, error });
-  }, [isLoggedIn, user, loading, error]);
+
 
   return (
     <section className="relative z-10 min-h-[calc(100vh-80px)] w-full bg-home-bg flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-hidden pt-16 sm:pt-3">
@@ -134,7 +134,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
             SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.
           </motion.p>
           <motion.div className="flex flex-wrap gap-2 justify-center lg:justify-start px-2 sm:px-0" variants={textVariants}>
-            {(isLoggedIn || debugMode) ? (
+            {isLoggedIn ? (
               <motion.button
                 onClick={() => navigate('/home#explore')}
                 className="bg-blue-900 text-white px-4 py-2 rounded-md font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300"
@@ -156,7 +156,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
               </motion.button>
             )}
             <motion.button
-              onClick={() => navigate("/pro")}
+              onClick={() => isLoggedIn ? navigate("/pro") : openLogin()}
               className="border-2 border-blue-900 text-blue-900 px-4 py-2 rounded-md font-semibold text-sm hover:bg-blue-900 hover:text-white transition-all duration-300"
               variants={buttonVariants}
               whileHover="hover"
@@ -169,7 +169,7 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
 
         {/* Hero Image and Profile Section */}
         <div className="flex flex-col w-full lg:w-1/2 items-center justify-start gap-2 mt-12 lg:mt-16">
-          {(isLoggedIn || debugMode) && (
+          {isLoggedIn && (
             <motion.div
               className="w-full max-w-full sm:max-w-[500px] md:max-w-[580px] bg-gradient-to-r from-blue-800 to-blue-600 rounded-lg shadow-xl border border-blue-200 px-4 py-3 z-20"
               variants={profileVariants}
@@ -188,15 +188,15 @@ const HeroSection = ({ isLoggedIn, showLoginModal, showRegisterModal, openRegist
                     />
                     <p className="text-sm font-medium text-white truncate">Welcome, Professional!</p>
                   </>
-                ) : user ? (
+                ) : userProfile ? (
                   <>
                     <img
-                      src={user.profilePic}
+                      src={userProfile.profilePic}
                       alt="User Avatar"
                       className="w-8 h-8 rounded-full border border-blue-200"
                     />
                     <p className="text-sm font-medium text-white truncate">
-                      Welcome, {user.fullName || "Professional"}!
+                      Welcome, {userProfile.fullName || "Professional"}!
                     </p>
                   </>
                 ) : (

@@ -375,158 +375,183 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/sessions/top-performers – compute from SessionRequest collection
+// GET /api/sessions/top-performers – compute from SessionRequest collection (OPTIMIZED)
 router.get('/top-performers', async (req, res) => {
   try {
+    // Get limit from query parameter, default to 3
+    const limit = parseInt(req.query.limit) || 3;
+    
     // Only consider completed sessions for metrics
     const completedMatch = { status: 'completed' };
 
-    // Top Rated Tutors (legacy single rating field) - Top 3
-    const topRatedAgg = await SessionRequest.aggregate([
-      { $match: { ...completedMatch, rating: { $ne: null } } },
-      { $group: { _id: '$tutor', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } },
-      { $sort: { avgRating: -1, count: -1 } },
-      { $limit: 3 },
-    ]);
-
-    const topRated = await Promise.all(
-      topRatedAgg.map(async (doc) => {
-        const user = await User.findById(doc._id).select('firstName lastName username profilePic role');
-        if (user) {
-          return {
-            _id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            username: user.username,
-            profilePic: user.profilePic,
-            role: user.role,
-            rating: Number(doc.avgRating.toFixed(1)),
-            ratingCount: doc.count,
-          };
+    // Run all aggregations in parallel for better performance
+    const [topRatedAgg, mostActiveAgg, topEarnerAgg, allStarsAgg] = await Promise.all([
+      // Top Rated Tutors with $lookup to fetch user data in one query
+      SessionRequest.aggregate([
+        { $match: { ...completedMatch, rating: { $ne: null } } },
+        { $group: { _id: '$tutor', avgRating: { $avg: '$rating' }, count: { $sum: 1 } } },
+        { $sort: { avgRating: -1, count: -1 } },
+        { $limit: limit },
+        { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'userInfo' } },
+        { $unwind: '$userInfo' },
+        { $project: {
+            _id: '$userInfo._id',
+            firstName: '$userInfo.firstName',
+            lastName: '$userInfo.lastName',
+            username: '$userInfo.username',
+            profilePic: '$userInfo.profilePic',
+            role: '$userInfo.role',
+            avgRating: 1,
+            count: 1
+          }
         }
-        return null;
-      })
-    ).then(results => results.filter(Boolean));
-
-    // Most Active Learners (by count of completed requests as requester) - Top 3
-    const mostActiveAgg = await SessionRequest.aggregate([
-      { $match: completedMatch },
-      { $group: { _id: '$requester', sessionCount: { $sum: 1 } } },
-      { $sort: { sessionCount: -1 } },
-      { $limit: 3 },
-    ]);
-
-    const mostActive = await Promise.all(
-      mostActiveAgg.map(async (doc) => {
-        const user = await User.findById(doc._id).select('firstName lastName username profilePic role');
-        if (user) {
-          return {
-            _id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            username: user.username,
-            profilePic: user.profilePic,
-            role: user.role,
-            sessionCount: doc.sessionCount,
-          };
+      ]),
+      
+      // Most Active Learners with $lookup
+      SessionRequest.aggregate([
+        { $match: completedMatch },
+        { $group: { _id: '$requester', sessionCount: { $sum: 1 } } },
+        { $sort: { sessionCount: -1 } },
+        { $limit: limit },
+        { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'userInfo' } },
+        { $unwind: '$userInfo' },
+        { $project: {
+            _id: '$userInfo._id',
+            firstName: '$userInfo.firstName',
+            lastName: '$userInfo.lastName',
+            username: '$userInfo.username',
+            profilePic: '$userInfo.profilePic',
+            role: '$userInfo.role',
+            sessionCount: 1
+          }
         }
-        return null;
-      })
-    ).then(results => results.filter(Boolean));
-
-    // Top Earners (separate silver / gold coins earned by tutors from completed sessions) - Top 3
-    const topEarnerAgg = await SessionRequest.aggregate([
-      { $match: completedMatch },
-      { $group: { _id: { tutor: '$tutor', coinType: '$coinType' }, coins: { $sum: { $ifNull: ['$coinsSpent', 0] } } } },
-      { $group: { _id: '$_id.tutor', coinsBreakdown: { $push: { coinType: '$_id.coinType', coins: '$coins' } }, totalEarnings: { $sum: '$coins' } } },
-      { $sort: { totalEarnings: -1 } },
-      { $limit: 3 }
-    ]);
-
-    const topEarners = await Promise.all(
-      topEarnerAgg.map(async (doc) => {
-        const user = await User.findById(doc._id).select('firstName lastName username profilePic role');
-        if (user) {
-          const silverEntry = doc.coinsBreakdown.find(c => c.coinType === 'silver');
-          const goldEntry = doc.coinsBreakdown.find(c => c.coinType === 'gold');
-          const silverEarnings = silverEntry ? silverEntry.coins : 0;
-          const goldEarnings = goldEntry ? goldEntry.coins : 0;
-          return {
-            _id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            username: user.username,
-            profilePic: user.profilePic,
-            role: user.role,
-            silverEarnings,
-            goldEarnings,
-            totalEarnings: silverEarnings + goldEarnings,
-          };
+      ]),
+      
+      // Top Earners with $lookup
+      SessionRequest.aggregate([
+        { $match: completedMatch },
+        { $group: { _id: { tutor: '$tutor', coinType: '$coinType' }, coins: { $sum: { $ifNull: ['$coinsSpent', 0] } } } },
+        { $group: { _id: '$_id.tutor', coinsBreakdown: { $push: { coinType: '$_id.coinType', coins: '$coins' } }, totalEarnings: { $sum: '$coins' } } },
+        { $sort: { totalEarnings: -1 } },
+        { $limit: limit },
+        { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'userInfo' } },
+        { $unwind: '$userInfo' },
+        { $project: {
+            _id: '$userInfo._id',
+            firstName: '$userInfo.firstName',
+            lastName: '$userInfo.lastName',
+            username: '$userInfo.username',
+            profilePic: '$userInfo.profilePic',
+            role: '$userInfo.role',
+            coinsBreakdown: 1,
+            totalEarnings: 1
+          }
         }
-        return null;
-      })
-    ).then(results => results.filter(Boolean));
-
-    // All Stars – overall active learners (exclude pure tutors) based on combined engagement
-    // Metrics: sessionCount, avgTutorRating (ratingByTutor), distinctTutorsCount
-    const allStarsAgg = await SessionRequest.aggregate([
-      { $match: completedMatch },
-      { $group: { 
-          _id: '$requester',
-          sessionCount: { $sum: 1 },
-          tutors: { $addToSet: '$tutor' },
-          ratings: { $push: '$ratingByTutor' }
-        } 
-      }
+      ]),
+      
+      // All Stars - Optimized with $lookup and filter only learner/both roles
+      SessionRequest.aggregate([
+        { $match: completedMatch },
+        { $group: { 
+            _id: '$requester',
+            sessionCount: { $sum: 1 },
+            tutors: { $addToSet: '$tutor' },
+            ratings: { $push: '$ratingByTutor' }
+          } 
+        },
+        { $lookup: { from: 'users', localField: '_id', foreignField: '_id', as: 'userInfo' } },
+        { $unwind: '$userInfo' },
+        { $match: { 'userInfo.role': { $in: ['learner', 'both'] } } },
+        { $project: {
+            _id: '$userInfo._id',
+            firstName: '$userInfo.firstName',
+            lastName: '$userInfo.lastName',
+            username: '$userInfo.username',
+            profilePic: '$userInfo.profilePic',
+            role: '$userInfo.role',
+            sessionCount: 1,
+            tutors: 1,
+            ratings: 1
+          }
+        }
+      ])
     ]);
 
-    // Build learner performance list
-    const learnerPerf = [];
-    for (const doc of allStarsAgg) {
-      const user = await User.findById(doc._id).select('firstName lastName username profilePic role');
-      if (!user) continue;
-      if (!(user.role === 'learner' || user.role === 'both')) continue; // only learners / both
+    // Format Top Rated results
+    const topRated = topRatedAgg.map(doc => ({
+      _id: doc._id,
+      firstName: doc.firstName,
+      lastName: doc.lastName,
+      username: doc.username,
+      profilePic: doc.profilePic,
+      role: doc.role,
+      rating: Number(doc.avgRating.toFixed(1)),
+      ratingCount: doc.count,
+    }));
+
+    // Format Most Active results
+    const mostActive = mostActiveAgg.map(doc => ({
+      _id: doc._id,
+      firstName: doc.firstName,
+      lastName: doc.lastName,
+      username: doc.username,
+      profilePic: doc.profilePic,
+      role: doc.role,
+      sessionCount: doc.sessionCount,
+    }));
+
+    // Format Top Earners results
+    const topEarners = topEarnerAgg.map(doc => {
+      const silverEntry = doc.coinsBreakdown.find(c => c.coinType === 'silver');
+      const goldEntry = doc.coinsBreakdown.find(c => c.coinType === 'gold');
+      return {
+        _id: doc._id,
+        firstName: doc.firstName,
+        lastName: doc.lastName,
+        username: doc.username,
+        profilePic: doc.profilePic,
+        role: doc.role,
+        silverEarnings: silverEntry ? silverEntry.coins : 0,
+        goldEarnings: goldEntry ? goldEntry.coins : 0,
+        totalEarnings: doc.totalEarnings,
+      };
+    });
+
+    // Process All Stars with composite scoring
+    const learnerPerf = allStarsAgg.map(doc => {
       const validRatings = (doc.ratings || []).filter(r => r !== null && r !== undefined);
       const avgTutorRating = validRatings.length ? (validRatings.reduce((a,b)=>a+b,0) / validRatings.length) : 0;
-      const distinctTutorsCount = (doc.tutors || []).length;
-      learnerPerf.push({
-        userId: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        profilePic: user.profilePic,
-        role: user.role,
+      return {
+        _id: doc._id,
+        firstName: doc.firstName,
+        lastName: doc.lastName,
+        username: doc.username,
+        profilePic: doc.profilePic,
+        role: doc.role,
         sessionCount: doc.sessionCount,
         avgTutorRating: Number(avgTutorRating.toFixed(1)),
-        distinctTutorsCount
-      });
+        distinctTutorsCount: (doc.tutors || []).length
+      };
+    });
+
+    // Calculate composite scores and rank
+    if (learnerPerf.length > 0) {
+      const maxSessions = Math.max(...learnerPerf.map(l => l.sessionCount), 1);
+      const maxDistinctTutors = Math.max(...learnerPerf.map(l => l.distinctTutorsCount), 1);
+
+      const rankedLearners = learnerPerf.map(l => ({
+        ...l,
+        compositeScore: (
+          (l.sessionCount / maxSessions) * 0.4 +
+          (l.avgTutorRating / 5) * 0.4 +
+          (l.distinctTutorsCount / maxDistinctTutors) * 0.2
+        )
+      })).sort((a,b) => b.compositeScore - a.compositeScore).slice(0, limit);
+
+      var allStars = rankedLearners.map(({ compositeScore, ...rest }) => rest);
+    } else {
+      var allStars = [];
     }
-
-    // Normalization for composite ranking (not returned visibly)
-    const maxSessions = Math.max(...learnerPerf.map(l => l.sessionCount), 1);
-    const maxDistinctTutors = Math.max(...learnerPerf.map(l => l.distinctTutorsCount), 1);
-
-    const rankedLearners = learnerPerf.map(l => ({
-      ...l,
-      compositeScore: (
-        (l.sessionCount / maxSessions) * 0.4 +
-        (l.avgTutorRating / 5) * 0.4 +
-        (l.distinctTutorsCount / maxDistinctTutors) * 0.2
-      )
-    })).sort((a,b) => b.compositeScore - a.compositeScore).slice(0,3);
-
-    // Hide composite score number for All Stars in response (frontend won't display)
-    const allStars = rankedLearners.map(l => ({
-      _id: l.userId,
-      firstName: l.firstName,
-      lastName: l.lastName,
-      username: l.username,
-      profilePic: l.profilePic,
-      role: l.role,
-      sessionCount: l.sessionCount,
-      avgTutorRating: l.avgTutorRating,
-      distinctTutorsCount: l.distinctTutorsCount
-    }));
 
     return res.json({
       allStars,
