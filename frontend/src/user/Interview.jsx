@@ -98,7 +98,16 @@ function BookInterviewModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [matchedInterviewers, setMatchedInterviewers] = useState([]);
   const [selectedInterviewer, setSelectedInterviewer] = useState('');
+  const [selectedInterviewerObj, setSelectedInterviewerObj] = useState(null);
+  const [lockSelected, setLockSelected] = useState(false);
   const { user } = useAuth() || {};
+
+  // Tabs: 'simple' (existing flow) and 'search' (browse experts)
+  const [activeTab, setActiveTab] = useState('simple');
+  const [allInterviewers, setAllInterviewers] = useState([]);
+  const [searchMode, setSearchMode] = useState('company'); // 'company' | 'position'
+  const [searchText, setSearchText] = useState('');
+  const formRef = useRef(null);
 
   // Dropdown states
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
@@ -190,6 +199,7 @@ function BookInterviewModal({ isOpen, onClose }) {
       alert('Interview request submitted successfully!');
       setCompany(''); setPosition(''); setMessage('');
       setMatchedInterviewers([]);
+      setAllInterviewers([]);
       setSelectedInterviewer('');
       onClose();
     } catch (err) {
@@ -219,6 +229,26 @@ function BookInterviewModal({ isOpen, onClose }) {
     return () => clearTimeout(t);
   }, [company, position]);
 
+  // Load all interviewers when modal opens or when switching to search tab
+  useEffect(() => {
+    const loadAll = async () => {
+      try {
+        const url = `${BACKEND_URL}/api/interview/interviewers${searchText ? `?${new URLSearchParams({ [searchMode]: searchText }).toString()}` : ''}`;
+        const res = await fetch(url, { credentials: 'include' });
+        if (!res.ok) { setAllInterviewers([]); return; }
+        const data = await res.json();
+        setAllInterviewers(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error('Failed to load interviewers', e);
+        setAllInterviewers([]);
+      }
+    };
+    if (isOpen && activeTab === 'search') {
+      const t = setTimeout(loadAll, 250);
+      return () => clearTimeout(t);
+    }
+  }, [isOpen, activeTab, searchText, searchMode]);
+
   if (!isOpen) return null;
 
   return (
@@ -236,9 +266,88 @@ function BookInterviewModal({ isOpen, onClose }) {
           </div>
 
           <div className="p-6 space-y-4">
-            <p className="text-gray-600 text-sm mb-4">Fill in the details below to request a mock interview session</p>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-2">
+              <button
+                onClick={() => setActiveTab('simple')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border ${activeTab==='simple' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
+              >Request</button>
+              <button
+                onClick={() => setActiveTab('search')}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border ${activeTab==='search' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
+              >Search Interviewer</button>
+            </div>
 
-            <div className="space-y-4">
+            {activeTab === 'simple' && (
+              <p className="text-gray-600 text-sm">Fill in the details below to request a mock interview session</p>
+            )}
+            {activeTab === 'search' && (
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-sm text-gray-700 mb-3">Browse approved interviewers. Use the search to filter by company or position, then click Book to pre-select your expert and complete the request.</p>
+                <div className="flex gap-2 items-center mb-3">
+                  <input
+                    type="text"
+                    value={searchText}
+                    onChange={e => setSearchText(e.target.value)}
+                    placeholder={`Search by ${searchMode}...`}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                  <select
+                    value={searchMode}
+                    onChange={e => setSearchMode(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  >
+                    <option value="company">Company</option>
+                    <option value="position">Position</option>
+                  </select>
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {allInterviewers.map((m) => (
+                    <div
+                      key={m.application?._id || m.user?._id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-white border border-gray-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="font-semibold">
+                          {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {m.application?.company || m.user?.college || '—'} • {m.application?.position || m.application?.qualification || '—'}
+                        </div>
+                        {m.stats && m.stats.averageRating > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-yellow-600">
+                            <FaStar className="text-xs" /> {m.stats.averageRating.toFixed(1)}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-500">📊 {m.stats?.conductedInterviews || 0} interviews</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedInterviewer(String(m.user?._id));
+                              setSelectedInterviewerObj(m);
+                              setLockSelected(true);
+                          setActiveTab('simple');
+                              setMatchedInterviewers([]);
+                          // reveal form
+                          setTimeout(() => { try { formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(_){} }, 100);
+                        }}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                      >
+                        Book
+                      </button>
+                    </div>
+                  ))}
+                  {allInterviewers.length === 0 && (
+                    <div className="text-sm text-gray-600">No interviewers found.</div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Shared Request Form (visible only in Simple tab) */}
+            {activeTab === 'simple' && (
+            <>
+            <div ref={formRef} className="space-y-4">
               <div className="relative">
                 <label className="block text-sm font-semibold text-gray-900 mb-2">Company Name *</label>
                 <input
@@ -329,7 +438,44 @@ function BookInterviewModal({ isOpen, onClose }) {
                 />
               </div>
 
-              {matchedInterviewers && matchedInterviewers.length > 0 && (
+              {activeTab === 'simple' && selectedInterviewerObj && (
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <FaUserTie />
+                    Selected Interviewer
+                  </h4>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-gray-200">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="flex-1">
+                        <div className="font-semibold flex items-center gap-2">
+                          {selectedInterviewerObj.user?.firstName || selectedInterviewerObj.user?.username} {selectedInterviewerObj.user?.lastName || ''}
+                          {selectedInterviewerObj.stats && selectedInterviewerObj.stats.averageRating > 0 && (
+                            <span className="flex items-center gap-1 text-xs text-yellow-500">
+                              <FaStar className="text-xs" />
+                              {selectedInterviewerObj.stats.averageRating.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {selectedInterviewerObj.user?.college || selectedInterviewerObj.application?.company} • {selectedInterviewerObj.application?.qualification}
+                        </div>
+                        <div className="text-xs mt-1 flex items-center gap-3 text-gray-500">
+                          <span>
+                            📊 {selectedInterviewerObj.stats?.conductedInterviews || 0} interview{(selectedInterviewerObj.stats?.conductedInterviews || 0) !== 1 ? 's' : ''}
+                          </span>
+                          {selectedInterviewerObj.stats?.totalRatings > 0 && (
+                            <span>
+                              • {selectedInterviewerObj.stats.totalRatings} rating{selectedInterviewerObj.stats.totalRatings !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <FaCheckCircle className="text-blue-600" />
+                  </div>
+                </div>
+              )}
+              {activeTab === 'simple' && !selectedInterviewerObj && matchedInterviewers && matchedInterviewers.length > 0 && (
                 <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                   <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <FaUserTie />
@@ -408,6 +554,8 @@ function BookInterviewModal({ isOpen, onClose }) {
                 {loading ? 'Submitting...' : 'Submit Request'}
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>
