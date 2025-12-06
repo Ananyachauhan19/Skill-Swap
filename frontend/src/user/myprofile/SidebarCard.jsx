@@ -61,7 +61,6 @@ const SidebarCard = ({
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
   const [tutorStatus, setTutorStatus] = useState({ isTutor: false, activationRemainingMs: 0, appStatus: null });
-  const [countdownText, setCountdownText] = useState('');
   const [locationQuery, setLocationQuery] = useState("");
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const locationInputRef = useRef(null);
@@ -78,9 +77,8 @@ const SidebarCard = ({
     }
   }, [editingField, fieldDraft.country]);
 
-  // Fetch tutor status for pending/approved-but-not-active states
+  // Fetch tutor status (no countdown; immediate activation expected)
   useEffect(() => {
-    let timer;
     (async () => {
       try {
         const { BACKEND_URL } = await import('../../config.js');
@@ -89,41 +87,10 @@ const SidebarCard = ({
           const data = await res.json();
           const appStatus = data?.application?.status || null;
           const isTutor = !!data?.isTutor;
-          const activationRemainingMs = data?.activationRemainingMs || 0;
-          setTutorStatus({ isTutor, activationRemainingMs, appStatus });
-          if (!isTutor && activationRemainingMs > 0) {
-            const start = Date.now();
-            const tick = async () => {
-              const elapsed = Date.now() - start;
-              const ms = Math.max(0, activationRemainingMs - elapsed);
-              const m = Math.floor(ms / 60000);
-              const s = Math.floor((ms % 60000) / 1000);
-              setCountdownText(ms > 0 ? `Unlocks in ${m}m ${s}s` : 'Activating...');
-              if (ms === 0) {
-                // Optional: refetch status once when it hits zero
-                try {
-                  const check = await fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' });
-                  if (check.ok) {
-                    const fresh = await check.json();
-                    setTutorStatus({
-                      isTutor: !!fresh?.isTutor,
-                      activationRemainingMs: fresh?.activationRemainingMs || 0,
-                      appStatus: fresh?.application?.status || null,
-                    });
-                  }
-                } catch {}
-                clearInterval(timer);
-              }
-            };
-            tick();
-            timer = setInterval(tick, 1000);
-          } else {
-            setCountdownText('');
-          }
+          setTutorStatus({ isTutor, activationRemainingMs: 0, appStatus });
         }
       } catch (_) {}
     })();
-    return () => { if (timer) clearInterval(timer); };
   }, [profile.tutorApplicationId, profile.isTutor]);
 
   useEffect(() => {
@@ -508,7 +475,7 @@ const SidebarCard = ({
       </div>
       <div className="flex flex-col gap-4">
         {/* Apply as Tutor / Verified Tutor Button */}
-        {(user?.isTutor === true) ? (
+        {(user?.isTutor === true || tutorStatus.isTutor === true || tutorStatus.appStatus === 'approved') ? (
           <button
             type="button"
             className="group relative px-5 py-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:-translate-y-0.5 flex items-center justify-center gap-3 overflow-hidden bg-red-600 hover:bg-red-700 text-white border-2 border-red-300"
@@ -580,10 +547,10 @@ const SidebarCard = ({
             </svg>
             <span className="text-sm font-bold">Unregister as Tutor</span>
           </button>
-        ) : tutorStatus.appStatus === 'approved' && tutorStatus.activationRemainingMs > 0 ? (
-          <div className="px-5 py-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 shadow-sm flex items-center justify-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" /></svg>
-            <span className="text-sm font-medium">{countdownText || 'Unlocks soon'}</span>
+        ) : tutorStatus.appStatus === 'approved' && !tutorStatus.isTutor ? (
+          <div className="px-5 py-4 rounded-xl bg-green-50 border border-green-200 text-green-800 shadow-sm flex items-center justify-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            <span className="text-sm font-medium">Verified</span>
           </div>
         ) : tutorStatus.appStatus === 'pending' ? (
           <div className="px-5 py-4 rounded-xl bg-yellow-50 border border-yellow-200 text-yellow-800 shadow-sm flex items-center justify-center gap-2">

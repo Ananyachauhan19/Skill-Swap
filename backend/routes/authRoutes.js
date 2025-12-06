@@ -348,7 +348,6 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       badges: user.badges,
       rank: user.rank,
       isTutor: user.isTutor,
-      tutorActivationAt: user.tutorActivationAt,
       tutorApplicationId: user.tutorApplicationId
     });
   } catch (err) {
@@ -443,7 +442,6 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       badges: user.badges,
       rank: user.rank,
       isTutor: user.isTutor,
-      tutorActivationAt: user.tutorActivationAt,
       tutorApplicationId: user.tutorApplicationId
     });
   } catch (err) {
@@ -500,7 +498,7 @@ router.post('/unregister-tutor', requireAuth, async (req, res) => {
     // Update role and tutor status
     user.role = 'learner';
     user.isTutor = false;
-    user.tutorActivationAt = undefined;
+    // Activation timestamps removed; immediate activation model in place
     // Clear previously merged tutor skills so profile shows no tutor skills
     user.skillsToTeach = [];
     // Do not delete tutorApplicationId to preserve audit trail

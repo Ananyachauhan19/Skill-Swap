@@ -75,7 +75,6 @@ const userSchema = new mongoose.Schema({
   ratingCount: { type: Number, default: 0 },
   // Tutor verification / activation fields
   isTutor: { type: Boolean, default: false },
-  tutorActivationAt: { type: Date, required: false },
   tutorApplicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'TutorApplication', required: false },
 });
 

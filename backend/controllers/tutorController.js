@@ -147,26 +147,8 @@ exports.status = async (req, res) => {
     const app = await TutorApplication.findOne({ user: req.user.id });
     if (!app) return res.status(404).json({ message: 'No application found' });
 
-    let activationRemainingMs = 0;
     const user = await User.findById(req.user.id);
-    // Provide countdown BEFORE activation (isTutor false) and 0 after activation becomes true
-    if (user && user.tutorActivationAt) {
-      const diff = user.tutorActivationAt.getTime() - Date.now();
-      if (!user.isTutor) {
-        if (diff <= 0) {
-          // Gracefully finalize activation if middleware not yet invoked
-          user.isTutor = true;
-          await user.save();
-          activationRemainingMs = 0;
-        } else {
-          activationRemainingMs = diff; // positive remaining time
-        }
-      } else {
-        activationRemainingMs = 0; // already active
-      }
-    }
-
-    return res.status(200).json({ application: app, isTutor: !!(user && user.isTutor), activationRemainingMs });
+    return res.status(200).json({ application: app, isTutor: !!(user && user.isTutor) });
   } catch (e) {
     return res.status(500).json({ message: 'Server error', details: e.message });
   }
@@ -197,8 +179,8 @@ exports.prefillApplyDefaults = async (req, res) => {
 // Admin list all applications
 exports.list = async (req, res) => {
   try {
-    // Include tutor activation fields so admin can see countdown
-    const apps = await TutorApplication.find().populate('user', 'username email firstName lastName tutorActivationAt isTutor skillsToTeach');
+    // Include tutor activation fields (no countdown anymore, activation is immediate)
+    const apps = await TutorApplication.find().populate('user', 'username email firstName lastName isTutor skillsToTeach');
     return res.status(200).json(apps);
   } catch (e) {
     return res.status(500).json({ message: 'Server error', details: e.message });
@@ -216,8 +198,7 @@ exports.approve = async (req, res) => {
     app.approvedAt = new Date();
     await app.save();
 
-    // Set user activation 5 mins later
-    const activationAt = new Date(Date.now() + 5 * 60 * 1000);
+    // Activate tutor features immediately upon approval
     const userDoc = await User.findById(app.user._id);
     if (!userDoc) {
       return res.status(404).json({ message: 'Linked user not found' });
@@ -235,8 +216,8 @@ exports.approve = async (req, res) => {
       }
     }
     userDoc.skillsToTeach = merged;
-    userDoc.tutorActivationAt = activationAt;
-    userDoc.isTutor = false; // remains locked until activation time
+    userDoc.tutorActivationAt = undefined;
+    userDoc.isTutor = true; // unlock immediately
     userDoc.tutorApplicationId = app._id;
     
     // Update role: if learner, change to teacher; if already teacher/both, keep as-is
@@ -246,7 +227,7 @@ exports.approve = async (req, res) => {
     
     await userDoc.save();
 
-    return res.status(200).json({ message: 'Approved. Tutor functions unlock after 5 mins.', application: app });
+    return res.status(200).json({ message: 'Approved. Tutor functions unlocked immediately.', application: app });
   } catch (e) {
     return res.status(500).json({ message: 'Server error', details: e.message });
   }
@@ -288,17 +269,12 @@ exports.revertPendingUpdate = async (req, res) => {
   }
 };
 
-// Middleware to finalize activation if time passed
+// Middleware no longer needed for timed activation; keep as no-op to avoid breaking imports
 exports.ensureTutorActivation = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(401).json({ message: 'Unauthorized' });
-
-    if (user.tutorActivationAt && !user.isTutor && Date.now() >= user.tutorActivationAt.getTime()) {
-      user.isTutor = true;
-      await user.save();
-    }
-
+    // Immediate activation handled at approval time
     next();
   } catch (e) {
     return res.status(500).json({ message: 'Server error', details: e.message });

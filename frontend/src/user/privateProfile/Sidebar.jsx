@@ -16,8 +16,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 function TutorStatusBadge() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
-  const [status, setStatus] = useState({ isTutor: false, appStatus: null, activationRemainingMs: 0 });
-  const [countdown, setCountdown] = useState('');
+  const [status, setStatus] = useState({ isTutor: false, appStatus: null });
 
   useEffect(() => {
     let timer;
@@ -29,8 +28,7 @@ function TutorStatusBadge() {
           const data = await res.json();
           const appStatus = data?.application?.status || null;
           const isTutor = !!data?.isTutor;
-          const activationRemainingMs = data?.activationRemainingMs || 0;
-          setStatus({ isTutor, appStatus, activationRemainingMs });
+          setStatus({ isTutor, appStatus });
           // If user has reverted, refetch full profile to clear any stale tutor skills in UI
           if (appStatus === 'reverted') {
             try {
@@ -41,45 +39,16 @@ function TutorStatusBadge() {
               }
             } catch (_) {}
           }
-          if (!isTutor && appStatus === 'approved' && activationRemainingMs > 0) {
-            const start = Date.now();
-            const tick = async () => {
-              const elapsed = Date.now() - start;
-              const ms = Math.max(0, activationRemainingMs - elapsed);
-              const m = Math.floor(ms / 60000);
-              const s = Math.floor((ms % 60000) / 1000);
-              setCountdown(ms > 0 ? `Unlocks in ${m}m ${s}s` : 'Activating...');
-              if (ms === 0) {
-                try {
-                  const check = await fetch(`${BACKEND_URL}/api/tutor/status`, { credentials: 'include' });
-                  if (check.ok) {
-                    const fresh = await check.json();
-                    setStatus({
-                      isTutor: !!fresh?.isTutor,
-                      appStatus: fresh?.application?.status || null,
-                      activationRemainingMs: fresh?.activationRemainingMs || 0,
-                    });
-                  }
-                } catch {}
-                clearInterval(timer);
-              }
-            };
-            tick();
-            timer = setInterval(tick, 1000);
-          }
+          // No countdown logic; activation is immediate on approval
         }
       } catch (_) {}
     })();
     return () => { if (timer) clearInterval(timer); };
   }, []);
 
-  if (status.isTutor) {
+  // Immediately show Tutor Active when approved or already active
+  if (status.isTutor || status.appStatus === 'approved') {
     return <span className="px-3 py-1 rounded-full bg-green-600 text-white font-medium">✓ Tutor Active</span>;
-  }
-  if (status.appStatus === 'approved' && status.activationRemainingMs > 0) {
-    return (
-      <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 font-medium">{countdown || 'Unlocks soon'}</span>
-    );
   }
   if (status.appStatus === 'pending') {
     return <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-800 font-medium">Tutor Application: Pending Review</span>;
@@ -124,7 +93,7 @@ const fetchUserProfile = async () => {
       skillsToLearn: userData.skillsToLearn || [],
       socialLinks: userData.socialLinks || [],
       isTutor: userData.isTutor || false,
-      tutorActivationAt: userData.tutorActivationAt || null,
+      tutorActivationAt: null,
     };
 
     try {
@@ -132,7 +101,7 @@ const fetchUserProfile = async () => {
       if (statusRes.ok) {
         const statusData = await statusRes.json();
         profile.tutorApplication = statusData.application;
-        profile.activationRemainingMs = statusData.activationRemainingMs;
+        // activationRemainingMs removed; immediate activation expected
         profile.isTutor = statusData.isTutor; // override if activated
       } else if (statusRes.status === 404) {
         // No application found - user hasn't applied yet

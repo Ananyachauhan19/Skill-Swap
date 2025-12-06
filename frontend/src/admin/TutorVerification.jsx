@@ -37,15 +37,7 @@ export default function TutorVerification({ selected }) {
     } finally { setActionLoading(false); }
   };
 
-  const formatCountdown = (ts, isTutor) => {
-    if (!ts || isTutor) return null;
-    const diff = new Date(ts).getTime() - Date.now();
-    if (diff <= 0) return 'Activating...';
-    const m = Math.floor(diff / 60000);
-    const s = Math.floor((diff % 60000) / 1000);
-    return `${m}:${String(s).padStart(2,'0')} remaining`;
-  };
-  const countdown = formatCountdown(user.tutorActivationAt, user.isTutor);
+  // No countdown anymore; activation is immediate on approval
 
   const statusClass = {
     pending: 'bg-yellow-100 text-yellow-700',
@@ -72,8 +64,8 @@ export default function TutorVerification({ selected }) {
           <div className="font-medium text-gray-700 mb-1">Profile</div>
           <div><span className="font-semibold">Username:</span> {user.username}</div>
           <div><span className="font-semibold">Email:</span> {user.email}</div>
-          {tutorApp.status === 'approved' && !user.isTutor && countdown && (
-            <div className="text-[11px] text-gray-500 mt-1">Activation countdown: {countdown}</div>
+          {tutorApp.status === 'approved' && !user.isTutor && (
+            <div className="text-[11px] text-green-600 mt-1">Verified</div>
           )}
           {tutorApp.status === 'approved' && user.isTutor && (
             <div className="text-[11px] text-green-600 mt-1">Tutor active</div>
@@ -140,8 +132,8 @@ export default function TutorVerification({ selected }) {
               <button disabled={actionLoading} onClick={() => reject(tutorApp._id)} className="px-3 py-1 text-xs bg-red-600 text-white rounded disabled:opacity-50">Reject</button>
             </>
           )}
-          {tutorApp.status === 'approved' && !user.isTutor && countdown && (
-            <span className="text-[11px] text-gray-500">Awaiting activation window</span>
+          {tutorApp.status === 'approved' && !user.isTutor && (
+            <span className="text-[11px] text-gray-500">Activation pending sync</span>
           )}
           {tutorApp.status === 'approved' && user.isTutor && (
             <span className="text-[11px] text-green-600">Tutor active</span>

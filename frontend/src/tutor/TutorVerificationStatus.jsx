@@ -62,7 +62,7 @@ const TutorVerificationStatus = () => {
       case 'approved':
         return {
           title: 'Application Approved',
-          description: 'Congratulations! Your application has been approved. Tutor features will be unlocked in 5 minutes.',
+          description: 'Congratulations! Your application has been approved. Tutor features are unlocked immediately.',
           icon: '✅',
           color: 'green',
           bgColor: 'bg-green-50',

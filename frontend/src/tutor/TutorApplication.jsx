@@ -660,7 +660,7 @@ const TutorApplication = () => {
             </div>
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-xs text-blue-800">
-            After submission, an admin will review your application. If approved, tutor features unlock automatically 5 minutes after approval.
+            After submission, an admin will review your application. If approved, tutor features unlock immediately.
           </div>
           {pendingUpdate?.applicationType === 'skills-update' && skills.length === 0 && (
             <div className="p-3 bg-red-100 text-red-700 text-sm rounded-lg font-medium">Provide at least one skill to update.</div>
