@@ -53,12 +53,12 @@ const HowItWorks = () => {
   ];
 
   return (
-    <section className="bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 rounded-2xl p-8 sm:p-12 border border-slate-200/50 shadow-sm">
-      <div className="mb-12 text-center">
-        <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
+    <section className="bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 rounded-xl sm:rounded-2xl p-4 sm:p-8 lg:p-12 border border-slate-200/50 shadow-sm">
+      <div className="mb-6 sm:mb-12 text-center">
+        <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-slate-900 mb-2 sm:mb-3 tracking-tight">
           Your Learning Journey in 4 Simple Steps
         </h2>
-        <p className="text-slate-500 text-base max-w-2xl mx-auto leading-relaxed">
+        <p className="text-slate-500 text-xs sm:text-base max-w-2xl mx-auto leading-relaxed px-2">
           From doubt to clarity in minutes. Here's how our one-on-one learning platform works
         </p>
       </div>
@@ -67,28 +67,28 @@ const HowItWorks = () => {
         {/* Connection Line */}
         <div className="hidden lg:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-900/20 via-blue-900/40 to-blue-900/20" style={{ top: '4rem' }}></div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 relative">
           {steps.map((step, index) => (
             <div key={index} className="relative">
               {/* Step Card */}
-              <div className="bg-white rounded-xl p-6 border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg group">
+              <div className="bg-white rounded-lg sm:rounded-xl p-3 sm:p-6 border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg group">
                 {/* Number Badge */}
-                <div className="absolute -top-4 -left-4 w-12 h-12 bg-blue-900 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg group-hover:scale-110 transition-transform">
+                <div className="absolute -top-2 -left-2 sm:-top-4 sm:-left-4 w-8 h-8 sm:w-12 sm:h-12 bg-blue-900 text-white rounded-full flex items-center justify-center font-bold text-sm sm:text-lg shadow-lg group-hover:scale-110 transition-transform">
                   {step.number}
                 </div>
                 
                 {/* Icon */}
-                <div className="mb-4 mt-2 flex justify-center">
-                  <div className="w-16 h-16 bg-blue-900/10 rounded-2xl flex items-center justify-center group-hover:bg-blue-900/20 transition-colors">
-                    {step.icon}
+                <div className="mb-2 sm:mb-4 mt-1 sm:mt-2 flex justify-center">
+                  <div className="w-10 h-10 sm:w-16 sm:h-16 bg-blue-900/10 rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:bg-blue-900/20 transition-colors">
+                    <div className="scale-75 sm:scale-100">{step.icon}</div>
                   </div>
                 </div>
                 
                 {/* Content */}
-                <h3 className="text-lg font-bold text-slate-900 mb-3 text-center tracking-tight">
+                <h3 className="text-xs sm:text-base lg:text-lg font-bold text-slate-900 mb-1 sm:mb-3 text-center tracking-tight leading-tight">
                   {step.title}
                 </h3>
-                <p className="text-sm text-slate-600 leading-relaxed text-center">
+                <p className="text-[10px] sm:text-sm text-slate-600 leading-relaxed text-center hidden sm:block">
                   {step.description}
                 </p>
               </div>
@@ -107,9 +107,9 @@ const HowItWorks = () => {
       </div>
 
       {/* Call to Action */}
-      <div className="mt-12 text-center bg-blue-900/5 rounded-xl p-6 border border-blue-900/10">
-        <p className="text-slate-900 font-semibold mb-2">Ready to start learning?</p>
-        <p className="text-slate-600 text-sm">Fill in the form above to find your perfect tutor and begin your personalized learning session today!</p>
+      <div className="mt-6 sm:mt-12 text-center bg-blue-900/5 rounded-lg sm:rounded-xl p-4 sm:p-6 border border-blue-900/10">
+        <p className="text-slate-900 font-semibold text-sm sm:text-base mb-1 sm:mb-2">Ready to start learning?</p>
+        <p className="text-slate-600 text-xs sm:text-sm">Fill in the form above to find your perfect tutor and begin your personalized learning session today!</p>
       </div>
     </section>
   );
@@ -131,34 +131,34 @@ const OneOnOne = () => {
         <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-12">
             {/* Left Content */}
-            <div className="flex-1 text-center lg:text-left space-y-6">
+            <div className="flex-1 text-center lg:text-left space-y-4 sm:space-y-6">
               <div className="inline-block">
-                <span className="px-4 py-2 bg-blue-900/10 text-blue-900 rounded-full text-xs font-semibold tracking-wide">
+                <span className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-900/10 text-blue-900 rounded-full text-[10px] sm:text-xs font-semibold tracking-wide">
                   One-on-One Learning Platform
                 </span>
               </div>
               
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-slate-900 leading-tight tracking-tight">
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-slate-900 leading-tight tracking-tight px-2 sm:px-0">
                 Connect with Experts for
-                <span className="block text-blue-900 mt-2">
+                <span className="block text-blue-900 mt-1 sm:mt-2">
                   Personalized Learning
                 </span>
               </h1>
               
-              <p className="text-base sm:text-lg text-slate-500 max-w-2xl mx-auto lg:mx-0">
+              <p className="text-sm sm:text-base lg:text-lg text-slate-500 max-w-2xl mx-auto lg:mx-0 px-4 sm:px-0">
                 Instantly connect with subject experts, get your doubts solved in real-time, and accelerate your learning journey.
               </p>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 pt-2 sm:pt-4 px-4 sm:px-0">
                 <button
                   onClick={() => window.location.href = '/createSession'}
-                  className="w-full sm:w-auto px-8 py-4 bg-blue-900 text-white rounded-xl font-semibold text-base hover:bg-blue-800 transition-all hover:shadow-xl"
+                  className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-blue-900 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-blue-800 transition-all hover:shadow-xl"
                 >
                   Create a Session
                 </button>
                 <button
                   onClick={() => navigate('/startskillswap')}
-                  className="w-full sm:w-auto px-8 py-4 bg-white text-blue-900 border-2 border-blue-900 rounded-xl font-semibold text-base hover:bg-blue-50 transition-all"
+                  className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-white text-blue-900 border-2 border-blue-900 rounded-xl font-semibold text-sm sm:text-base hover:bg-blue-50 transition-all"
                 >
                   Find Expert Session
                 </button>
@@ -166,7 +166,7 @@ const OneOnOne = () => {
             </div>
 
             {/* Right Illustration */}
-<div className="flex-1 relative">
+<div className="flex-1 relative hidden lg:block">
   <div className="relative w-full max-w-[480px] mx-auto scale-110">
     <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
     <img
@@ -188,14 +188,14 @@ const OneOnOne = () => {
       </section>
 
       {/* Main Content */}
-      <main className="w-full max-w-7xl mx-auto flex flex-col gap-12 sm:gap-16 px-4 sm:px-8 py-8 sm:py-12 lg:py-16">
+      <main className="w-full max-w-7xl mx-auto flex flex-col gap-8 sm:gap-12 lg:gap-16 px-3 sm:px-4 lg:px-8 py-6 sm:py-8 lg:py-16">
         {/* Start SkillSwap Search Section */}
-        <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-2xl p-8 sm:p-12 border border-slate-200/50 shadow-sm">
-          <div className="mb-10">
-            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 text-center mb-3 tracking-tight">
+        <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-xl sm:rounded-2xl p-4 sm:p-8 lg:p-12 border border-slate-200/50 shadow-sm">
+          <div className="mb-6 sm:mb-10">
+            <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-slate-900 text-center mb-2 sm:mb-3 tracking-tight">
               Find Your Perfect Tutor Instantly
             </h2>
-            <p className="text-center text-slate-500 text-sm max-w-3xl mx-auto leading-relaxed">
+            <p className="text-center text-slate-500 text-xs sm:text-sm max-w-3xl mx-auto leading-relaxed px-2">
               Connect with experts for personalized one-on-one learning. Enter your class, subject, and topic to get matched with the right tutor who can clear your doubts in real-time.
             </p>
           </div>
