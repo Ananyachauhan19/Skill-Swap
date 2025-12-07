@@ -913,43 +913,39 @@ module.exports = (io) => {
     }
 
     // Join interview session room for video calling (interview calls only)
+    // sessionId MUST be InterviewRequest._id so both requester and interviewer join the same room.
     socket.on('join-interview-session', async ({ sessionId, userRole, username }) => {
-      console.log('[INTERVIEW] User joining interview session:', { sessionId, userRole, username, socketId: socket.id });
-      
-      // Check if there's already someone in the room before joining
-      const existingUsers = sessionRooms.get(sessionId);
-      const wasAlreadyOccupied = existingUsers && existingUsers.size > 0;
-      
-      console.log('[INTERVIEW] Room state - wasAlreadyOccupied:', wasAlreadyOccupied, 'existing count:', existingUsers?.size || 0);
-      
-      socket.join(sessionId);
-      if (!sessionRooms.has(sessionId)) {
-        sessionRooms.set(sessionId, new Set());
-      }
-      sessionRooms.get(sessionId).add(socket.id);
-      
-      console.log('[INTERVIEW] After join - room size:', sessionRooms.get(sessionId).size);
-      
-      if (wasAlreadyOccupied) {
-        // Second user joining - tell them to initiate the offer
-        console.log('[INTERVIEW] Second user joined, telling them to start call');
-        socket.emit('start-call', { sessionId, userRole, username });
-        // Notify the first user that someone joined (but don't make them create offer)
-        socket.to(sessionId).emit('peer-joined', { sessionId, userRole, username });
-      } else {
-        // First user joining - just wait for the second user
-        console.log('[INTERVIEW] First user joined, waiting for peer');
-      }
-
-      // If this is an interview request room and it has an image, share it to participants
       try {
-        const InterviewRequest = require('./models/InterviewRequest');
-        const req = await InterviewRequest.findById(sessionId).select('questionImageUrl');
-        if (req && req.questionImageUrl) {
-          io.to(sessionId).emit('shared-image', { imageUrl: req.questionImageUrl });
+        if (!sessionId) return;
+        console.log('[INTERVIEW] User joining interview session:', { sessionId, userRole, username, socketId: socket.id });
+
+        const existingUsers = sessionRooms.get(sessionId);
+        const wasAlreadyOccupied = existingUsers && existingUsers.size > 0;
+
+        socket.join(sessionId);
+        if (!sessionRooms.has(sessionId)) sessionRooms.set(sessionId, new Set());
+        sessionRooms.get(sessionId).add(socket.id);
+
+        const size = sessionRooms.get(sessionId).size;
+        console.log('[INTERVIEW] Room size after join:', size);
+
+        // Notify participants
+        socket.to(sessionId).emit('user-joined', { sessionId, userRole, username });
+        if (wasAlreadyOccupied || size >= 2) {
+          // Signal that both are present; clients can start WebRTC
+          io.to(sessionId).emit('interview-ready', { sessionId });
         }
+
+        // Forward any pre-attached image on the InterviewRequest
+        try {
+          const InterviewRequest = require('./models/InterviewRequest');
+          const req = await InterviewRequest.findById(sessionId).select('questionImageUrl');
+          if (req && req.questionImageUrl) {
+            io.to(sessionId).emit('shared-image', { imageUrl: req.questionImageUrl });
+          }
+        } catch (_) {}
       } catch (e) {
-        // Not an interview request or no image; ignore
+        console.error('[INTERVIEW] join-interview-session error', e);
       }
     });
 

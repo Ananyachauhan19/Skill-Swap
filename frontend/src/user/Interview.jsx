@@ -6,6 +6,7 @@ import Fuse from 'fuse.js';
 import { FaTimes, FaCheckCircle, FaUserTie, FaCalendarAlt, FaComment, FaClock, FaStar, FaVideo } from 'react-icons/fa';
 import { BACKEND_URL } from "../config.js";
 import { useAuth } from "../context/AuthContext";
+import socketClient from '../socket.js';
 import { COMPANIES, POSITIONS } from "../constants/interviewData";
 import StatsSection from "./interviewSection/StatsSection";
 import PastInterviewsPreview from "./interviewSection/PastInterviewsPreview";
@@ -119,9 +120,11 @@ function BrowseInterviewersSection({ onBookSession }) {
   const [searchMode, setSearchMode] = useState('company');
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showAllModal, setShowAllModal] = useState(false);
   const navigate = useNavigate();
 
   // Load all interviewers on mount
+  const { user } = useAuth();
   useEffect(() => {
     (async () => {
       try {
@@ -130,6 +133,14 @@ function BrowseInterviewersSection({ onBookSession }) {
         if (!res.ok) { setAllInterviewers([]); return; }
         const data = await res.json();
         let filtered = data || [];
+        // Exclude current user from the list
+        const currentUserId = user?._id;
+        if (currentUserId) {
+          filtered = filtered.filter(m => {
+            const interviewerUserId = m.user?._id || m.user;
+            return String(interviewerUserId) !== String(currentUserId);
+          });
+        }
         if (searchText.trim()) {
           const lower = searchText.toLowerCase();
           filtered = filtered.filter(m => {
@@ -149,7 +160,7 @@ function BrowseInterviewersSection({ onBookSession }) {
         setLoading(false);
       }
     })();
-  }, [searchText, searchMode]);
+  }, [searchText, searchMode, user?._id]);
 
   return (
     <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-5 lg:p-8 border border-slate-200/50 shadow-sm">
@@ -196,69 +207,119 @@ function BrowseInterviewersSection({ onBookSession }) {
           <p className="text-slate-600 text-sm">No interviewers found matching your criteria</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
-          {allInterviewers.map((m) => (
-            <div
-              key={m.application?._id || m.user?._id}
-              className="p-2 sm:p-3 lg:p-4 rounded-lg bg-white border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg flex flex-col"
-            >
-              <div className="flex-1">
-                <div className="font-bold text-slate-900 text-xs sm:text-sm lg:text-base mb-1.5 sm:mb-2 truncate leading-tight">
-                  {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
-                </div>
-                <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs lg:text-sm">
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
+            {allInterviewers.slice(0, 4).map((m) => (
+              <InterviewerCard key={m.application?._id || m.user?._id} interviewer={m} onBookSession={onBookSession} navigate={navigate} />
+            ))}
+          </div>
+          
+          {allInterviewers.length > 4 && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={() => setShowAllModal(true)}
+                className="px-6 py-3 bg-gradient-to-r from-blue-900 to-blue-800 text-white font-semibold rounded-lg hover:shadow-lg transition-all flex items-center gap-2"
+              >
+                View More Interviewers ({allInterviewers.length - 4} more)
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+          )}
+
+          {/* View All Interviewers Modal */}
+          {showAllModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowAllModal(false)}>
+              <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="sticky top-0 bg-blue-900 text-white p-6 rounded-t-xl flex items-center justify-between z-10">
                   <div>
-                    <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Company</div>
-                    <div className="text-slate-900 font-medium truncate">{m.application?.company || m.user?.college || '—'}</div>
+                    <h3 className="text-xl font-bold">All Expert Interviewers</h3>
+                    <p className="text-blue-100 text-sm mt-1">{allInterviewers.length} approved professionals</p>
                   </div>
-                  <div>
-                    <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Position</div>
-                    <div className="text-slate-900 font-medium truncate">{m.application?.position || m.application?.qualification || '—'}</div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Interviews</div>
-                      <div className="text-slate-900 font-medium">{m.stats?.conductedInterviews || 0}</div>
-                    </div>
-                    <div>
-                      <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Rating</div>
-                      <div className="flex items-center gap-1 text-slate-900 font-medium">
-                        <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                        <span className="text-xs">{(m.stats?.averageRating || 0).toFixed(1)}</span>
-                      </div>
-                    </div>
+                  <button 
+                    onClick={() => setShowAllModal(false)} 
+                    className="text-white hover:bg-blue-800 p-2 rounded-lg transition-colors"
+                  >
+                    <FaTimes size={20} />
+                  </button>
+                </div>
+                
+                <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+                    {allInterviewers.map((m) => (
+                      <InterviewerCard key={m.application?._id || m.user?._id} interviewer={m} onBookSession={onBookSession} navigate={navigate} onModalAction={() => setShowAllModal(false)} />
+                    ))}
                   </div>
                 </div>
-              </div>
-              <div className="flex flex-col gap-1 sm:gap-1.5 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100">
-                <button
-                  onClick={() => navigate(`/profile/${m.user?.username || m.user?._id}`)}
-                  className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-slate-100 text-slate-900 border border-slate-300 rounded text-[10px] sm:text-xs font-medium hover:bg-slate-200 transition-colors"
-                >
-                  View Profile
-                </button>
-                <button
-                  onClick={() => {
-                    if (onBookSession) {
-                      onBookSession({
-                        interviewer: m,
-                        company: m.application?.company || m.user?.college || '',
-                        position: m.application?.position || m.application?.qualification || ''
-                      });
-                    }
-                  }}
-                  className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-900 text-white rounded text-[10px] sm:text-xs font-medium hover:bg-blue-800 transition-colors"
-                >
-                  Book Session
-                </button>
               </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </section>
+  );
+}
+
+// Interviewer Card Component (extracted for reusability)
+function InterviewerCard({ interviewer: m, onBookSession, navigate, onModalAction }) {
+  return (
+    <div className="p-2 sm:p-3 lg:p-4 rounded-lg bg-white border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg flex flex-col">
+      <div className="flex-1">
+        <div className="font-bold text-slate-900 text-xs sm:text-sm lg:text-base mb-1.5 sm:mb-2 truncate leading-tight">
+          {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
+        </div>
+        <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs lg:text-sm">
+          <div>
+            <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Company</div>
+            <div className="text-slate-900 font-medium truncate">{m.application?.company || m.user?.college || '—'}</div>
+          </div>
+          <div>
+            <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Position</div>
+            <div className="text-slate-900 font-medium truncate">{m.application?.position || m.application?.qualification || '—'}</div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Interviews</div>
+              <div className="text-slate-900 font-medium">{m.stats?.conductedInterviews || 0}</div>
+            </div>
+            <div>
+              <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Rating</div>
+              <div className="flex items-center gap-1 text-slate-900 font-medium">
+                <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <span className="text-xs">{(m.stats?.averageRating || 0).toFixed(1)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1 sm:gap-1.5 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100">
+        <button
+          onClick={() => {
+            if (onModalAction) onModalAction();
+            navigate(`/profile/${m.user?.username || m.user?._id}`);
+          }}
+          className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-slate-100 text-slate-900 border border-slate-300 rounded text-[10px] sm:text-xs font-medium hover:bg-slate-200 transition-colors"
+        >
+          View Profile
+        </button>
+        <button
+          onClick={() => {
+            if (onModalAction) onModalAction();
+            if (onBookSession) {
+              onBookSession({
+                interviewer: m
+              });
+            }
+          }}
+          className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-900 text-white rounded text-[10px] sm:text-xs font-medium hover:bg-blue-800 transition-colors"
+        >
+          Book Session
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -272,17 +333,13 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
   const [selectedInterviewer, setSelectedInterviewer] = useState('');
   const { user } = useAuth() || {};
 
-  // Pre-fill data when provided
+  // Pre-select interviewer when provided
   useEffect(() => {
-    if (preFilledData) {
-      setCompany(preFilledData.company || '');
-      setPosition(preFilledData.position || '');
-    }
     if (preSelectedInterviewer) {
       setSelectedInterviewer(String(preSelectedInterviewer.user?._id || ''));
       setMatchedInterviewers([preSelectedInterviewer]);
     }
-  }, [preFilledData, preSelectedInterviewer]);
+  }, [preSelectedInterviewer]);
 
   // Reset when modal closes
   useEffect(() => {
@@ -402,22 +459,50 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
 
   useEffect(() => {
     const fetchMatched = async () => {
-      if (!company && !position) { setMatchedInterviewers([]); return; }
-      try {
-        const q = new URLSearchParams({ company: company || '', position: position || '' }).toString();
-        const res = await fetch(`${BACKEND_URL}/api/interview/interviewers?${q}`, { credentials: 'include' });
-        if (!res.ok) return setMatchedInterviewers([]);
-        const data = await res.json();
-        console.log('Matched interviewers data:', data); // Debug log
-        setMatchedInterviewers(data || []);
-      } catch (e) {
-        console.error('Failed to fetch interviewers', e);
-        setMatchedInterviewers([]);
+      // If there's a preselected interviewer, keep it in the list regardless of company/position
+      if (preSelectedInterviewer) {
+        if (!company && !position) {
+          setMatchedInterviewers([preSelectedInterviewer]);
+          return;
+        }
+        try {
+          const q = new URLSearchParams({ company: company || '', position: position || '' }).toString();
+          const res = await fetch(`${BACKEND_URL}/api/interview/interviewers?${q}`, { credentials: 'include' });
+          if (!res.ok) {
+            setMatchedInterviewers([preSelectedInterviewer]);
+            return;
+          }
+          const data = await res.json();
+          // Always include the preselected interviewer
+          const preselectedId = String(preSelectedInterviewer.user?._id || '');
+          const hasPreselected = (data || []).some(m => String(m.user?._id || '') === preselectedId);
+          if (!hasPreselected) {
+            setMatchedInterviewers([preSelectedInterviewer, ...(data || [])]);
+          } else {
+            setMatchedInterviewers(data || []);
+          }
+        } catch (e) {
+          console.error('Failed to fetch interviewers', e);
+          setMatchedInterviewers([preSelectedInterviewer]);
+        }
+      } else {
+        // Normal behavior when no preselected interviewer
+        if (!company && !position) { setMatchedInterviewers([]); return; }
+        try {
+          const q = new URLSearchParams({ company: company || '', position: position || '' }).toString();
+          const res = await fetch(`${BACKEND_URL}/api/interview/interviewers?${q}`, { credentials: 'include' });
+          if (!res.ok) return setMatchedInterviewers([]);
+          const data = await res.json();
+          setMatchedInterviewers(data || []);
+        } catch (e) {
+          console.error('Failed to fetch interviewers', e);
+          setMatchedInterviewers([]);
+        }
       }
     };
     const t = setTimeout(fetchMatched, 400);
     return () => clearTimeout(t);
-  }, [company, position]);
+  }, [company, position, preSelectedInterviewer]);
 
   if (!isOpen) return null;
 
@@ -751,11 +836,11 @@ function ScheduledInterviewSection() {
   const fetchScheduled = async () => {
     setLoading(true);
     try {
-      // First try dedicated scheduled endpoint
+      // Fetch directly from InterviewRequest endpoint for scheduled status
       let res = await fetch(`${BACKEND_URL}/api/interview/scheduled`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        console.log('Scheduled interviews with stats:', data); // Debug log
+        console.log('Scheduled interviews:', data);
         setScheduled(Array.isArray(data) ? data : []);
         setLoading(false);
         return;
@@ -891,15 +976,7 @@ function ScheduledInterviewSection() {
                       <div className="font-semibold text-gray-900">
                         {(() => {
                           try {
-                            const uid = String(user._id);
-                            const requesterId = s.requester?._id || s.requester;
-                            const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
-                            let other = null;
-                            if (String(assignedId) === uid) {
-                              other = s.requester;
-                            } else {
-                              other = s.assignedInterviewer;
-                            }
+                            const other = s.assignedInterviewer; // Always show interviewer details
                             if (!other) return 'TBD';
                             const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
                             return name;
@@ -973,6 +1050,7 @@ function ScheduledInterviewSection() {
                 >
                   View Details →
                 </button>
+                
                 {s.status === 'completed' && !s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
                   <button
                     onClick={() => handleRateClick(s)}
@@ -1006,10 +1084,7 @@ const Interview = () => {
 
   const handleBookSession = (data) => {
     setPreSelectedInterviewer(data.interviewer);
-    setPreFilledData({
-      company: data.company,
-      position: data.position
-    });
+    setPreFilledData(null);
     setShowBookModal(true);
   };
 
@@ -1039,7 +1114,7 @@ const Interview = () => {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8 lg:gap-12">
             {/* Left Content */}
             <div className="flex-1 text-center lg:text-left space-y-3 sm:space-y-4 lg:space-y-6">
-              <div className="inline-block">
+              <div className="flex gap-2">
                 <span className="px-2.5 py-1 sm:px-3 sm:py-1.5 lg:px-4 lg:py-2 bg-blue-900/10 text-blue-900 rounded-full text-[9px] sm:text-[10px] lg:text-xs font-semibold tracking-wide">
                   Mock Interview Platform
                 </span>

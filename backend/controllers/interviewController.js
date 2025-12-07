@@ -2,6 +2,8 @@ const InterviewRequest = require('../models/InterviewRequest');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const InterviewerApplication = require('../models/InterviewerApplication');
+const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+const UserInterviewSnapshot = require('../models/UserInterviewSnapshot');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -354,6 +356,31 @@ exports.approveApplication = async (req, res) => {
       // continue — don't block approval on notification
     }
 
+    // Create/update ApprovedInterviewer snapshot
+    try {
+      const snapshot = await ApprovedInterviewer.findOneAndUpdate(
+        { user: app.user._id },
+        {
+          user: app.user._id,
+          profile: {
+            name: app.name || `${app.user.firstName || ''} ${app.user.lastName || ''}`.trim() || app.user.username,
+            company: app.company || '',
+            position: app.position || '',
+            qualification: app.qualification || '',
+            resumeUrl: app.resumeUrl || '',
+          },
+          stats: {
+            conductedInterviews: app.conductedInterviews || 0,
+            averageRating: app.averageRating || 0,
+            totalRatings: app.totalRatings || 0,
+          },
+        },
+        { upsert: true, new: true }
+      );
+    } catch (snapErr) {
+      console.error('[ApprovedInterviewer] snapshot create/update failed', snapErr);
+    }
+
     res.json({ message: 'Application approved', application: app });
   } catch (err) {
     console.error('approveApplication error', err);
@@ -675,6 +702,144 @@ exports.assignInterviewer = async (req, res) => {
   }
 };
 
+// Assigned interviewer approves the interview request (quick schedule)
+exports.approveAssignedInterview = async (req, res) => {
+  try {
+    const { requestId } = req.body;
+    const reqDoc = await InterviewRequest.findById(requestId);
+    if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
+    // Only assigned interviewer can approve
+    if (!reqDoc.assignedInterviewer || String(reqDoc.assignedInterviewer) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to approve this interview' });
+    }
+    // Mark as scheduled now
+    reqDoc.status = 'scheduled';
+    if (!reqDoc.scheduledAt) reqDoc.scheduledAt = new Date();
+    await reqDoc.save();
+
+    await reqDoc.populate('requester', 'username firstName lastName');
+    await reqDoc.populate('assignedInterviewer', 'username firstName lastName');
+
+    // Notify requester
+    const io = req.app.get('io');
+    try {
+      const notification = await Notification.create({
+        userId: reqDoc.requester._id,
+        type: 'interview-approved',
+        message: `Your interview request has been approved and scheduled`,
+        requestId: reqDoc._id,
+        requesterId: reqDoc.assignedInterviewer,
+        requesterName: `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`,
+        company: reqDoc.company,
+        position: reqDoc.position,
+        timestamp: Date.now(),
+      });
+      if (io) io.to(reqDoc.requester._id.toString()).emit('notification', notification);
+    } catch (e) { console.error('[approveAssignedInterview] notify requester failed', e); }
+
+    // Also notify interviewer
+    try {
+      const notifInterviewer = await Notification.create({
+        userId: reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer,
+        type: 'interview-approved-confirmation',
+        message: `You approved the interview. Participants can now join`,
+        requestId: reqDoc._id,
+        company: reqDoc.company,
+        position: reqDoc.position,
+        timestamp: Date.now(),
+      });
+      if (io) io.to((reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer).toString()).emit('notification', notifInterviewer);
+    } catch (e) { console.error('[approveAssignedInterview] notify interviewer failed', e); }
+
+    // Update snapshots for interviewer and requester (upcoming)
+    try {
+      const assignedId = reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer;
+      await ApprovedInterviewer.findOneAndUpdate(
+        { user: assignedId },
+        {
+          $inc: { 'aggregates.upcomingInterviews': 1 },
+          $push: {
+            upcomingSessions: {
+              requestId: reqDoc._id,
+              requester: reqDoc.requester._id || reqDoc.requester,
+              requesterName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username || '',
+              company: reqDoc.company || '',
+              position: reqDoc.position || '',
+              scheduledAt: reqDoc.scheduledAt,
+              status: 'scheduled'
+            }
+          }
+        },
+        { upsert: true }
+      );
+    } catch (e) { console.error('[approveAssignedInterview] interviewer snapshot failed', e); }
+
+    try {
+      const requesterId = reqDoc.requester._id || reqDoc.requester;
+      const interviewerObj = reqDoc.assignedInterviewer || {};
+      await UserInterviewSnapshot.findOneAndUpdate(
+        { user: requesterId },
+        {
+          $inc: { 'aggregates.upcomingInterviews': 1 },
+          $push: {
+            upcomingSessions: {
+              requestId: reqDoc._id,
+              interviewer: interviewerObj._id || interviewerObj,
+              interviewerName: `${interviewerObj.firstName || ''} ${interviewerObj.lastName || ''}`.trim() || interviewerObj.username || '',
+              company: reqDoc.company || '',
+              position: reqDoc.position || '',
+              scheduledAt: reqDoc.scheduledAt,
+              status: 'scheduled'
+            }
+          }
+        },
+        { upsert: true }
+      );
+    } catch (e) { console.error('[approveAssignedInterview] requester snapshot failed', e); }
+
+    return res.json({ message: 'Interview approved and scheduled', request: reqDoc });
+  } catch (err) {
+    console.error('approveAssignedInterview error', err);
+    res.status(500).json({ message: 'Failed to approve interview' });
+  }
+};
+
+// Assigned interviewer rejects the interview request
+exports.rejectAssignedInterview = async (req, res) => {
+  try {
+    const { requestId, reason } = req.body;
+    const reqDoc = await InterviewRequest.findById(requestId);
+    if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
+    if (!reqDoc.assignedInterviewer || String(reqDoc.assignedInterviewer) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'Not authorized to reject this interview' });
+    }
+    reqDoc.status = 'rejected';
+    await reqDoc.save();
+
+    await reqDoc.populate('requester', 'username firstName lastName');
+    await reqDoc.populate('assignedInterviewer', 'username firstName lastName');
+
+    const io = req.app.get('io');
+    try {
+      const notification = await Notification.create({
+        userId: reqDoc.requester._id,
+        type: 'interview-rejected',
+        message: `Your interview request was rejected${reason ? `: ${reason}` : ''}`,
+        requestId: reqDoc._id,
+        company: reqDoc.company,
+        position: reqDoc.position,
+        timestamp: Date.now(),
+      });
+      if (io) io.to(reqDoc.requester._id.toString()).emit('notification', notification);
+    } catch (e) { console.error('[rejectAssignedInterview] notify requester failed', e); }
+
+    return res.json({ message: 'Interview request rejected', request: reqDoc });
+  } catch (err) {
+    console.error('rejectAssignedInterview error', err);
+    res.status(500).json({ message: 'Failed to reject interview' });
+  }
+};
+
 // Interviewer schedules date/time for assigned request
 exports.scheduleInterview = async (req, res) => {
   try {
@@ -754,6 +919,60 @@ exports.scheduleInterview = async (req, res) => {
 
     res.json({ message: 'Interview scheduled', request: reqDoc });
     // No contribution on schedule to avoid multi-counting
+    // Update ApprovedInterviewer upcoming count
+    try {
+      if (reqDoc.assignedInterviewer) {
+        const assignedId = reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer;
+        await ApprovedInterviewer.findOneAndUpdate(
+          { user: assignedId },
+          {
+            $inc: { 'aggregates.upcomingInterviews': 1 },
+            $push: {
+              upcomingSessions: {
+                requestId: reqDoc._id,
+                requester: reqDoc.requester._id || reqDoc.requester,
+                requesterName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username || '',
+                company: reqDoc.company || '',
+                position: reqDoc.position || '',
+                scheduledAt: reqDoc.scheduledAt,
+                status: 'scheduled'
+              }
+            }
+          },
+          { upsert: true }
+        );
+      }
+    } catch (e) {
+      console.error('[ApprovedInterviewer] failed to increment upcomingInterviews', e);
+    }
+
+    // Update Requester snapshot (upcoming)
+    try {
+      if (reqDoc.requester) {
+        const requesterId = reqDoc.requester._id || reqDoc.requester;
+        const interviewerObj = reqDoc.assignedInterviewer || {};
+        await UserInterviewSnapshot.findOneAndUpdate(
+          { user: requesterId },
+          {
+            $inc: { 'aggregates.upcomingInterviews': 1 },
+            $push: {
+              upcomingSessions: {
+                requestId: reqDoc._id,
+                interviewer: interviewerObj._id || interviewerObj,
+                interviewerName: `${interviewerObj.firstName || ''} ${interviewerObj.lastName || ''}`.trim() || interviewerObj.username || '',
+                company: reqDoc.company || '',
+                position: reqDoc.position || '',
+                scheduledAt: reqDoc.scheduledAt,
+                status: 'scheduled'
+              }
+            }
+          },
+          { upsert: true }
+        );
+      }
+    } catch (e) {
+      console.error('[UserInterviewSnapshot] failed to add upcoming session', e);
+    }
   } catch (err) {
     console.error('scheduleInterview error', err);
     res.status(500).json({ message: 'Failed to schedule interview' });
@@ -911,6 +1130,83 @@ exports.rateInterviewer = async (req, res) => {
         })
       ]);
     } catch (_) {}
+
+    // Update ApprovedInterviewer stats and aggregates
+    try {
+      if (request.assignedInterviewer) {
+        const assignedId = request.assignedInterviewer._id || request.assignedInterviewer;
+        // decrement upcoming, increment past; update rating stats
+        await ApprovedInterviewer.findOneAndUpdate(
+          { user: assignedId },
+          {
+            $inc: {
+              'aggregates.upcomingInterviews': request.scheduledAt ? -1 : 0,
+              'aggregates.pastInterviews': 1,
+              'stats.totalRatings': 1,
+              'stats.conductedInterviews': 1,
+            },
+            $pull: { upcomingSessions: { requestId: request._id } },
+            $push: {
+              pastSessions: {
+                requestId: request._id,
+                requester: request.requester,
+                requesterName: '',
+                company: request.company || '',
+                position: request.position || '',
+                scheduledAt: request.scheduledAt,
+                completedAt: new Date(),
+                rating: request.rating || 0,
+                feedback: request.feedback || '',
+                status: 'completed'
+              }
+            }
+          }
+        );
+        // Recompute average rating
+        const snap = await ApprovedInterviewer.findOne({ user: assignedId });
+        if (snap) {
+          const total = (snap.stats.averageRating || 0) * (snap.stats.totalRatings || 0);
+          const newTotalRatings = (snap.stats.totalRatings || 0);
+          const newAvg = newTotalRatings > 0 ? (total + request.rating) / (newTotalRatings) : request.rating;
+          snap.stats.averageRating = newAvg;
+          await snap.save();
+        }
+      }
+    } catch (e) {
+      console.error('[ApprovedInterviewer] failed to update snapshot on rating', e);
+    }
+
+    // Update Requester snapshot (move upcoming -> past)
+    try {
+      const requesterId = request.requester._id || request.requester;
+      await UserInterviewSnapshot.findOneAndUpdate(
+        { user: requesterId },
+        {
+          $inc: {
+            'aggregates.upcomingInterviews': request.scheduledAt ? -1 : 0,
+            'aggregates.pastInterviews': 1,
+          },
+          $pull: { upcomingSessions: { requestId: request._id } },
+          $push: {
+            pastSessions: {
+              requestId: request._id,
+              interviewer: request.assignedInterviewer?._id || request.assignedInterviewer,
+              interviewerName: '',
+              company: request.company || '',
+              position: request.position || '',
+              scheduledAt: request.scheduledAt,
+              completedAt: new Date(),
+              rating: request.rating || 0,
+              feedback: request.feedback || '',
+              status: 'completed'
+            }
+          }
+        },
+        { upsert: true }
+      );
+    } catch (e) {
+      console.error('[UserInterviewSnapshot] failed to move session to past', e);
+    }
   } catch (err) {
     console.error('rateInterviewer error', err);
     res.status(500).json({ message: 'Failed to submit rating' });
@@ -1032,4 +1328,111 @@ exports.getInterviewStats = async (req, res) => {
   }
 };
 
+// Get global top performers (top interviewers and top candidates)
+exports.getTopPerformers = async (req, res) => {
+  try {
+    // Get all completed interviews with populated user data
+    const allInterviews = await InterviewRequest.find({})
+      .populate('requester', 'firstName lastName username profilePic')
+      .populate('assignedInterviewer', 'firstName lastName username profilePic')
+      .lean();
+
+    // Count interviews conducted by each interviewer
+    const interviewerMap = new Map();
+    const candidateMap = new Map();
+    
+    for (const interview of allInterviews) {
+      // Count for interviewers (based on completed interviews)
+      if (interview.assignedInterviewer && interview.status === 'completed') {
+        const interviewerId = String(interview.assignedInterviewer._id);
+        if (!interviewerMap.has(interviewerId)) {
+          interviewerMap.set(interviewerId, {
+            user: interview.assignedInterviewer,
+            count: 0,
+            totalRating: 0,
+            ratingCount: 0
+          });
+        }
+        const data = interviewerMap.get(interviewerId);
+        data.count += 1;
+        if (interview.rating) {
+          data.totalRating += interview.rating;
+          data.ratingCount += 1;
+        }
+      }
+      
+      // Count for candidates (based on all interview requests)
+      if (interview.requester) {
+        const candidateId = String(interview.requester._id);
+        if (!candidateMap.has(candidateId)) {
+          candidateMap.set(candidateId, {
+            user: interview.requester,
+            count: 0
+          });
+        }
+        candidateMap.get(candidateId).count += 1;
+      }
+    }
+
+    // Convert to arrays and calculate averages
+    const topInterviewers = Array.from(interviewerMap.values())
+      .map(item => ({
+        user: item.user,
+        count: item.count,
+        avgRating: item.ratingCount > 0 ? item.totalRating / item.ratingCount : 0
+      }))
+      .sort((a, b) => {
+        // Sort by count first, then by rating
+        if (b.count !== a.count) return b.count - a.count;
+        return b.avgRating - a.avgRating;
+      })
+      .slice(0, 3);
+
+    const topCandidates = Array.from(candidateMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+
+    res.json({
+      topInterviewers,
+      topCandidates
+    });
+  } catch (err) {
+    console.error('getTopPerformers error', err);
+    res.status(500).json({ message: 'Failed to fetch top performers' });
+  }
+};
+
 module.exports = exports;
+
+// Admin: delete interviewer and cascade remove related documents
+exports.deleteInterviewerAndCascade = async (req, res) => {
+  try {
+    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
+    if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ message: 'userId required' });
+
+    // Delete ApprovedInterviewer snapshot
+    await ApprovedInterviewer.deleteOne({ user: userId });
+    // Delete InterviewerApplication
+    await InterviewerApplication.deleteOne({ user: userId });
+    // Nullify assignedInterviewer in pending/scheduled requests; optionally delete if desired
+    await InterviewRequest.updateMany(
+      { assignedInterviewer: userId, status: { $in: ['pending','scheduled'] } },
+      { $set: { assignedInterviewer: null, status: 'pending' } }
+    );
+    // For completed requests, keep history but they will no longer link to that interviewer
+
+    // Finally delete the User if you want full removal (optional)
+    if (req.body.removeUser === true) {
+      await User.deleteOne({ _id: userId });
+    }
+
+    res.json({ message: 'Interviewer data deleted and requests detached' });
+  } catch (err) {
+    console.error('deleteInterviewerAndCascade error', err);
+    res.status(500).json({ message: 'Failed to delete interviewer' });
+  }
+};

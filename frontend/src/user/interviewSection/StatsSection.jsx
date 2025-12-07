@@ -41,42 +41,48 @@ const StatsSection = () => {
             if (!res2.ok) throw new Error('Failed to load interview data');
             const data2 = await res2.json();
             const list = Array.isArray(data2) ? data2 : [...(data2.sent || []), ...(data2.received || [])];
-            const byId = new Map();
             let completed = 0;
-            let experts = new Set();
+            let hosted = 0;
+            let scheduled = 0;
+            const currentUserId = list[0]?.requester?._id || list[0]?.assignedInterviewer?._id;
             for (const r of list) {
-              byId.set(String(r._id || Math.random()), true);
               if ((r.status || '').toLowerCase() === 'completed') completed += 1;
-              const inter = r.assignedInterviewer && (r.assignedInterviewer._id || r.assignedInterviewer);
-              if (inter) experts.add(String(inter));
+              if ((r.status || '').toLowerCase() === 'scheduled' || (r.status || '').toLowerCase() === 'completed') scheduled += 1;
+              const interId = r.assignedInterviewer && (r.assignedInterviewer._id || r.assignedInterviewer);
+              if (interId && String(interId) === String(currentUserId)) {
+                hosted += 1;
+              }
             }
-            const totalUnique = byId.size;
-            const successRate = totalUnique > 0 ? Math.round((completed / totalUnique) * 100) : 0;
+            const completionRate = scheduled > 0 ? Math.round((completed / scheduled) * 100) : 0;
             setStats({
-              totalInterviews: totalUnique,
-              totalExperts: experts.size,
-              successRate,
+              totalInterviews: completed,
+              totalExperts: hosted,
+              successRate: completionRate,
               loading: false,
               error: null,
             });
           } else {
             const data = await res.json();
             const list = Array.isArray(data) ? data : [];
-            const byId = new Map();
             let completed = 0;
-            let experts = new Set();
+            let hosted = 0;
+            let scheduled = 0;
+            // Get current user ID from auth context
+            const currentUserId = list[0]?.requester?._id || list[0]?.assignedInterviewer?._id;
             for (const r of list) {
-              byId.set(String(r._id || Math.random()), true);
               if ((r.status || '').toLowerCase() === 'completed') completed += 1;
-              const inter = r.assignedInterviewer && (r.assignedInterviewer._id || r.assignedInterviewer);
-              if (inter) experts.add(String(inter));
+              if ((r.status || '').toLowerCase() === 'scheduled' || (r.status || '').toLowerCase() === 'completed') scheduled += 1;
+              // Count interviews where current user was the interviewer
+              const interId = r.assignedInterviewer && (r.assignedInterviewer._id || r.assignedInterviewer);
+              if (interId && String(interId) === String(currentUserId)) {
+                hosted += 1;
+              }
             }
-            const totalUnique = byId.size;
-            const successRate = totalUnique > 0 ? Math.round((completed / totalUnique) * 100) : 0;
+            const completionRate = scheduled > 0 ? Math.round((completed / scheduled) * 100) : 0;
             setStats({
-              totalInterviews: totalUnique,
-              totalExperts: experts.size,
-              successRate,
+              totalInterviews: completed,
+              totalExperts: hosted,
+              successRate: completionRate,
               loading: false,
               error: null,
             });
@@ -96,21 +102,21 @@ const StatsSection = () => {
         <p className="text-3xl sm:text-4xl font-bold text-[#1e3a8a]">
           {stats.loading ? '...' : stats.totalInterviews ?? 0}
         </p>
-        <p className="text-sm text-[#6b7280] mt-1">Mock Interviews</p>
-      </div>
-      <div className="w-px h-12 bg-blue-200"></div>
-      <div className="text-center">
-        <p className="text-3xl sm:text-4xl font-bold text-[#1e3a8a]">
-          {stats.loading ? '...' : (stats.successRate != null ? `${stats.successRate}%` : '0%')}
-        </p>
-        <p className="text-sm text-[#6b7280] mt-1">Success Rate</p>
+        <p className="text-sm text-[#6b7280] mt-1">Total Interviews</p>
       </div>
       <div className="w-px h-12 bg-blue-200"></div>
       <div className="text-center">
         <p className="text-3xl sm:text-4xl font-bold text-[#1e3a8a]">
           {stats.loading ? '...' : stats.totalExperts ?? 0}
         </p>
-        <p className="text-sm text-[#6b7280] mt-1">Expert Interviewers</p>
+        <p className="text-sm text-[#6b7280] mt-1">Interviews Hosted</p>
+      </div>
+      <div className="w-px h-12 bg-blue-200"></div>
+      <div className="text-center">
+        <p className="text-3xl sm:text-4xl font-bold text-[#1e3a8a]">
+          {stats.loading ? '...' : (stats.successRate != null ? `${stats.successRate}%` : '0%')}
+        </p>
+        <p className="text-sm text-[#6b7280] mt-1">Completion Rate</p>
       </div>
     </div>
   );

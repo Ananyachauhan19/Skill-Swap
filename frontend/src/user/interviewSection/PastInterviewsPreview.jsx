@@ -27,9 +27,9 @@ const PastInterviewsPreview = () => {
     setLoading(true);
     setError(null);
     try {
-      let res = await fetch(`${BACKEND_URL}/api/interview/my-interviews`, { credentials: 'include' });
       let list = [];
-
+      // Fetch directly from InterviewRequest endpoints
+      let res = await fetch(`${BACKEND_URL}/api/interview/my-interviews`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         list = Array.isArray(data) ? data : [];
@@ -50,20 +50,13 @@ const PastInterviewsPreview = () => {
           })
         : list;
 
-      // Consider past when:
-      // - status in completed/ended/cancelled/declined/rejected/done/closed/finished
-      // - OR scheduledAt/date is in the past and not pending
+      // Only show completed/ended/cancelled sessions (not pending/requested/scheduled)
       const pastStatuses = new Set([
         'completed', 'ended', 'cancelled', 'declined', 'rejected', 'done', 'closed', 'finished'
       ]);
-      const now = Date.now();
       const past = own.filter((i) => {
         const status = String(i.status || '').toLowerCase();
-        if (pastStatuses.has(status)) return true;
-        const ts = new Date(i.scheduledAt || i.date || i.updatedAt || 0).getTime();
-        // If we have a time in the past, treat as past regardless of status
-        if (ts && ts < now) return true;
-        return false;
+        return pastStatuses.has(status);
       }).sort((a, b) => {
         const da = new Date(a.updatedAt || a.date || a.scheduledAt || 0).getTime();
         const db = new Date(b.updatedAt || b.date || b.scheduledAt || 0).getTime();
@@ -126,7 +119,7 @@ const PastInterviewsPreview = () => {
                   : 'text-slate-700 hover:bg-slate-50'
               }`}
             >
-              Recent (2)
+              Recent ({Math.min(interviews.length, 2)})
             </button>
             <button
               onClick={() => setActiveTab('all')}
