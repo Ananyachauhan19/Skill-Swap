@@ -58,6 +58,9 @@ router.get('/stats', requireAuth, ctrl.getInterviewStats);
 // Get global top performers (interviewers and candidates)
 router.get('/top-performers', ctrl.getTopPerformers);
 
+// Get feedback for a specific interviewer
+router.get('/interviewer/:interviewerId/feedback', ctrl.getInterviewerFeedback);
+
 // Optional public endpoints used by frontend: past interviews and faqs
 router.get('/past', ctrl.getPastInterviews);
 

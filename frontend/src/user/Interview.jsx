@@ -263,61 +263,269 @@ function BrowseInterviewersSection({ onBookSession }) {
 
 // Interviewer Card Component (extracted for reusability)
 function InterviewerCard({ interviewer: m, onBookSession, navigate, onModalAction }) {
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
   return (
-    <div className="p-2 sm:p-3 lg:p-4 rounded-lg bg-white border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg flex flex-col">
-      <div className="flex-1">
-        <div className="font-bold text-slate-900 text-xs sm:text-sm lg:text-base mb-1.5 sm:mb-2 truncate leading-tight">
-          {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
-        </div>
-        <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs lg:text-sm">
-          <div>
-            <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Company</div>
-            <div className="text-slate-900 font-medium truncate">{m.application?.company || m.user?.college || '—'}</div>
+    <>
+      <div className="p-2 sm:p-3 lg:p-4 rounded-lg bg-white border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg flex flex-col">
+        <div className="flex-1">
+          <div className="font-bold text-slate-900 text-xs sm:text-sm lg:text-base mb-1.5 sm:mb-2 truncate leading-tight">
+            {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
           </div>
-          <div>
-            <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Position</div>
-            <div className="text-slate-900 font-medium truncate">{m.application?.position || m.application?.qualification || '—'}</div>
-          </div>
-          <div className="flex items-center justify-between">
+          <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs lg:text-sm">
             <div>
-              <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Interviews</div>
-              <div className="text-slate-900 font-medium">{m.stats?.conductedInterviews || 0}</div>
+              <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Company</div>
+              <div className="text-slate-900 font-medium truncate">{m.application?.company || m.user?.college || '—'}</div>
             </div>
             <div>
-              <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Rating</div>
-              <div className="flex items-center gap-1 text-slate-900 font-medium">
-                <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                <span className="text-xs">{(m.stats?.averageRating || 0).toFixed(1)}</span>
+              <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Position</div>
+              <div className="text-slate-900 font-medium truncate">{m.application?.position || m.application?.qualification || '—'}</div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Interviews</div>
+                <div className="text-slate-900 font-medium">{m.stats?.conductedInterviews || 0}</div>
+              </div>
+              <div>
+                <div className="text-slate-500 text-[10px] sm:text-xs mb-0.5">Rating</div>
+                <div className="flex items-center gap-1 text-slate-900 font-medium">
+                  <svg className="w-3 h-3 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  <span className="text-xs">{(m.stats?.averageRating || 0).toFixed(1)}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
+        <div className="flex flex-col gap-1 sm:gap-1.5 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100">
+          <button
+            onClick={() => {
+              if (onModalAction) onModalAction();
+              navigate(`/profile/${m.user?.username || m.user?._id}`);
+            }}
+            className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-slate-100 text-slate-900 border border-slate-300 rounded text-[10px] sm:text-xs font-medium hover:bg-slate-200 transition-colors"
+          >
+            View Profile
+          </button>
+          <button
+            onClick={() => setShowFeedbackModal(true)}
+            className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-amber-50 text-amber-900 border border-amber-300 rounded text-[10px] sm:text-xs font-medium hover:bg-amber-100 transition-colors flex items-center justify-center gap-1"
+          >
+            <FaStar className="text-amber-500" size={10} />
+            See Feedback
+          </button>
+          <button
+            onClick={() => {
+              if (onModalAction) onModalAction();
+              if (onBookSession) {
+                onBookSession({
+                  interviewer: m
+                });
+              }
+            }}
+            className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-900 text-white rounded text-[10px] sm:text-xs font-medium hover:bg-blue-800 transition-colors"
+          >
+            Book Session
+          </button>
+        </div>
       </div>
-      <div className="flex flex-col gap-1 sm:gap-1.5 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-slate-100">
-        <button
-          onClick={() => {
-            if (onModalAction) onModalAction();
-            navigate(`/profile/${m.user?.username || m.user?._id}`);
-          }}
-          className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-slate-100 text-slate-900 border border-slate-300 rounded text-[10px] sm:text-xs font-medium hover:bg-slate-200 transition-colors"
-        >
-          View Profile
-        </button>
-        <button
-          onClick={() => {
-            if (onModalAction) onModalAction();
-            if (onBookSession) {
-              onBookSession({
-                interviewer: m
-              });
-            }
-          }}
-          className="w-full px-2 py-1 sm:px-3 sm:py-1.5 bg-blue-900 text-white rounded text-[10px] sm:text-xs font-medium hover:bg-blue-800 transition-colors"
-        >
-          Book Session
-        </button>
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <FeedbackModal 
+          isOpen={showFeedbackModal} 
+          onClose={() => setShowFeedbackModal(false)} 
+          interviewer={m}
+        />
+      )}
+    </>
+  );
+}
+
+// Feedback Modal Component
+function FeedbackModal({ isOpen, onClose, interviewer }) {
+  const [feedbackData, setFeedbackData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isOpen && interviewer?.user?._id) {
+      fetchFeedback();
+    }
+  }, [isOpen, interviewer]);
+
+  const fetchFeedback = async () => {
+    setLoading(true);
+    try {
+      const interviewerId = interviewer.user._id;
+      const res = await fetch(`${BACKEND_URL}/api/interview/interviewer/${interviewerId}/feedback`, {
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setFeedbackData(data);
+      } else {
+        console.error('Failed to fetch feedback');
+      }
+    } catch (error) {
+      console.error('Error fetching feedback:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const interviewerName = `${interviewer.user?.firstName || interviewer.user?.username || 'Interviewer'}${interviewer.user?.lastName ? ' ' + interviewer.user.lastName : ''}`;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 bg-gradient-to-r from-blue-900 to-blue-800 text-white p-6 rounded-t-xl z-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold">Feedback for {interviewerName}</h3>
+              <p className="text-blue-100 text-sm mt-1">
+                {interviewer.application?.company || interviewer.user?.college || 'Company'} • {interviewer.application?.position || 'Position'}
+              </p>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="text-white hover:bg-blue-800 p-2 rounded-lg transition-colors"
+            >
+              <FaTimes size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : feedbackData && feedbackData.totalCount > 0 ? (
+            <>
+              {/* Rating Distribution */}
+              <div className="bg-gradient-to-br from-blue-50 to-slate-50 rounded-xl p-6 mb-6 border border-blue-100">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h4 className="text-2xl font-bold text-slate-900 mb-1">Customer Reviews</h4>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <FaStar 
+                            key={i} 
+                            className={i < Math.round(feedbackData.averageRating) ? 'text-yellow-500' : 'text-gray-300'} 
+                            size={20} 
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xl font-bold text-slate-900">
+                        {feedbackData.averageRating.toFixed(1)} out of 5
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1">{feedbackData.totalCount} global ratings</p>
+                  </div>
+                </div>
+
+                {/* Rating Bars */}
+                <div className="space-y-2">
+                  {[5, 4, 3, 2, 1].map((star) => {
+                    const count = feedbackData.ratingDistribution[star] || 0;
+                    const percentage = feedbackData.totalCount > 0 
+                      ? Math.round((count / feedbackData.totalCount) * 100) 
+                      : 0;
+                    
+                    return (
+                      <div key={star} className="flex items-center gap-3">
+                        <span className="text-sm font-medium text-blue-900 w-12">{star} star</span>
+                        <div className="flex-1 bg-gray-200 rounded-full h-5 overflow-hidden">
+                          <div 
+                            className="bg-gradient-to-r from-orange-400 to-orange-500 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm font-semibold text-slate-700 w-12 text-right">{percentage}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Individual Feedbacks */}
+              <div>
+                <h4 className="text-lg font-bold text-slate-900 mb-4">Recent Reviews</h4>
+                <div className="space-y-4">
+                  {feedbackData.feedbacks.map((feedback) => (
+                    <div key={feedback._id} className="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-start gap-4">
+                        {/* User Avatar */}
+                        <img
+                          src={feedback.requester?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(feedback.requester?.firstName || feedback.requester?.username || 'User')}&background=3b82f6&color=fff&bold=true`}
+                          alt={feedback.requester?.firstName || 'User'}
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        />
+                        
+                        <div className="flex-1">
+                          {/* User Name */}
+                          <div className="font-semibold text-slate-900">
+                            {feedback.requester?.firstName || feedback.requester?.username || 'Anonymous'}
+                            {feedback.requester?.lastName && ` ${feedback.requester.lastName}`}
+                          </div>
+
+                          {/* Star Rating */}
+                          <div className="flex items-center gap-2 my-2">
+                            <div className="flex items-center gap-0.5">
+                              {[...Array(5)].map((_, i) => (
+                                <FaStar 
+                                  key={i} 
+                                  className={i < feedback.rating ? 'text-yellow-500' : 'text-gray-300'} 
+                                  size={14} 
+                                />
+                              ))}
+                            </div>
+                            <span className="text-sm font-semibold text-slate-700">{feedback.rating}/5</span>
+                          </div>
+
+                          {/* Interview Details */}
+                          <div className="text-xs text-slate-600 mb-2">
+                            <span className="font-medium">Interview for:</span> {feedback.company || 'N/A'} • {feedback.position || 'N/A'}
+                          </div>
+
+                          {/* Feedback Text */}
+                          {feedback.feedback && (
+                            <div className="text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100">
+                              {feedback.feedback}
+                            </div>
+                          )}
+
+                          {/* Date */}
+                          <div className="text-xs text-slate-500 mt-2">
+                            {new Date(feedback.updatedAt).toLocaleDateString('en-US', { 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <FaComment className="text-slate-400" size={32} />
+              </div>
+              <p className="text-slate-600 font-medium">No feedback available yet</p>
+              <p className="text-slate-500 text-sm mt-1">This interviewer hasn't received any reviews</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

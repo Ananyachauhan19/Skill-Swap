@@ -1402,6 +1402,59 @@ exports.getTopPerformers = async (req, res) => {
   }
 };
 
+// Get all feedback for a specific interviewer
+exports.getInterviewerFeedback = async (req, res) => {
+  try {
+    const { interviewerId } = req.params;
+    
+    if (!interviewerId) {
+      return res.status(400).json({ message: 'Interviewer ID is required' });
+    }
+
+    // Get all completed interviews for this interviewer with ratings
+    const feedbacks = await InterviewRequest.find({
+      assignedInterviewer: interviewerId,
+      status: 'completed',
+      rating: { $exists: true, $ne: null }
+    })
+    .populate('requester', 'firstName lastName username profilePic')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+    // Calculate rating distribution
+    const ratingDistribution = {
+      5: 0,
+      4: 0,
+      3: 0,
+      2: 0,
+      1: 0
+    };
+
+    let totalRating = 0;
+    let ratingCount = 0;
+
+    feedbacks.forEach(interview => {
+      if (interview.rating) {
+        ratingDistribution[interview.rating]++;
+        totalRating += interview.rating;
+        ratingCount++;
+      }
+    });
+
+    const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
+
+    res.json({
+      feedbacks,
+      ratingDistribution,
+      averageRating,
+      totalCount: ratingCount
+    });
+  } catch (err) {
+    console.error('getInterviewerFeedback error', err);
+    res.status(500).json({ message: 'Failed to fetch interviewer feedback' });
+  }
+};
+
 module.exports = exports;
 
 // Admin: delete interviewer and cascade remove related documents
