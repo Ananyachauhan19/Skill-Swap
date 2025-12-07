@@ -1,5 +1,6 @@
-import React from 'react';
-import { FaCalendarAlt, FaClock, FaStar, FaUserGraduate, FaCheckCircle } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { FaCalendarAlt, FaClock, FaStar, FaUserGraduate, FaCheckCircle, FaComments } from 'react-icons/fa';
+import TutorFeedbackModal from '../../components/TutorFeedbackModal';
 
 const getProfilePic = (profilePic, name) => {
   if (profilePic && profilePic !== '/default-user.png') return profilePic;
@@ -13,6 +14,7 @@ const getProfilePic = (profilePic, name) => {
 
 const TutorCard = ({ tutor, onRequestSession }) => {
   const isAvailable = tutor.status?.includes('Available');
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   return (
     <div className="bg-white rounded-xl p-6 border border-gray-200 hover:border-blue-300 transition-all">
@@ -100,14 +102,32 @@ const TutorCard = ({ tutor, onRequestSession }) => {
         )}
       </div>
 
-      {/* Action Button */}
-      <button
-        onClick={onRequestSession}
-        className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-      >
-        <FaCheckCircle size={16} />
-        <span>Request Session</span>
-      </button>
+      {/* Action Buttons */}
+      <div className="space-y-2">
+        <button
+          onClick={onRequestSession}
+          className="w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+        >
+          <FaCheckCircle size={16} />
+          <span>Request Session</span>
+        </button>
+        
+        <button
+          onClick={() => setShowFeedbackModal(true)}
+          className="w-full py-2.5 bg-white border-2 border-blue-600 text-blue-600 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+        >
+          <FaComments size={16} />
+          <span>See Feedback</span>
+        </button>
+      </div>
+
+      {/* Feedback Modal */}
+      <TutorFeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        tutorId={tutor.userId}
+        tutorName={tutor.name}
+      />
     </div>
   );
 };

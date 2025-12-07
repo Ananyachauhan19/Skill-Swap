@@ -92,7 +92,9 @@ module.exports = (io) => {
             userId: user._id,
             socketId: user.socketId,
             firstName: user.firstName,
-            role: user.role
+            lastName: user.lastName,
+            role: user.role,
+            skillsToTeach: user.skillsToTeach
           });
         } else {
           console.log(`[Socket Register] No user found for userId: ${userId}`);
@@ -805,12 +807,20 @@ module.exports = (io) => {
     socket.on('find-tutors', async (searchCriteria) => {
       try {
         // Frontend sends: subject (Class), topic (Subject), subtopic (Topic)
-        // But teachers register with: subject (Subject), topic (Topic)
-        // So we need to map: searchCriteria.topic -> teacher.subject, searchCriteria.subtopic -> teacher.topic
+        // Backend stores: class (Class), subject (Subject), topic (Topic)
+        // Map: searchCriteria.subject -> skill.class, searchCriteria.topic -> skill.subject, searchCriteria.subtopic -> skill.topic
         const { subject: classValue, topic: subjectValue, subtopic: topicValue } = searchCriteria;
         const matchingTutors = [];
 
         const norm = (s) => (s || '').trim().toLowerCase();
+
+        console.log('[Find Tutors] Search criteria:', { classValue, subjectValue, topicValue });
+        console.log('[Find Tutors] Online users count:', onlineUsers.size);
+        
+        // Log all online users
+        for (const [sid, udata] of onlineUsers.entries()) {
+          console.log(`[Find Tutors] Online user: ${udata.firstName} ${udata.lastName} (${udata.userId}), skills count: ${(udata.skillsToTeach || []).length}`);
+        }
 
         for (const [socketId, userData] of onlineUsers.entries()) {
           if (socketId === socket.id) continue;
@@ -826,11 +836,30 @@ module.exports = (io) => {
             onlineUsers.set(socketId, userData);
           }
 
-          // Match teacher's skills (subject, topic) with learner's search (topic=subject, subtopic=topic)
+          // Match: searchCriteria.subject (class) -> skill.class, searchCriteria.topic (subject) -> skill.subject, searchCriteria.subtopic (topic) -> skill.topic
           const hasMatchingSkill = userSkills.some(skill => {
+            // Match class level
+            const classMatch = !classValue || norm(skill.class) === norm(classValue);
+            
+            // Match subject
             const subjectMatch = !subjectValue || norm(skill.subject) === norm(subjectValue);
-            const topicMatch = !topicValue || norm(skill.topic) === norm(topicValue);
-            return subjectMatch && topicMatch;
+            
+            // If tutor has 'ALL' or 'all topics', they match any topic search
+            // Check if topic is exactly "all" or contains "all" as a word boundary (not substring like "volleyball")
+            const tutorTopic = norm(skill.topic);
+            const isAllTopics = tutorTopic === 'all' || 
+                               tutorTopic === 'all topics' || 
+                               tutorTopic === 'all topic' ||
+                               tutorTopic === '' ||
+                               /\ball\b/.test(tutorTopic); // word boundary check for "all"
+            const topicMatch = !topicValue || isAllTopics || tutorTopic === norm(topicValue);
+            
+            console.log(`[Find Tutors] Checking ${userData.firstName} - Skill:`, skill, 
+              `\n  Class match: ${classMatch} (search: '${classValue}' vs skill: '${skill.class}')`,
+              `\n  Subject match: ${subjectMatch} (search: '${subjectValue}' vs skill: '${skill.subject}')`,
+              `\n  Topic match: ${topicMatch} (search: '${topicValue}' vs skill: '${skill.topic}', isAllTopics: ${isAllTopics})`);
+            
+            return classMatch && subjectMatch && topicMatch;
           });
 
           if (hasMatchingSkill) {
