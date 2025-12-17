@@ -265,12 +265,32 @@ function BrowseInterviewersSection({ onBookSession }) {
 function InterviewerCard({ interviewer: m, onBookSession, navigate, onModalAction }) {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
+  const getProfilePic = (profilePic, name) => {
+    if (profilePic && profilePic !== '/default-user.png') return profilePic;
+    const initials = name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&background=3b82f6&color=fff&bold=true`;
+  };
+
+  const displayName = (m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '');
+
   return (
     <>
       <div className="p-2 sm:p-3 lg:p-4 rounded-lg bg-white border border-slate-200/50 hover:border-blue-900/30 transition-all hover:shadow-lg flex flex-col">
         <div className="flex-1">
-          <div className="font-bold text-slate-900 text-xs sm:text-sm lg:text-base mb-1.5 sm:mb-2 truncate leading-tight">
-            {(m.user?.firstName || m.user?.username) + (m.user?.lastName ? ` ${m.user.lastName}` : '')}
+          {/* Profile Picture and Name */}
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+            <img
+              src={getProfilePic(m.user?.profilePic, displayName)}
+              alt={displayName}
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-gray-200"
+            />
+            <div className="font-bold text-slate-900 text-xs sm:text-sm lg:text-base truncate leading-tight flex-1">
+              {displayName}
+            </div>
           </div>
           <div className="space-y-1.5 sm:space-y-2 text-[10px] sm:text-xs lg:text-sm">
             <div>
