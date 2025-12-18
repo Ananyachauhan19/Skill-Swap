@@ -22,137 +22,154 @@ export default {
         nunito: ['Nunito', 'sans-serif'],
       },
       colors: {
-        // Legacy colors (will be deprecated)
-        cream: {
-          50: '#FFFDD0',
-          100: '#FEFCBF',
-          200: '#FAF089',
-        },
-        'home-bg': '#F5F9FF',
-
-        // ========================================
-        // SEMANTIC COLOR TOKENS - SINGLE SOURCE OF TRUTH
-        // ========================================
-
+        // ============================================
+        // SEMANTIC COLOR TOKENS - DESIGN SYSTEM
+        // ============================================
+        
         // Brand / Primary Colors
-        'brand-primary': '#1E3A8A',        // Deep blue (blue-900)
-        'brand-secondary': '#3B82F6',      // Medium blue (blue-500)
-        'brand-accent': '#60A5FA',         // Light blue (blue-400)
-        'brand-dark': '#1E40AF',           // Dark blue (blue-800)
-        'brand-light': '#DBEAFE',          // Very light blue (blue-100)
-
+        'brand-primary': '#1e3a8a',           // Primary brand color (navy blue)
+        'brand-primary-dark': '#0A2540',      // Darker brand variant
+        'brand-secondary': '#2563eb',         // Secondary brand (blue)
+        'brand-accent': '#3b82f6',            // Accent highlights
+        
         // Background Colors
-        'bg-page': '#F5F9FF',              // Main page background (soft whitish)
-        'bg-section': '#FFFFFF',           // Section background (white)
-        'bg-card': '#FFFFFF',              // Card background
-        'bg-modal': '#FFFFFF',             // Modal/dialog background
-        'bg-overlay': 'rgba(0, 0, 0, 0.4)', // Overlay backdrop
-        'bg-hover': '#EFF6FF',             // Hover state background (blue-50)
-        'bg-active': '#DBEAFE',            // Active state background (blue-100)
-        'bg-disabled': '#F3F4F6',          // Disabled background (gray-100)
-        'bg-input': '#FFFFFF',             // Input field background
-        'bg-sidebar': '#F9FAFB',           // Sidebar background (gray-50)
-
+        'bg-page': '#F5F9FF',                 // Main page background (soft whitish blue)
+        'bg-section': '#e6f0fa',              // Section backgrounds
+        'bg-section-alt': '#f0f6fc',          // Alternate section background
+        'bg-card': '#ffffff',                 // Card/panel backgrounds
+        'bg-navbar': '#F5F9FF',               // Navbar background
+        'bg-sidebar': '#ffffff',              // Sidebar background
+        'bg-modal': '#ffffff',                // Modal backgrounds
+        'bg-overlay': 'rgba(0, 0, 0, 0.4)',   // Overlay backdrop
+        'bg-hero-dark': '#0A2540',            // Dark hero sections
+        'bg-input': '#ffffff',                // Input backgrounds
+        'bg-input-focus': '#f0f9ff',          // Input focus state
+        
         // Text Colors
-        'text-heading': '#1E3A8A',         // Heading text (blue-900)
-        'text-body': '#374151',            // Body text (gray-700)
-        'text-muted': '#6B7280',           // Muted text (gray-500)
-        'text-link': '#3B82F6',            // Link text (blue-500)
-        'text-inverted': '#FFFFFF',        // Text on dark backgrounds
-        'text-placeholder': '#9CA3AF',     // Placeholder text (gray-400)
-        'text-disabled': '#D1D5DB',        // Disabled text (gray-300)
-        'text-emphasis': '#1E3A8A',        // Emphasized text (blue-900)
-
+        'text-heading': '#1e3a8a',            // Main headings
+        'text-subheading': '#0A2540',         // Subheadings
+        'text-body': '#4b5563',               // Body text (gray-600)
+        'text-muted': '#6b7280',              // Muted/secondary text (gray-500)
+        'text-inverted': '#ffffff',           // White text on dark bg
+        'text-link': '#2563eb',               // Link text
+        'text-link-hover': '#1d4ed8',         // Link hover state
+        'text-placeholder': '#60a5fa',        // Placeholder text (blue-400)
+        
         // Button Colors - Primary
-        'button-primary-default': '#1E40AF',  // Primary button default (blue-800)
-        'button-primary-hover': '#1E3A8A',    // Primary button hover (blue-900)
-        'button-primary-active': '#1E3A8A',   // Primary button active (blue-900)
-        'button-primary-disabled': '#9CA3AF', // Primary button disabled (gray-400)
-        'button-primary-text': '#FFFFFF',     // Primary button text
-
+        'button-primary': '#1e3a8a',          // Primary button bg
+        'button-primary-hover': '#0f172a',    // Primary button hover
+        'button-primary-active': '#0A2540',   // Primary button active
+        'button-primary-disabled': '#9ca3af', // Primary button disabled
+        'button-primary-text': '#ffffff',     // Primary button text
+        
         // Button Colors - Secondary
-        'button-secondary-default': '#EFF6FF',  // Secondary button default (blue-50)
-        'button-secondary-hover': '#DBEAFE',    // Secondary button hover (blue-100)
-        'button-secondary-active': '#BFDBFE',   // Secondary button active (blue-200)
-        'button-secondary-disabled': '#F3F4F6', // Secondary button disabled (gray-100)
-        'button-secondary-text': '#1E3A8A',     // Secondary button text (blue-900)
-
-        // Button Colors - Ghost/Transparent
-        'button-ghost-default': 'transparent',
-        'button-ghost-hover': '#EFF6FF',        // Ghost button hover (blue-50)
-        'button-ghost-text': '#1E3A8A',         // Ghost button text (blue-900)
-
-        // Status Colors
-        'status-success': '#10B981',            // Success green (green-500)
-        'status-success-light': '#D1FAE5',      // Success light (green-100)
-        'status-success-text': '#065F46',       // Success text (green-800)
-        'status-error': '#EF4444',              // Error red (red-500)
-        'status-error-light': '#FEE2E2',        // Error light (red-100)
-        'status-error-text': '#991B1B',         // Error text (red-800)
-        'status-warning': '#F59E0B',            // Warning amber (amber-500)
-        'status-warning-light': '#FEF3C7',      // Warning light (amber-100)
-        'status-warning-text': '#92400E',       // Warning text (amber-800)
-        'status-info': '#3B82F6',               // Info blue (blue-500)
-        'status-info-light': '#DBEAFE',         // Info light (blue-100)
-        'status-info-text': '#1E40AF',          // Info text (blue-800)
-
+        'button-secondary': '#2563eb',        // Secondary button bg
+        'button-secondary-hover': '#1d4ed8',  // Secondary button hover
+        'button-secondary-active': '#1e40af', // Secondary button active
+        'button-secondary-disabled': '#cbd5e1', // Secondary button disabled
+        'button-secondary-text': '#ffffff',   // Secondary button text
+        
+        // Button Colors - Ghost/Outline
+        'button-ghost': '#dbeafe',            // Ghost button bg (blue-100)
+        'button-ghost-hover': '#bfdbfe',      // Ghost button hover (blue-200)
+        'button-ghost-text': '#1e3a8a',       // Ghost button text
+        'button-outline-border': '#2563eb',   // Outline button border
+        
+        // Status/State Colors - Success
+        'status-success-bg': '#dcfce7',       // Success background (green-100)
+        'status-success-text': '#166534',     // Success text (green-800)
+        'status-success-border': '#bbf7d0',   // Success border (green-200)
+        'status-success-icon': '#22c55e',     // Success icons (green-500)
+        
+        // Status/State Colors - Error
+        'status-error-bg': '#fee2e2',         // Error background (red-100)
+        'status-error-text': '#991b1b',       // Error text (red-800)
+        'status-error-border': '#fecaca',     // Error border (red-200)
+        'status-error-icon': '#ef4444',       // Error icons (red-500)
+        'status-error-button': '#dc2626',     // Error button bg (red-600)
+        'status-error-button-hover': '#b91c1c', // Error button hover (red-700)
+        
+        // Status/State Colors - Warning
+        'status-warning-bg': '#fef3c7',       // Warning background (amber-100)
+        'status-warning-text': '#78350f',     // Warning text (amber-900)
+        'status-warning-border': '#fde68a',   // Warning border (amber-200)
+        'status-warning-icon': '#f59e0b',     // Warning icons (amber-500)
+        
+        // Status/State Colors - Info
+        'status-info-bg': '#dbeafe',          // Info background (blue-100)
+        'status-info-text': '#1e3a8a',        // Info text (blue-900)
+        'status-info-border': '#bfdbfe',      // Info border (blue-200)
+        'status-info-icon': '#3b82f6',        // Info icons (blue-500)
+        
         // Borders & Dividers
-        'border-default': '#E5E7EB',            // Default border (gray-200)
-        'border-strong': '#9CA3AF',             // Strong border (gray-400)
-        'border-light': 'rgba(229, 231, 235, 0.5)', // Light border (gray-200/50)
-        'border-focus': '#3B82F6',              // Focus border (blue-500)
-        'border-error': '#EF4444',              // Error border (red-500)
-        'divider-default': '#E5E7EB',           // Divider line (gray-200)
-        'divider-light': 'rgba(229, 231, 235, 0.3)', // Light divider
-
-        // Focus & Interaction States
-        'focus-ring': '#3B82F6',                // Focus ring color (blue-500)
-        'focus-ring-offset': '#FFFFFF',         // Focus ring offset
-        'focus-outline': '#93C5FD',             // Focus outline (blue-300)
-
-        // Shadows & Overlays
-        'shadow-subtle': 'rgba(0, 0, 0, 0.1)',  // Subtle shadow
-        'shadow-default': 'rgba(0, 0, 0, 0.15)', // Default shadow
-        'shadow-strong': 'rgba(0, 0, 0, 0.25)',  // Strong shadow
-        'overlay-light': 'rgba(0, 0, 0, 0.2)',   // Light overlay
-        'overlay-default': 'rgba(0, 0, 0, 0.4)', // Default overlay
-        'overlay-strong': 'rgba(0, 0, 0, 0.6)',  // Strong overlay
-
-        // Navbar Specific
-        'navbar-bg': '#F5F9FF',                  // Navbar background
-        'navbar-text': '#1E3A8A',                // Navbar text (blue-900)
-        'navbar-border': 'rgba(229, 231, 235, 0.5)', // Navbar border
-        'navbar-hover': '#DBEAFE',               // Navbar hover state (blue-100)
-        'navbar-active': '#BFDBFE',              // Navbar active state (blue-200)
-
-        // Form Elements
-        'input-border': '#D1D5DB',               // Input border (gray-300)
-        'input-border-focus': '#3B82F6',         // Input border focus (blue-500)
-        'input-bg': '#FFFFFF',                   // Input background
-        'input-text': '#1E3A8A',                 // Input text (blue-900)
-        'input-placeholder': '#60A5FA',          // Input placeholder (blue-400)
-
-        // Dropdown & Menu
-        'dropdown-bg': '#FFFFFF',                // Dropdown background
-        'dropdown-border': '#BFDBFE',            // Dropdown border (blue-200)
-        'dropdown-hover': '#EFF6FF',             // Dropdown hover (blue-50)
-        'dropdown-text': '#1E3A8A',              // Dropdown text (blue-900)
-        'dropdown-text-muted': 'rgba(30, 58, 138, 0.7)', // Dropdown muted text
-
-        // Badge & Tag
-        'badge-bg': 'rgba(219, 234, 254, 0.5)',  // Badge background (blue-100/50)
-        'badge-text': '#1E3A8A',                 // Badge text (blue-900)
-        'badge-border': '#93C5FD',               // Badge border (blue-300)
-
-        // Avatar & Profile
-        'avatar-bg': '#1E40AF',                  // Avatar background (blue-800)
-        'avatar-border': '#1E3A8A',              // Avatar border (blue-900)
-        'avatar-text': '#FFFFFF',                // Avatar text
-
-        // Utility Colors
-        'utility-transparent': 'transparent',
-        'utility-white': '#FFFFFF',
-        'utility-black': '#000000',
+        'border-default': '#e5e7eb',          // Default borders (gray-200)
+        'border-muted': '#f3f4f6',            // Subtle borders (gray-100)
+        'border-strong': '#d1d5d8',           // Strong borders (gray-300)
+        'border-focus': '#2563eb',            // Focus state borders
+        'border-active': '#1e3a8a',           // Active element borders
+        'divider-default': '#e5e7eb',         // Section dividers
+        
+        // Focus & Interactive States
+        'focus-ring': '#60a5fa',              // Focus ring color (blue-400)
+        'focus-ring-offset': '#ffffff',       // Focus ring offset
+        
+        // Shadow Colors
+        'shadow-subtle': 'rgba(0, 0, 0, 0.05)',   // Subtle shadows
+        'shadow-default': 'rgba(0, 0, 0, 0.1)',   // Default shadows
+        'shadow-strong': 'rgba(0, 0, 0, 0.15)',   // Strong shadows
+        
+        // Accent/Special Colors
+        'accent-gold': '#f59e0b',             // Gold/amber accent
+        'accent-gold-bg': '#fef3c7',          // Gold background
+        'accent-gold-gradient-start': '#fff9c4', // Gold gradient start
+        'accent-gold-gradient-mid': '#fdd835',   // Gold gradient mid
+        'accent-gold-gradient-end': '#f57f17',   // Gold gradient end
+        'accent-silver': '#d1d5db',           // Silver accent (gray-300)
+        'accent-silver-bg': '#f3f4f6',        // Silver background
+        'accent-purple': '#a855f7',           // Purple accent
+        'accent-indigo': '#6366f1',           // Indigo accent
+        'accent-green': '#10b981',            // Green accent
+        
+        // Video Call / Interview Call Colors
+        'call-bg': '#111827',                 // Call background (gray-900)
+        'call-panel': '#1f2937',              // Call panel bg (gray-800)
+        'call-control': '#374151',            // Call control bg (gray-700)
+        'call-control-hover': '#4b5563',      // Call control hover (gray-600)
+        'call-active': '#2563eb',             // Call active state (blue-600)
+        'call-active-hover': '#1d4ed8',       // Call active hover (blue-700)
+        
+        // Notification Colors
+        'notification-unread': '#3b82f6',     // Unread indicator (blue-500)
+        'notification-bg': '#ffffff',         // Notification background
+        'notification-border': '#e5e7eb',     // Notification border
+        
+        // Badge/Chip Colors
+        'badge-bg': '#dbeafe',                // Badge background (blue-100)
+        'badge-text': '#1e3a8a',              // Badge text (blue-900)
+        'badge-border': '#bfdbfe',            // Badge border (blue-200)
+        
+        // Dropdown/Menu Colors
+        'dropdown-bg': '#ffffff',             // Dropdown background
+        'dropdown-border': '#bfdbfe',         // Dropdown border (blue-200)
+        'dropdown-hover': '#dbeafe',          // Dropdown item hover (blue-50)
+        'dropdown-active': '#bfdbfe',         // Dropdown item active (blue-100)
+        
+        // Special UI Elements
+        'coin-golden': '#f59e0b',             // Golden coin color
+        'coin-golden-gradient-start': '#f59e0b', // Golden coin gradient
+        'coin-golden-gradient-end': '#d97706',   // Golden coin gradient end
+        'coin-silver': '#d1d5db',             // Silver coin color
+        'coin-silver-gradient-start': '#d1d5db', // Silver coin gradient
+        'coin-silver-gradient-end': '#9ca3af',   // Silver coin gradient end
+        
+        // Skeleton/Loading Colors
+        'skeleton-bg': '#f3f4f6',             // Skeleton background
+        'skeleton-shimmer': '#e5e7eb',        // Skeleton shimmer
+        
+        // Whiteboard Colors
+        'whiteboard-bg': '#ffffff',           // Whiteboard background
+        'whiteboard-border': '#374151',       // Whiteboard border (gray-700)
+        'whiteboard-pen': '#22c55e',          // Whiteboard pen color
       },
       spacing: {
         '18': '4.5rem',

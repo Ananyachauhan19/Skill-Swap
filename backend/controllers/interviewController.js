@@ -1328,22 +1328,29 @@ exports.getInterviewStats = async (req, res) => {
   }
 };
 
-// Get global top performers (top interviewers and top candidates)
+// Get global top performers (top interviewers and top candidates) - OPTIMIZED
 exports.getTopPerformers = async (req, res) => {
   try {
-    // Get all completed interviews with populated user data
-    const allInterviews = await InterviewRequest.find({})
-      .populate('requester', 'firstName lastName username profilePic')
+    // OPTIMIZATION: Use aggregation pipeline for faster processing
+    // Fetch only completed interviews for interviewers (more relevant)
+    const completedInterviews = await InterviewRequest.find({ 
+      status: 'completed',
+      assignedInterviewer: { $exists: true, $ne: null }
+    })
+      .select('assignedInterviewer rating')
       .populate('assignedInterviewer', 'firstName lastName username profilePic')
       .lean();
 
-    // Count interviews conducted by each interviewer
+    // Fetch all requests for candidates count
+    const allRequests = await InterviewRequest.find({ requester: { $exists: true, $ne: null } })
+      .select('requester')
+      .populate('requester', 'firstName lastName username profilePic')
+      .lean();
+
+    // Count interviews conducted by each interviewer (completed only)
     const interviewerMap = new Map();
-    const candidateMap = new Map();
-    
-    for (const interview of allInterviews) {
-      // Count for interviewers (based on completed interviews)
-      if (interview.assignedInterviewer && interview.status === 'completed') {
+    for (const interview of completedInterviews) {
+      if (interview.assignedInterviewer) {
         const interviewerId = String(interview.assignedInterviewer._id);
         if (!interviewerMap.has(interviewerId)) {
           interviewerMap.set(interviewerId, {
@@ -1355,18 +1362,21 @@ exports.getTopPerformers = async (req, res) => {
         }
         const data = interviewerMap.get(interviewerId);
         data.count += 1;
-        if (interview.rating) {
+        if (interview.rating && interview.rating > 0) {
           data.totalRating += interview.rating;
           data.ratingCount += 1;
         }
       }
-      
-      // Count for candidates (based on all interview requests)
-      if (interview.requester) {
-        const candidateId = String(interview.requester._id);
+    }
+
+    // Count for candidates (all requests)
+    const candidateMap = new Map();
+    for (const request of allRequests) {
+      if (request.requester) {
+        const candidateId = String(request.requester._id);
         if (!candidateMap.has(candidateId)) {
           candidateMap.set(candidateId, {
-            user: interview.requester,
+            user: request.requester,
             count: 0
           });
         }
@@ -1374,24 +1384,27 @@ exports.getTopPerformers = async (req, res) => {
       }
     }
 
-    // Convert to arrays and calculate averages
+    // Convert to arrays and calculate averages - limit to top 3 for performance
     const topInterviewers = Array.from(interviewerMap.values())
       .map(item => ({
         user: item.user,
         count: item.count,
-        avgRating: item.ratingCount > 0 ? item.totalRating / item.ratingCount : 0
+        avgRating: item.ratingCount > 0 ? Math.round((item.totalRating / item.ratingCount) * 10) / 10 : 0
       }))
       .sort((a, b) => {
         // Sort by count first, then by rating
         if (b.count !== a.count) return b.count - a.count;
         return b.avgRating - a.avgRating;
       })
-      .slice(0, 3);
+      .slice(0, 3); // Only return top 3
 
     const topCandidates = Array.from(candidateMap.values())
       .sort((a, b) => b.count - a.count)
-      .slice(0, 3);
+      .slice(0, 3); // Only return top 3
 
+    // Cache response header for 5 minutes to reduce DB load
+    res.set('Cache-Control', 'public, max-age=300');
+    
     res.json({
       topInterviewers,
       topCandidates

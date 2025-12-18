@@ -1,49 +1,28 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BACKEND_URL } from '../../config.js';
-import { FaStar, FaTable, FaTrophy } from 'react-icons/fa';
-
-// Contract:
-// - Fetch top interviewers and top candidates from backend
-// - Merge by user to compute overall "activity" (conducted + attended)
-// - Show top 3 in a table with: rank, avatar, name, stars (avg), total interviews
+import { FaStar } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 const TopInterviewPerformance = () => {
-  const [conducted, setConducted] = useState([]); // [{ user, count, avgRating? }]
-  const [attended, setAttended] = useState([]);  // [{ user, count, avgRating? }]
+  const [topInterviewers, setTopInterviewers] = useState([]);
+  const [topCandidates, setTopCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
     async function fetchData() {
-      setLoading(true); setError('');
+      setLoading(true);
       try {
-        const res = await fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' });
-        if (!res.ok) throw new Error('Failed');
+        const res = await fetch(`${BACKEND_URL}/api/interview/top-performers`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to fetch top performers');
         const data = await res.json();
         if (!mounted) return;
-        const list = Array.isArray(data) ? data : [...(data.sent || []), ...(data.received || [])];
-        const byInterviewer = new Map();
-        const byCandidate = new Map();
-        const userMap = new Map();
-        for (const r of list) {
-          const interObj = typeof r.assignedInterviewer === 'object' ? r.assignedInterviewer : null;
-          const candObj = typeof r.requester === 'object' ? r.requester : null;
-          const interId = r.assignedInterviewer && (r.assignedInterviewer._id || r.assignedInterviewer);
-          const candId = r.requester && (r.requester._id || r.requester);
-          if (interId) byInterviewer.set(String(interId), (byInterviewer.get(String(interId)) || 0) + 1);
-          if (candId) byCandidate.set(String(candId), (byCandidate.get(String(candId)) || 0) + 1);
-          if (interObj && interObj._id && !userMap.has(String(interObj._id))) userMap.set(String(interObj._id), interObj);
-          if (candObj && candObj._id && !userMap.has(String(candObj._id))) userMap.set(String(candObj._id), candObj);
-        }
-        const conductedArr = Array.from(byInterviewer.entries()).map(([id, count]) => ({ user: userMap.get(id) || { _id: id }, count }));
-        const attendedArr = Array.from(byCandidate.entries()).map(([id, count]) => ({ user: userMap.get(id) || { _id: id }, count }));
-        setConducted(conductedArr);
-        setAttended(attendedArr);
+        setTopInterviewers(data.topInterviewers || []);
+        setTopCandidates(data.topCandidates || []);
       } catch (e) {
         console.error('TopInterviewPerformance fetch error:', e);
         if (!mounted) return;
-        setError('Failed to load top performers');
       } finally {
         if (mounted) setLoading(false);
       }
@@ -52,100 +31,157 @@ const TopInterviewPerformance = () => {
     return () => { mounted = false; };
   }, []);
 
-  const merged = useMemo(() => {
-    // Map by user._id and sum counts; prefer rating from conducted, fallback to attended
-    const byId = new Map();
-    const add = (arr, kind) => {
-      for (const item of arr || []) {
-        const id = String(item.user?._id || item.user?.id || item.user || item._id || Math.random());
-        const prev = byId.get(id) || { user: item.user, conducted: 0, attended: 0, rating: null };
-        if (kind === 'conducted') prev.conducted += item.count || 0; else prev.attended += item.count || 0;
-        // prefer rating from conducted; else keep best available
-        if (prev.rating == null) prev.rating = typeof item.avgRating === 'number' ? item.avgRating : null;
-        // keep richer user object if available
-        prev.user = prev.user || item.user;
-        byId.set(id, prev);
-      }
-    };
-    add(conducted, 'conducted');
-    add(attended, 'attended');
-    const all = Array.from(byId.values()).map(r => ({
-      ...r,
-      total: (r.conducted || 0) + (r.attended || 0),
-    }));
-    // sort by total desc; take top 3
-    return all.sort((a, b) => b.total - a.total).slice(0, 3);
-  }, [conducted, attended]);
+  const handleProfileClick = (user) => {
+    const username = user?.username;
+    const userId = user?._id;
+    if (username) {
+      navigate(`/profile/${username}`);
+    } else if (userId) {
+      navigate(`/profile/${userId}`);
+    }
+  };
+
+  const PerformerCard = ({ person, type }) => {
+    const name = `${person.user?.firstName || person.user?.username || 'User'}${person.user?.lastName ? ` ${person.user.lastName}` : ''}`;
+    const avatar = person.user?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff&bold=true`;
+    const company = person.user?.company || 'Company';
+    const position = person.user?.position || type === 'interviewer' ? 'Interviewer' : 'Candidate';
+
+    return (
+      <div
+        onClick={() => handleProfileClick(person.user)}
+        className="relative bg-white rounded-sm border-2 border-gray-200 hover:border-brand-primary shadow-sm hover:shadow-lg transition-all duration-200 p-3 cursor-pointer overflow-hidden group"
+      >
+        {/* Background pattern design */}
+        <div className="absolute inset-0 opacity-[0.02]">
+          <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-brand-primary -translate-y-10 translate-x-10"></div>
+          <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full bg-brand-secondary translate-y-8 -translate-x-8"></div>
+        </div>
+        
+        {/* Decorative lines */}
+        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-100 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-100 to-transparent"></div>
+        
+        {/* Side accent bars */}
+        <div className="absolute top-3 right-0 w-1 h-12 bg-gradient-to-b from-brand-primary to-transparent opacity-30"></div>
+        <div className="absolute bottom-3 left-0 w-1 h-12 bg-gradient-to-t from-brand-secondary to-transparent opacity-30"></div>
+        
+        {/* Avatar & Name */}
+        <div className="flex items-start gap-2 mb-2 relative z-10">
+          <img
+            src={avatar}
+            alt={name}
+            className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-blue-100 ring-1 ring-blue-50"
+          />
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-gray-900 truncate leading-tight">
+              {name}
+            </h3>
+          </div>
+        </div>
+
+        {/* Company & Position - Compact boxes */}
+        <div className="space-y-1.5 mb-2 relative z-10">
+          <div className="bg-gradient-to-r from-blue-50/50 to-transparent border-l-2 border-brand-primary/30 pl-2 py-1">
+            <p className="text-[10px] text-gray-500 leading-none mb-0.5">Company</p>
+            <p className="text-xs font-medium text-gray-900 leading-tight">{company}</p>
+          </div>
+          <div className="bg-gradient-to-r from-purple-50/50 to-transparent border-l-2 border-purple-400/30 pl-2 py-1">
+            <p className="text-[10px] text-gray-500 leading-none mb-0.5">Position</p>
+            <p className="text-xs font-medium text-gray-900 leading-tight">{position}</p>
+          </div>
+        </div>
+
+        {/* Stats Row - Enhanced with backgrounds */}
+        <div className="grid grid-cols-2 gap-2 mb-2 relative z-10">
+          <div className="bg-blue-50/50 rounded px-2 py-1.5 border border-blue-100/50">
+            <p className="text-[10px] text-gray-500 mb-0.5">Interviews</p>
+            <p className="text-sm font-bold text-gray-900">{person.count || 0}</p>
+          </div>
+          <div className="bg-yellow-50/50 rounded px-2 py-1.5 border border-yellow-100/50">
+            <p className="text-[10px] text-gray-500 mb-0.5">Rating</p>
+            <div className="flex items-center gap-0.5">
+              <FaStar className="text-yellow-400 text-[10px]" />
+              <span className="text-sm font-bold text-gray-900">
+                {person.avgRating ? person.avgRating.toFixed(1) : '0.0'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons - More compact */}
+        <div className="space-y-1 relative z-10">
+          <button className="w-full py-1.5 bg-gray-50 text-gray-700 rounded text-[11px] font-medium hover:bg-gray-100 transition-colors border border-gray-200">
+            View Profile
+          </button>
+          <button className="w-full py-1.5 bg-yellow-50 text-yellow-700 rounded text-[11px] font-medium hover:bg-yellow-100 transition-colors flex items-center justify-center gap-1 border border-yellow-200">
+            <FaStar className="text-yellow-500 text-[9px]" />
+            See Feedback
+          </button>
+          <button className="w-full py-1.5 bg-brand-primary text-white rounded text-[11px] font-medium hover:bg-brand-primary/90 transition-colors">
+            Book Session
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
-      <section className="bg-white rounded-xl border border-gray-200 p-8">
-        <div className="text-center py-10">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
-          <p className="text-gray-600 mt-4">Loading top interview performance...</p>
+      <section className="bg-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-3 border-gray-300 border-t-brand-primary"></div>
+            <p className="text-gray-600 mt-4 text-sm">Loading top performers...</p>
+          </div>
         </div>
       </section>
     );
   }
 
-  if (error || merged.length === 0) return null;
+  const hasInterviewers = topInterviewers.length > 0;
+  const hasCandidates = topCandidates.length > 0;
+
+  if (!hasInterviewers && !hasCandidates) return null;
 
   return (
-    <section className="bg-white rounded-xl border border-gray-200 p-8">
-      <div className="mb-8">
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">Top Interview Performance</h2>
-        <p className="text-center text-gray-600 text-sm">Overall activity rankings</p>
-      </div>
+    <section className="bg-white py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section Header */}
+        <div className="mb-10">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            Top Performers
+          </h2>
+          <p className="text-gray-600">
+            Outstanding interviewers and active candidates
+          </p>
+        </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Rank</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">User</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Rating</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-900 uppercase">Total</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {merged.map((row, idx) => {
-              const name = (row.user?.firstName || row.user?.username || 'User') + (row.user?.lastName ? ` ${row.user.lastName}` : '');
-              const avatar = row.user?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=DBEAFE&color=1E40AF&bold=true`;
-              const stars = typeof row.rating === 'number' ? Math.round(row.rating) : null;
-              return (
-                <tr key={row.user?._id || idx} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-900 font-medium">
-                    <div className="flex items-center gap-2">
-                      <span>#{idx + 1}</span>
-                      {idx < 3 && <FaTrophy className={`${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-gray-400' : 'text-orange-600'}`} />}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <img src={avatar} alt={name} className="w-10 h-10 rounded-full object-cover border-2 border-gray-200" />
-                      <div>
-                        <div className="text-gray-900 font-medium">{name}</div>
-                        <div className="text-xs text-gray-500">{row.conducted || 0} conducted • {row.attended || 0} attended</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      {stars == null ? (
-                        <span className="text-gray-500 text-sm">N/A</span>
-                      ) : (
-                        [...Array(5)].map((_, i) => (
-                          <FaStar key={i} className={i < stars ? 'text-yellow-500' : 'text-gray-300'} size={14} />
-                        ))
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-900 font-semibold">{row.total}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        {/* Top Interviewers Section */}
+        {hasInterviewers && (
+          <div className="mb-12">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">Top Interviewers</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {topInterviewers.slice(0, 3).map((person, index) => (
+                <PerformerCard key={person.user?._id || index} person={person} index={index} type="interviewer" />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Top Candidates Section */}
+        {hasCandidates && (
+          <div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-6">Top Candidates</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {topCandidates.slice(0, 3).map((person, index) => (
+                <PerformerCard key={person.user?._id || index} person={person} index={index} type="candidate" />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

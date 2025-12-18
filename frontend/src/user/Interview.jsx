@@ -10,7 +10,7 @@ import socketClient from '../socket.js';
 import { COMPANIES, POSITIONS } from "../constants/interviewData";
 import StatsSection from "./interviewSection/StatsSection";
 import PastInterviewsPreview from "./interviewSection/PastInterviewsPreview";
-import TopInterviewers from "./interviewSection/TopInterviewers";
+import TopInterviewPerformance from "./interviewSection/TopInterviewPerformance";
 import FAQSection from "./interviewSection/FAQ";
 
 
@@ -1409,7 +1409,7 @@ const Interview = () => {
         
         <PastInterviewsPreview />
         
-        <TopInterviewers />
+        <TopInterviewPerformance />
         
         <HowItWorks />
         
