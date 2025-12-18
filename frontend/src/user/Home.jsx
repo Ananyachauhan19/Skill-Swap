@@ -10,7 +10,7 @@ import LetsStartSection from "./HomeSection/LetsStartSection";
 
 const Home = () => {
   return (
-    <main className="bg-home-bg text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] pt-8">
+    <main className="bg-home-bg text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] pt-16 sm:pt-20">
       <motion.div initial="visible" animate="visible">
         <HeroSection />
         <ExploreOpportunitiesSection />

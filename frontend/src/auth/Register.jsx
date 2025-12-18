@@ -55,6 +55,16 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   ];
   const extendedImages = [...carouselImages, carouselImages[0]]; // Append first image for seamless loop
 
+  // Individual image sizing for consistent top/bottom alignment
+  const getImageStyle = (src) => {
+    // expert-connect-illustration increased by 10%
+    if (src.includes('expert-connect-illustration')) {
+      return { width: '110%', height: '110%', objectFit: 'contain', objectPosition: 'center' };
+    }
+    // All other images set to 100% for consistent alignment
+    return { width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' };
+  };
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -240,12 +250,12 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
               <img
                 src="/assets/skillswap-logo.webp"
                 alt="SkillSwap Logo"
-                className="h-8 w-auto"
+                className="h-7 lg:h-8 w-auto"
               />
             </div>
 
             <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div className="relative w-[70%] h-[50%] overflow-hidden">
+              <div className="relative w-[75%] lg:w-[72%] max-w-[450px] aspect-square overflow-hidden p-4">
                 <div
                   className="flex carousel-container"
                   style={{
@@ -254,11 +264,11 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                   }}
                 >
                   {extendedImages.map((src, idx) => (
-                    <div key={idx} className="min-w-full h-full">
+                    <div key={idx} className="min-w-full h-full flex items-center justify-center">
                       <img
                         src={src}
                         alt={`Feature ${idx + 1}`}
-                        className="w-full h-full object-contain"
+                        style={getImageStyle(src)}
                       />
                     </div>
                   ))}

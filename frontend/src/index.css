@@ -3,7 +3,35 @@
 @import "tailwindcss";
 
 body {
-  font-family: 'Inter', sans-serif; /* Change 'Inter' to 'Lora' or 'Nunito' if preferred */
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+/* Ensure all containers don't overflow */
+* {
+  box-sizing: border-box;
+}
+
+/* Responsive container utilities */
+.container-responsive {
+  width: 100%;
+  max-width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
 }
 
 /* index.css */
@@ -64,4 +92,285 @@ body {
 
 .animate-slide-in-left {
   animation: slide-in-left 0.5s ease-out;
+}
+
+/* Responsive text utilities */
+.text-responsive-sm {
+  font-size: 0.875rem; /* 14px */
+}
+
+.text-responsive-base {
+  font-size: 1rem; /* 16px */
+}
+
+@media (min-width: 640px) {
+  .text-responsive-sm {
+    font-size: 1rem; /* 16px */
+  }
+  .text-responsive-base {
+    font-size: 1.125rem; /* 18px */
+  }
+}
+
+/* Mobile-friendly tap targets */
+@media (max-width: 768px) {
+  button, a, input, select, textarea {
+    min-height: 44px; /* iOS minimum recommended tap target */
+  }
+}
+
+/* Prevent zoom on input focus for iOS */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Responsive image containers */
+.responsive-img-container {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  overflow: hidden;
+}
+
+.responsive-img-container img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ========================================
+   GLOBAL TABLET & IPAD PRO RESPONSIVENESS
+   ======================================== */
+
+/* Tablet (768px - 1023px) - Standard tablets and iPad */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Container adjustments */
+  .container, [class*="container"] {
+    max-width: 100%;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  /* Grid layouts - optimize for tablet */
+  [class*="grid-cols-"] {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+
+  /* Flex layouts - better stacking */
+  .flex[class*="flex-row"] {
+    flex-wrap: wrap;
+  }
+
+  /* Spacing adjustments */
+  [class*="gap-"] {
+    gap: 1rem;
+  }
+
+  [class*="space-x-"] > * + * {
+    margin-left: 1rem;
+  }
+
+  [class*="space-y-"] > * + * {
+    margin-top: 1rem;
+  }
+
+  /* Padding normalization */
+  [class*="p-"] {
+    padding: clamp(1rem, 2vw, 1.5rem);
+  }
+
+  /* Text sizing for readability */
+  h1, .text-5xl, .text-6xl {
+    font-size: clamp(2rem, 4vw, 2.5rem);
+  }
+
+  h2, .text-4xl {
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+  }
+
+  h3, .text-3xl {
+    font-size: clamp(1.5rem, 3vw, 1.875rem);
+  }
+
+  /* Button sizing for touch targets */
+  button, .btn, a[class*="btn"] {
+    min-height: 48px;
+    padding: 0.75rem 1.25rem;
+  }
+
+  /* Image containers */
+  img, picture, video, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Modal and overlay adjustments */
+  [class*="modal"], [class*="dialog"], [class*="overlay"] {
+    max-width: 90vw;
+    margin: 2rem auto;
+  }
+
+  /* Card layouts */
+  [class*="card"], [class*="panel"] {
+    padding: 1.25rem;
+    margin: 0.75rem;
+  }
+
+  /* Form elements */
+  input, select, textarea {
+    font-size: 16px;
+    padding: 0.75rem;
+  }
+
+  /* Navigation adjustments */
+  nav[class*="flex"] {
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  /* Sidebar layouts */
+  aside, [class*="sidebar"] {
+    width: 100%;
+    max-width: 320px;
+  }
+}
+
+/* iPad Pro and large tablets (1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  /* Container optimization */
+  .container, [class*="container"] {
+    max-width: 980px;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  /* Grid layouts - 2-3 column optimization */
+  [class*="grid-cols-4"], [class*="grid-cols-5"], [class*="grid-cols-6"] {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Better content spacing */
+  section, article, main {
+    padding: 2rem 1.5rem;
+  }
+
+  /* Sidebar + content layouts */
+  .flex[class*="flex-row"] > aside + main,
+  .flex[class*="flex-row"] > main + aside {
+    flex: 1;
+  }
+
+  aside, [class*="sidebar"] {
+    flex-basis: 280px;
+    min-width: 280px;
+  }
+
+  /* Card grids */
+  [class*="card-grid"] {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  /* Image gallery layouts */
+  [class*="gallery"], [class*="grid"][class*="cols-"] {
+    gap: 1.5rem;
+  }
+
+  /* Hero sections */
+  [class*="hero"], section[class*="banner"] {
+    min-height: 400px;
+    padding: 3rem 2rem;
+  }
+
+  /* Modal sizing */
+  [class*="modal"], [class*="dialog"] {
+    max-width: 720px;
+  }
+}
+
+/* Global tablet utilities */
+@media (min-width: 768px) and (max-width: 1279px) {
+  /* Prevent layout breaks */
+  * {
+    max-width: 100%;
+  }
+
+  html, body {
+    overflow-x: hidden;
+  }
+
+  /* Flexible images */
+  img[class*="w-full"], img[class*="h-full"] {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+  }
+
+  /* Table responsiveness */
+  table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  /* Column layouts */
+  [class*="columns-"] {
+    column-count: 2;
+  }
+
+  /* Dropdown and menu positioning */
+  [class*="dropdown"], [class*="menu"] {
+    max-width: 100vw;
+    left: 0;
+    right: 0;
+  }
+
+  /* Absolute/fixed positioning fixes */
+  [class*="absolute"], [class*="fixed"] {
+    max-width: calc(100vw - 2rem);
+  }
+
+  /* Typography balance */
+  p, li, span {
+    font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+    line-height: 1.6;
+  }
+
+  /* Icon sizing */
+  svg, [class*="icon"] {
+    width: clamp(1.25rem, 2.5vw, 1.75rem);
+    height: clamp(1.25rem, 2.5vw, 1.75rem);
+  }
+
+  /* Form layout optimization */
+  form[class*="grid"] {
+    grid-template-columns: 1fr;
+  }
+
+  form[class*="flex"] {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  /* Card responsiveness */
+  [class*="rounded"] {
+    border-radius: clamp(0.5rem, 1vw, 1rem);
+  }
+
+  /* Shadow adjustments */
+  [class*="shadow"] {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
 }

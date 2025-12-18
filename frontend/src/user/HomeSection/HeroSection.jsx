@@ -102,17 +102,17 @@ const HeroSection = ({ exploreRef }) => {
 
 
   return (
-    <section className="relative z-10 min-h-[calc(100vh-80px)] w-full bg-home-bg flex items-center justify-center px-3 sm:px-6 lg:px-8 overflow-hidden pt-16 sm:pt-3">
-      <div className="max-w-7xl w-full flex flex-col lg:flex-row gap-4 md:gap-6 items-center justify-between h-full py-2 sm:py-4">
+    <section className="relative z-10 min-h-[85vh] lg:min-h-[90vh] w-full bg-home-bg flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden py-8 lg:py-4">
+      <div className="max-w-7xl w-full flex flex-col lg:flex-row gap-6 lg:gap-12 items-center justify-between">
         {/* Hero Text Content */}
         <motion.div
-          className="flex flex-col justify-center space-y-4 w-full lg:w-1/2"
+          className="flex flex-col justify-center space-y-5 lg:space-y-6 w-full lg:w-1/2"
           initial="hidden"
           animate="visible"
           variants={textVariants}
         >
           <motion.h1
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-extrabold leading-tight text-blue-900 text-center lg:text-left"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight text-blue-900 text-center lg:text-left"
             variants={textVariants}
           >
             <span>
@@ -168,7 +168,7 @@ const HeroSection = ({ exploreRef }) => {
         </motion.div>
 
         {/* Hero Image and Profile Section */}
-        <div className="flex flex-col w-full lg:w-1/2 items-center justify-start gap-2 mt-12 lg:mt-16">
+        <div className="flex flex-col w-full lg:w-1/2 items-center justify-center gap-3 lg:gap-4 mt-8 lg:mt-0">
           {isLoggedIn && (
             <motion.div
               className="w-full max-w-full sm:max-w-[500px] md:max-w-[580px] bg-gradient-to-r from-blue-800 to-blue-600 rounded-lg shadow-xl border border-blue-200 px-4 py-3 z-20"
@@ -223,7 +223,7 @@ const HeroSection = ({ exploreRef }) => {
           )}
 
           <motion.div
-            className="relative w-full max-w-full sm:max-w-[520px] md:max-w-[600px] px-3 sm:px-0 -mt-4 sm:-mt-6"
+            className="relative w-full max-w-[90%] sm:max-w-[480px] lg:max-w-[550px]"
             initial={{ opacity: 0, scale: 0.95, x: 50 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
@@ -233,7 +233,7 @@ const HeroSection = ({ exploreRef }) => {
               <img
                 src="/assets/skillswap-hero.png"
                 alt="SkillSwap Hero Image"
-                className="w-full h-[300px] sm:h-[500px] md:h-[600px] lg:h-[600px] object-contain hover:scale-105 transition-transform duration-300 mx-auto"
+                className="w-full h-auto object-contain hover:scale-105 transition-transform duration-300"
               />
             </picture>
           </motion.div>

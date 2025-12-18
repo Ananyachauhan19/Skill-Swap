@@ -6,14 +6,14 @@ import { FaRocket, FaArrowRight, FaCheckCircle } from 'react-icons/fa';
 const LetsStartSection = () => {
   const navigate = useNavigate();
   return (
-    <section className="py-4 sm:py-6 bg-home-bg">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="py-6 sm:py-10 bg-home-bg">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative bg-[#0A2540] rounded-3xl p-8 md:p-16 overflow-hidden text-center shadow-2xl"
+          className="relative bg-gradient-to-br from-[#0A2540] to-[#1e3a8a] rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-16 overflow-hidden text-center shadow-2xl">
         >
           {/* Background Decorative Elements */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
@@ -35,35 +35,38 @@ const LetsStartSection = () => {
               />
             </motion.div>
 
-            <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">
-              Ready to Start Your <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Learning Journey?</span>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4 sm:mb-6 leading-tight px-2">
+              Ready to Start Your{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300">Learning Journey?</span>
             </h2>
 
-            <p className="text-lg text-blue-100 mb-10 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-sm sm:text-base md:text-lg text-blue-100 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed px-2">
               Join thousands of learners and experts on SkillSwap Hub. Whether you want to master a new skill or share your expertise, your journey begins here.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8 sm:mb-12">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate('/home')}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-lg shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all"
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-base sm:text-lg shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all"
               >
-                Get Started Now <FaArrowRight />
+                Get Started Now <FaArrowRight className="text-sm sm:text-base" />
               </motion.button>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-blue-200/80">
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center items-center gap-3 sm:gap-6 text-xs sm:text-sm text-blue-200 px-2">
               <div className="flex items-center gap-2">
-                <FaCheckCircle className="text-green-400" /> Peer-to-peer learning with real professionals
+                <FaCheckCircle className="text-green-400 flex-shrink-0" /> 
+                <span>Peer-to-peer learning with real professionals</span>
               </div>
               <div className="flex items-center gap-2">
-                <FaCheckCircle className="text-green-400" /> 1-on-1 live sessions using Skill Coins
+                <FaCheckCircle className="text-green-400 flex-shrink-0" /> 
+                <span>1-on-1 live sessions using Skill Coins</span>
               </div>
               <div className="flex items-center gap-2">
-                <FaCheckCircle className="text-green-400" /> Live interview practice with actionable feedback
+                <FaCheckCircle className="text-green-400 flex-shrink-0" /> 
+                <span>Live interview practice with actionable feedback</span>
               </div>
             </div>
           </div>

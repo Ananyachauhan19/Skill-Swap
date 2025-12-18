@@ -1,16 +1,16 @@
 import React from "react";
 
 const Community = () => (
-  <div className="max-w-3xl mx-auto px-4 py-10 text-gray-800">
-    <h1 className="text-3xl font-bold mb-4">Welcome to the SkillSwap Hub Community</h1>
-    <p className="mb-4">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 text-gray-800">
+    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 text-center lg:text-left">Welcome to the SkillSwap Hub Community</h1>
+    <p className="mb-4 text-sm sm:text-base leading-relaxed">
       At SkillSwap Hub, we believe that learning doesn’t happen in isolation—it grows when people connect, share, and inspire each other. Our community is not just a group of users; it’s a family of dreamers, doers, and changemakers.
       <br />
       Here, everyone has a voice. Whether you’re a student, a professional, an educator, or an innovator, our community is designed to give you support, recognition, and opportunities to grow.
     </p>
-    <h2 className="text-xl font-semibold mt-8 mb-2">What You’ll Find in Our Community</h2>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Discussion Forums – Ask questions, share answers, and dive deep into knowledge exchange.</li>
+    <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold mt-6 sm:mt-8 mb-3 sm:mb-4 text-gray-900">What You'll Find in Our Community</h2>
+    <ul className="list-disc pl-4 sm:pl-6 mb-4 text-sm sm:text-base space-y-2">
+      <li><span className="font-medium">Discussion Forums</span> – Ask questions, share answers, and dive deep into knowledge exchange.</li>
       <li>Skill Circles – Join focused groups based on interests (Coding, Design, Business, Languages, etc.).</li>
       <li>Live Events & Webinars – Attend community-driven sessions, Q&A rounds, and skill challenges.</li>
       <li>Daily Challenges & Quizzes – Boost your knowledge and track your growth.</li>

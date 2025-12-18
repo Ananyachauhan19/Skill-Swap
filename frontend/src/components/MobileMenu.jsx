@@ -35,12 +35,12 @@ const MobileMenu = ({
     }`}
   >
     <div
-      className="w-full h-full bg-gradient-to-b from-[#f0f4ff] to-[#e2eafc] shadow-xl sm:rounded-l-2xl flex flex-col p-0 border-l-2 border-blue-300 overflow-y-auto"
+      className="w-full h-full bg-[#F5F9FF] shadow-xl sm:rounded-l-2xl flex flex-col p-0 border-l-2 border-gray-300 overflow-y-auto"
       onClick={(e) => e.stopPropagation()}
       ref={menuRef}
     >
       {/* Header with Logo and Close Button */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-blue-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <img
             src="/assets/skillswap-logo.webp"
@@ -52,7 +52,7 @@ const MobileMenu = ({
           </span>
         </div>
         <button
-          className="p-2 rounded-full text-blue-800 bg-white shadow hover:bg-blue-100 transition touch-manipulation"
+          className="p-2 rounded-full text-blue-800 bg-white shadow hover:bg-blue-50 transition touch-manipulation"
           onClick={() => setMenuOpen(false)}
           aria-label="Close menu"
         >
@@ -63,7 +63,7 @@ const MobileMenu = ({
       </div>
 
       {/* Search */}
-      <div className="px-4 py-3 border-b border-blue-100 bg-white">
+      <div className="px-4 py-3 border-b border-gray-200 bg-white/80">
         <form onSubmit={handleSearch}>
           <div className="relative">
             <input

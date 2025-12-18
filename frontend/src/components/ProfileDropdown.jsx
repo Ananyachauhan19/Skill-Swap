@@ -76,7 +76,7 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
   return (
     <div
       ref={menuRef}
-      className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-blue-100 z-50 overflow-hidden"
+      className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-blue-100 z-[5100] overflow-hidden"
       style={{
         background: 'linear-gradient(135deg, #f0f9ff 0%, #e6f3ff 100%)'
       }}

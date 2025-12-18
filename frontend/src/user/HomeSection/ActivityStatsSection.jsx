@@ -123,13 +123,13 @@ const ActivityStatsSection = () => {
             variants={containerVariants}
             initial="hidden"
             animate={inView ? "visible" : "hidden"}
-            className="grid grid-cols-3 sm:grid-cols-2 gap-2 sm:gap-6"
+            className="grid grid-cols-3 gap-2 sm:grid-cols-2 sm:gap-6"
           >
             {statCards.map((card, index) => (
               <motion.div
                 key={card.id}
                 variants={itemVariants}
-                className={`relative p-4 sm:p-6 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 min-h-[140px] sm:min-h-[180px] ${index === 2 ? 'sm:col-span-2 sm:w-2/3 sm:mx-auto' : ''}`}
+                className={`relative p-2 sm:p-6 rounded-lg sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 min-h-[120px] sm:min-h-[180px] ${index === 2 ? 'sm:col-span-2 sm:w-2/3 sm:mx-auto' : ''}`}
                 style={{
                   backgroundImage: card.backgroundImage ? `url(${card.backgroundImage})` : 'none',
                   backgroundSize: 'cover',
@@ -141,25 +141,25 @@ const ActivityStatsSection = () => {
                 <div className={`absolute inset-0 ${card.backgroundImage ? 'bg-gradient-to-br from-black/60 via-black/50 to-black/65' : `bg-${card.color}-50`}`}></div>
                 
                 {/* Content Layout */}
-                <div className="relative z-10 h-full flex items-center gap-3 sm:gap-4">
-                  {/* Left: Count with Icon */}
-                  <div className="flex-shrink-0">
-                    <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl ${card.backgroundImage ? 'bg-white/10 backdrop-blur-md border border-white/20' : `bg-${card.color}-100`} flex flex-col items-center justify-center shadow-lg`}>
-                      <div className="text-xl sm:text-2xl mb-1">
+                <div className="relative z-10 h-full flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                  {/* Top/Left: Count with Icon */}
+                  <div className="flex-shrink-0 w-full sm:w-auto">
+                    <div className={`relative w-full sm:w-20 h-14 sm:h-20 rounded-lg sm:rounded-xl ${card.backgroundImage ? 'bg-white/10 backdrop-blur-md border border-white/20' : `bg-${card.color}-100`} flex flex-row sm:flex-col items-center justify-center gap-2 sm:gap-0 shadow-lg`}>
+                      <div className="text-base sm:text-2xl sm:mb-1">
                         {card.icon}
                       </div>
-                      <div className={`text-lg sm:text-xl font-bold ${card.backgroundImage ? 'text-white' : 'text-gray-900'}`}>
+                      <div className={`text-base sm:text-xl font-bold ${card.backgroundImage ? 'text-white' : 'text-gray-900'}`}>
                         {inView ? <CountUp end={card.value} duration={2.5} separator="," /> : '0'}+
                       </div>
                     </div>
                   </div>
 
-                  {/* Right: Title & Description */}
-                  <div className="flex-1 space-y-1 sm:space-y-2">
-                    <h3 className={`text-sm sm:text-lg md:text-xl font-bold leading-tight ${card.backgroundImage ? 'text-white' : 'text-[#0A2540]'}`}>
+                  {/* Bottom/Right: Title & Description */}
+                  <div className="flex-1 space-y-0.5 sm:space-y-2 text-center sm:text-left">
+                    <h3 className={`text-xs sm:text-lg md:text-xl font-bold leading-tight ${card.backgroundImage ? 'text-white' : 'text-[#0A2540]'}`}>
                       {card.label}
                     </h3>
-                    <p className={`text-xs sm:text-sm leading-relaxed ${card.backgroundImage ? 'text-gray-200' : 'text-gray-600'}`}>
+                    <p className={`text-[10px] sm:text-sm leading-tight sm:leading-relaxed hidden sm:block ${card.backgroundImage ? 'text-gray-200' : 'text-gray-600'}`}>
                       {card.description}
                     </p>
                   </div>

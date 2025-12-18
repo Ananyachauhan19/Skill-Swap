@@ -53,14 +53,14 @@ const About = () => {
       onClick={onClick}
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.98 }}
-      className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-300 ${
+      className={`flex items-center space-x-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg transition-all duration-300 ${
         isActive
           ? "bg-[#0A2540] text-white shadow-sm"
           : "bg-white text-gray-700 border border-gray-200 hover:border-gray-300"
       }`}
     >
-      <tab.icon size={18} />
-      <span className="font-semibold text-sm">{tab.label}</span>
+      <tab.icon size={16} className="sm:w-[18px] sm:h-[18px]" />
+      <span className="font-semibold text-xs sm:text-sm">{tab.label}</span>
     </motion.button>
   );
 
@@ -201,7 +201,7 @@ const About = () => {
       <div className="relative bg-gradient-to-r from-[#0A2540] to-[#1e3a8a] text-white overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48ZyBmaWxsPSJub25lIiBzdHJva2U9IiMzODg0ZTMiIHN0cm9rZS13aWR0aD0iMSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMTUiLz48L2c+PC9zdmc+')] opacity-10"></div>
         
-        <div className="max-w-7xl mx-auto px-4 py-20 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -212,7 +212,7 @@ const About = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 tracking-tight"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6 tracking-tight px-2"
             >
               About <span className="text-blue-200">SkillSwap Hub</span>
             </motion.h1>
@@ -221,7 +221,7 @@ const About = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.4 }}
-              className="text-lg md:text-xl mb-8 bg-white/10 backdrop-blur-sm rounded-2xl p-6 inline-block border border-white/20"
+              className="text-sm sm:text-base md:text-lg lg:text-xl mb-6 sm:mb-8 bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 inline-block border border-white/20 max-w-4xl mx-4"
             >
               <p className="font-semibold leading-relaxed italic">
                 We're bridging the gap between skills and jobs because skills are the real currency, 
@@ -233,7 +233,7 @@ const About = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.6 }}
-              className="text-xl md:text-2xl font-medium max-w-4xl mx-auto opacity-95 mb-10"
+              className="text-lg sm:text-xl md:text-2xl font-medium max-w-4xl mx-auto opacity-95 mb-6 sm:mb-10 px-4"
             >
               Teach What You Know, Learn What You Don't – And Earn While You Do!
             </motion.p>
@@ -253,12 +253,28 @@ const About = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-4 py-12 -mt-8 relative z-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 -mt-8 relative z-20">
+        {/* Mobile: Dropdown Tabs */}
+        <div className="md:hidden mb-8">
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+            className="w-full px-4 py-3 bg-white border-2 border-gray-200 rounded-lg font-semibold text-gray-700 focus:outline-none focus:border-blue-600 transition-colors"
+          >
+            {tabs.map((tab) => (
+              <option key={tab.id} value={tab.id}>
+                {tab.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop: Button Tabs */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-wrap gap-4 justify-center mb-12"
+          className="hidden md:flex flex-wrap gap-3 lg:gap-4 justify-center mb-12"
         >
           {tabs.map((tab) => (
             <TabButton

@@ -15,7 +15,7 @@ const AdminLayout = () => {
       
       <div className="flex flex-1 overflow-hidden">
         {!shouldHideSidebar && <AdminSidebar />}
-        <main className={`flex-1 overflow-auto ${shouldHideSidebar ? '' : 'p-6'}`}>
+        <main className={`flex-1 overflow-auto ${shouldHideSidebar ? '' : 'p-3 sm:p-6'}`}>
           <div className={shouldHideSidebar ? 'w-full h-full' : 'max-w-7xl mx-auto'}>
             <Outlet />
           </div>

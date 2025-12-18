@@ -450,13 +450,13 @@ const NotificationSection = ({ userId }) => {
   return (
  <div className="relative font-sans">
   <button
-    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white border border-blue-300 sm:border sm:hover:border-blue-400 hover:from-blue-600 hover:to-blue-700 hover:shadow-lg hover:scale-105 transform transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+    className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white border border-blue-300 hover:from-blue-600 hover:to-blue-700 hover:shadow-lg hover:scale-105 transform transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
     onClick={() => setShow((v) => !v)}
     title="Notifications"
     aria-label="Notifications"
   >
     <svg
-      className="w-4 h-4 sm:w-4.5 sm:h-4.5 mx-auto"
+      className="w-4 h-4 md:w-5 md:h-5 mx-auto"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -469,7 +469,7 @@ const NotificationSection = ({ userId }) => {
       />
     </svg>
     {unreadCounts.all > 0 && (
-      <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[7px] sm:text-[9px] font-bold rounded-full px-1 sm:px-1.5 py-0.5 shadow-md animate-pulse">
+      <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold rounded-full px-1.5 py-0.5 shadow-md animate-pulse min-w-[18px] text-center">
         {unreadCounts.all > 9 ? '9+' : unreadCounts.all}
       </span>
     )}
@@ -480,7 +480,7 @@ const NotificationSection = ({ userId }) => {
       {show && (
         <div
           ref={dropdownRef}
-          className="absolute right-0 mt-3 w-[95vw] max-w-md sm:w-[28rem] bg-white rounded-2xl shadow-2xl z-[2000] overflow-hidden border border-gray-100"
+          className="absolute right-0 mt-3 w-[95vw] max-w-md sm:w-[28rem] bg-white rounded-2xl shadow-2xl z-[5100] overflow-hidden border border-gray-100"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">

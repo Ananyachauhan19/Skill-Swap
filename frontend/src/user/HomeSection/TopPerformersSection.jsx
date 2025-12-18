@@ -214,20 +214,20 @@ const TopPerformersSection = () => {
           ))}
         </div>
 
-        {/* Tabs - Mobile: All Tabs in One Row */}
-        <div className="md:hidden mb-6 px-2">
-          <div className="flex justify-between gap-1">
+        {/* Tabs - Mobile: All Tabs in One Row with Better Readability */}
+        <div className="md:hidden mb-6 px-1">
+          <div className="flex justify-center gap-1.5">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2 px-1 rounded-md text-[8px] font-semibold transition-all duration-200 ${activeTab === tab.id
-                  ? 'bg-blue-900 text-white shadow-md'
-                  : 'bg-white text-gray-600 border border-gray-200'
+                className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2.5 px-1.5 rounded-lg text-[9px] font-semibold transition-all duration-200 ${activeTab === tab.id
+                  ? 'bg-blue-900 text-white shadow-md scale-105'
+                  : 'bg-white text-gray-700 border border-gray-200'
                   }`}
               >
-                <span className="text-xs mb-0.5">{tab.icon}</span>
-                <span className="leading-tight text-center truncate w-full">{tab.label.split(' ')[0]}</span>
+                <span className="text-sm mb-1">{tab.icon}</span>
+                <span className="leading-tight text-center w-full text-[10px]">{tab.label.split(' ')[0]}</span>
               </button>
             ))}
           </div>

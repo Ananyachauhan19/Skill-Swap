@@ -36,6 +36,16 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   // Duplicate images for seamless infinite loop
   const extendedImages = [...carouselImages, carouselImages[0]];
 
+  // Individual image sizing for consistent top/bottom alignment
+  const getImageStyle = (src) => {
+    // expert-connect-illustration increased by 10%
+    if (src.includes('expert-connect-illustration')) {
+      return { width: '140%', height: '110%', objectFit: 'contain', objectPosition: 'center' };
+    }
+    // All other images set to 100% for consistent alignment
+    return { width: '110%', height: '100%', objectFit: 'contain', objectPosition: 'center' };
+  };
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => {
@@ -107,7 +117,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       setIsLoading(true);
       setError("");
 
-      const res = await axios.post(`${BACKEND_URL}/api/auth/login`, { email, password }, { withCredentials: true });
+      await axios.post(`${BACKEND_URL}/api/auth/login`, { email, password }, { withCredentials: true });
       setEmailForOtp(email);
       setShowOtp(true);
       setError("");
@@ -160,17 +170,17 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       <div className="bg-white rounded-xl p-2 sm:p-4 shadow-2xl w-[90vw] sm:w-[80vw] md:w-[70vw] h-[85vh] sm:h-[75vh] max-w-[1200px]">
         <div className="flex flex-col md:flex-row w-full h-full">
           {/* Left Panel */}
-          <div ref={leftPanelRef} className="w-full md:w-1/2 relative overflow-hidden" style={{
+          <div ref={leftPanelRef} className="w-full md:w-1/2 relative overflow-hidden min-h-[240px] sm:min-h-[300px] md:min-h-0" style={{
             backgroundColor: "#e6f2fb",
             borderTopLeftRadius: "40px",
             borderBottomRightRadius: "40px",
           }}>
             <div className="absolute top-4 left-4 z-30">
-              <img src="/assets/skillswap-logo.webp" alt="SkillSwap Logo" className="h-6 sm:h-8 w-auto" />
+              <img src="/assets/skillswap-logo.webp" alt="SkillSwap Logo" className="h-6 sm:h-7 md:h-8 w-auto" />
             </div>
 
             <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div className="relative w-[80%] sm:w-[70%] h-[60%] sm:h-[50%] overflow-hidden">
+              <div className="relative w-[85%] xs:w-[80%] sm:w-[75%] md:w-[70%] lg:w-[72%] max-w-[450px] aspect-square overflow-hidden p-2 sm:p-4">
                 <div
                   className="flex carousel-container"
                   style={{
@@ -179,8 +189,8 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
                   }}
                 >
                   {extendedImages.map((src, idx) => (
-                    <div key={idx} className="min-w-full h-full">
-                      <img src={src} alt={`Feature ${idx + 1}`} className="w-full h-full object-contain" />
+                    <div key={idx} className="min-w-full h-full flex items-center justify-center">
+                      <img src={src} alt={`Feature ${idx + 1}`} style={getImageStyle(src)} />
                     </div>
                   ))}
                 </div>
