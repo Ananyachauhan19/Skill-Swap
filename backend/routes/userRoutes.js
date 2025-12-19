@@ -1,6 +1,16 @@
 const express = require('express');
 const requireAuth = require('../middleware/requireAuth');
-const { uploadProfileImage, updateProfilePhoto, updateEmail, sendPhoneOtp, verifyPhoneOtp, changePassword } = require('../controllers/userController');
+const {
+  uploadProfileImage,
+  updateProfilePhoto,
+  updateEmail,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+  changePassword,
+  getActiveDevices,
+  logoutDevice,
+  logoutAllDevices,
+} = require('../controllers/userController');
 
 const router = express.Router();
 
@@ -28,5 +38,14 @@ router.post('/user/phone/verify-otp', requireAuth, verifyPhoneOtp);
 
 // POST /api/user/password - change password for logged-in user
 router.post('/user/password', requireAuth, changePassword);
+
+// GET /api/user/devices - list active devices
+router.get('/user/devices', requireAuth, getActiveDevices);
+
+// POST /api/user/devices/:id/logout - revoke a specific device session
+router.post('/user/devices/:id/logout', requireAuth, logoutDevice);
+
+// POST /api/user/devices/logout-all - revoke all other device sessions
+router.post('/user/devices/logout-all', requireAuth, logoutAllDevices);
 
 module.exports = router;

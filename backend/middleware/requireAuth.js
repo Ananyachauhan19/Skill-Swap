@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const DeviceSession = require('../models/DeviceSession');
 
 const requireAuth = async (req, res, next) => {
   let token;
@@ -24,6 +25,28 @@ const requireAuth = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Token decoded successfully:', decoded);
+
+    // Optional device-session check (newer tokens include sessionId)
+    if (decoded.sessionId) {
+      try {
+        const session = await DeviceSession.findById(decoded.sessionId);
+        if (!session || session.revoked) {
+          console.log('Device session invalid or revoked for ID:', decoded.sessionId);
+          return res.status(401).json({ message: 'This device has been logged out. Please login again.' });
+        }
+        if (String(session.user) !== String(decoded.id)) {
+          console.log('Device session user mismatch:', { sessionUser: session.user, tokenUser: decoded.id });
+          return res.status(401).json({ message: 'Session mismatch. Please login again.' });
+        }
+        // Update last active timestamp
+        session.lastActive = new Date();
+        await session.save().catch(() => {});
+        req.sessionId = session._id.toString();
+      } catch (e) {
+        console.log('Device session lookup failed:', e.message);
+        return res.status(401).json({ message: 'Session validation failed. Please login again.' });
+      }
+    }
     
     const user = await User.findById(decoded.id).select('-password');
 

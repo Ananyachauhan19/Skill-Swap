@@ -1,38 +1,5 @@
 import React, { useState, useEffect } from "react";
-
-// Backend functions:
-// async function fetchDevices() {
-//   return fetch('/api/user/devices').then(res => res.json());
-// }
-// async function logoutDevice(id) {
-//   return fetch(`/api/user/devices/${id}/logout`, { method: 'POST' });
-// }
-// async function logoutAllDevices() {
-//   return fetch('/api/user/devices/logout-all', { method: 'POST' });
-// }
-const dummyDevices = [
-  {
-    id: 1,
-    device: "Chrome on Windows",
-    location: "Delhi, India",
-    lastActive: "2025-07-07 10:30 AM",
-    current: true,
-  },
-  {
-    id: 2,
-    device: "Safari on iPhone",
-    location: "Mumbai, India",
-    lastActive: "2025-07-06 09:15 PM",
-    current: false,
-  },
-  {
-    id: 3,
-    device: "Edge on MacBook",
-    location: "Bangalore, India",
-    lastActive: "2025-07-05 02:10 PM",
-    current: false,
-  },
-];
+import api from "../../lib/api";
 
 const ActiveDevices = () => {
   const [devices, setDevices] = useState([]);
@@ -45,9 +12,9 @@ const ActiveDevices = () => {
       setLoading(true);
       setError("");
       try {
-        // const data = await fetchDevices();
-        // setDevices(data);
-        setDevices(dummyDevices); // Remove this line when backend is ready
+        const res = await api.get("/api/user/devices");
+        const list = res?.data?.devices || [];
+        setDevices(list);
       } catch (err) {
         setError("Failed to load devices.");
       } finally {
@@ -60,8 +27,8 @@ const ActiveDevices = () => {
   const handleLogoutDevice = async (id) => {
     setError("");
     try {
-      // await logoutDevice(id);
-      setDevices(devices.filter((d) => d.id !== id));
+      await api.post(`/api/user/devices/${id}/logout`);
+      setDevices((prev) => prev.filter((d) => d.id !== id));
     } catch (err) {
       setError("Failed to logout from device.");
     }
@@ -70,8 +37,8 @@ const ActiveDevices = () => {
   const handleLogoutAll = async () => {
     setError("");
     try {
-      // await logoutAllDevices();
-      setDevices([]);
+      await api.post("/api/user/devices/logout-all");
+      setDevices((prev) => prev.filter((d) => d.current));
     } catch (err) {
       setError("Failed to logout from all devices.");
     }
@@ -93,7 +60,7 @@ const ActiveDevices = () => {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <span className="font-semibold text-blue-900">{d.device}</span>
                   <span className="text-xs text-gray-500">{d.location}</span>
-                  <span className="text-xs text-gray-500">Last active: {d.lastActive}</span>
+                  <span className="text-xs text-gray-500">Last active: {d.lastActive ? new Date(d.lastActive).toLocaleString() : 'Unknown'}</span>
                   {d.current && <span className="text-xs text-green-600 font-semibold">Current Device</span>}
                 </div>
                 {!d.current && (

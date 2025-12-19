@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendOtpEmail } = require('../utils/sendMail');
 const { trackDailyLogin } = require('../utils/contributions');
+const DeviceSession = require('../models/DeviceSession');
 
 exports.register = async (req, res) => {
   const { firstName, lastName, email, phone, gender, password, username, role, skillsToTeach, skillsToLearn } = req.body;
@@ -103,9 +104,30 @@ exports.verifyOtp = async (req, res) => {
     console.error('Error tracking daily login:', error);
   }
 
+  // Create a device session for this login
+  let deviceSession;
+  try {
+    const userAgent = req.get('user-agent') || 'Unknown device';
+    const ip =
+      (req.headers['x-forwarded-for'] && String(req.headers['x-forwarded-for']).split(',')[0].trim()) ||
+      req.ip ||
+      '';
+    deviceSession = await DeviceSession.create({
+      user: user._id,
+      userAgent,
+      ip,
+    });
+  } catch (e) {
+    console.error('Failed to create device session:', e);
+  }
+
   // Generate JWT token after successful OTP verification
   const isAdmin = user.email === 'skillswaphubb@gmail.com';
-  const token = jwt.sign({ id: user._id, isAdmin }, process.env.JWT_SECRET, { expiresIn: '1d' });
+  const tokenPayload = { id: user._id, isAdmin };
+  if (deviceSession && deviceSession._id) {
+    tokenPayload.sessionId = deviceSession._id.toString();
+  }
+  const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1d' });
 
 
   // Set token as httpOnly cookie

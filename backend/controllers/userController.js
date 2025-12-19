@@ -1,6 +1,7 @@
 const multer = require('multer');
 const cloudinary = require('../utils/cloudinary');
 const User = require('../models/User');
+const DeviceSession = require('../models/DeviceSession');
 const bcrypt = require('bcryptjs');
 
 // Multer memory storage and filter
@@ -257,3 +258,95 @@ async function changePassword(req, res) {
 }
 
 module.exports.changePassword = changePassword;
+
+// List active device sessions for the logged-in user
+async function getActiveDevices(req, res) {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    let sessions = await DeviceSession.find({ user: req.user._id, revoked: false })
+      .sort({ lastActive: -1 });
+
+    // If no device sessions exist yet (e.g. legacy logins before this feature),
+    // create a session entry for the current request so that at least one
+    // active device is shown.
+    if (!sessions.length) {
+      try {
+        const userAgent = req.get('user-agent') || 'Unknown device';
+        const ip =
+          (req.headers['x-forwarded-for'] && String(req.headers['x-forwarded-for']).split(',')[0].trim()) ||
+          req.ip ||
+          '';
+        const created = await DeviceSession.create({ user: req.user._id, userAgent, ip });
+        sessions = [created];
+      } catch (e) {
+        console.error('[getActiveDevices] failed to create fallback session:', e);
+      }
+    }
+
+    let currentId = req.sessionId;
+    if (!currentId && sessions.length === 1) {
+      currentId = sessions[0]._id.toString();
+    }
+
+    const devices = sessions.map((s) => ({
+      id: s._id,
+      device: s.userAgent || 'Unknown device',
+      location: s.ip ? `IP: ${s.ip}` : 'Unknown location',
+      lastActive: s.lastActive,
+      current: currentId && String(s._id) === String(currentId),
+      revoked: !!s.revoked,
+    }));
+
+    return res.json({ devices });
+  } catch (err) {
+    console.error('[getActiveDevices] error:', err);
+    return res.status(500).json({ message: 'Failed to load devices.' });
+  }
+}
+
+// Logout a specific device session
+async function logoutDevice(req, res) {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const { id } = req.params;
+    const session = await DeviceSession.findOne({ _id: id, user: req.user._id });
+    if (!session) {
+      return res.status(404).json({ message: 'Device session not found.' });
+    }
+
+    session.revoked = true;
+    await session.save();
+
+    return res.json({ message: 'Device logged out successfully.' });
+  } catch (err) {
+    console.error('[logoutDevice] error:', err);
+    return res.status(500).json({ message: 'Failed to logout device.' });
+  }
+}
+
+// Logout all other devices except the current one
+async function logoutAllDevices(req, res) {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const currentId = req.sessionId;
+
+    const query = { user: req.user._id };
+    if (currentId) {
+      query._id = { $ne: currentId };
+    }
+
+    await DeviceSession.updateMany(query, { revoked: true });
+
+    return res.json({ message: 'Logged out from all other devices.' });
+  } catch (err) {
+    console.error('[logoutAllDevices] error:', err);
+    return res.status(500).json({ message: 'Failed to logout from all devices.' });
+  }
+}
+
+module.exports.getActiveDevices = getActiveDevices;
+module.exports.logoutDevice = logoutDevice;
+module.exports.logoutAllDevices = logoutAllDevices;
