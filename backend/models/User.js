@@ -77,6 +77,8 @@ const userSchema = new mongoose.Schema({
   // Tutor verification / activation fields
   isTutor: { type: Boolean, default: false },
   tutorApplicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'TutorApplication', required: false },
+}, {
+  timestamps: true,
 });
 
 module.exports = mongoose.model('User', userSchema);

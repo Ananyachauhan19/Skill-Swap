@@ -9,6 +9,7 @@ import {
   Globe,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const sections = [
   {
@@ -71,6 +72,7 @@ const sections = [
 const AccountSettings = () => {
   const [activeSection, setActiveSection] = useState(sections[0].title);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleAction = (sectionTitle, item) => {
     const navigateMap = {
@@ -153,7 +155,14 @@ const AccountSettings = () => {
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
               Active
             </div>
-            <p className="text-xs text-gray-600 mt-1">Member since Jan 2023</p>
+            <p className="text-xs text-gray-600 mt-1">
+              {user && user.createdAt
+                ? `Member since ${new Date(user.createdAt).toLocaleString(undefined, {
+                    month: 'short',
+                    year: 'numeric',
+                  })}`
+                : 'Member status active'}
+            </p>
           </div>
         </aside>
 

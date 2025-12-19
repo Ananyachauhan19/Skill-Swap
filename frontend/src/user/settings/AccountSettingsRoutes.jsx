@@ -8,9 +8,6 @@ import BillingHistory from './BillingHistory';
 import InvoicesReceipts from './InvoicesReceipts';
 import ActiveSubscriptions from './ActiveSubscriptions';
 import UpgradeCancelPlan from './UpgradeCancelPlan';
-import CoinBalance from './CoinBalance';
-import CoinEarningHistory from './CoinEarningHistory';
-import CoinSpendingHistory from './CoinSpendingHistory';
 import BuyRedeemCoins from './BuyRedeemCoins';
 import ReferralProgram from './ReferralProgram';
 import TimeZoneSettings from './TimeZoneSettings';
@@ -26,9 +23,6 @@ const accountSettingsRoutes = [
   { path: '/settings/invoices', element: <InvoicesReceipts /> },
   { path: '/settings/subscriptions', element: <ActiveSubscriptions /> },
   { path: '/settings/plan', element: <UpgradeCancelPlan /> },
-  { path: '/settings/coin-balance', element: <CoinBalance /> },
-  { path: '/settings/coin-earning-history', element: <CoinEarningHistory /> },
-  { path: '/settings/coin-spending-history', element: <CoinSpendingHistory /> },
   { path: '/settings/buy-redeem-coins', element: <BuyRedeemCoins /> },
   { path: '/settings/referral-program', element: <ReferralProgram /> },
   { path: '/settings/timezone-settings', element: <TimeZoneSettings /> },
