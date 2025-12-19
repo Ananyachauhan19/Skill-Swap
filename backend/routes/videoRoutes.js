@@ -133,6 +133,18 @@ router.post('/upload', requireAuth, upload.fields([
     // Populate user info
     await newVideo.populate('userId', 'firstName lastName username');
 
+    // Contribution: track video upload for uploader (idempotent per video)
+    try {
+      const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
+      const io = req.app.get('io');
+      await trackActivity({
+        userId,
+        activityType: ACTIVITY_TYPES.VIDEO_UPLOADED,
+        activityId: newVideo._id.toString(),
+        io,
+      });
+    } catch (_) {}
+
     res.status(201).json({
       message: 'Video uploaded successfully',
       video: newVideo

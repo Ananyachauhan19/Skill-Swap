@@ -1,6 +1,26 @@
 const Contribution = require('../models/Contribution');
 const ContributionEvent = require('../models/ContributionEvent');
 
+// Best-effort cleanup of legacy unique index on { user, date }
+// which conflicts with the new { userId, dateKey } model.
+let legacyIndexDropAttempted = false;
+
+async function ensureLegacyIndexDropped() {
+  if (legacyIndexDropAttempted) return;
+  legacyIndexDropAttempted = true;
+  try {
+    await Contribution.collection.dropIndex('user_1_date_1');
+    // eslint-disable-next-line no-console
+    console.log('[Contributions] Dropped legacy index user_1_date_1');
+  } catch (e) {
+    // Ignore if index does not exist or cannot be dropped
+    if (e && e.codeName !== 'IndexNotFound') {
+      // eslint-disable-next-line no-console
+      console.warn('[Contributions] Could not drop legacy index user_1_date_1:', e.message || e);
+    }
+  }
+}
+
 function toDateKeyUTC(date = new Date()) {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   return d.toISOString().slice(0, 10);
@@ -22,6 +42,9 @@ async function incrementContribution({ userId, when = new Date(), by = 1, breakd
   if (!userId) return;
   const dateKey = toDateKeyUTC(when);
 
+  // Ensure we are not blocked by old unique index
+  await ensureLegacyIndexDropped();
+
   const inc = { count: by };
   if (breakdownKey) {
     inc[`breakdown.${breakdownKey}`] = by;
@@ -32,7 +55,14 @@ async function incrementContribution({ userId, when = new Date(), by = 1, breakd
 
   await Contribution.updateOne(
     { userId, dateKey },
-    { $inc: inc },
+    {
+      $inc: inc,
+      // Also hydrate legacy fields used by old unique index (user, date)
+      $set: {
+        user: userId,
+        date: dateKey,
+      },
+    },
     { upsert: true }
   );
 
@@ -69,6 +99,8 @@ const ACTIVITY_TYPES = {
   SESSION_RATED: 'session_rated',
   COINS_EARNED: 'coins_earned',
   BADGE_EARNED: 'badge_earned',
+  VIDEO_UPLOADED: 'video_uploaded',
+  VIDEO_WATCHED: 'video_watched',
 };
 
 /**
@@ -121,6 +153,8 @@ async function trackActivity({ userId, activityType, activityId, when = new Date
     [ACTIVITY_TYPES.SESSION_RATED]: 'sessionsRated',
     [ACTIVITY_TYPES.COINS_EARNED]: 'coinsEarned',
     [ACTIVITY_TYPES.BADGE_EARNED]: 'badgesEarned',
+    [ACTIVITY_TYPES.VIDEO_UPLOADED]: 'videosUploaded',
+    [ACTIVITY_TYPES.VIDEO_WATCHED]: 'videosWatched',
   };
 
   const breakdownKey = breakdownMapping[activityType] || 'other';

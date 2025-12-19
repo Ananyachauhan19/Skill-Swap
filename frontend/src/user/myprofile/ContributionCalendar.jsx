@@ -6,7 +6,9 @@ import socket from '../../socket';
 // Fetch dynamic contributions for the last N days
 async function fetchContributions(userId, rangeDays = 365) {
   const res = await api.get(`/api/contributions/${userId}?rangeDays=${rangeDays}`);
-  return res.data.items || [];
+  const items = res.data.items || [];
+  const stats = res.data.stats || null;
+  return { items, stats };
 }
 
 // Generate last 12 months
@@ -94,7 +96,15 @@ const ContributionCalendar = ({ userId: propUserId }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hoveredDay, setHoveredDay] = useState(null);
-  const [contributionStats, setContributionStats] = useState({ total: 0, maxStreak: 0, currentStreak: 0 });
+  const [contributionStats, setContributionStats] = useState({
+    total: 0,
+    maxStreak: 0,
+    currentStreak: 0,
+    activeDays: 0,
+    totalDays: 365,
+    oneOnOneSessions: 0,
+    interviewSessions: 0,
+  });
   const { user } = useAuth();
   const effectiveUserId = propUserId || (user && user._id);
 
@@ -141,14 +151,23 @@ const ContributionCalendar = ({ userId: propUserId }) => {
       setLoading(true);
       setError(null);
       try {
-        const items = await fetchContributions(effectiveUserId, 365);
+        const { items, stats } = await fetchContributions(effectiveUserId, 365);
         const contribMap = buildContributionMap(currentDate, items);
         setContributions(contribMap);
         
         // Calculate statistics
         const total = Object.values(contribMap).reduce((sum, count) => sum + count, 0);
         const streaks = calculateStreaks(contribMap);
-        setContributionStats({ total, ...streaks });
+        const activeDays = Object.values(contribMap).filter((c) => c > 0).length;
+        const totalDays = Object.keys(contribMap).length;
+        setContributionStats({
+          total,
+          ...streaks,
+          activeDays,
+          totalDays,
+          oneOnOneSessions: stats?.oneOnOneSessions || 0,
+          interviewSessions: stats?.interviewSessions || 0,
+        });
       } catch (e) {
         console.error('Failed to fetch contributions', e);
         setError('Failed to load contributions');
@@ -164,14 +183,23 @@ const ContributionCalendar = ({ userId: propUserId }) => {
     if (!effectiveUserId) return;
     const handler = async () => {
       try {
-        const items = await fetchContributions(effectiveUserId, 365);
+        const { items, stats } = await fetchContributions(effectiveUserId, 365);
         const contribMap = buildContributionMap(new Date(), items);
         setContributions(contribMap);
         
         // Update statistics
         const total = Object.values(contribMap).reduce((sum, count) => sum + count, 0);
         const streaks = calculateStreaks(contribMap);
-        setContributionStats({ total, ...streaks });
+        const activeDays = Object.values(contribMap).filter((c) => c > 0).length;
+        const totalDays = Object.keys(contribMap).length;
+        setContributionStats({
+          total,
+          ...streaks,
+          activeDays,
+          totalDays,
+          oneOnOneSessions: stats?.oneOnOneSessions || 0,
+          interviewSessions: stats?.interviewSessions || 0,
+        });
       } catch {
         // non-blocking
       }
@@ -202,20 +230,37 @@ const ContributionCalendar = ({ userId: propUserId }) => {
 
           {/* Statistics Grid */}
           <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
-              <p className="text-xs text-blue-600 font-medium mb-1">Total</p>
-              <p className="text-2xl font-bold text-blue-900">{contributionStats.total}</p>
-              <p className="text-[10px] text-blue-600">contributions</p>
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-3 border border-indigo-200">
+              <p className="text-xs text-indigo-600 font-medium mb-1">Active Days</p>
+              <p className="text-lg font-bold text-indigo-900">
+                {contributionStats.activeDays} / {contributionStats.totalDays}
+              </p>
+              <p className="text-[10px] text-indigo-600">days with any activity</p>
             </div>
             <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
               <p className="text-xs text-green-600 font-medium mb-1">Current Streak</p>
               <p className="text-2xl font-bold text-green-900">{contributionStats.currentStreak}</p>
-              <p className="text-[10px] text-green-600">days</p>
+              <p className="text-[10px] text-green-600">consecutive active days</p>
             </div>
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200">
               <p className="text-xs text-purple-600 font-medium mb-1">Best Streak</p>
               <p className="text-2xl font-bold text-purple-900">{contributionStats.maxStreak}</p>
-              <p className="text-[10px] text-purple-600">days</p>
+              <p className="text-[10px] text-purple-600">longest run of activity</p>
+            </div>
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
+              <p className="text-xs text-blue-600 font-medium mb-1">1:1 Sessions</p>
+              <p className="text-2xl font-bold text-blue-900">{contributionStats.oneOnOneSessions}</p>
+              <p className="text-[10px] text-blue-600">total completed (tutor + learner)</p>
+            </div>
+            <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-3 border border-rose-200">
+              <p className="text-xs text-rose-600 font-medium mb-1">Interview Sessions</p>
+              <p className="text-2xl font-bold text-rose-900">{contributionStats.interviewSessions}</p>
+              <p className="text-[10px] text-rose-600">completed & rated</p>
+            </div>
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-3 border border-slate-200">
+              <p className="text-xs text-slate-600 font-medium mb-1">Total Contributions</p>
+              <p className="text-2xl font-bold text-slate-900">{contributionStats.total}</p>
+              <p className="text-[10px] text-slate-600">activity increments this year</p>
             </div>
           </div>
 

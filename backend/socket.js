@@ -4,6 +4,8 @@ const Session = require('./models/Session');
 const SkillMate = require('./models/SkillMate');
 const Notification = require('./models/Notification');
 const ChatMessage = require('./models/Chat');
+const InterviewRequest = require('./models/InterviewRequest');
+const { trackActivity, ACTIVITY_TYPES } = require('./utils/contributions');
 const { sendMail } = require('./utils/sendMail');
 const T = require('./utils/emailTemplates');
 
@@ -1175,16 +1177,111 @@ module.exports = (io) => {
       }
     });
 
-    // End call
+    // End call (handles both 1:1 sessions and interview calls)
     socket.on('end-call', async ({ sessionId }) => {
-      stopSessionTimer(sessionId);
-      io.to(sessionId).emit('end-call', { sessionId });
-      const session = await Session.findById(sessionId);
-      if (session && session.status !== 'completed') {
-        session.status = 'completed';
-        await session.save();
-        io.to(sessionId).emit('session-completed', { sessionId });
-        console.log(`[Session] Marked as completed: ${sessionId}`);
+      try {
+        stopSessionTimer(sessionId);
+        io.to(sessionId).emit('end-call', { sessionId });
+
+        // 1) Try to treat it as a regular Session (one-on-one tutoring)
+        let session = await Session.findById(sessionId);
+        if (session) {
+          if (session.status !== 'completed') {
+            session.status = 'completed';
+            await session.save();
+            io.to(sessionId).emit('session-completed', { sessionId });
+            console.log(`[Session] Marked as completed: ${sessionId}`);
+
+            // Award contribution credits for both tutor (creator) and learner (requester)
+            try {
+              const tutorId = session.creator && (session.creator._id || session.creator);
+              const learnerId = session.requester && (session.requester._id || session.requester);
+              const when = new Date();
+
+              const tasks = [];
+              if (tutorId) {
+                tasks.push(
+                  trackActivity({
+                    userId: tutorId,
+                    activityType: ACTIVITY_TYPES.SESSION_COMPLETED_TUTOR,
+                    activityId: session._id.toString(),
+                    when,
+                    io,
+                  })
+                );
+              }
+              if (learnerId) {
+                tasks.push(
+                  trackActivity({
+                    userId: learnerId,
+                    activityType: ACTIVITY_TYPES.SESSION_COMPLETED_LEARNER,
+                    activityId: session._id.toString(),
+                    when,
+                    io,
+                  })
+                );
+              }
+
+              if (tasks.length) {
+                await Promise.all(tasks);
+                console.log('[Session] Contribution credits tracked for session', session._id.toString());
+              }
+            } catch (err) {
+              console.error('[Session] Failed to track session completion contributions:', err);
+            }
+          }
+          return;
+        }
+
+        // 2) If no Session found, treat it as an InterviewRequest-based call
+        const interview = await InterviewRequest.findById(sessionId)
+          .populate('requester', '_id')
+          .populate('assignedInterviewer', '_id');
+
+        if (!interview) return; // nothing to do
+
+        // Mark interview as completed if not already
+        if (interview.status !== 'completed') {
+          interview.status = 'completed';
+          await interview.save();
+          console.log(`[Interview] Marked as completed: ${sessionId}`);
+        }
+
+        // Award contribution credits for both requester and interviewer
+        try {
+          const requesterId = interview.requester && (interview.requester._id || interview.requester);
+          const interviewerId = interview.assignedInterviewer && (interview.assignedInterviewer._id || interview.assignedInterviewer);
+          const when = new Date();
+
+          const tasks = [];
+          if (requesterId) {
+            tasks.push(trackActivity({
+              userId: requesterId,
+              activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
+              activityId: interview._id.toString(),
+              when,
+              io,
+            }));
+          }
+          if (interviewerId) {
+            tasks.push(trackActivity({
+              userId: interviewerId,
+              activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
+              activityId: interview._id.toString(),
+              when,
+              io,
+            }));
+          }
+
+          if (tasks.length) {
+            await Promise.all(tasks);
+            console.log('[Interview] Contribution credits tracked for interview', interview._id.toString());
+          }
+        } catch (err) {
+          console.error('[Interview] Failed to track interview completion contributions:', err);
+        }
+      } catch (err) {
+        console.error('[Socket] end-call handler error:', err);
       }
     });
 

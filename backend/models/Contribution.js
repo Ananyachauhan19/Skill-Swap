@@ -46,6 +46,9 @@ const ContributionSchema = new mongoose.Schema({
 		coinsEarned: { type: Number, default: 0 },
 		badgesEarned: { type: Number, default: 0 },
 		totalCoinsTransacted: { type: Number, default: 0 },
+		// Video activity
+		videosUploaded: { type: Number, default: 0 },
+		videosWatched: { type: Number, default: 0 },
 		other: { type: Number, default: 0 },
 	},
 }, { timestamps: true });
