@@ -1338,13 +1338,13 @@ exports.getTopPerformers = async (req, res) => {
       assignedInterviewer: { $exists: true, $ne: null }
     })
       .select('assignedInterviewer rating')
-      .populate('assignedInterviewer', 'firstName lastName username profilePic')
+      .populate('assignedInterviewer', 'firstName lastName username profilePic company position')
       .lean();
 
     // Fetch all requests for candidates count
     const allRequests = await InterviewRequest.find({ requester: { $exists: true, $ne: null } })
       .select('requester')
-      .populate('requester', 'firstName lastName username profilePic')
+      .populate('requester', 'firstName lastName username profilePic company position')
       .lean();
 
     // Count interviews conducted by each interviewer (completed only)

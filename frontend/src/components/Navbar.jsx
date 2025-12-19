@@ -580,7 +580,7 @@ const Navbar = () => {
   useEffect(() => {
     let timeout;
     let abortController;
-    const run = () => {
+    const run = async () => {
       const q = searchQuery.trim();
       if (q.length < 2) {
         setSuggestions([]);
@@ -590,22 +590,39 @@ const Navbar = () => {
       setSearchLoading(true);
       abortController = new AbortController();
       const url = `${BACKEND_URL}/api/auth/search/users?q=${encodeURIComponent(q)}&limit=8`;
-      fetch(url, { signal: abortController.signal })
-        .then((r) => r.ok ? r.json() : Promise.reject(new Error('Failed')))
-        .then((data) => {
-          setSuggestions(Array.isArray(data.results) ? data.results : []);
-          setShowSuggestions(true);
-        })
-        .catch(() => {
-          if (!abortController.signal.aborted) {
-            setSuggestions([]);
-            setShowSuggestions(false);
+      
+      try {
+        const response = await fetch(url, { 
+          signal: abortController.signal,
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
           }
-        })
-        .finally(() => setSearchLoading(false));
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const results = Array.isArray(data.results) ? data.results : [];
+          console.log('[Navbar] Search results:', results);
+          setSuggestions(results);
+          setShowSuggestions(results.length > 0);
+        } else {
+          console.error('[Navbar] Search failed with status:', response.status);
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          console.error('[Navbar] Search error:', error);
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      } finally {
+        setSearchLoading(false);
+      }
     };
 
-    timeout = setTimeout(run, 250); // debounce
+    timeout = setTimeout(run, 300); // debounce
     return () => {
       clearTimeout(timeout);
       if (abortController) abortController.abort();
@@ -677,7 +694,7 @@ const Navbar = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search SkillMate..."
+                  placeholder="Search Skillmate..."
                   className="w-48 lg:w-64 pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
                 />
                 <button
@@ -694,39 +711,58 @@ const Navbar = () => {
                     />
                   </svg>
                 </button>
-                {showSuggestions && (
-                  <div className="absolute z-50 mt-2 left-0 w-72 max-w-[18rem] bg-white border border-blue-200 rounded-xl shadow-xl overflow-hidden">
-                    <div className="max-h-80 overflow-y-auto">
+                {(showSuggestions || searchLoading) && (
+                  <div className="absolute top-full mt-2 left-0 w-80 bg-white border-2 border-blue-300 rounded-xl shadow-2xl overflow-hidden z-[9999]">
+                    <div className="max-h-96 overflow-y-auto">
                       {searchLoading && (
-                        <div className="px-4 py-3 text-sm text-blue-900/70">Searching…</div>
+                        <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                          Searching...
+                        </div>
                       )}
-                      {!searchLoading && suggestions.length === 0 && (
-                        <div className="px-4 py-3 text-sm text-blue-900/70">No results</div>
+                      {!searchLoading && suggestions.length === 0 && searchQuery.trim().length >= 2 && (
+                        <div className="px-4 py-3 text-sm text-gray-500">
+                          No users found
+                        </div>
                       )}
-                      {suggestions.map((u) => (
-                        <button
-                          key={u._id}
-                          type="button"
-                          className="w-full px-3 py-2 flex items-center gap-3 hover:bg-blue-50 text-left"
-                          onClick={() => {
-                            setShowSuggestions(false);
-                            setSearchQuery('');
-                            navigate(`/profile/${encodeURIComponent(u.username)}`);
-                          }}
-                        >
-                          {u.profilePic ? (
-                            <img src={u.profilePic} alt={u.username} className="w-8 h-8 rounded-full object-cover border border-blue-200" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-semibold">
-                              {(u.firstName?.[0] || u.username?.[0] || 'U').toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold text-blue-900 truncate">{`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username}</div>
-                            <div className="text-xs text-blue-900/70 truncate">@{u.username}</div>
+                      {!searchLoading && suggestions.length > 0 && (
+                        <>
+                          <div className="px-4 py-2 bg-blue-50 border-b border-blue-200">
+                            <p className="text-xs font-semibold text-blue-900">
+                              Found {suggestions.length} user{suggestions.length !== 1 ? 's' : ''}
+                            </p>
                           </div>
-                        </button>
-                      ))}
+                          {suggestions.map((u) => (
+                            <button
+                              key={u._id}
+                              type="button"
+                              className="w-full px-4 py-3 flex items-center gap-3 hover:bg-blue-50 text-left transition-colors border-b border-gray-100 last:border-0"
+                              onClick={() => {
+                                setShowSuggestions(false);
+                                setSearchQuery('');
+                                navigate(`/profile/${encodeURIComponent(u.username)}`);
+                              }}
+                            >
+                              {u.profilePic ? (
+                                <img src={u.profilePic} alt={u.username} className="w-12 h-12 rounded-full object-cover border-2 border-blue-300 shadow-sm" />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-base font-bold shadow-sm">
+                                  {(u.firstName?.[0] || u.username?.[0] || 'U').toUpperCase()}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-semibold text-gray-900 truncate">
+                                  {`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username}
+                                </div>
+                                <div className="text-xs text-gray-500 truncate">@{u.username}</div>
+                                {u.role && (
+                                  <div className="text-xs text-blue-600 mt-0.5">{u.role}</div>
+                                )}
+                              </div>
+                            </button>
+                          ))}
+                        </>
+                      )}
                     </div>
                   </div>
                 )}

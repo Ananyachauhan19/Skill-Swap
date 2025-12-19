@@ -44,81 +44,72 @@ const TopInterviewPerformance = () => {
   const PerformerCard = ({ person, type }) => {
     const name = `${person.user?.firstName || person.user?.username || 'User'}${person.user?.lastName ? ` ${person.user.lastName}` : ''}`;
     const avatar = person.user?.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff&bold=true`;
-    const company = person.user?.company || 'Company';
-    const position = person.user?.position || type === 'interviewer' ? 'Interviewer' : 'Candidate';
+    const company = person.user?.company || 'Not specified';
+    const position = person.user?.position || 'Not specified';
 
     return (
       <div
         onClick={() => handleProfileClick(person.user)}
-        className="relative bg-white rounded-sm border-2 border-gray-200 hover:border-brand-primary shadow-sm hover:shadow-lg transition-all duration-200 p-3 cursor-pointer overflow-hidden group"
+        className="relative bg-white rounded border border-gray-200 hover:border-blue-400 shadow-sm hover:shadow-md transition-all duration-200 p-3 cursor-pointer overflow-hidden group"
       >
-        {/* Background pattern design */}
-        <div className="absolute inset-0 opacity-[0.02]">
-          <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-brand-primary -translate-y-10 translate-x-10"></div>
-          <div className="absolute bottom-0 left-0 w-16 h-16 rounded-full bg-brand-secondary translate-y-8 -translate-x-8"></div>
+        {/* Subtle background decoration */}
+        <div className="absolute inset-0 opacity-[0.03]">
+          <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-blue-500 -translate-y-16 translate-x-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-purple-500 translate-y-12 -translate-x-12"></div>
         </div>
         
-        {/* Decorative lines */}
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-100 to-transparent"></div>
-        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-100 to-transparent"></div>
-        
-        {/* Side accent bars */}
-        <div className="absolute top-3 right-0 w-1 h-12 bg-gradient-to-b from-brand-primary to-transparent opacity-30"></div>
-        <div className="absolute bottom-3 left-0 w-1 h-12 bg-gradient-to-t from-brand-secondary to-transparent opacity-30"></div>
-        
-        {/* Avatar & Name */}
-        <div className="flex items-start gap-2 mb-2 relative z-10">
+        {/* Avatar & Name Section */}
+        <div className="flex items-center gap-3 mb-3 relative z-10">
           <img
             src={avatar}
             alt={name}
-            className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-blue-100 ring-1 ring-blue-50"
+            className="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-gray-200"
           />
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900 truncate leading-tight">
+            <h3 className="text-base font-semibold text-gray-900 truncate">
               {name}
             </h3>
           </div>
         </div>
 
-        {/* Company & Position - Compact boxes */}
-        <div className="space-y-1.5 mb-2 relative z-10">
-          <div className="bg-gradient-to-r from-blue-50/50 to-transparent border-l-2 border-brand-primary/30 pl-2 py-1">
-            <p className="text-[10px] text-gray-500 leading-none mb-0.5">Company</p>
-            <p className="text-xs font-medium text-gray-900 leading-tight">{company}</p>
-          </div>
-          <div className="bg-gradient-to-r from-purple-50/50 to-transparent border-l-2 border-purple-400/30 pl-2 py-1">
-            <p className="text-[10px] text-gray-500 leading-none mb-0.5">Position</p>
-            <p className="text-xs font-medium text-gray-900 leading-tight">{position}</p>
+        {/* Company Section */}
+        <div className="mb-2 relative z-10 border-l-2 border-blue-500 pl-2">
+          <p className="text-xs text-gray-500 mb-0.5">Company</p>
+          <p className="text-sm font-medium text-gray-900">{company}</p>
+        </div>
+
+        {/* Position Section */}
+        <div className="mb-3 relative z-10 border-l-2 border-blue-500 pl-2">
+          <p className="text-xs text-gray-500 mb-0.5">Position</p>
+          <p className="text-sm font-medium text-gray-900">{position}</p>
+        </div>
+
+        {/* Stats Row */}
+        <div className="flex items-center justify-between mb-0.5 relative z-10">
+          <p className="text-xs text-gray-500">Interviews</p>
+          <p className="text-xs text-gray-500">Rating</p>
+        </div>
+
+        <div className="flex items-center justify-between mb-3 relative z-10">
+          <p className="text-lg font-semibold text-gray-900">{person.count || 0}</p>
+          <div className="flex items-center gap-1">
+            <FaStar className="text-yellow-400 text-xs" />
+            <span className="text-lg font-semibold text-gray-900">
+              {person.avgRating ? person.avgRating.toFixed(1) : '0.0'}
+            </span>
           </div>
         </div>
 
-        {/* Stats Row - Enhanced with backgrounds */}
-        <div className="grid grid-cols-2 gap-2 mb-2 relative z-10">
-          <div className="bg-blue-50/50 rounded px-2 py-1.5 border border-blue-100/50">
-            <p className="text-[10px] text-gray-500 mb-0.5">Interviews</p>
-            <p className="text-sm font-bold text-gray-900">{person.count || 0}</p>
-          </div>
-          <div className="bg-yellow-50/50 rounded px-2 py-1.5 border border-yellow-100/50">
-            <p className="text-[10px] text-gray-500 mb-0.5">Rating</p>
-            <div className="flex items-center gap-0.5">
-              <FaStar className="text-yellow-400 text-[10px]" />
-              <span className="text-sm font-bold text-gray-900">
-                {person.avgRating ? person.avgRating.toFixed(1) : '0.0'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons - More compact */}
-        <div className="space-y-1 relative z-10">
-          <button className="w-full py-1.5 bg-gray-50 text-gray-700 rounded text-[11px] font-medium hover:bg-gray-100 transition-colors border border-gray-200">
+        {/* Action Buttons */}
+        <div className="space-y-1.5 relative z-10">
+          <button className="w-full py-1.5 bg-gray-100 text-gray-700 rounded text-xs font-medium hover:bg-gray-200 transition-colors">
             View Profile
           </button>
-          <button className="w-full py-1.5 bg-yellow-50 text-yellow-700 rounded text-[11px] font-medium hover:bg-yellow-100 transition-colors flex items-center justify-center gap-1 border border-yellow-200">
-            <FaStar className="text-yellow-500 text-[9px]" />
+          <button className="w-full py-1.5 bg-yellow-50 text-yellow-700 rounded text-xs font-medium hover:bg-yellow-100 transition-colors flex items-center justify-center gap-1">
+            <FaStar className="text-yellow-500 text-[10px]" />
             See Feedback
           </button>
-          <button className="w-full py-1.5 bg-brand-primary text-white rounded text-[11px] font-medium hover:bg-brand-primary/90 transition-colors">
+          <button className="w-full py-1.5 bg-brand-primary text-white rounded text-xs font-medium hover:bg-brand-primary/90 transition-colors">
             Book Session
           </button>
         </div>
