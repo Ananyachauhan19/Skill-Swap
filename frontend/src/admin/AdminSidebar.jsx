@@ -8,6 +8,7 @@ const sectionConfig = {
   dashboard: [
     { label: 'Overview', to: '/admin/dashboard' },
     { label: 'Analytics', to: '/admin/analytics' },
+    { label: 'Reports', to: '/admin/reports' },
   ],
   applications: [
     { label: 'All Applications', to: '/admin/applications' },
@@ -28,6 +29,9 @@ const sectionConfig = {
     { label: 'All SkillMate Requests', to: '/admin/skillmate-requests' },
     { label: 'Pending', to: '/admin/skillmate-requests' },
     { label: 'Approved', to: '/admin/skillmate-requests' },
+  ],
+  reports: [
+    { label: 'Reports', to: '/admin/reports' },
   ],
   // analytics section removed; its items now live under dashboard
   users: [

@@ -69,6 +69,7 @@ import TutorVerificationStatus from './tutor/TutorVerificationStatus.jsx';
 import TutorVerification from './admin/TutorVerification.jsx';
 import ForgotPassword from './auth/ForgotPassword.jsx';
 import ResetPassword from './auth/ResetPassword.jsx';
+import Reports from './admin/Reports.jsx';
 
 // Define full (regular user) routes
 const appRoutes = [
@@ -159,6 +160,7 @@ const adminOnlyRoutes = [
           { path: 'session-requests', element: <AdminSessionRequests /> },
           { path: 'skillmate-requests', element: <SkillMateRequests /> },
           { path: 'users', element: <Users /> },
+          { path: 'reports', element: <Reports /> },
           { path: 'settings', element: <Settings /> },
           { path: 'tutor-verification', element: <TutorVerification /> },
         ],

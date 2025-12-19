@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, MoreVertical } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSkillMates } from '../context/SkillMatesContext';
 import Fuse from 'fuse.js';
@@ -12,11 +12,12 @@ const SkillMatesModal = () => {
   const [liveQuery, setLiveQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
   // Debounce the search query (200ms)
-  useMemo(() => {
+  useEffect(() => {
     const id = setTimeout(() => setSearchQuery(liveQuery.trim()), 200);
     return () => clearTimeout(id);
   }, [liveQuery]);
@@ -32,9 +33,10 @@ const SkillMatesModal = () => {
       { name: 'username', weight: 0.3 }
     ],
     includeMatches: true,
-    threshold: 0.32,
+    // Slightly looser matching and allow single-character queries
+    threshold: 0.35,
     ignoreLocation: true,
-    minMatchCharLength: 2
+    minMatchCharLength: 1
   }), [list]);
 
   const displayList = useMemo(() => {
@@ -153,7 +155,11 @@ const SkillMatesModal = () => {
           {!loading && !error && (
             <div className="max-h-[60vh] overflow-y-auto pr-1">
               {displayList.length === 0 ? (
-                <div className="text-gray-500 text-sm">No SkillMates yet.</div>
+                <div className="text-gray-500 text-sm">
+                  {searchQuery
+                    ? 'No SkillMates match your search.'
+                    : 'No SkillMates yet.'}
+                </div>
               ) : (
                 <ul id="skillmates-list" role="listbox" className="divide-y divide-blue-50" ref={listRef}>
                   {displayList.map((u, idx) => (
@@ -184,19 +190,60 @@ const SkillMatesModal = () => {
                         </button>
                         <div className="text-gray-500 text-xs truncate">@{highlight(u.username, u._matches, 'username')}</div>
                       </div>
-                      <button
-                        onClick={async () => {
-                          try {
-                            await remove(u._id);
-                          } catch (e) {
-                            // surface error inside modal minimally
-                            alert(e.message || 'Failed to remove');
-                          }
-                        }}
-                        className="px-3 py-1.5 text-sm border border-red-200 text-red-600 rounded-md hover:bg-red-50 flex items-center gap-1"
-                      >
-                        <Trash2 size={16} /> Remove
-                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenMenuId(prev => (prev === u._id ? null : u._id))}
+                          className="p-2 rounded-md hover:bg-blue-50 text-blue-700"
+                          aria-label="Open actions menu"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                        {openMenuId === u._id && (
+                          <div className="absolute right-0 mt-1 w-40 bg-white border border-blue-100 rounded-md shadow-lg z-10 text-xs">
+                            <button
+                              className="w-full text-left px-3 py-1.5 hover:bg-blue-50 text-blue-900"
+                              onClick={() => {
+                                gotoProfile(u.username);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              View Profile
+                            </button>
+                            <button
+                              className="w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 flex items-center gap-1"
+                              onClick={async () => {
+                                try {
+                                  await remove(u._id);
+                                  setOpenMenuId(null);
+                                } catch (e) {
+                                  alert(e.message || 'Failed to remove');
+                                }
+                              }}
+                            >
+                              <Trash2 size={14} /> Remove
+                            </button>
+                            <button
+                              className="w-full text-left px-3 py-1.5 hover:bg-amber-50 text-amber-700"
+                              onClick={() => {
+                                close();
+                                setOpenMenuId(null);
+                                navigate('/report', {
+                                  state: {
+                                    reportedUser: {
+                                      _id: u._id,
+                                      username: u.username,
+                                      fullName: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username,
+                                      email: u.email,
+                                    },
+                                  },
+                                });
+                              }}
+                            >
+                              Report
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </li>
                   ))}
                 </ul>

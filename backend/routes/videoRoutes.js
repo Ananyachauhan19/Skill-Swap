@@ -303,14 +303,18 @@ router.put('/:id', requireAuth, upload.fields([
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
+    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const userEmail = (req.user.email || '').toLowerCase();
     const video = await Video.findById(req.params.id);
 
     if (!video) {
       return res.status(404).json({ message: 'Video not found' });
     }
 
-    // Check ownership
-    if (video.userId.toString() !== userId.toString()) {
+    // Check ownership or admin
+    const isOwner = video.userId.toString() === userId.toString();
+    const isAdmin = adminEmail && userEmail === adminEmail;
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to delete this video' });
     }
 

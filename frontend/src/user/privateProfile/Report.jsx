@@ -1,10 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { BACKEND_URL } from "../../config";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const ReportPage = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const video = state?.video;
+  const reportedUser = state?.user || state?.reportedUser;
+  const reportType = video ? "video" : "account";
 
   const [email, setEmail] = useState("");
   const [selectedIssues, setSelectedIssues] = useState([]);
@@ -26,28 +31,71 @@ const ReportPage = () => {
     );
   };
 
-  const handleSubmit = (e) => {
+  // Auto-fill reporter email from logged-in user
+  useEffect(() => {
+    if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [user]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const reportData = {
-      email,
-      issues: selectedIssues,
-      otherDetails: other,
-      reportedVideo: video,
-    };
+    try {
+      const payload = {
+        type: reportType,
+        email,
+        issues: selectedIssues,
+        otherDetails: other,
+        video: reportType === "video" ? video : undefined,
+        reportedUser: reportType === "account" ? reportedUser : undefined,
+      };
 
-    alert("Report submitted successfully!");
-    navigate(-1); // Go back
+      const res = await fetch(`${BACKEND_URL}/api/report`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to submit report");
+      }
+
+      alert("Report submitted successfully! Our team will review it at skillswaphubb@gmail.com.");
+      navigate(-1);
+    } catch (err) {
+      alert(err.message || "Failed to submit report");
+    }
   };
 
   return (
-    <div className="max-w-xl mx-auto p-18 bg-white rounded shadow">
-      <h2 className="text-2xl font-bold mb-4">Report a Video</h2>
+    <div className="max-w-xl mx-auto p-6 bg-white rounded shadow">
+      <h2 className="text-2xl font-bold mb-2">
+        {reportType === "video" ? "Report a Video" : "Report a User Account"}
+      </h2>
+      <p className="text-xs text-gray-500 mb-4">
+        Reports are sent to <span className="font-semibold">skillswaphubb@gmail.com</span> and reviewed by the admin team.
+      </p>
 
-      {video && (
+      {reportType === "video" && video && (
         <div className="mb-4 p-4 border rounded bg-gray-50">
-          <h3 className="font-semibold text-lg">{video.title}</h3>
-          <p className="text-sm text-gray-600">@{video.userId}</p>
+          <h3 className="font-semibold text-lg truncate">{video.title}</h3>
+          <p className="text-sm text-gray-600">
+            Owner: @{video.userId}
+          </p>
+        </div>
+      )}
+
+      {reportType === "account" && reportedUser && (
+        <div className="mb-4 p-4 border rounded bg-gray-50">
+          <h3 className="font-semibold text-lg truncate">
+            {reportedUser.fullName || reportedUser.name || reportedUser.username || "User"}
+          </h3>
+          <p className="text-sm text-gray-600">
+            @{reportedUser.username || reportedUser.userId || reportedUser._id}
+          </p>
         </div>
       )}
 
@@ -64,6 +112,7 @@ const ReportPage = () => {
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1 block w-full border border-gray-300 rounded px-3 py-2"
             placeholder="you@example.com"
+            disabled={!!user?.email}
           />
         </div>
 
