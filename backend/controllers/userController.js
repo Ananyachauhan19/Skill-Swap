@@ -1,6 +1,7 @@
 const multer = require('multer');
 const cloudinary = require('../utils/cloudinary');
 const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 
 // Multer memory storage and filter
 const storage = multer.memoryStorage();
@@ -97,3 +98,162 @@ const updateProfilePhoto = async (req, res, next) => {
 };
 
 module.exports = { uploadProfileImage, updateProfilePhoto };
+
+// Update email address for logged-in user, ensuring uniqueness
+async function updateEmail(req, res) {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const { email } = req.body || {};
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const newEmail = email.trim().toLowerCase();
+    if (!newEmail) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    // If same as current, allow but no-op
+    if (req.user.email && req.user.email.toLowerCase() === newEmail) {
+      return res.status(200).json({ message: 'Email is unchanged', user: req.user });
+    }
+
+    const existing = await User.findOne({ email: newEmail, _id: { $ne: req.user._id } });
+    if (existing) {
+      return res.status(409).json({ message: 'This email is already registered with another account.' });
+    }
+
+    req.user.email = newEmail;
+    await req.user.save();
+
+    return res.json({ message: 'Email updated successfully.', user: req.user });
+  } catch (err) {
+    console.error('[updateEmail] error:', err);
+    return res.status(500).json({ message: 'Failed to update email.' });
+  }
+}
+
+// Send OTP for phone number change, ensuring uniqueness
+async function sendPhoneOtp(req, res) {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const { phone } = req.body || {};
+    if (!phone || typeof phone !== 'string') {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+
+    const normalizedPhone = phone.trim();
+    if (!normalizedPhone) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+
+    const existing = await User.findOne({ phone: normalizedPhone, _id: { $ne: req.user._id } });
+    if (existing) {
+      return res.status(409).json({ message: 'This phone number is already registered with another account.' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    req.user.pendingPhone = normalizedPhone;
+    req.user.otp = otp;
+    req.user.otpExpires = expires;
+    await req.user.save();
+
+    // In production you would integrate with an SMS provider here.
+    // For now, log OTP on the server for testing.
+    console.log('[sendPhoneOtp] OTP for user', req.user._id.toString(), 'phone', normalizedPhone, 'otp', otp);
+
+    return res.json({ message: 'OTP sent to phone number.' });
+  } catch (err) {
+    console.error('[sendPhoneOtp] error:', err);
+    return res.status(500).json({ message: 'Failed to send OTP.' });
+  }
+}
+
+// Verify OTP and update phone number
+async function verifyPhoneOtp(req, res) {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const { phone, otp } = req.body || {};
+    if (!phone || !otp) {
+      return res.status(400).json({ message: 'Phone and OTP are required' });
+    }
+
+    const normalizedPhone = phone.trim();
+
+    if (!req.user.pendingPhone || req.user.pendingPhone !== normalizedPhone) {
+      return res.status(400).json({ message: 'No pending verification for this phone number.' });
+    }
+
+    if (!req.user.otp || !req.user.otpExpires || req.user.otpExpires < new Date()) {
+      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+    }
+
+    if (String(req.user.otp) !== String(otp)) {
+      return res.status(400).json({ message: 'Invalid OTP.' });
+    }
+
+    const existing = await User.findOne({ phone: normalizedPhone, _id: { $ne: req.user._id } });
+    if (existing) {
+      return res.status(409).json({ message: 'This phone number is already registered with another account.' });
+    }
+
+    req.user.phone = normalizedPhone;
+    req.user.pendingPhone = undefined;
+    req.user.otp = undefined;
+    req.user.otpExpires = undefined;
+    await req.user.save();
+
+    return res.json({ message: 'Phone verified and updated successfully.', user: req.user });
+  } catch (err) {
+    console.error('[verifyPhoneOtp] error:', err);
+    return res.status(500).json({ message: 'Failed to verify OTP.' });
+  }
+}
+
+module.exports.updateEmail = updateEmail;
+module.exports.sendPhoneOtp = sendPhoneOtp;
+module.exports.verifyPhoneOtp = verifyPhoneOtp;
+
+// Change password for logged-in user
+async function changePassword(req, res) {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+
+    const { currentPassword, newPassword } = req.body || {};
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required.' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user || !user.password) {
+      return res.status(400).json({ message: 'Password change is not available for this account.' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password || '');
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Current password is incorrect.' });
+    }
+
+    // Basic server-side validation to mirror frontend
+    if (typeof newPassword !== 'string' || newPassword.length < 6 || !newPassword.includes('@')) {
+      return res.status(400).json({ message: "New password must be at least 6 characters long and include '@'." });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    return res.json({ message: 'Password updated successfully.' });
+  } catch (err) {
+    console.error('[changePassword] error:', err);
+    return res.status(500).json({ message: 'Failed to update password.' });
+  }
+}
+
+module.exports.changePassword = changePassword;

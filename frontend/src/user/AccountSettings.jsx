@@ -3,7 +3,6 @@ import {
   Mail,
   ShieldCheck,
   CreditCard,
-  Settings,
   IndianRupee,
   BookOpen,
   Headphones,
@@ -27,7 +26,6 @@ const sections = [
       "Change Password",
       "Two-Factor Authentication (2FA)",
       "Login Activity / Active Devices",
-      "Deactivate Account",
     ],
   },
   {
@@ -39,15 +37,6 @@ const sections = [
       "Invoices & Receipts",
       "Active Subscriptions / Packages",
       "Upgrade or Cancel Plan",
-    ],
-  },
-  {
-    title: "Platform Preferences",
-    icon: <Settings className="w-5 h-5 text-blue-900" />,
-    items: [
-      "Theme Mode (Light/Dark)",
-      "Notification Settings",
-      "Email Notifications",
     ],
   },
   {
@@ -89,21 +78,8 @@ const sections = [
   },
 ];
 
-const themeOptions = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-  { value: "system", label: "System Default" },
-];
-const notificationOptions = [
-  { value: "all", label: "All Notifications" },
-  { value: "important", label: "Only Important" },
-  { value: "none", label: "None" },
-];
-
 const AccountSettings = () => {
   const [activeSection, setActiveSection] = useState(sections[0].title);
-  const [theme, setTheme] = useState("system");
-  const [notification, setNotification] = useState("all");
   const navigate = useNavigate();
 
   const handleAction = (sectionTitle, item) => {
@@ -116,7 +92,6 @@ const AccountSettings = () => {
       "Change Password": "/settings/password",
       "Two-Factor Authentication (2FA)": "/settings/twofactor",
       "Login Activity / Active Devices": "/settings/activedevices",
-      "Deactivate Account": "/settings/deactivate",
       "Saved Payment Methods": "/settings/payment-methods",
       "Billing History": "/settings/billing-history",
       "Invoices & Receipts": "/settings/invoices",

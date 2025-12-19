@@ -3,7 +3,6 @@ import ChangePassword from './ChangePassword';
 import PhoneVerification from './PhoneVerification';
 import TwoFactorAuth from './TwoFactorAuth';
 import ActiveDevices from './ActiveDevices';
-import DeactivateAccount from './DeactivateAccount';
 import SavedPaymentMethods from './SavedPaymentMethods';
 import BillingHistory from './BillingHistory';
 import InvoicesReceipts from './InvoicesReceipts';
@@ -22,7 +21,6 @@ const accountSettingsRoutes = [
   { path: '/settings/phone', element: <PhoneVerification /> },
   { path: '/settings/twofactor', element: <TwoFactorAuth /> },
   { path: '/settings/activedevices', element: <ActiveDevices /> },
-  { path: '/settings/deactivate', element: <DeactivateAccount /> },
   { path: '/settings/payment-methods', element: <SavedPaymentMethods /> },
   { path: '/settings/billing-history', element: <BillingHistory /> },
   { path: '/settings/invoices', element: <InvoicesReceipts /> },
