@@ -101,7 +101,7 @@ const Chat = ({ skillMateId, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md h-[80vh] flex flex-col">
         {/* Chat header */}
         <div className="p-4 border-b flex items-center justify-between bg-blue-600 text-white rounded-t-lg">
@@ -182,7 +182,7 @@ const Chat = ({ skillMateId, onClose }) => {
             />
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700 transition-colors"
+              className="bg-gray-800 text-white px-4 py-2 rounded-r-lg hover:bg-gray-900 transition-colors"
               disabled={!newMessage.trim()}
             >
               <FaPaperPlane />
