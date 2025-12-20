@@ -26,6 +26,8 @@ const Employees = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [tutorOptions, setTutorOptions] = useState({ subjects: [], classes: [] });
+
   const [searchQuery, setSearchQuery] = useState('');
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -40,6 +42,10 @@ const Employees = () => {
     password: '',
     accessPermissions: 'both',
     isDisabled: false,
+    // Tutor-approval scope
+    tutorScopeAll: true,
+    allowedClasses: [],
+    allowedSubjects: [],
   });
 
   const resetForm = () => {
@@ -50,6 +56,9 @@ const Employees = () => {
       password: '',
       accessPermissions: 'both',
       isDisabled: false,
+      tutorScopeAll: true,
+      allowedClasses: [],
+      allowedSubjects: [],
     });
     setEditingEmployee(null);
   };
@@ -61,6 +70,10 @@ const Employees = () => {
 
   const openEdit = (emp) => {
     setEditingEmployee(emp);
+    const hasTutorAccess = emp.accessPermissions === 'tutor' || emp.accessPermissions === 'both';
+    const allowedClasses = Array.isArray(emp.allowedClasses) ? emp.allowedClasses : [];
+    const allowedSubjects = Array.isArray(emp.allowedSubjects) ? emp.allowedSubjects : [];
+    const tutorScopeAll = !hasTutorAccess || (allowedClasses.length === 0 && allowedSubjects.length === 0);
     setForm({
       name: emp.name || '',
       employeeId: emp.employeeId || '',
@@ -68,6 +81,9 @@ const Employees = () => {
       password: '',
       accessPermissions: emp.accessPermissions || 'both',
       isDisabled: !!emp.isDisabled,
+      tutorScopeAll,
+      allowedClasses,
+      allowedSubjects,
     });
     setDrawerOpen(true);
   };
@@ -98,6 +114,21 @@ const Employees = () => {
 
   useEffect(() => {
     loadEmployees();
+    // Load tutor approval options (subjects and classes)
+    (async () => {
+      try {
+        const res = await axios.get(`${BACKEND_URL}/api/admin/tutor/approval-options`, {
+          withCredentials: true,
+        });
+        const data = res.data || {};
+        setTutorOptions({
+          subjects: Array.isArray(data.subjects) ? data.subjects : [],
+          classes: Array.isArray(data.classes) ? data.classes : [],
+        });
+      } catch (e) {
+        console.error('Failed to load tutor approval options', e);
+      }
+    })();
   }, []);
 
   const handleChange = (e) => {
@@ -106,6 +137,19 @@ const Employees = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+  };
+
+  const handleCheckboxListChange = (name, value) => {
+    setForm((prev) => {
+      const currentValues = prev[name] || [];
+      const newValues = currentValues.includes(value)
+        ? currentValues.filter((v) => v !== value)
+        : [...currentValues, value];
+      return {
+        ...prev,
+        [name]: newValues,
+      };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -121,14 +165,36 @@ const Employees = () => {
         throw new Error('Password is required for new employees');
       }
 
+      // Validate tutor scope when tutor access is enabled
+      const hasTutorAccess = form.accessPermissions === 'tutor' || form.accessPermissions === 'both';
+      if (hasTutorAccess && !form.tutorScopeAll) {
+        if (!form.allowedClasses.length || !form.allowedSubjects.length) {
+          throw new Error('Select at least one class and one subject, or choose "All classes + all subjects"');
+        }
+      }
+
+      const payloadBase = {
+        name: form.name,
+        email: form.email,
+        accessPermissions: form.accessPermissions,
+      };
+
+      if (hasTutorAccess) {
+        if (form.tutorScopeAll) {
+          payloadBase.allowedClasses = [];
+          payloadBase.allowedSubjects = [];
+        } else {
+          payloadBase.allowedClasses = form.allowedClasses;
+          payloadBase.allowedSubjects = form.allowedSubjects;
+        }
+      }
+
       if (editingEmployee) {
         // Update basic fields & access / disabled flag
         await axios.put(
           `${BACKEND_URL}/api/admin/employees/${editingEmployee._id}`,
           {
-            name: form.name,
-            email: form.email,
-            accessPermissions: form.accessPermissions,
+            ...payloadBase,
             isDisabled: form.isDisabled,
           },
           { withCredentials: true },
@@ -137,11 +203,9 @@ const Employees = () => {
         await axios.post(
           `${BACKEND_URL}/api/admin/employees`,
           {
-            name: form.name,
+            ...payloadBase,
             employeeId: form.employeeId,
-            email: form.email,
             password: form.password,
-            accessPermissions: form.accessPermissions,
           },
           { withCredentials: true },
         );
@@ -257,19 +321,20 @@ const Employees = () => {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                <th className="px-4 py-2">Name</th>
-                <th className="px-4 py-2">Employee ID</th>
-                <th className="px-4 py-2">Email</th>
-                <th className="px-4 py-2">Access</th>
-                <th className="px-4 py-2">Status</th>
-                <th className="px-4 py-2">Created</th>
-                <th className="px-4 py-2 text-right">Actions</th>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Employee ID</th>
+                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">Access</th>
+                <th className="px-5 py-3 w-64">Tutor Scope</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Created</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredEmployees.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
+                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-500">
                     No employees found.
                   </td>
                 </tr>
@@ -278,15 +343,20 @@ const Employees = () => {
                 const isDisabled = !!emp.isDisabled;
                 const accessLabel =
                   ACCESS_OPTIONS.find((o) => o.id === emp.accessPermissions)?.label || '—';
+                const hasTutorAccess = emp.accessPermissions === 'tutor' || emp.accessPermissions === 'both';
+                const allowedClasses = Array.isArray(emp.allowedClasses) ? emp.allowedClasses : [];
+                const allowedSubjects = Array.isArray(emp.allowedSubjects) ? emp.allowedSubjects : [];
+                const hasScope = allowedClasses.length > 0 || allowedSubjects.length > 0;
+                
                 return (
                   <tr
                     key={emp._id}
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={() => openEdit(emp)}
                   >
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-xs font-semibold text-blue-700">
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-xs font-semibold text-blue-700">
                           {(emp.name || emp.employeeId || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -294,47 +364,83 @@ const Employees = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-gray-700">{emp.employeeId}</td>
-                    <td className="px-4 py-2 whitespace-nowrap text-gray-700">{emp.email}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
-                        <FiShield className="mr-1" size={12} />
+                    <td className="px-4 py-4 text-gray-700">{emp.employeeId}</td>
+                    <td className="px-4 py-4 text-gray-700">{emp.email}</td>
+                    <td className="px-4 py-4">
+                      <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+                        <FiShield className="mr-1.5" size={12} />
                         {accessLabel}
                       </span>
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap">
+                    <td className="px-5 py-4">
+                      {hasTutorAccess ? (
+                        hasScope ? (
+                          <div className="text-xs space-y-2">
+                            {allowedClasses.length > 0 && (
+                              <div className="bg-blue-50 rounded px-2 py-1.5 border border-blue-100">
+                                <span className="font-semibold text-gray-800">Classes: </span>
+                                <span className="text-gray-700">
+                                  {allowedClasses.slice(0, 2).join(', ')}
+                                  {allowedClasses.length > 2 && (
+                                    <span className="text-blue-600 font-medium ml-1">+{allowedClasses.length - 2}</span>
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                            {allowedSubjects.length > 0 && (
+                              <div className="bg-purple-50 rounded px-2 py-1.5 border border-purple-100">
+                                <span className="font-semibold text-gray-800">Subjects: </span>
+                                <span className="text-gray-700">
+                                  {allowedSubjects.slice(0, 2).join(', ')}
+                                  {allowedSubjects.length > 2 && (
+                                    <span className="text-purple-600 font-medium ml-1">+{allowedSubjects.length - 2}</span>
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="inline-flex items-center text-xs text-gray-600 italic bg-gray-100 px-2.5 py-1 rounded">All classes + subjects</span>
+                        )
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
                       {isDisabled ? (
-                        <span className="inline-flex items-center rounded-full border border-gray-300 bg-gray-50 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                          <FiToggleLeft className="mr-1" size={12} />
+                        <span className="inline-flex items-center rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
+                          <FiToggleLeft className="mr-1.5" size={12} />
                           Disabled
                         </span>
                       ) : (
-                        <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                          <FiToggleRight className="mr-1" size={12} />
+                        <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                          <FiToggleRight className="mr-1.5" size={12} />
                           Active
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap text-gray-600">{formatDate(emp.createdAt)}</td>
+                    <td className="px-4 py-4 text-gray-600">{formatDate(emp.createdAt)}</td>
                     <td
-                      className="px-4 py-2 whitespace-nowrap text-right text-gray-500"
+                      className="px-4 py-4 text-right"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <button
-                        onClick={() => openEdit(emp)}
-                        className="inline-flex items-center px-2 py-1 text-xs rounded-md border border-gray-300 hover:bg-gray-100 mr-2"
-                      >
-                        <FiEdit2 className="mr-1" size={12} /> Edit
-                      </button>
-                      <button
-                        onClick={async () => {
-                          setEditingEmployee(emp);
-                          await handleDelete();
-                        }}
-                        className="inline-flex items-center px-2 py-1 text-xs rounded-md border border-red-200 text-red-600 hover:bg-red-50"
-                      >
-                        <FiTrash2 className="mr-1" size={12} /> Delete
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openEdit(emp)}
+                          className="inline-flex items-center px-3 py-1.5 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          <FiEdit2 className="mr-1.5" size={12} /> Edit
+                        </button>
+                        <button
+                          onClick={async () => {
+                            setEditingEmployee(emp);
+                            await handleDelete();
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 text-xs rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <FiTrash2 className="mr-1.5" size={12} /> Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -467,6 +573,113 @@ const Employees = () => {
                   ))}
                 </div>
               </div>
+
+              {(form.accessPermissions === 'tutor' || form.accessPermissions === 'both') && (
+                <div className="space-y-2 border border-indigo-100 rounded-lg px-3 py-2 bg-indigo-50/40">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-semibold text-gray-800">Tutor approval scope</div>
+                      <p className="text-[11px] text-gray-600">
+                        Limit which tutor applications this employee can review by class and subject.
+                      </p>
+                    </div>
+                    <label className="flex items-center gap-1 text-[11px] text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="tutorScopeAll"
+                        checked={form.tutorScopeAll}
+                        onChange={handleChange}
+                      />
+                      All classes + all subjects
+                    </label>
+                  </div>
+
+                  {!form.tutorScopeAll && (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-medium text-gray-700 mb-1 block">
+                            Classes ({form.allowedClasses.length} selected)
+                          </label>
+                          <div className="border border-gray-300 rounded-lg px-2 py-2 bg-white max-h-40 overflow-y-auto space-y-1">
+                            {tutorOptions.classes.length === 0 ? (
+                              <div className="text-[11px] text-gray-400 italic py-1">Loading classes...</div>
+                            ) : (
+                              tutorOptions.classes.map((cls) => (
+                                <label
+                                  key={cls}
+                                  className="flex items-center gap-2 text-xs text-gray-700 hover:bg-gray-50 px-1 py-0.5 rounded cursor-pointer"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={form.allowedClasses.includes(cls)}
+                                    onChange={() => handleCheckboxListChange('allowedClasses', cls)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span>{cls}</span>
+                                </label>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-medium text-gray-700 mb-1 block">
+                            Subjects ({form.allowedSubjects.length} selected)
+                          </label>
+                          <div className="border border-gray-300 rounded-lg px-2 py-2 bg-white max-h-40 overflow-y-auto space-y-1">
+                            {tutorOptions.subjects.length === 0 ? (
+                              <div className="text-[11px] text-gray-400 italic py-1">Loading subjects...</div>
+                            ) : (
+                              tutorOptions.subjects.map((subj) => (
+                                <label
+                                  key={subj}
+                                  className="flex items-center gap-2 text-xs text-gray-700 hover:bg-gray-50 px-1 py-0.5 rounded cursor-pointer"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={form.allowedSubjects.includes(subj)}
+                                    onChange={() => handleCheckboxListChange('allowedSubjects', subj)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span>{subj}</span>
+                                </label>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {form.allowedClasses.length > 0 && form.allowedSubjects.length > 0 && (
+                        <div className="mt-3 border border-indigo-100 bg-white/60 rounded-md p-2">
+                          <div className="text-[11px] font-medium text-gray-700 mb-1">
+                            Effective tutor approval combinations
+                          </div>
+                          <div className="max-h-32 overflow-auto border border-gray-100 rounded">
+                            <table className="w-full text-[11px]">
+                              <thead className="bg-gray-50 text-gray-500">
+                                <tr>
+                                  <th className="px-2 py-1 text-left font-medium">Class</th>
+                                  <th className="px-2 py-1 text-left font-medium">Subject</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {form.allowedClasses.flatMap((cls) =>
+                                  form.allowedSubjects.map((subj) => (
+                                    <tr key={`${cls}::${subj}`} className="border-t border-gray-50">
+                                      <td className="px-2 py-1 text-gray-800">{cls}</td>
+                                      <td className="px-2 py-1 text-gray-800">{subj}</td>
+                                    </tr>
+                                  )),
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               {editingEmployee && (
                 <div className="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 bg-gray-50">

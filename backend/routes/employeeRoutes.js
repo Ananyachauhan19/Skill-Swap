@@ -6,6 +6,8 @@ const requireAuth = require('../middleware/requireAuth');
 const requireAdmin = require('../middleware/requireAdmin');
 const { requireEmployee } = require('../middleware/requireEmployee');
 const { sendOtpEmail } = require('../utils/sendMail');
+const fetch = require('node-fetch');
+const csv = require('csvtojson');
 
 const router = express.Router();
 
@@ -22,15 +24,15 @@ const signEmployeeToken = (employee) => {
 // Admin-only: create employee
 router.post('/admin/employees', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, employeeId, email, password, accessPermissions } = req.body;
-    if (!name || !employeeId || !email || !password || !accessPermissions) {
-      return res.status(400).json({ message: 'All fields are required' });
-    }
-
-    const existing = await Employee.findOne({ $or: [{ employeeId }, { email }] });
-    if (existing) {
-      return res.status(400).json({ message: 'Employee with this ID or email already exists' });
-    }
+    const {
+      name,
+      employeeId,
+      email,
+      password,
+      accessPermissions,
+      allowedClasses,
+      allowedSubjects,
+    } = req.body;
 
     const passwordHash = await bcrypt.hash(password, 10);
     const employee = await Employee.create({
@@ -39,7 +41,9 @@ router.post('/admin/employees', requireAuth, requireAdmin, async (req, res) => {
       email,
       passwordHash,
       accessPermissions,
-      // Password given by admin is now treated as permanent
+      allowedClasses: Array.isArray(allowedClasses) ? allowedClasses : [],
+      allowedSubjects: Array.isArray(allowedSubjects) ? allowedSubjects : [],
+      // Password given by admin is treated as permanent
       mustChangePassword: false,
     });
 
@@ -64,12 +68,18 @@ router.get('/admin/employees', requireAuth, requireAdmin, async (_req, res) => {
 // Admin-only: update/disable employee
 router.put('/admin/employees/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, email, accessPermissions, isDisabled } = req.body;
+    const { name, email, accessPermissions, isDisabled, allowedClasses, allowedSubjects } = req.body;
     const update = {};
     if (name !== undefined) update.name = name;
     if (email !== undefined) update.email = email;
     if (accessPermissions !== undefined) update.accessPermissions = accessPermissions;
     if (isDisabled !== undefined) update.isDisabled = isDisabled;
+    if (allowedClasses !== undefined) {
+      update.allowedClasses = Array.isArray(allowedClasses) ? allowedClasses : [];
+    }
+    if (allowedSubjects !== undefined) {
+      update.allowedSubjects = Array.isArray(allowedSubjects) ? allowedSubjects : [];
+    }
 
     const employee = await Employee.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
@@ -94,7 +104,7 @@ router.post('/admin/employees/:id/reset-password', requireAuth, requireAdmin, as
         // Do not force password change; admin-set password is permanent
         mustChangePassword: false,
       },
-      { new: true }
+      { new: true },
     );
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     return res.json({ message: 'Password reset', employeeId: employee._id });
@@ -115,7 +125,42 @@ router.delete('/admin/employees/:id', requireAuth, requireAdmin, async (req, res
   }
 });
 
-// Employee login (by employeeId or email) - OTP based
+// Admin-only: get tutor-approval class/subject options from Google Sheet CSV
+router.get('/admin/tutor/approval-options', requireAuth, requireAdmin, async (_req, res) => {
+  try {
+    const SHEET_URL = process.env.GOOGLE_SHEET_CSV_URL;
+    if (!SHEET_URL) {
+      return res.status(400).json({ message: 'GOOGLE_SHEET_CSV_URL not configured in .env' });
+    }
+
+    const resp = await fetch(SHEET_URL);
+    if (!resp.ok) throw new Error('Failed to fetch CSV');
+    const text = await resp.text();
+
+    const rows = await csv({ trim: true }).fromString(text);
+
+    const classSet = new Set();
+    const subjectSet = new Set();
+
+    rows.forEach((r) => {
+      const classOrCourse = (r['Class/Course'] || r.course || r.Course || '').trim();
+      const subject = (r['Subject'] || r.subject || r.unit || r.Unit || '').trim();
+
+      if (classOrCourse) classSet.add(classOrCourse);
+      if (subject) subjectSet.add(subject);
+    });
+
+    const classes = Array.from(classSet).sort((a, b) => a.localeCompare(b));
+    const subjects = Array.from(subjectSet).sort((a, b) => a.localeCompare(b));
+
+    return res.json({ classes, subjects });
+  } catch (err) {
+    console.error('Failed to load tutor approval options from sheet:', err.message);
+    return res.status(500).json({ message: 'Failed to load tutor approval options' });
+  }
+});
+
+// Employee login (by employeeId or email)
 router.post('/employee/login', async (req, res) => {
   try {
     const { identifier, password } = req.body; // identifier = employeeId or email
@@ -123,7 +168,9 @@ router.post('/employee/login', async (req, res) => {
       return res.status(400).json({ message: 'Identifier and password are required' });
     }
 
-    const query = identifier.includes('@') ? { email: identifier.toLowerCase() } : { employeeId: identifier };
+    const query = identifier.includes('@')
+      ? { email: identifier.toLowerCase() }
+      : { employeeId: identifier };
     const employee = await Employee.findOne(query);
     if (!employee || employee.isDisabled) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -195,6 +242,8 @@ router.post('/employee/verify-otp', async (req, res) => {
         employeeId: employee.employeeId,
         email: employee.email,
         accessPermissions: employee.accessPermissions,
+        allowedClasses: employee.allowedClasses || [],
+        allowedSubjects: employee.allowedSubjects || [],
       },
     });
   } catch (err) {
@@ -212,8 +261,10 @@ router.get('/employee/me', requireEmployee, (req, res) => {
     employeeId: e.employeeId,
     email: e.email,
     accessPermissions: e.accessPermissions,
+    allowedClasses: e.allowedClasses || [],
+    allowedSubjects: e.allowedSubjects || [],
     mustChangePassword: e.mustChangePassword,
   });
 });
-
+ 
 module.exports = router;

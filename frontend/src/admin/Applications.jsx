@@ -40,7 +40,7 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
   const [category, setCategory] = useState(initialCategory || 'interview-expert');
   const [status, setStatus] = useState('all');
   const [viewMode, setViewMode] = useState(mode === 'employee' ? 'comfortable' : 'comfortable');
-  // Add search and date filter state for employee mode (since top bar is removed)
+  // Search and date filter state (used by both admin and employee)
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
@@ -139,18 +139,16 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
 
   useEffect(() => { fetchApps(); /* eslint-disable-next-line */ }, []);
 
-  // Only use effect for admin mode filters
-  // For employee mode, sidebar tab selection triggers fetchApps
+  // Re-fetch whenever filters change (admin & employee).
+  // Admin mode uses a small debounce; employee mode fetches immediately.
   useEffect(() => {
-    if (mode !== 'employee') {
-      // debounce filter/search for admin mode
-      const debounceRef = { current: null };
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => { fetchApps({}); }, 300);
-      return () => debounceRef.current && clearTimeout(debounceRef.current);
-    }
+    const delay = mode === 'employee' ? 0 : 300;
+    const handle = setTimeout(() => {
+      fetchApps({});
+    }, delay);
+    return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, category, status, search, dateFilter, customStartDate, customEndDate]);
 
   const approve = async (id) => {
     if (!window.confirm('Approve this application?')) return;
@@ -643,8 +641,135 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Top Control Bar: Only show for admin mode, not employee */}
-      {mode !== 'employee' && <></>}
+      {/* Top Control Bar: shared filters; category tabs only for admin */}
+      <div className="border-b border-gray-200 bg-white">
+        <div className="px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          {/* Left: title + category (admin only) */}
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">Applications</h1>
+              <p className="text-xs text-gray-500">
+                Review and manage interview expert and tutor applications.
+              </p>
+            </div>
+            {mode !== 'employee' && (
+              <div className="inline-flex items-center gap-2 rounded-full bg-gray-100 p-1">
+                {visibleCategoryOptions.map((opt) => {
+                  const Icon = opt.icon;
+                  const isActive = category === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setCategory(opt.id)}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                        isActive
+                          ? 'bg-white text-blue-700 shadow-sm'
+                          : 'text-gray-600 hover:bg-white'
+                      }`}
+                    >
+                      <Icon size={14} />
+                      <span>{opt.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Right: filters + search + view mode (both admin & employee) */}
+          <div className="flex flex-wrap items-center gap-3 justify-start md:justify-end">
+            {/* Status chips */}
+            <div className="flex flex-wrap gap-1 bg-gray-50 rounded-full px-2 py-1 border border-gray-200">
+              {statusOptions.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setStatus(opt.id)}
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium capitalize transition-colors ${
+                    status === opt.id
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-600 hover:bg-white'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Date range */}
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <FiCalendar size={14} className="text-gray-400" />
+              <select
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="border border-gray-200 rounded-md px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {dateRangeOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              {dateFilter === 'custom' && (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="date"
+                    value={customStartDate}
+                    onChange={(e) => setCustomStartDate(e.target.value)}
+                    className="border border-gray-200 rounded-md px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <span className="text-gray-400">–</span>
+                  <input
+                    type="date"
+                    value={customEndDate}
+                    onChange={(e) => setCustomEndDate(e.target.value)}
+                    className="border border-gray-200 rounded-md px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Search */}
+            <div className="relative w-full sm:w-52 md:w-64">
+              <FiSearch className="absolute left-2.5 top-2.5 text-gray-400" size={14} />
+              <input
+                type="text"
+                placeholder="Search by name, email, company..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-md text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* View mode toggle */}
+            <div className="inline-flex items-center rounded-md border border-gray-200 overflow-hidden bg-white">
+              <button
+                type="button"
+                onClick={() => setViewMode('comfortable')}
+                className={`px-2.5 py-1.5 text-xs flex items-center gap-1 ${
+                  viewMode === 'comfortable'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <FiGrid size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('compact')}
+                className={`px-2.5 py-1.5 text-xs flex items-center gap-1 border-l border-gray-200 ${
+                  viewMode === 'compact'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <FiList size={13} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content Area - Two Column Layout */}
       <div className="flex-1 flex overflow-hidden">

@@ -29,6 +29,15 @@ const employeeSchema = new mongoose.Schema({
     enum: ['interviewer', 'tutor', 'both'],
     required: true,
   },
+  // Optional tutor-approval scope filters. Empty arrays = all classes/subjects.
+  allowedClasses: {
+    type: [String],
+    default: [],
+  },
+  allowedSubjects: {
+    type: [String],
+    default: [],
+  },
   isDisabled: {
     type: Boolean,
     default: false,
