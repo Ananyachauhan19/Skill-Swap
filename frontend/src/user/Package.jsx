@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BACKEND_URL } from '../config';
+import { FaCoins } from 'react-icons/fa';
+import { GiTwoCoins } from 'react-icons/gi';
 
 const Package = () => {
   return (
@@ -60,82 +63,79 @@ const Package = () => {
 const BuyRedeemCoins = () => {
   const [showMore, setShowMore] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
-  
-  const offers = [
-    // {
-    //   id: 1,
-    //   name: 'Gold Pro SkillCoin',
-    //   coins: '50 Gold SkillCoin',
-    //   value: '₹100',
-    //   type: 'gold',
-    //   popular: true,
-    //   features: ['Premium features access', 'Priority support', 'Exclusive content'],
-    //   description: 'Perfect for users who want premium benefits with Gold SkillCoins'
-    // },
-    {
-      id: 2,
-      name: 'Silver Starter SkillCoin',
-      coins: '1200 Silver SkillCoin',
-      value: '₹270',
-      type: 'silver',
-      features: ['Basic features access', 'Standard support'],
-      description: 'Ideal for users who prefer Silver SkillCoins'
-    },
-    // {
-    //   id: 3,
-    //   name: 'Combo SkillCoin',
-    //   coins: '100 Silver + 20 Gold SkillCoin',
-    //   value: '₹60',
-    //   type: 'combo',
-    //   features: ['Silver + Gold benefits', 'Flexible usage'],
-    //   description: 'Best value for users who want both SkillCoin types'
-    // },
-    // {
-    //   id: 4,
-    //   name: 'Combo Elite SkillCoin',
-    //   coins: '1200 Silver + 240 Gold SkillCoin',
-    //   value: '₹720',
-    //   type: 'combo',
-    //   popular: true,
-    //   features: ['All premium features', 'VIP support', 'Exclusive events'],
-    //   description: 'Ultimate package for maximum benefits and savings'
-    // },
-    // {
-    //   id: 5,
-    //   name: 'Gold Elite SkillCoin',
-    //   coins: '180 Gold SkillCoin',
-    //   value: '₹280',
-    //   type: 'gold',
-    //   features: ['Extended premium access', 'Priority customer service'],
-    //   description: 'Great for users committed to Gold SkillCoins'
-    // },
-    {
-      id: 6,
-      name: 'Silver Plus SkillCoin',
-      coins: '2400 Silver SkillCoin',
-      value: '₹480',
-      type: 'silver',
-      features: ['Long-term savings', 'All standard features'],
-      description: 'Excellent choice for Silver SkillCoin enthusiasts'
-    }
-  ];
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
 
+  // Fetch packages from backend
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${BACKEND_URL}/api/packages`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          setPackages(data.data);
+        } else {
+          setError('Failed to load packages');
+        }
+      } catch (err) {
+        console.error('Error fetching packages:', err);
+        setError('Failed to load packages. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPackages();
+  }, []);
+
+  const handlePurchase = async (pkg) => {
+    setPurchaseLoading(true);
+    setSelectedPackage(pkg);
+    
+    try {
+      // Simulate purchase process (integrate with payment gateway)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      // TODO: Integrate actual payment gateway
+      // const response = await fetch(`${BACKEND_URL}/api/purchase`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ packageId: pkg._id }),
+      //   credentials: 'include'
+      // });
+      
+      alert(`Successfully purchased ${pkg.name}!`);
+    } catch (err) {
+      console.error('Purchase error:', err);
+      alert('Failed to purchase package. Please try again.');
+    } finally {
+      setPurchaseLoading(false);
+    }
+  };
+  
   const getPackageColor = (type) => {
     switch(type) {
-      // case "gold": 
-      //   return {
-      //     bg: "bg-gradient-to-br from-yellow-50 to-yellow-100",
-      //     border: "border-yellow-300",
-      //     text: "text-yellow-700",
-      //     button: "from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
-      //   };
-      case "silver": 
+      case "ONLY_GOLDEN": 
+        return {
+          bg: "bg-gradient-to-br from-yellow-50 to-yellow-100",
+          border: "border-yellow-300",
+          text: "text-yellow-700",
+          button: "from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
+        };
+      case "ONLY_SILVER": 
         return {
           bg: "bg-gradient-to-br from-gray-50 to-gray-100",
           border: "border-gray-300",
           text: "text-gray-700",
           button: "from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700"
         };
+      case "COMBO":
       default: 
         return {
           bg: "bg-gradient-to-br from-blue-50 to-blue-100",
@@ -146,24 +146,52 @@ const BuyRedeemCoins = () => {
     }
   };
 
-  // const getCoinIcon = (type) => {
-  //   return type === "gold" ? (
-  //     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-  //       <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L11 6.477V5h2a1 1 0 110 2H9a1 1 0 010-2h1V3a1 1 0 011-1zm-6 8a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 019 21a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L5 12.477V11a1 1 0 011-1z" />
-  //     </svg>
-  //   ) : (
-  //     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-  //       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95a1 1 0 001.715 1.029z" clipRule="evenodd" />
-  //     </svg>
-  //   );
-  // };
+  const getCoinIcon = (type, hasGolden, hasSilver) => {
+    if (type === "ONLY_GOLDEN" || (hasGolden && !hasSilver)) {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+          <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L11 6.477V5h2a1 1 0 110 2H9a1 1 0 010-2h1V3a1 1 0 011-1zm-6 8a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 019 21a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L5 12.477V11a1 1 0 011-1z" />
+        </svg>
+      );
+    } else if (type === "COMBO") {
+      return (
+        <div className="flex -space-x-2">
+          <FaCoins className="h-6 w-6 text-gray-500" />
+          <GiTwoCoins className="h-6 w-6 text-yellow-500" />
+        </div>
+      );
+    } else {
+      return (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95a1 1 0 001.715 1.029z" clipRule="evenodd" />
+        </svg>
+      );
+    }
+  };
 
-   const getCoinIcon = (type) => {
-    return (
-      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.736 6.979C9.208 6.193 9.696 6 10 6c.304 0 .792.193 1.264.979a1 1 0 001.715-1.029C12.279 4.784 11.232 4 10 4s-2.279.784-2.979 1.95a1 1 0 001.715 1.029z" clipRule="evenodd" />
-      </svg>
-    );
+  const formatCoinDisplay = (pkg) => {
+    if (pkg.type === 'COMBO') {
+      return `${pkg.silverCoins} Silver + ${pkg.goldenCoins} Golden SkillCoins`;
+    } else if (pkg.type === 'ONLY_SILVER') {
+      return `${pkg.silverCoins} Silver SkillCoins`;
+    } else if (pkg.type === 'ONLY_GOLDEN') {
+      return `${pkg.goldenCoins} Golden SkillCoins`;
+    }
+    return 'SkillCoins Package';
+  };
+
+  const getPackageFeatures = (pkg) => {
+    const features = [];
+    
+    if (pkg.type === 'COMBO') {
+      features.push('Silver + Golden benefits', 'Best value package', 'Flexible usage');
+    } else if (pkg.type === 'ONLY_GOLDEN') {
+      features.push('Premium features access', 'Priority support', 'Exclusive content');
+    } else if (pkg.type === 'ONLY_SILVER') {
+      features.push('Basic features access', 'Standard support', 'Long-term savings');
+    }
+    
+    return features;
   };
 
   return (
@@ -192,143 +220,88 @@ const BuyRedeemCoins = () => {
         </motion.p>
       </motion.div>
 
-      <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-10 sm:mb-12"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.7, staggerChildren: 0.2 }}
-      >
-        {offers.slice(0, 3).map((offer) => {
-          const colors = getPackageColor(offer.type);
-          return (
-            <motion.div
-              key={offer.id}
-              className={`${colors.bg} rounded-2xl shadow-xl p-4 sm:p-6 border ${colors.border} relative overflow-hidden h-full flex flex-col`}
-              whileHover={{ y: -10, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              {offer.popular && (
-                <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-400 to-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full z-10 font-nunito">
-                  POPULAR
-                </div>
-              )}
-              
-              <div className="flex items-center mb-3 sm:mb-4">
-                <div className="bg-white p-2 sm:p-3 rounded-full shadow-md mr-3 sm:mr-4">
-                  {getCoinIcon(offer.type)}
-                </div>
-                <h3 className="text-base sm:text-lg md:text-xl font-bold text-blue-900 font-lora">{offer.name}</h3>
-              </div>
-              
-              <div className="mb-3 sm:mb-4">
-                <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800 mb-1">{offer.coins}</div>
-                <div className="text-blue-600 text-sm sm:text-base font-nunito">Worth <span className="font-semibold">{offer.value}</span></div>
-              </div>
-              
-              <div className="mb-1">
-                <p className="text-blue-600 text-sm font-nunito">{offer.description}</p>
-              </div>
-              
-              <ul className="mb-4 sm:mb-6 mt-3 sm:mt-4 space-y-2 flex-grow">
-                {offer.features.map((feature, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <svg className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-blue-600 text-sm font-nunito">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              
-              <motion.button
-                className={`w-full bg-gradient-to-r ${colors.button} text-white py-2 sm:py-3 rounded-xl transition-all duration-300 shadow-md mt-auto font-nunito text-sm sm:text-base`}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setSelectedPackage(offer)}
-              >
-                Purchase Package
-              </motion.button>
-            </motion.div>
-          )
-        })}
-      </motion.div>
-
-      <motion.div
-        className="text-center mb-12 sm:mb-16"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-      >
-        <motion.button
-          className="bg-gradient-to-r from-blue-400 to-blue-600 text-white font-semibold py-2 sm:py-3 px-6 sm:px-8 rounded-full shadow-lg hover:from-blue-500 hover:to-blue-700 transition-all duration-300 flex items-center mx-auto font-nunito text-sm sm:text-base"
-          onClick={() => setShowMore(!showMore)}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          {showMore ? (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-              </svg>
-              Show Less Offers
-            </>
-          ) : (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-              Show More Offers
-            </>
-          )}
-        </motion.button>
-      </motion.div>
-
-      <AnimatePresence>
-        {showMore && (
-          <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12 sm:mb-16"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.5 }}
+      {loading ? (
+        <div className="flex justify-center items-center py-12">
+          <svg
+            className="animate-spin h-10 w-10 text-blue-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
           >
-            {offers.slice(3).map((offer) => {
-              const colors = getPackageColor(offer.type);
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-red-600 text-lg mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      ) : packages.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600 text-lg">No packages available at the moment.</p>
+          <p className="text-gray-500 text-sm mt-2">Check back soon for new offers!</p>
+        </div>
+      ) : (
+        <>
+          <motion.div
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-10 sm:mb-12"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, staggerChildren: 0.2 }}
+          >
+            {packages.slice(0, 3).map((pkg) => {
+              const colors = getPackageColor(pkg.type);
+              const isPopular = pkg.type === 'COMBO';
               return (
                 <motion.div
-                  key={offer.id}
+                  key={pkg._id}
                   className={`${colors.bg} rounded-2xl shadow-xl p-4 sm:p-6 border ${colors.border} relative overflow-hidden h-full flex flex-col`}
-                  initial={{ opacity: 0, y: 20 }}
+                  whileHover={{ y: -10, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+                  initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
                   transition={{ duration: 0.5 }}
                 >
-                  {offer.popular && (
-                    <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-400 to-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full font-nunito">
+                  {isPopular && (
+                    <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-400 to-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full z-10 font-nunito">
                       POPULAR
                     </div>
                   )}
                   
                   <div className="flex items-center mb-3 sm:mb-4">
                     <div className="bg-white p-2 sm:p-3 rounded-full shadow-md mr-3 sm:mr-4">
-                      {getCoinIcon(offer.type)}
+                      {getCoinIcon(pkg.type, pkg.goldenCoins > 0, pkg.silverCoins > 0)}
                     </div>
-                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-blue-900 font-lora">{offer.name}</h3>
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-blue-900 font-lora">{pkg.name}</h3>
                   </div>
                   
                   <div className="mb-3 sm:mb-4">
-                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800 mb-1">{offer.coins}</div>
-                    <div className="text-blue-600 text-sm sm:text-base font-nunito">Worth <span className="font-semibold">{offer.value}</span></div>
+                    <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800 mb-1">{formatCoinDisplay(pkg)}</div>
+                    <div className="text-blue-600 text-sm sm:text-base font-nunito">Worth <span className="font-semibold">₹{pkg.priceInINR.toFixed(2)}</span></div>
                   </div>
                   
                   <div className="mb-1">
-                    <p className="text-blue-600 text-sm font-nunito">{offer.description}</p>
+                    <p className="text-blue-600 text-sm font-nunito">{pkg.description}</p>
                   </div>
                   
                   <ul className="mb-4 sm:mb-6 mt-3 sm:mt-4 space-y-2 flex-grow">
-                    {offer.features.map((feature, idx) => (
+                    {getPackageFeatures(pkg).map((feature, idx) => (
                       <li key={idx} className="flex items-start">
                         <svg className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -339,19 +312,148 @@ const BuyRedeemCoins = () => {
                   </ul>
                   
                   <motion.button
-                    className={`w-full bg-gradient-to-r ${colors.button} text-white py-2 sm:py-3 rounded-xl transition-all duration-300 shadow-md mt-auto font-nunito text-sm sm:text-base`}
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedPackage(offer)}
+                    className={`w-full bg-gradient-to-r ${colors.button} text-white py-2 sm:py-3 rounded-xl transition-all duration-300 shadow-md mt-auto font-nunito text-sm sm:text-base ${
+                      purchaseLoading && selectedPackage?._id === pkg._id ? 'opacity-70 cursor-not-allowed' : ''
+                    }`}
+                    whileHover={{ scale: purchaseLoading ? 1 : 1.03 }}
+                    whileTap={{ scale: purchaseLoading ? 1 : 0.98 }}
+                    onClick={() => !purchaseLoading && handlePurchase(pkg)}
+                    disabled={purchaseLoading}
                   >
-                    Purchase Package
+                    {purchaseLoading && selectedPackage?._id === pkg._id ? (
+                      <span className="flex items-center justify-center">
+                        <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processing...
+                      </span>
+                    ) : (
+                      'Purchase Package'
+                    )}
                   </motion.button>
                 </motion.div>
               )
             })}
           </motion.div>
-        )}
-      </AnimatePresence>
+
+          {packages.length > 3 && (
+            <>
+              <motion.div
+                className="text-center mb-12 sm:mb-16"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
+                <motion.button
+                  className="bg-gradient-to-r from-blue-400 to-blue-600 text-white font-semibold py-2 sm:py-3 px-6 sm:px-8 rounded-full shadow-lg hover:from-blue-500 hover:to-blue-700 transition-all duration-300 flex items-center mx-auto font-nunito text-sm sm:text-base"
+                  onClick={() => setShowMore(!showMore)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {showMore ? (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                      </svg>
+                      Show Less Offers
+                    </>
+                  ) : (
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      Show More Offers
+                    </>
+                  )}
+                </motion.button>
+              </motion.div>
+
+              <AnimatePresence>
+                {showMore && (
+                  <motion.div
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12 sm:mb-16"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    {packages.slice(3).map((pkg) => {
+                      const colors = getPackageColor(pkg.type);
+                      const isPopular = pkg.type === 'COMBO';
+                      return (
+                        <motion.div
+                          key={pkg._id}
+                          className={`${colors.bg} rounded-2xl shadow-xl p-4 sm:p-6 border ${colors.border} relative overflow-hidden h-full flex flex-col`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 20 }}
+                          transition={{ duration: 0.5 }}
+                        >
+                          {isPopular && (
+                            <div className="absolute top-4 right-4 bg-gradient-to-r from-blue-400 to-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full font-nunito">
+                              POPULAR
+                            </div>
+                          )}
+                          
+                          <div className="flex items-center mb-3 sm:mb-4">
+                            <div className="bg-white p-2 sm:p-3 rounded-full shadow-md mr-3 sm:mr-4">
+                              {getCoinIcon(pkg.type, pkg.goldenCoins > 0, pkg.silverCoins > 0)}
+                            </div>
+                            <h3 className="text-base sm:text-lg md:text-xl font-bold text-blue-900 font-lora">{pkg.name}</h3>
+                          </div>
+                          
+                          <div className="mb-3 sm:mb-4">
+                            <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800 mb-1">{formatCoinDisplay(pkg)}</div>
+                            <div className="text-blue-600 text-sm sm:text-base font-nunito">Worth <span className="font-semibold">₹{pkg.priceInINR.toFixed(2)}</span></div>
+                          </div>
+                          
+                          <div className="mb-1">
+                            <p className="text-blue-600 text-sm font-nunito">{pkg.description}</p>
+                          </div>
+                          
+                          <ul className="mb-4 sm:mb-6 mt-3 sm:mt-4 space-y-2 flex-grow">
+                            {getPackageFeatures(pkg).map((feature, idx) => (
+                              <li key={idx} className="flex items-start">
+                                <svg className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                <span className="text-blue-600 text-sm font-nunito">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          
+                          <motion.button
+                            className={`w-full bg-gradient-to-r ${colors.button} text-white py-2 sm:py-3 rounded-xl transition-all duration-300 shadow-md mt-auto font-nunito text-sm sm:text-base ${
+                              purchaseLoading && selectedPackage?._id === pkg._id ? 'opacity-70 cursor-not-allowed' : ''
+                            }`}
+                            whileHover={{ scale: purchaseLoading ? 1 : 1.03 }}
+                            whileTap={{ scale: purchaseLoading ? 1 : 0.98 }}
+                            onClick={() => !purchaseLoading && handlePurchase(pkg)}
+                            disabled={purchaseLoading}
+                          >
+                            {purchaseLoading && selectedPackage?._id === pkg._id ? (
+                              <span className="flex items-center justify-center">
+                                <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Processing...
+                              </span>
+                            ) : (
+                              'Purchase Package'
+                            )}
+                          </motion.button>
+                        </motion.div>
+                      )
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
+          )}
+        </>
+      )}
 
       {/* Current Plan Section */}
       <motion.div
@@ -436,13 +538,13 @@ const BuyRedeemCoins = () => {
       <AnimatePresence>
         {selectedPackage && (
           <motion.div 
-            className="fixed inset-0 bg-transparent flex items-center justify-center p-4 sm:p-6 z-50"
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div 
-              className="bg-white bg-opacity-20 backdrop-blur-lg rounded-2xl shadow-xl max-w-md w-full p-4 sm:p-6 border border-blue-100"
+              className="bg-white rounded-2xl shadow-xl max-w-md w-full p-4 sm:p-6 border border-blue-100"
               initial={{ scale: 0.9, y: 50 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 50 }}
@@ -461,11 +563,11 @@ const BuyRedeemCoins = () => {
               
               <div className="flex items-center mb-3 sm:mb-4">
                 <div className="mr-3">
-                  {getCoinIcon(selectedPackage.type)}
+                  {getCoinIcon(selectedPackage.type, selectedPackage.goldenCoins > 0, selectedPackage.silverCoins > 0)}
                 </div>
                 <div>
-                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800 font-lora">{selectedPackage.coins}</div>
-                  <div className="text-blue-600 text-sm sm:text-base font-nunito">Worth {selectedPackage.value}</div>
+                  <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800 font-lora">{formatCoinDisplay(selectedPackage)}</div>
+                  <div className="text-blue-600 text-sm sm:text-base font-nunito">Worth ₹{selectedPackage.priceInINR.toFixed(2)}</div>
                 </div>
               </div>
               
@@ -474,7 +576,7 @@ const BuyRedeemCoins = () => {
               </div>
               
               <ul className="mb-4 sm:mb-6 space-y-2">
-                {selectedPackage.features.map((feature, idx) => (
+                {getPackageFeatures(selectedPackage).map((feature, idx) => (
                   <li key={idx} className="flex items-start">
                     <svg className="h-5 w-5 text-blue-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -493,10 +595,12 @@ const BuyRedeemCoins = () => {
                   Cancel
                 </motion.button>
                 <motion.button
-                  className="flex-1 bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 sm:py-3 rounded-lg hover:from-blue-500 hover:to-blue-700 transition-all font-nunito text-sm sm:text-base"
+                  className="flex-1 bg-gradient-to-r from-blue-400 to-blue-600 text-white py-2 sm:py-3 rounded-lg hover:from-blue-500 hover:to-blue-700 transition-all font-nunito text-sm sm:text-base disabled:opacity-70"
                   whileTap={{ scale: 0.98 }}
+                  onClick={() => handlePurchase(selectedPackage)}
+                  disabled={purchaseLoading}
                 >
-                  Confirm Purchase
+                  {purchaseLoading ? 'Processing...' : 'Confirm Purchase'}
                 </motion.button>
               </div>
             </motion.div>
