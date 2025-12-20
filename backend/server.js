@@ -41,6 +41,11 @@ const reportRoutes = require('./routes/reportRoutes');
 const helpRoutes = require('./routes/helpRoutes');
 const packageRoutes = require('./routes/packageRoutes');
 const cron = require('node-cron');
+const Session = require('./models/Session');
+const User = require('./models/User');
+const Notification = require('./models/Notification');
+const { sendMail } = require('./utils/sendMail');
+const emailTemplates = require('./utils/emailTemplates');
 
 const app = express();
 const server = http.createServer(app);
@@ -195,6 +200,122 @@ mongoose.connect(process.env.MONGO_URI)
       }
     } else {
       console.log('[Contributions] Cron disabled. Set ENABLE_CONTRIBUTION_CRON=true to enable.');
+    }
+
+    // Session reminders (5 minutes before start). Enable by default.
+    if (String(process.env.ENABLE_SESSION_REMINDER_CRON || 'true').toLowerCase() === 'true') {
+      const parseSessionStart = (sessionDoc) => {
+        const dateStr = sessionDoc?.date;
+        const timeStr = sessionDoc?.time;
+        if (!dateStr || !timeStr) return null;
+
+        // Best-effort parsing based on existing stored strings.
+        // Handles common formats like:
+        // - date: 'YYYY-MM-DD'
+        // - date: 'DD/MM/YYYY'
+        // - time: 'HH:mm' or 'h:mm AM/PM'
+        const isoCandidate = `${dateStr} ${timeStr}`;
+        let parsed = new Date(isoCandidate);
+        if (!Number.isNaN(parsed.getTime())) return parsed;
+
+        const m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (m) {
+          const dd = m[1];
+          const mm = m[2];
+          const yyyy = m[3];
+          parsed = new Date(`${yyyy}-${mm}-${dd} ${timeStr}`);
+          if (!Number.isNaN(parsed.getTime())) return parsed;
+        }
+
+        return null;
+      };
+
+      try {
+        cron.schedule('* * * * *', async () => {
+          try {
+            const now = new Date();
+            const windowStart = new Date(now.getTime() + 4 * 60 * 1000);
+            const windowEnd = new Date(now.getTime() + 6 * 60 * 1000);
+
+            // Broad filter; date/time formats vary so we do parsing in-process.
+            const candidateSessions = await Session.find({
+              sessionType: 'expert',
+              status: 'approved',
+              reminderSent: { $ne: true },
+            }).limit(200);
+
+            for (const sessionDoc of candidateSessions) {
+              const start = parseSessionStart(sessionDoc);
+              if (!start) continue;
+              if (start < windowStart || start > windowEnd) continue;
+
+              const creator = await User.findById(sessionDoc.creator).select('name email');
+              const invited = await User.findById(sessionDoc.invitedSkillMate).select('name email');
+              if (!creator || !invited) continue;
+
+              const date = sessionDoc.date;
+              const time = sessionDoc.time;
+              const subject = sessionDoc.subject || 'Expert Session';
+              const topic = sessionDoc.topic || '';
+
+              const creatorNotif = await Notification.create({
+                userId: creator._id,
+                type: 'expert-session-reminder',
+                message: `Reminder: Your expert session with ${invited.name} starts in 5 minutes.`,
+                sessionId: sessionDoc._id,
+              });
+              const invitedNotif = await Notification.create({
+                userId: invited._id,
+                type: 'expert-session-reminder',
+                message: `Reminder: Your expert session with ${creator.name} starts in 5 minutes.`,
+                sessionId: sessionDoc._id,
+              });
+
+              io.to(String(creator._id)).emit('notification', creatorNotif);
+              io.to(String(invited._id)).emit('notification', invitedNotif);
+
+              try {
+                const t1 = emailTemplates.expertSessionReminder({
+                  recipientName: creator.name,
+                  otherPartyName: invited.name,
+                  subject,
+                  topic,
+                  date,
+                  time,
+                });
+                await sendMail({ to: creator.email, subject: t1.subject, html: t1.html });
+              } catch (e) {
+                console.error('[SessionReminder] Creator email failed:', e && e.message ? e.message : e);
+              }
+
+              try {
+                const t2 = emailTemplates.expertSessionReminder({
+                  recipientName: invited.name,
+                  otherPartyName: creator.name,
+                  subject,
+                  topic,
+                  date,
+                  time,
+                });
+                await sendMail({ to: invited.email, subject: t2.subject, html: t2.html });
+              } catch (e) {
+                console.error('[SessionReminder] Invited email failed:', e && e.message ? e.message : e);
+              }
+
+              sessionDoc.reminderSent = true;
+              sessionDoc.reminderSentAt = new Date();
+              await sessionDoc.save();
+            }
+          } catch (err) {
+            console.error('[SessionReminder] Cron tick failed:', err);
+          }
+        });
+        console.log('[SessionReminder] Scheduled 5-minute reminders (every minute)');
+      } catch (e) {
+        console.error('[SessionReminder] Failed to schedule cron job:', e);
+      }
+    } else {
+      console.log('[SessionReminder] Cron disabled. Set ENABLE_SESSION_REMINDER_CRON=true to enable.');
     }
   })
   .catch((err) => console.log(err));

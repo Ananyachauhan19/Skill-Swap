@@ -5,8 +5,6 @@ import Fuse from 'fuse.js';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContext';
 import DateTimePicker from '../components/DateTimePicker';
-import VideoCall from '../components/VideoCall';
-import socket from '../socket';
 import { BACKEND_URL } from '../config';
 
 const CreateSessionNew = () => {
@@ -19,8 +17,11 @@ const CreateSessionNew = () => {
     description: '',
     date: '',
     time: '',
+    selectedSkillMate: '', // Required SkillMate invitee
   });
   const [scheduled, setScheduled] = useState(false);
+  const [skillMates, setSkillMates] = useState([]); // List of user's SkillMates
+  const [skillMateSearch, setSkillMateSearch] = useState('');
   const [showCourseDropdown, setShowCourseDropdown] = useState(false);
   const [showUnitDropdown, setShowUnitDropdown] = useState(false);
   const [showSubtopicDropdown, setShowSubtopicDropdown] = useState(false);
@@ -31,12 +32,11 @@ const CreateSessionNew = () => {
   const [editId, setEditId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState({});
-  const [startingSession, setStartingSession] = useState(null);
-  const [activeSession, setActiveSession] = useState(null);
-  const [showVideoModal, setShowVideoModal] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
 
   // State for Google Sheet data
   const [classes, setClasses] = useState([]);
@@ -200,74 +200,23 @@ const CreateSessionNew = () => {
     fetchUserSkills();
   }, [currentUser]);
 
-  // Load active session from localStorage on component mount
+  // Fetch SkillMates for notifications
   useEffect(() => {
-    const savedSession = localStorage.getItem('activeSession');
-    if (savedSession) {
+    const fetchSkillMates = async () => {
+      if (!currentUser) return;
+      
       try {
-        const parsed = JSON.parse(savedSession);
-        setActiveSession(parsed);
-        setShowVideoModal(true);
-      } catch (e) {
-        console.error('Failed to parse saved session', e);
-        localStorage.removeItem('activeSession');
+        const res = await axios.get(`${BACKEND_URL}/api/skillmates/list`, { withCredentials: true });
+        if (res.data && Array.isArray(res.data)) {
+          setSkillMates(res.data);
+        }
+      } catch (err) {
+        console.error('[CreateSession] Failed to fetch SkillMates:', err);
       }
-    }
-  }, []);
-
-  // Socket listeners for real-time updates
-  useEffect(() => {
-    if (!currentUser) return;
-
-    socket.on('session-requested', (data) => {
-      if (normalizeUserId(data.session.userId) === normalizeUserId(currentUser._id)) {
-        setScheduledSessions(prev => [...prev, data.session]);
-        addToast({ message: 'New session request received!', variant: 'info', timeout: 3000 });
-      }
-    });
-
-    socket.on('session-approved', (data) => {
-      setScheduledSessions(prev => prev.map(s => s._id === data.sessionId ? { ...s, status: 'approved' } : s));
-      if (normalizeUserId(data.session.requestedBy) === normalizeUserId(currentUser._id)) {
-        addToast({ message: 'Your session request has been approved!', variant: 'success', timeout: 3000 });
-      }
-    });
-
-    socket.on('session-rejected', (data) => {
-      setScheduledSessions(prev => prev.filter(s => s._id !== data.sessionId));
-      if (normalizeUserId(data.session.requestedBy) === normalizeUserId(currentUser._id)) {
-        addToast({ message: 'Your session request has been rejected', variant: 'error', timeout: 3000 });
-      }
-    });
-
-    socket.on('session-started', (data) => {
-      setScheduledSessions(prev => prev.map(s => s._id === data.sessionId ? { ...s, status: 'active' } : s));
-      if (normalizeUserId(data.session.requestedBy) === normalizeUserId(currentUser._id)) {
-        addToast({ message: 'Session has started! You can now join.', variant: 'success', timeout: 3000 });
-      }
-    });
-
-    socket.on('session-completed', (data) => {
-      setScheduledSessions(prev => prev.map(s => s._id === data.sessionId ? { ...s, status: 'completed' } : s));
-    });
-
-    socket.on('session-cancelled', (data) => {
-      setScheduledSessions(prev => prev.filter(s => s._id !== data.sessionId));
-      addToast({ message: 'Session has been cancelled', variant: 'info', timeout: 3000 });
-      if (activeSession && activeSession.sessionId === data.sessionId) {
-        handleEndCall();
-      }
-    });
-
-    return () => {
-      socket.off('session-requested');
-      socket.off('session-approved');
-      socket.off('session-rejected');
-      socket.off('session-started');
-      socket.off('session-completed');
-      socket.off('session-cancelled');
     };
-  }, [currentUser, activeSession, addToast]);
+    
+    fetchSkillMates();
+  }, [currentUser]);
 
   // Initialize Fuse.js instances for fuzzy search
   const fuseClasses = useMemo(() => {
@@ -345,14 +294,19 @@ const CreateSessionNew = () => {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    if (submitLockRef.current || isSubmitting) return;
+    submitLockRef.current = true;
+    setIsSubmitting(true);
     console.log('[CreateSession] Form submission started', { form, currentUser, userSkills });
     
     if (!currentUser) {
       addToast({ message: 'You must be logged in to create a session', variant: 'error', timeout: 3000 });
+      submitLockRef.current = false;
+      setIsSubmitting(false);
       return;
     }
 
-    const { subject, topic, subtopic, description, date, time } = form;
+    const { subject, topic, subtopic, description, date, time, selectedSkillMate } = form;
     if (!subject || !topic || !subtopic || !description || !date || !time) {
       const missing = [];
       if (!subject) missing.push('Class');
@@ -369,6 +323,15 @@ const CreateSessionNew = () => {
         variant: 'error', 
         timeout: 4000 
       });
+      submitLockRef.current = false;
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!selectedSkillMate) {
+      addToast({ message: 'Please select a SkillMate to create a session', variant: 'error', timeout: 3500 });
+      submitLockRef.current = false;
+      setIsSubmitting(false);
       return;
     }
 
@@ -376,6 +339,8 @@ const CreateSessionNew = () => {
     const now = new Date();
     if (selectedDate <= now) {
       addToast({ message: 'Session date and time must be in the future', variant: 'error', timeout: 3000 });
+      submitLockRef.current = false;
+      setIsSubmitting(false);
       return;
     }
 
@@ -387,7 +352,9 @@ const CreateSessionNew = () => {
         description,
         date,
         time,
+        sessionType: 'expert',
         userId: currentUser._id,
+        skillMateId: selectedSkillMate,
       };
 
       console.log('[CreateSession] Sending payload:', payload);
@@ -409,16 +376,22 @@ const CreateSessionNew = () => {
         );
         console.log('[CreateSession] Session created:', res.data);
         setScheduledSessions(prev => [...prev, res.data]);
-        addToast({ message: 'Session created successfully!', variant: 'success', timeout: 3000 });
+        const mate = (Array.isArray(skillMates) ? skillMates : []).find(m => String(m._id) === String(selectedSkillMate));
+        const mateName = mate ? (`${mate.firstName || ''} ${mate.lastName || ''}`.trim() || mate.username || 'SkillMate') : 'SkillMate';
+        addToast({ message: `Session invitation sent to ${mateName}`, variant: 'success', timeout: 3500 });
         setScheduled(true);
         setTimeout(() => setScheduled(false), 3000);
       }
 
-      setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
+      setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '', selectedSkillMate: '' });
+      setSkillMateSearch('');
     } catch (error) {
       console.error('[CreateSession] Error creating/updating session:', error);
       console.error('[CreateSession] Error response:', error.response?.data);
       addToast({ message: error.response?.data?.message || 'Failed to create/update session', variant: 'error', timeout: 3000 });
+    } finally {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -430,6 +403,7 @@ const CreateSessionNew = () => {
       description: session.description || '',
       date: session.date || '',
       time: session.time || '',
+      selectedSkillMate: session.invitedSkillMate?._id || session.invitedSkillMate || '',
     });
     setEditId(session._id);
     setSelectedSession(null);
@@ -449,65 +423,6 @@ const CreateSessionNew = () => {
     } catch (error) {
       console.error('Error deleting session:', error);
       addToast({ message: 'Failed to delete session', variant: 'error', timeout: 3000 });
-    }
-  };
-
-  const handleApproveSession = async (id) => {
-    setActionLoading(prev => ({ ...prev, [`approve-${id}`]: true }));
-    try {
-      const res = await axios.put(
-        `${BACKEND_URL}/api/sessions/${id}/approve`,
-        {},
-        { withCredentials: true }
-      );
-      setScheduledSessions(prev => prev.map(s => (s._id === id ? res.data : s)));
-      addToast({ message: 'Session approved successfully', variant: 'success', timeout: 3000 });
-    } catch (error) {
-      console.error('Error approving session:', error);
-      addToast({ message: 'Failed to approve session', variant: 'error', timeout: 3000 });
-    } finally {
-      setActionLoading(prev => ({ ...prev, [`approve-${id}`]: false }));
-    }
-  };
-
-  const handleRejectSession = async (id) => {
-    setActionLoading(prev => ({ ...prev, [`reject-${id}`]: true }));
-    try {
-      await axios.put(
-        `${BACKEND_URL}/api/sessions/${id}/reject`,
-        {},
-        { withCredentials: true }
-      );
-      setScheduledSessions(prev => prev.filter(s => s._id !== id));
-      addToast({ message: 'Session rejected', variant: 'info', timeout: 3000 });
-      if (selectedSession && selectedSession._id === id) {
-        setSelectedSession(null);
-      }
-    } catch (error) {
-      console.error('Error rejecting session:', error);
-      addToast({ message: 'Failed to reject session', variant: 'error', timeout: 3000 });
-    } finally {
-      setActionLoading(prev => ({ ...prev, [`reject-${id}`]: false }));
-    }
-  };
-
-  const handleJoinSession = async (session) => {
-    setActionLoading(prev => ({ ...prev, [`join-${session._id}`]: true }));
-    try {
-      const activeSessionData = {
-        sessionId: session._id,
-        role: 'requester',
-        createdAt: Date.now(),
-      };
-      setActiveSession(activeSessionData);
-      setShowVideoModal(true);
-      localStorage.setItem('activeSession', JSON.stringify(activeSessionData));
-      addToast({ message: 'Joining session...', variant: 'info', timeout: 3000 });
-    } catch (error) {
-      console.error('Error joining session:', error);
-      addToast({ message: 'Failed to join session', variant: 'error', timeout: 3000 });
-    } finally {
-      setActionLoading(prev => ({ ...prev, [`join-${session._id}`]: false }));
     }
   };
 
@@ -532,38 +447,6 @@ const CreateSessionNew = () => {
     }
   };
 
-  const handleStartSession = async (session) => {
-    setStartingSession(session._id);
-    try {
-      const res = await axios.put(
-        `${BACKEND_URL}/api/sessions/${session._id}/start`,
-        {},
-        { withCredentials: true }
-      );
-      setScheduledSessions(prev => prev.map(s => (s._id === session._id ? res.data : s)));
-      const activeSessionData = {
-        sessionId: session._id,
-        role: 'creator',
-        createdAt: Date.now(),
-      };
-      setActiveSession(activeSessionData);
-      setShowVideoModal(true);
-      localStorage.setItem('activeSession', JSON.stringify(activeSessionData));
-      addToast({ message: 'Session started successfully!', variant: 'success', timeout: 3000 });
-    } catch (error) {
-      console.error('Error starting session:', error);
-      addToast({ message: 'Failed to start session', variant: 'error', timeout: 3000 });
-    } finally {
-      setStartingSession(null);
-    }
-  };
-
-  const handleEndCall = () => {
-    setShowVideoModal(false);
-    setActiveSession(null);
-    localStorage.removeItem('activeSession');
-    addToast({ message: 'Call ended', variant: 'info', timeout: 3000 });
-  };
 
   const fetchUserSessions = async () => {
     setLoading(true);
@@ -588,30 +471,6 @@ const CreateSessionNew = () => {
     fetchUserSessions();
   }, []);
 
-  // Block non-tutor users from creating sessions once auth is ready
-  if (authReady && !isTutorRole) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 pt-20 pb-8 px-4">
-        <div className="max-w-2xl mx-auto text-center mt-20">
-          <p className="text-red-600 text-lg font-semibold">Only verified tutors can create sessions. Please add skills to your profile.</p>
-        </div>
-      </div>
-    );
-  }
-
-  useEffect(() => {
-    if (!currentUser) return;
-    const handleBeforeUnload = (e) => {
-      if (activeSession) {
-        e.preventDefault();
-        e.returnValue = 'You have an active session. Are you sure you want to leave?';
-        return e.returnValue;
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [activeSession, currentUser]);
-
   const handleSessionClick = (session) => {
     setSelectedSession(session);
     setEditId(null);
@@ -628,6 +487,43 @@ const CreateSessionNew = () => {
       session.description?.toLowerCase().includes(query)
     );
   }, [scheduledSessions, searchQuery]);
+
+  const filteredSkillMates = useMemo(() => {
+    const list = Array.isArray(skillMates) ? skillMates : [];
+    const q = (skillMateSearch || '').trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((m) => {
+      const name = `${m.firstName || ''} ${m.lastName || ''}`.trim().toLowerCase();
+      const username = (m.username || '').toLowerCase();
+      return name.includes(q) || username.includes(q);
+    });
+  }, [skillMates, skillMateSearch]);
+
+  // Important: do not early-return before hooks above, otherwise React will throw
+  // "Rendered more hooks than during the previous render" when auth/skillmates load.
+  const nonTutorBlocked = authReady && !isTutorRole;
+  const noSkillmatesBlocked = authReady && isTutorRole && Array.isArray(skillMates) && skillMates.length === 0;
+
+  if (nonTutorBlocked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 pt-20 pb-8 px-4">
+        <div className="max-w-2xl mx-auto text-center mt-20">
+          <p className="text-red-600 text-lg font-semibold">Only verified tutors can create sessions. Please add skills to your profile.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (noSkillmatesBlocked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 pt-20 pb-8 px-4">
+        <div className="max-w-2xl mx-auto text-center mt-20">
+          <p className="text-[#1e40af] text-lg font-semibold">Create Session is available only for SkillMates.</p>
+          <p className="text-gray-600 text-sm mt-2">Add SkillMates first, then create a session by inviting one SkillMate.</p>
+        </div>
+      </div>
+    );
+  }
 
   const username = currentUser ? currentUser.username || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'User' : 'User';
 
@@ -713,7 +609,7 @@ const CreateSessionNew = () => {
                     <span className="text-gray-500 font-medium">
                       {session.date ? new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}
                     </span>
-                    {currentUser && isCurrentUserCreator(session) && (
+                    {currentUser && isCurrentUserCreator(session) && session.sessionType === 'expert' && (
                       <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-bold bg-[#1e40af] text-white text-[9px]">
                         Expert
                       </span>
@@ -768,7 +664,7 @@ const CreateSessionNew = () => {
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
                       </svg>
-                      You are the Expert
+                      {selectedSession.sessionType === 'expert' ? 'You are the Expert' : 'You are the Tutor'}
                     </span>
                   )}
                 </div>
@@ -839,69 +735,6 @@ const CreateSessionNew = () => {
                           <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                         Delete Session
-                      </button>
-                    </>
-                  )}
-
-                  {selectedSession.status === 'requested' && currentUser && isCurrentUserCreator(selectedSession) && (
-                    <>
-                      <button
-                        onClick={() => handleApproveSession(selectedSession._id)}
-                        disabled={actionLoading[`approve-${selectedSession._id}`]}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                        {actionLoading[`approve-${selectedSession._id}`] ? 'Approving...' : 'Approve Request'}
-                      </button>
-                      <button
-                        onClick={() => handleRejectSession(selectedSession._id)}
-                        disabled={actionLoading[`reject-${selectedSession._id}`]}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-status-error-button text-white rounded-xl font-bold hover:bg-status-error-button-hover transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                        {actionLoading[`reject-${selectedSession._id}`] ? 'Rejecting...' : 'Reject Request'}
-                      </button>
-                    </>
-                  )}
-
-                  {selectedSession.status === 'approved' && currentUser && isCurrentUserCreator(selectedSession) && (
-                    <button
-                      onClick={() => handleStartSession(selectedSession)}
-                      disabled={startingSession === selectedSession._id}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                      </svg>
-                      {startingSession === selectedSession._id ? 'Starting...' : 'Start Session'}
-                    </button>
-                  )}
-
-                  {selectedSession.status === 'active' && currentUser && isCurrentUserRequester(selectedSession) && (
-                    <>
-                      <button
-                        onClick={() => handleJoinSession(selectedSession)}
-                        disabled={actionLoading[`join-${selectedSession._id}`]}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                        </svg>
-                        {actionLoading[`join-${selectedSession._id}`] ? 'Joining...' : 'Join Session'}
-                      </button>
-                      <button
-                        onClick={() => handleCancelSession(selectedSession)}
-                        disabled={actionLoading[`cancel-${selectedSession._id}`]}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-status-error-button text-white rounded-xl font-bold hover:bg-status-error-button-hover transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                        {actionLoading[`cancel-${selectedSession._id}`] ? 'Cancelling...' : 'Cancel'}
                       </button>
                     </>
                   )}
@@ -1176,24 +1009,66 @@ const CreateSessionNew = () => {
                     />
                   </div>
 
+                  {/* SkillMates (Required) */}
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1.5 text-xs uppercase tracking-wide">
+                      SkillMates
+                    </label>
+
+                    {/* Search */}
+                    <div className="mb-2">
+                      <input
+                        type="text"
+                        value={skillMateSearch}
+                        onChange={(e) => setSkillMateSearch(e.target.value)}
+                        placeholder="Search SkillMates..."
+                        className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all bg-white shadow-sm hover:border-[#1e40af] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        disabled={skillMates.length === 0}
+                      />
+                    </div>
+
+                    <select
+                      name="selectedSkillMate"
+                      value={form.selectedSkillMate}
+                      onChange={e => setForm(prev => ({ ...prev, selectedSkillMate: e.target.value }))}
+                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all bg-white shadow-sm hover:border-[#1e40af] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      disabled={skillMates.length === 0}
+                      required
+                    >
+                      <option value="">-- Select SkillMate --</option>
+                      {filteredSkillMates.map(mate => (
+                        <option key={mate._id} value={mate._id}>
+                          {mate.firstName} {mate.lastName} ({mate.username})
+                        </option>
+                      ))}
+                    </select>
+
+                    {skillMates.length === 0 && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        You have no SkillMates yet. Create Session is available only for SkillMates.
+                      </p>
+                    )}
+                  </div>
+
                   {/* Submit Button */}
                   <div className="flex gap-3 pt-4 border-t border-gray-200 mt-5">
                     <button
                       type="submit"
                       className="flex-1 bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none"
-                      disabled={userSkills.length === 0}
+                      disabled={userSkills.length === 0 || isSubmitting}
                     >
                       <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
-                      {editId ? 'Update Session' : 'Schedule Session'}
+                      {isSubmitting ? (editId ? 'Updating...' : 'Scheduling...') : (editId ? 'Update Session' : 'Schedule Session')}
                     </button>
                     {editId && (
                       <button
                         type="button"
                         onClick={() => {
                           setEditId(null);
-                          setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
+                          setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '', selectedSkillMate: '' });
+                          setSkillMateSearch('');
                         }}
                         className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
                       >
@@ -1208,39 +1083,6 @@ const CreateSessionNew = () => {
           </div>
         </main>
       </div>
-
-      {/* Video Call Modal */}
-      {showVideoModal && activeSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-          <div className="w-full h-full bg-gray-900 flex flex-col overflow-hidden">
-            <div className="flex justify-between items-center p-4 bg-button-primary text-white">
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
-                </svg>
-                Video Call Session
-              </h2>
-              <button
-                onClick={handleEndCall}
-                className="bg-status-error-button text-white px-5 py-2 rounded-lg font-bold hover:bg-status-error-button-hover transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                End Call
-              </button>
-            </div>
-            <div className="flex-1">
-              <VideoCall
-                sessionId={activeSession.sessionId}
-                onEndCall={handleEndCall}
-                userRole={activeSession.role}
-                username={username}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

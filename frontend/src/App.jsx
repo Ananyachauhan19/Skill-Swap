@@ -38,6 +38,7 @@ import PublicProfile from './user/PublicProfile';
 import publicProfileRoutes from './user/publicProfile/publicProfileRoutes';
 import StartSkillSwap from './user/StartSkillSwap';
 import SessionRequests from './user/SessionRequests';
+import JoinSession from './user/JoinSession.jsx';
 import InterviewCallPage from './components/InterviewCallPage';
 import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
@@ -105,6 +106,7 @@ const appRoutes = [
   { path: '/your-interviews', element: <ProtectedRoute><YourInterviews /></ProtectedRoute> },
   { path: '/session', element: <ProtectedRoute><Sessions /></ProtectedRoute> },
   { path: '/session-requests', element: <ProtectedRoute><SessionRequests /></ProtectedRoute> },
+  { path: '/join-session/:id', element: <ProtectedRoute><JoinSession /></ProtectedRoute> },
   { path: '/rate/:sessionId', element: <ProtectedRoute><RatingPage /></ProtectedRoute> },
   { path: '/register-interviewer', element: <RegisterInterviewer />} ,
   { path: '/interview-call/:sessionId', element: <ProtectedRoute><InterviewCallPage /></ProtectedRoute> },

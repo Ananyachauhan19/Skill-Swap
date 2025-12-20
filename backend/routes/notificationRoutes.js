@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const requireAuth = require('../middleware/requireAuth');
 const Notification = require('../models/Notification');
 const SessionRequest = require('../models/SessionRequest');
@@ -50,6 +51,9 @@ router.get('/', requireAuth, async (req, res) => {
 // Mark a notification as read
 router.put('/:id/read', requireAuth, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid notification id' });
+    }
     const notification = await Notification.findById(req.params.id);
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
@@ -80,6 +84,9 @@ router.delete('/clear', requireAuth, async (req, res) => {
 // Delete a single notification
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid notification id' });
+    }
     const notification = await Notification.findById(req.params.id);
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });

@@ -213,6 +213,40 @@ router.get('/all', requireAuth, async (req, res) => {
 });
 
 /**
+ * @route GET /api/session-requests/expert
+ * @desc Get expert session requests (sent and received)
+ * @access Private
+ */
+router.get('/expert', requireAuth, async (req, res) => {
+  try {
+    const Session = require('../models/Session');
+    
+    // Find expert sessions where user is invited (received)
+    const received = await Session.find({ 
+      invitedSkillMate: req.user._id,
+      sessionType: 'expert'
+    })
+      .populate('creator', 'firstName lastName profilePic username')
+      .populate('invitedSkillMate', 'firstName lastName profilePic username')
+      .sort({ createdAt: -1 });
+
+    // Find expert sessions created by user (sent)
+    const sent = await Session.find({ 
+      creator: req.user._id,
+      sessionType: 'expert'
+    })
+      .populate('creator', 'firstName lastName profilePic username')
+      .populate('invitedSkillMate', 'firstName lastName profilePic username')
+      .sort({ createdAt: -1 });
+
+    res.json({ received, sent });
+  } catch (error) {
+    console.error('Error fetching expert session requests:', error);
+    handleErrors(res, 500, 'Failed to fetch expert session requests');
+  }
+});
+
+/**
  * @route GET /api/session-requests/active
  * @desc Get active session for the user
  * @access Private

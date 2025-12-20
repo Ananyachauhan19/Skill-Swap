@@ -112,3 +112,57 @@ exports.skillmateSessionCreated = ({ mateName, creatorName, subject, topic }) =>
     <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
+
+exports.expertSessionInvitation = ({ mateName, creatorName, subject, topic, date, time }) => ({
+  subject: 'Expert Session Invitation from Your SkillMate',
+  html: baseLayout('Expert Session Invitation', `
+    <p>Dear ${mateName},</p>
+    <p>Great news! Your SkillMate, <b>${creatorName}</b>, has invited you to an exclusive expert session.</p>
+    <ul>
+      <li>Subject: <b>${subject}</b></li>
+      <li>Topic: <b>${topic}</b></li>
+      <li>Date: <b>${date}</b></li>
+      <li>Time: <b>${time}</b></li>
+    </ul>
+    <p>This is a personalized one-on-one session created specifically for you. Please log in to your dashboard to review the details and accept or decline the invitation.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Invitation</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+  `)
+});
+
+exports.expertSessionReminder = ({ recipientName, otherPartyName, subject, topic, date, time }) => ({
+  subject: 'Reminder: Your expert session starts in 5 minutes',
+  html: baseLayout('Session Starting Soon', `
+    <p>Hi ${recipientName},</p>
+    <p>This is a reminder that your expert session with <b>${otherPartyName}</b> starts in about <b>5 minutes</b>.</p>
+    <ul>
+      <li>Subject: <b>${subject}</b></li>
+      <li>Topic: <b>${topic}</b></li>
+      <li>Date: <b>${date}</b></li>
+      <li>Time: <b>${time}</b></li>
+    </ul>
+    <p>Please be ready on time. You can view the session details in your dashboard.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Open Session Requests</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+  `)
+});
+
+exports.sessionLive = ({ recipientName, otherPartyName, subject, topic, joinLink }) => ({
+  subject: 'Your session is live — join now',
+  html: baseLayout('Session Is Live', `
+    <p>Hi ${recipientName},</p>
+    <p>Your session with <b>${otherPartyName}</b> is now live.</p>
+    <ul>
+      <li>Subject: <b>${subject || 'N/A'}</b></li>
+      <li>Topic: <b>${topic || 'N/A'}</b></li>
+    </ul>
+    <p style="margin:24px 0">
+      <a href="${joinLink}" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Open Join Page</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+  `)
+});

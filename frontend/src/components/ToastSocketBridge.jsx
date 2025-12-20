@@ -140,18 +140,14 @@ const ToastSocketBridge = () => {
           timeout: 0,
           actions: [
             {
-              label: 'Join Now',
+              label: 'Open Join Page',
               variant: 'primary',
               onClick: () => {
-                try {
-                  if (n.sessionId) {
-                    const role = (user && n.tutor && user._id === n.tutor._id) ? 'tutor' : 'student';
-                    localStorage.setItem('pendingJoinSession', JSON.stringify({ sessionId: n.sessionId, role, ts: Date.now() }));
-                  }
-                } catch {
-                  // ignore write errors
+                if (n.sessionId) {
+                  navigate(`/join-session/${n.sessionId}`);
+                } else {
+                  navigate('/session-requests');
                 }
-                navigate('/session-requests', { state: { openFromToast: true } });
               },
             },
           ],
@@ -170,6 +166,73 @@ const ToastSocketBridge = () => {
           navigate(`/rate/${n.sessionId}`);
           return;
         }
+      }
+
+      // Expert session notifications
+      if (n.type === 'expert-session-invited') {
+        addToast({
+          title: 'Expert Session Invitation',
+          message: n.message || 'You have received an expert session invitation.',
+          variant: 'info',
+          timeout: 0,
+          actions: [
+            {
+              label: 'Check Details',
+              variant: 'primary',
+              onClick: () => navigate('/session-requests?tab=expert'),
+            },
+          ],
+        });
+        return;
+      }
+
+        if (n.type === 'expert-session-reminder') {
+          addToast({
+            title: 'Starting soon',
+            message: n.message || 'Your expert session starts in 5 minutes.',
+            variant: 'info',
+            timeout: 6000,
+            actions: [
+              {
+                label: 'Open Join Page',
+                variant: 'primary',
+                onClick: () => {
+                  if (n.sessionId) {
+                    navigate(`/join-session/${n.sessionId}`);
+                  } else {
+                    navigate('/session-requests?tab=expert');
+                  }
+                },
+              },
+            ],
+          });
+          return;
+        }
+
+      if (n.type === 'expert-session-approved') {
+        addToast({
+          title: 'Expert Session Accepted',
+          message: n.message || 'Your expert session invitation was accepted.',
+          variant: 'success',
+          timeout: 0,
+          actions: [
+            { label: 'View', variant: 'primary', onClick: () => navigate('/session-requests?tab=expert') },
+          ],
+        });
+        return;
+      }
+
+      if (n.type === 'expert-session-rejected') {
+        addToast({
+          title: 'Expert Session Declined',
+          message: n.message || 'Your expert session invitation was declined.',
+          variant: 'error',
+          timeout: 0,
+          actions: [
+            { label: 'View', variant: 'primary', onClick: () => navigate('/session-requests?tab=expert') },
+          ],
+        });
+        return;
       }
 
       // Interview notifications
@@ -194,7 +257,7 @@ const ToastSocketBridge = () => {
       if (n.type === 'interview-approved') {
         addToast({
           title: 'Interview Approved',
-          message: 'Your interview request was approved. You'll be notified when the interviewer starts the session.',
+          message: "Your interview request was approved. You'll be notified when the interviewer starts the session.",
           variant: 'success',
           timeout: 0,
           actions: [

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   FaCheck, 
   FaTimes, 
@@ -15,15 +15,18 @@ import {
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket';
 import { useAuth } from '../context/AuthContext';
-import VideoCall from '../components/VideoCall';
 import SessionRatingModal from '../components/SessionRatingModal.jsx';
 import DateTimePicker from '../components/DateTimePicker.jsx';
+import { useToast } from '../components/ToastContext';
 
 const SessionRequests = () => {
   const [interviewRequests, setInterviewRequests] = useState({ received: [], sent: [] });
+  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [requests, setRequests] = useState({ received: [], sent: [] });
+  const [expertSessionRequests, setExpertSessionRequests] = useState({ received: [], sent: [] });
   const [skillMateRequests, setSkillMateRequests] = useState({ received: [], sent: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,12 +34,24 @@ const SessionRequests = () => {
   const [requestType, setRequestType] = useState('session');
   const [readyToStartSession, setReadyToStartSession] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
-  const [showVideoModal, setShowVideoModal] = useState(false);
   const [cancelledMessage, setCancelledMessage] = useState('');
   const [interviewBanner, setInterviewBanner] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingContext, setRatingContext] = useState(null); // { sessionId, expertName, sessionType }
+
+  // Deep-link support: /session-requests?tab=expert
+  useEffect(() => {
+    try {
+      const tab = new URLSearchParams(location.search).get('tab');
+      if (tab === 'expert') {
+        setRequestType('expert');
+        setActiveTab('received');
+      }
+    } catch {
+      // ignore
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const savedActiveSession = localStorage.getItem('activeSession');
@@ -51,21 +66,6 @@ const SessionRequests = () => {
       } catch {
         localStorage.removeItem('activeSession');
       }
-    }
-
-    // If user clicked Join from a toast, open call immediately
-    try {
-      const pending = localStorage.getItem('pendingJoinSession');
-      if (pending) {
-        const { sessionId, role } = JSON.parse(pending);
-        if (sessionId) {
-          setActiveSession({ sessionId, role: role || 'student' });
-          setShowVideoModal(true);
-        }
-        localStorage.removeItem('pendingJoinSession');
-      }
-    } catch {
-      // ignore
     }
     checkActiveSessionFromBackend();
   }, []);
@@ -97,6 +97,7 @@ const SessionRequests = () => {
     fetchSessionRequests();
     fetchSkillMateRequests();
     fetchInterviewRequests();
+    fetchExpertSessionRequests();
   }, []);
 
   useEffect(() => {
@@ -143,13 +144,11 @@ const SessionRequests = () => {
           role,
         };
         setActiveSession(newActiveSession);
-        setShowVideoModal(false);
         setReadyToStartSession(null);
       }
     });
 
     socket.on('session-cancelled', (data) => {
-      setShowVideoModal(false);
       setActiveSession(null);
       setReadyToStartSession(null);
       localStorage.removeItem('activeSession');
@@ -159,7 +158,6 @@ const SessionRequests = () => {
 
     socket.on('end-call', ({ sessionId }) => {
       if (activeSession && activeSession.sessionId === sessionId) {
-        setShowVideoModal(false);
         setActiveSession(null);
         setReadyToStartSession(null);
         localStorage.removeItem('activeSession');
@@ -169,7 +167,6 @@ const SessionRequests = () => {
     socket.on('session-completed', ({ sessionId }) => {
       // Close any active call UI
       if (activeSession && activeSession.sessionId === sessionId) {
-        setShowVideoModal(false);
         setActiveSession(null);
         setReadyToStartSession(null);
         localStorage.removeItem('activeSession');
@@ -198,6 +195,9 @@ const SessionRequests = () => {
         if (t.startsWith('interview') || notification.requestId) {
           fetchInterviewRequests();
           fetchSessionRequests();
+        }
+        if (t.startsWith('expert-session')) {
+          fetchExpertSessionRequests();
         }
         if (t === 'interview-scheduled') {
           const notifUserId = String(notification.userId || notification.userId?._id || '');
@@ -312,6 +312,36 @@ const SessionRequests = () => {
     }
   };
 
+  const fetchExpertSessionRequests = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/session-requests/expert`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Filter to show only requests from the last 2 days (consistent with other tabs)
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+        const filterRecent = (items) => {
+          return (items || []).filter((req) => {
+            const requestDate = new Date(req.createdAt || req.requestedAt);
+            return requestDate >= twoDaysAgo;
+          });
+        };
+
+        setExpertSessionRequests({
+          received: filterRecent(data.received || []),
+          sent: filterRecent(data.sent || []),
+        });
+      }
+    } catch {
+      // Silent fail
+    }
+  };
+
   const handleApprove = async (requestId, type = 'session') => {
     try {
       if (type === 'session') {
@@ -326,14 +356,32 @@ const SessionRequests = () => {
           if (approvedRequest) {
             setReadyToStartSession(approvedRequest);
           }
+          addToast({ title: 'Approved', message: 'Request approved successfully.', variant: 'success', timeout: 2500 });
           fetchSessionRequests();
+        } else {
+          addToast({ title: 'Error', message: 'Failed to approve request.', variant: 'error', timeout: 3000 });
         }
       } else if (type === 'skillmate') {
         socket.emit('approve-skillmate-request', { requestId });
+        addToast({ title: 'Approved', message: 'SkillMate request approved.', variant: 'success', timeout: 2500 });
         fetchSkillMateRequests();
+      } else if (type === 'expert') {
+        const response = await fetch(`${BACKEND_URL}/api/sessions/expert/approve/${requestId}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (response.ok) {
+          addToast({ title: 'Accepted', message: 'Expert session invitation accepted.', variant: 'success', timeout: 2500 });
+          fetchExpertSessionRequests();
+        } else {
+          addToast({ title: 'Error', message: 'Failed to accept expert invitation.', variant: 'error', timeout: 3000 });
+        }
       }
     } catch {
       setError(`Failed to approve ${type} request`);
+      addToast({ title: 'Error', message: `Failed to approve ${type} request.`, variant: 'error', timeout: 3000 });
     }
   };
 
@@ -347,14 +395,32 @@ const SessionRequests = () => {
         });
 
         if (response.ok) {
+          addToast({ title: 'Rejected', message: 'Request rejected.', variant: 'warning', timeout: 2500 });
           fetchSessionRequests();
+        } else {
+          addToast({ title: 'Error', message: 'Failed to reject request.', variant: 'error', timeout: 3000 });
         }
       } else if (type === 'skillmate') {
         socket.emit('reject-skillmate-request', { requestId });
+        addToast({ title: 'Rejected', message: 'SkillMate request rejected.', variant: 'warning', timeout: 2500 });
         fetchSkillMateRequests();
+      } else if (type === 'expert') {
+        const response = await fetch(`${BACKEND_URL}/api/sessions/expert/reject/${requestId}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (response.ok) {
+          addToast({ title: 'Declined', message: 'Expert session invitation declined.', variant: 'warning', timeout: 2500 });
+          fetchExpertSessionRequests();
+        } else {
+          addToast({ title: 'Error', message: 'Failed to decline expert invitation.', variant: 'error', timeout: 3000 });
+        }
       }
     } catch {
       setError(`Failed to reject ${type} request`);
+      addToast({ title: 'Error', message: `Failed to reject ${type} request.`, variant: 'error', timeout: 3000 });
     }
   };
 
@@ -373,7 +439,7 @@ const SessionRequests = () => {
             sessionRequest: data.sessionRequest,
             role: 'tutor',
           });
-          setShowVideoModal(true);
+          navigate(`/join-session/${data.sessionRequest._id}`);
         }
       } catch {
         setError('Failed to start session');
@@ -392,44 +458,11 @@ const SessionRequests = () => {
         if (response.ok) {
           setActiveSession(null);
           setReadyToStartSession(null);
-          setShowVideoModal(false);
           localStorage.removeItem('activeSession');
         }
       } catch {
         setError('Failed to cancel session');
       }
-    }
-  };
-
-  const handleEndCall = async (sid) => {
-    const id = sid || (activeSession && activeSession.sessionId);
-    if (id) {
-      try {
-        const response = await fetch(`${BACKEND_URL}/api/session-requests/complete/${id}`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        });
-        if (response.ok) {
-          // Close UI
-          setActiveSession(null);
-          setReadyToStartSession(null);
-          setShowVideoModal(false);
-          localStorage.removeItem('activeSession');
-          // Enforce rating redirect
-          try {
-            localStorage.setItem('pendingRatingSessionId', String(id));
-          } catch { /* ignore */ }
-          navigate(`/rate/${id}`);
-        }
-      } catch {
-        setError('Failed to complete session');
-      }
-    } else {
-      setShowVideoModal(false);
-      setActiveSession(null);
-      setReadyToStartSession(null);
-      localStorage.removeItem('activeSession');
     }
   };
 
@@ -486,7 +519,12 @@ const SessionRequests = () => {
     }
   };
 
-  const getDisplayName = (request, isReceived) => {
+  const getDisplayName = (request, isReceived, type) => {
+    if (type === 'expert') {
+      const other = isReceived ? request.creator : request.invitedSkillMate;
+      if (other) return `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.username || 'User';
+      return 'User';
+    }
     if (isReceived) {
       const r = request.requester || request.requesterId || request.requesterDetails;
       if (r) return `${r.firstName || ''} ${r.lastName || ''}`.trim() || r.username || 'User';
@@ -556,18 +594,34 @@ const SessionRequests = () => {
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
             type === 'skillmate' 
               ? 'bg-purple-50' 
-              : 'bg-teal-50'
+              : type === 'expert'
+                ? 'bg-indigo-50'
+                : 'bg-teal-50'
           }`}>
             {type === 'skillmate' ? (
               <FaUserFriends className="text-purple-600 text-sm" />
+            ) : type === 'expert' ? (
+              <FaUserFriends className="text-indigo-600 text-sm" />
             ) : (
               <FaUser className="text-teal-600 text-sm" />
             )}
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">{getDisplayName(request, isReceived)}</h3>
+            <h3 className="text-sm font-semibold text-slate-800">{getDisplayName(request, isReceived, type)}</h3>
             <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-              {isReceived ? (
+              {type === 'expert' ? (
+                isReceived ? (
+                  <>
+                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                    Expert session invitation
+                  </>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                    Expert session created
+                  </>
+                )
+              ) : isReceived ? (
                 <>
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                   Requested from you
@@ -581,8 +635,8 @@ const SessionRequests = () => {
             </p>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(request.status)}`}>
-          {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(request.status || 'pending')}`}>
+          {(request.status || 'pending').charAt(0).toUpperCase() + (request.status || 'pending').slice(1)}
         </span>
       </div>
 
@@ -597,7 +651,7 @@ const SessionRequests = () => {
             <div className="text-xs text-slate-600 space-y-1">
               {request.subject && (
                 <div className="flex items-start gap-2">
-                  <span className="font-medium text-teal-700 min-w-[50px]">Subject:</span>
+                  <span className={`font-medium min-w-[50px] ${type === 'expert' ? 'text-indigo-700' : 'text-teal-700'}`}>Subject:</span>
                   <span className="text-slate-700">{request.subject}</span>
                 </div>
               )}
@@ -626,6 +680,18 @@ const SessionRequests = () => {
         </div>
 
         <div className="flex gap-2">
+          {(type === 'session' || type === 'expert') && (request.status === 'approved' || request.status === 'active') && (
+            <button
+              onClick={() => navigate(`/join-session/${request._id}`)}
+              className={`${
+                type === 'expert'
+                  ? 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
+                  : 'bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200'
+              } px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5`}
+            >
+              <FaVideo size={10} /> Join Session
+            </button>
+          )}
           {type === 'skillmate' && (
             <button
               onClick={() => {
@@ -800,6 +866,26 @@ const SessionRequests = () => {
 
             <button
               onClick={() => {
+                setRequestType('expert');
+                setActiveTab('received');
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
+                requestType === 'expert'
+                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                  : 'hover:bg-slate-50 text-slate-600'
+              }`}
+            >
+              <FaUserFriends className="text-xs" />
+              <span className="font-medium">Expert Session Requests</span>
+              {expertSessionRequests.received.filter((req) => req.status === 'pending').length > 0 && (
+                <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
+                  {expertSessionRequests.received.filter((req) => req.status === 'pending').length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
                 setRequestType('skillmate');
                 setActiveTab('received');
               }}
@@ -879,6 +965,27 @@ const SessionRequests = () => {
                   {requests.received.filter((req) => req.status === 'pending').length > 0 && (
                     <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                       {requests.received.filter((req) => req.status === 'pending').length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setRequestType('expert');
+                    setActiveTab('received');
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
+                    requestType === 'expert'
+                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                      : 'hover:bg-slate-50 text-slate-600'
+                  }`}
+                >
+                  <FaUserFriends className={`text-xs ${requestType === 'expert' ? 'text-indigo-600' : 'text-slate-500'}`} />
+                  <span className="font-medium">Expert Session Requests</span>
+                  {expertSessionRequests.received.filter((req) => req.status === 'pending').length > 0 && (
+                    <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
+                      {expertSessionRequests.received.filter((req) => req.status === 'pending').length}
                     </span>
                   )}
                 </button>
@@ -1022,7 +1129,7 @@ const SessionRequests = () => {
               <div className="flex gap-2">
                 <button
                   className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 text-sm"
-                  onClick={() => setShowVideoModal(true)}
+                  onClick={() => navigate(`/join-session/${activeSession.sessionId}`)}
                 >
                   <FaVideo size={12} /> Join Session
                 </button>
@@ -1035,17 +1142,6 @@ const SessionRequests = () => {
                   </button>
                 )}
               </div>
-            </div>
-          )}
-
-          {showVideoModal && activeSession && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-              <VideoCall
-                sessionId={activeSession.sessionId}
-                userRole={activeSession.role}
-                onEndCall={handleEndCall}
-                username={username}
-              />
             </div>
           )}
 
@@ -1073,6 +1169,8 @@ const SessionRequests = () => {
                   <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">
                     {requestType === 'session'
                       ? requests.received.length
+                      : requestType === 'expert'
+                        ? expertSessionRequests.received.length
                       : requestType === 'skillmate'
                         ? skillMateRequests.received.length
                         : (interviewRequests?.received || []).length}
@@ -1092,6 +1190,8 @@ const SessionRequests = () => {
                   <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">
                     {requestType === 'session'
                       ? requests.sent.length
+                      : requestType === 'expert'
+                        ? expertSessionRequests.sent.length
                       : requestType === 'skillmate'
                         ? skillMateRequests.sent.length
                         : (interviewRequests?.sent || []).length}
@@ -1130,6 +1230,36 @@ const SessionRequests = () => {
               ) : (
                 requests.sent.map((request) => (
                   <RequestCard key={request._id} request={request} isReceived={false} type="session" />
+                ))
+              )
+            ) : requestType === 'expert' ? (
+              activeTab === 'received' ? (
+                expertSessionRequests.received.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FaUserFriends className="text-indigo-500 text-xl" />
+                    </div>
+                    <h3 className="text-base font-semibold text-slate-700 mb-1">No Received Expert Session Requests</h3>
+                    <p className="text-slate-500 text-sm">You haven't received any expert session invitations yet.</p>
+                    <p className="text-slate-400 text-xs mt-1">Invitations will appear here</p>
+                  </div>
+                ) : (
+                  expertSessionRequests.received.map((request) => (
+                    <RequestCard key={request._id} request={request} isReceived={true} type="expert" />
+                  ))
+                )
+              ) : expertSessionRequests.sent.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                  <div className="w-14 h-14 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaUserFriends className="text-indigo-500 text-xl" />
+                  </div>
+                  <h3 className="text-base font-semibold text-slate-700 mb-1">No Sent Expert Session Requests</h3>
+                  <p className="text-slate-500 text-sm">You haven't sent any expert session invitations yet.</p>
+                  <p className="text-slate-400 text-xs mt-1">Create an expert session to invite a SkillMate</p>
+                </div>
+              ) : (
+                expertSessionRequests.sent.map((request) => (
+                  <RequestCard key={request._id} request={request} isReceived={false} type="expert" />
                 ))
               )
             ) : requestType === 'skillmate' ? (

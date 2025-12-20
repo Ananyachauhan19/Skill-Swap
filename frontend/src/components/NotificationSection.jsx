@@ -407,6 +407,10 @@ const NotificationSection = ({ userId }) => {
           n.type === 'session-rejected' ||
           n.type === 'session-cancelled' ||
           n.type === 'session-requested' ||
+          n.type === 'expert-session-invited' ||
+          n.type === 'expert-session-approved' ||
+          n.type === 'expert-session-rejected' ||
+          n.type === 'expert-session-reminder' ||
           n.type === 'interview-requested' ||
           n.type === 'interview-approved' ||
           n.type === 'interview-rejected' ||
@@ -435,6 +439,10 @@ const NotificationSection = ({ userId }) => {
       'session-rejected',
       'session-cancelled',
       'session-requested',
+      'expert-session-invited',
+      'expert-session-approved',
+      'expert-session-rejected',
+      'expert-session-reminder',
       'interview-requested',
       'interview-approved',
       'interview-rejected',
@@ -604,6 +612,59 @@ const NotificationSection = ({ userId }) => {
                       onReject={() => handleRejectSession(n.sessionId, idx)}
                       onClose={() => handleNotificationRead(n._id, idx)}
                     />
+                  ) : n.type === 'expert-session-invited' || n.type === 'expert-session-approved' || n.type === 'expert-session-rejected' || n.type === 'expert-session-reminder' ? (
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Expert Session</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
+                        {!n.read && (
+                          <span className="flex items-center justify-center w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0"></span>
+                        )}
+                      </div>
+
+                      <p className="text-sm text-gray-700 mb-4">
+                        {n.message || 'You have an update about an expert session.'}
+                      </p>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setShow(false);
+                            handleNotificationRead(n._id, idx);
+                            if (n.type === 'expert-session-reminder' && n.sessionId) {
+                              navigate(`/join-session/${n.sessionId}`);
+                            } else {
+                              navigate('/session-requests?tab=expert');
+                            }
+                          }}
+                          className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          {n.type === 'expert-session-reminder' ? 'Open Join Page' : 'View Expert Requests'}
+                        </button>
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          Mark Read
+                        </button>
+                      </div>
+                    </div>
                   ) : n.type === 'session-started' ? (
                     <div className="p-4">
                       <div className="flex items-start justify-between mb-3">
@@ -634,23 +695,22 @@ const NotificationSection = ({ userId }) => {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
-                            if (n.onJoin) n.onJoin();
+                            setShow(false);
+                            if (n.sessionId) {
+                              navigate(`/join-session/${n.sessionId}`);
+                            }
                             handleNotificationRead(n._id, idx);
                           }}
                           className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
                           disabled={loading[`approve-${idx}`]}
                         >
-                          {loading[`approve-${idx}`] ? 'Joining...' : 'Join Session'}
+                          {loading[`approve-${idx}`] ? 'Opening...' : 'Open Join Page'}
                         </button>
                         <button
-                          onClick={() => {
-                            if (n.onCancel) n.onCancel();
-                            handleNotificationRead(n._id, idx);
-                          }}
+                          onClick={() => handleNotificationRead(n._id, idx)}
                           className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors duration-200"
-                          disabled={loading[`reject-${idx}`]}
                         >
-                          {loading[`reject-${idx}`] ? 'Cancelling...' : 'Cancel'}
+                          Mark Read
                         </button>
                         <button
                           onClick={() => handleNotificationRead(n._id, idx)}

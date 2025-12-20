@@ -15,6 +15,8 @@ router.get('/search', async (req, res) => {
 
     const filter = {
       status: 'pending',
+      // Expert sessions are not publicly searchable; they are invite-only for SkillMates
+      sessionType: { $ne: 'expert' },
     };
 
     if (subject) filter.subject = subject;
@@ -36,7 +38,8 @@ router.get('/search', async (req, res) => {
 router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.requireActiveTutor, async (req, res) => {
   try {
     console.log('Session creation - req.user:', req.user); // Debug log
-    const { subject, topic, subtopic, description, date, time } = req.body;
+    const { subject, topic, subtopic, description, date, time, sessionType, skillMateId } = req.body;
+    const normalizedSessionType = sessionType === 'expert' ? 'expert' : 'normal';
     
     // Validate required fields
     if (!subject || !topic || !subtopic || !description || !date || !time) {
@@ -54,14 +57,29 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
       });
     }
     
+    let invitedSkillMate = undefined;
+    if (normalizedSessionType === 'expert') {
+      if (!skillMateId) {
+        return res.status(400).json({ message: 'SkillMate is required for expert sessions' });
+      }
+      const creator = await User.findById(req.user._id).select('skillMates firstName lastName username');
+      const isSkillMate = creator && Array.isArray(creator.skillMates) && creator.skillMates.some(id => String(id) === String(skillMateId));
+      if (!isSkillMate) {
+        return res.status(403).json({ message: 'Expert sessions can be created only for your SkillMates' });
+      }
+      invitedSkillMate = skillMateId;
+    }
+
     const session = await Session.create({
-      subject, 
-      topic, 
-      subtopic, 
-      description, 
-      date, 
+      subject,
+      topic,
+      subtopic,
+      description,
+      date,
       time,
-      creator: req.user._id
+      creator: req.user._id,
+      sessionType: normalizedSessionType,
+      invitedSkillMate,
     });
     
     // Track session creation contribution
@@ -76,25 +94,74 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
       });
     } catch (_) {}
     
-    // Email SkillMates: if requester is a skillmate of creator, notify
-    try {
-      const creator = await User.findById(req.user._id).select('skillMates firstName lastName email username');
-      if (creator && Array.isArray(creator.skillMates) && creator.skillMates.length > 0) {
-        const mates = await User.find({ _id: { $in: creator.skillMates } }).select('email firstName username');
-        for (const m of mates) {
-          if (m.email) {
-            const tpl = T.skillmateSessionCreated({
-              mateName: m.firstName || m.username,
-              creatorName: creator.firstName || creator.username,
-              subject,
-              topic
-            });
-            await sendMail({ to: m.email, subject: tpl.subject, html: tpl.html });
+    // Notifications/emails
+    if (normalizedSessionType === 'expert') {
+      try {
+        const Notification = require('../models/Notification');
+        const creator = await User.findById(req.user._id).select('firstName lastName username');
+        const mate = await User.findById(invitedSkillMate).select('email firstName lastName username');
+
+        const creatorName = `${creator?.firstName || ''} ${creator?.lastName || ''}`.trim() || creator?.username || 'Your SkillMate';
+        const mateName = `${mate?.firstName || ''} ${mate?.lastName || ''}`.trim() || mate?.username || 'SkillMate';
+        const message = `${creatorName} invited you to an expert session (${subject} • ${topic})`;
+
+        await Notification.create({
+          userId: invitedSkillMate,
+          type: 'expert-session-invited',
+          message,
+          sessionId: session._id,
+          requesterId: req.user._id,
+          requesterName: creatorName,
+          timestamp: Date.now(),
+        });
+
+        const io = req.app.get('io');
+        if (io) {
+          io.to(String(invitedSkillMate)).emit('notification', {
+            type: 'expert-session-invited',
+            message,
+            sessionId: session._id,
+            requesterId: req.user._id,
+            requesterName: creatorName,
+            timestamp: Date.now(),
+          });
+        }
+
+        if (mate?.email) {
+          const tpl = T.expertSessionInvitation({
+            mateName,
+            creatorName,
+            subject,
+            topic,
+            date,
+            time,
+          });
+          await sendMail({ to: mate.email, subject: tpl.subject, html: tpl.html });
+        }
+      } catch (e) {
+        console.error('Failed to send expert session notifications', e);
+      }
+    } else {
+      // Normal session behavior: email all SkillMates (existing behavior)
+      try {
+        const creator = await User.findById(req.user._id).select('skillMates firstName lastName email username');
+        if (creator && Array.isArray(creator.skillMates) && creator.skillMates.length > 0) {
+          const mates = await User.find({ _id: { $in: creator.skillMates } }).select('email firstName username');
+          for (const m of mates) {
+            if (m.email) {
+              const tpl = T.skillmateSessionCreated({
+                mateName: m.firstName || m.username,
+                creatorName: creator.firstName || creator.username,
+                subject,
+                topic
+              });
+              await sendMail({ to: m.email, subject: tpl.subject, html: tpl.html });
+            }
           }
         }
+      } catch (e) {
+        console.error('Failed to send skillmate session email', e);
       }
-    } catch (e) {
-      console.error('Failed to send skillmate session email', e);
     }
     res.status(201).json(session);
   } catch (err) {
@@ -106,7 +173,8 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
 router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.requireActiveTutor, async (req, res) => {
   try {
     console.log('Session creation via /create - req.user:', req.user); // Debug log
-    const { subject, topic, subtopic, description, date, time } = req.body;
+    const { subject, topic, subtopic, description, date, time, sessionType, skillMateId } = req.body;
+    const normalizedSessionType = sessionType === 'expert' ? 'expert' : 'normal';
     
     // Validate required fields
     if (!subject || !topic || !subtopic || !description || !date || !time) {
@@ -124,14 +192,29 @@ router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.r
       });
     }
     
+    let invitedSkillMate = undefined;
+    if (normalizedSessionType === 'expert') {
+      if (!skillMateId) {
+        return res.status(400).json({ message: 'SkillMate is required for expert sessions' });
+      }
+      const creator = await User.findById(req.user._id).select('skillMates firstName lastName username');
+      const isSkillMate = creator && Array.isArray(creator.skillMates) && creator.skillMates.some(id => String(id) === String(skillMateId));
+      if (!isSkillMate) {
+        return res.status(403).json({ message: 'Expert sessions can be created only for your SkillMates' });
+      }
+      invitedSkillMate = skillMateId;
+    }
+
     const session = await Session.create({
-      subject, 
-      topic, 
-      subtopic, 
-      description, 
-      date, 
+      subject,
+      topic,
+      subtopic,
+      description,
+      date,
       time,
-      creator: req.user._id
+      creator: req.user._id,
+      sessionType: normalizedSessionType,
+      invitedSkillMate,
     });
     
     // Track session creation contribution
@@ -146,25 +229,74 @@ router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.r
       });
     } catch (_) {}
     
-    // Email SkillMates
-    try {
-      const creator = await User.findById(req.user._id).select('skillMates firstName lastName email username');
-      if (creator && Array.isArray(creator.skillMates) && creator.skillMates.length > 0) {
-        const mates = await User.find({ _id: { $in: creator.skillMates } }).select('email firstName username');
-        for (const m of mates) {
-          if (m.email) {
-            const tpl = T.skillmateSessionCreated({
-              mateName: m.firstName || m.username,
-              creatorName: creator.firstName || creator.username,
-              subject,
-              topic
-            });
-            await sendMail({ to: m.email, subject: tpl.subject, html: tpl.html });
+    // Notifications/emails
+    if (normalizedSessionType === 'expert') {
+      try {
+        const Notification = require('../models/Notification');
+        const creator = await User.findById(req.user._id).select('firstName lastName username');
+        const mate = await User.findById(invitedSkillMate).select('email firstName lastName username');
+
+        const creatorName = `${creator?.firstName || ''} ${creator?.lastName || ''}`.trim() || creator?.username || 'Your SkillMate';
+        const mateName = `${mate?.firstName || ''} ${mate?.lastName || ''}`.trim() || mate?.username || 'SkillMate';
+        const message = `${creatorName} invited you to an expert session (${subject} • ${topic})`;
+
+        await Notification.create({
+          userId: invitedSkillMate,
+          type: 'expert-session-invited',
+          message,
+          sessionId: session._id,
+          requesterId: req.user._id,
+          requesterName: creatorName,
+          timestamp: Date.now(),
+        });
+
+        const io = req.app.get('io');
+        if (io) {
+          io.to(String(invitedSkillMate)).emit('notification', {
+            type: 'expert-session-invited',
+            message,
+            sessionId: session._id,
+            requesterId: req.user._id,
+            requesterName: creatorName,
+            timestamp: Date.now(),
+          });
+        }
+
+        if (mate?.email) {
+          const tpl = T.expertSessionInvitation({
+            mateName,
+            creatorName,
+            subject,
+            topic,
+            date,
+            time,
+          });
+          await sendMail({ to: mate.email, subject: tpl.subject, html: tpl.html });
+        }
+      } catch (e) {
+        console.error('Failed to send expert session notifications', e);
+      }
+    } else {
+      // Normal session behavior: email all SkillMates (existing behavior)
+      try {
+        const creator = await User.findById(req.user._id).select('skillMates firstName lastName email username');
+        if (creator && Array.isArray(creator.skillMates) && creator.skillMates.length > 0) {
+          const mates = await User.find({ _id: { $in: creator.skillMates } }).select('email firstName username');
+          for (const m of mates) {
+            if (m.email) {
+              const tpl = T.skillmateSessionCreated({
+                mateName: m.firstName || m.username,
+                creatorName: creator.firstName || creator.username,
+                subject,
+                topic
+              });
+              await sendMail({ to: m.email, subject: tpl.subject, html: tpl.html });
+            }
           }
         }
+      } catch (e) {
+        console.error('Failed to send skillmate session email', e);
       }
-    } catch (e) {
-      console.error('Failed to send skillmate session email', e);
     }
     
     res.status(201).json(session);
@@ -183,6 +315,8 @@ router.get('/', async (req, res) => {
       { topic: { $regex: search, $options: 'i' } }
     ]
   } : {};
+  // Expert sessions are invite-only and should not be listed publicly
+  query.sessionType = { $ne: 'expert' };
   const sessions = await Session.find(query).populate('creator', 'name email');
   res.json(sessions);
 });
@@ -231,6 +365,32 @@ router.get('/mine', requireAuth, async (req, res) => {
   } catch (error) {
     console.error('Fetch error:', error);
     res.status(500).json({ message: 'Failed to fetch sessions' });
+  }
+});
+
+// GET /api/sessions/:id – fetch a single session (private)
+router.get('/:id', requireAuth, async (req, res) => {
+  try {
+    const session = await Session.findById(req.params.id)
+      .populate('creator', 'firstName lastName username profilePic')
+      .populate('requester', 'firstName lastName username profilePic')
+      .populate('invitedSkillMate', 'firstName lastName username profilePic');
+
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const userId = req.user._id.toString();
+    const isCreator = session.creator && session.creator._id.toString() === userId;
+    const isRequester = session.requester && session.requester._id.toString() === userId;
+    const isInvited = session.invitedSkillMate && session.invitedSkillMate._id.toString() === userId;
+
+    if (!isCreator && !isRequester && !isInvited) {
+      return res.status(403).json({ error: 'Not authorized to view this session' });
+    }
+
+    return res.json(session);
+  } catch (err) {
+    console.error('Fetch session error:', err);
+    return res.status(500).json({ error: 'Failed to fetch session' });
   }
 });
 
@@ -410,8 +570,9 @@ router.post('/:id/reject', requireAuth, async (req, res) => {
 router.post('/:id/start', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.requireActiveTutor, async (req, res) => {
   try {
     const session = await Session.findById(req.params.id)
-      .populate('creator', 'firstName lastName socketId')
-      .populate('requester', 'firstName lastName socketId');
+      .populate('creator', 'firstName lastName socketId email username')
+      .populate('requester', 'firstName lastName socketId email username')
+      .populate('invitedSkillMate', 'firstName lastName socketId email username');
 
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
@@ -431,16 +592,76 @@ router.post('/:id/start', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtr
     session.status = 'active';
     await session.save();
 
-    // Notify the approved user (requester)
     const io = req.app.get('io');
-    if (session.requester && session.requester.socketId) {
-      io.to(session.requester.socketId).emit('session-started', {
-        sessionId: session._id,
-        creator: session.creator,
-        subject: session.subject,
-        topic: session.topic,
-        message: 'Your session has started! Click Join to start the video call or Cancel to decline.'
-      });
+    const Notification = require('../models/Notification');
+
+    // For expert sessions, notify invitedSkillMate; otherwise notify requester
+    const participantToNotify = session.sessionType === 'expert'
+      ? session.invitedSkillMate
+      : session.requester;
+
+    const creatorName = `${session.creator?.firstName || ''} ${session.creator?.lastName || ''}`.trim() || session.creator?.username || 'Tutor';
+    const participantName = `${participantToNotify?.firstName || ''} ${participantToNotify?.lastName || ''}`.trim() || participantToNotify?.username || 'User';
+    const notificationMessage = `${creatorName} has started your session on ${session.subject} - ${session.topic}.`;
+
+    if (participantToNotify?._id) {
+      // Persist notification (drives in-app notifications + toast bridge)
+      try {
+        await Notification.create({
+          userId: participantToNotify._id,
+          type: 'session-started',
+          message: notificationMessage,
+          sessionId: session._id,
+          requesterId: session.creator?._id,
+          requesterName: creatorName,
+          timestamp: Date.now(),
+        });
+      } catch (e) {
+        console.error('Failed to persist session-started notification', e);
+      }
+
+      // Emit notification to the user's room (preferred)
+      if (io) {
+        io.to(String(participantToNotify._id)).emit('notification', {
+          type: 'session-started',
+          message: notificationMessage,
+          sessionId: session._id,
+          requesterId: session.creator?._id,
+          requesterName: creatorName,
+          timestamp: Date.now(),
+        });
+      }
+
+      // Legacy direct event (older clients)
+      if (io && participantToNotify.socketId) {
+        io.to(participantToNotify.socketId).emit('session-started', {
+          sessionId: session._id,
+          creator: session.creator,
+          subject: session.subject,
+          topic: session.topic,
+          message: 'Your session has started! Tap Join to start the video call.'
+        });
+      }
+
+      // Email with deep-link to Join Session page
+      try {
+        if (participantToNotify.email) {
+          const frontendUrl = (process.env.FRONTEND_URL ||
+            (process.env.NODE_ENV === 'production' ? 'http://www.skillswaphub.in' : 'http://localhost:5173')
+          ).replace(/\/+$/, '');
+
+          const tpl = T.sessionLive({
+            recipientName: participantToNotify.firstName || participantToNotify.username || participantName,
+            otherPartyName: creatorName,
+            subject: session.subject,
+            topic: session.topic,
+            joinLink: `${frontendUrl}/join-session/${session._id}`,
+          });
+          await sendMail({ to: participantToNotify.email, subject: tpl.subject, html: tpl.html });
+        }
+      } catch (e) {
+        console.error('Failed to send session-live email', e);
+      }
     }
 
     res.json({
@@ -686,6 +907,104 @@ router.get('/top-performers', async (req, res) => {
   } catch (err) {
     console.error('top-performers error:', err);
     res.status(500).json({ error: 'Failed to compute top performers' });
+  }
+});
+
+// Approve expert session invitation
+router.post('/expert/approve/:sessionId', requireAuth, async (req, res) => {
+  try {
+    const session = await Session.findOne({
+      _id: req.params.sessionId,
+      invitedSkillMate: req.user._id,
+      sessionType: 'expert'
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Expert session not found or you are not invited' });
+    }
+
+    session.status = 'approved';
+    await session.save();
+
+    // Send notification to creator
+    const Notification = require('../models/Notification');
+    const skillMate = await User.findById(req.user._id).select('firstName lastName username');
+    await Notification.create({
+      userId: session.creator,
+      type: 'expert-session-approved',
+      message: `${skillMate.firstName || skillMate.username} accepted your expert session invitation`,
+      sessionId: session._id,
+      requesterId: req.user._id,
+      requesterName: `${skillMate.firstName || skillMate.username}`,
+      timestamp: Date.now(),
+    });
+
+    // Send socket notification
+    const io = req.app.get('io');
+    if (io) {
+      io.to(session.creator.toString()).emit('notification', {
+        type: 'expert-session-approved',
+        message: `${skillMate.firstName || skillMate.username} accepted your expert session invitation`,
+        sessionId: session._id,
+        requesterId: req.user._id,
+        requesterName: `${skillMate.firstName || skillMate.username}`,
+        timestamp: Date.now(),
+      });
+    }
+
+    res.json({ message: 'Expert session approved successfully', session });
+  } catch (err) {
+    console.error('Expert session approve error:', err);
+    res.status(500).json({ error: 'Failed to approve expert session' });
+  }
+});
+
+// Reject expert session invitation
+router.post('/expert/reject/:sessionId', requireAuth, async (req, res) => {
+  try {
+    const session = await Session.findOne({
+      _id: req.params.sessionId,
+      invitedSkillMate: req.user._id,
+      sessionType: 'expert'
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Expert session not found or you are not invited' });
+    }
+
+    session.status = 'rejected';
+    await session.save();
+
+    // Send notification to creator
+    const Notification = require('../models/Notification');
+    const skillMate = await User.findById(req.user._id).select('firstName lastName username');
+    await Notification.create({
+      userId: session.creator,
+      type: 'expert-session-rejected',
+      message: `${skillMate.firstName || skillMate.username} declined your expert session invitation`,
+      sessionId: session._id,
+      requesterId: req.user._id,
+      requesterName: `${skillMate.firstName || skillMate.username}`,
+      timestamp: Date.now(),
+    });
+
+    // Send socket notification
+    const io = req.app.get('io');
+    if (io) {
+      io.to(session.creator.toString()).emit('notification', {
+        type: 'expert-session-rejected',
+        message: `${skillMate.firstName || skillMate.username} declined your expert session invitation`,
+        sessionId: session._id,
+        requesterId: req.user._id,
+        requesterName: `${skillMate.firstName || skillMate.username}`,
+        timestamp: Date.now(),
+      });
+    }
+
+    res.json({ message: 'Expert session rejected successfully' });
+  } catch (err) {
+    console.error('Expert session reject error:', err);
+    res.status(500).json({ error: 'Failed to reject expert session' });
   }
 });
 

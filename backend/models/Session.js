@@ -9,5 +9,9 @@ const SessionSchema = new mongoose.Schema({
   status: { type: String, default: 'pending' },
   requester: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   description: { type: String, required: true },
-});
+  sessionType: { type: String, enum: ['normal', 'expert'], default: 'normal' },
+  invitedSkillMate: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  reminderSent: { type: Boolean, default: false },
+  reminderSentAt: { type: Date, default: null },
+}, { timestamps: true });
 module.exports = mongoose.model('Session', SessionSchema);
