@@ -1,24 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import AdminSidebar from './AdminSidebar.jsx';
-import AdminNavbar from './AdminNavbar.jsx';
+import Breadcrumbs from './Breadcrumbs.jsx';
 
 const AdminLayout = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const location = useLocation();
-  const hideSidebarFor = ['/admin/applications'];
-  const shouldHideSidebar = hideSidebarFor.some(p => location.pathname.startsWith(p));
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Common Admin Navbar */}
-      <AdminNavbar />
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <AdminSidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       
-      <div className="flex flex-1 overflow-hidden">
-        {!shouldHideSidebar && <AdminSidebar />}
-        <main className={`flex-1 overflow-auto ${shouldHideSidebar ? '' : 'p-3 sm:p-6'}`}>
-          <div className={shouldHideSidebar ? 'w-full h-full' : 'max-w-7xl mx-auto'}>
-            <Outlet />
-          </div>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Breadcrumbs */}
+        <div className="bg-white border-b border-gray-200 px-6 py-3">
+          <Breadcrumbs />
+        </div>
+        
+        {/* Page Content */}
+        <main className="flex-1 overflow-auto p-6">
+          <Outlet />
         </main>
       </div>
     </div>

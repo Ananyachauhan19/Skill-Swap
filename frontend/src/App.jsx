@@ -47,7 +47,7 @@ import SearchPage from './user/SearchPage';
 import AdminPanel from './admin/adminpanel';
 import AdminRoute from './routes/AdminRoute';
 import Applications from './admin/Applications.jsx';
-import Dashboard from './admin/Dashboard.jsx';
+import NewDashboard from './admin/NewDashboard.jsx';
 import InterviewRequests from './admin/InterviewRequests.jsx';
 import AdminSessionRequests from './admin/SessionRequests.jsx';
 import SkillMateRequests from './admin/SkillMateRequests.jsx';
@@ -154,8 +154,8 @@ const adminOnlyRoutes = [
       {
         element: <AdminLayout />, // layout wraps all admin pages
         children: [
-          { index: true, element: <Dashboard /> },
-          { path: 'dashboard', element: <Dashboard /> },
+          { index: true, element: <NewDashboard /> },
+          { path: 'dashboard', element: <NewDashboard /> },
           { path: 'applications', element: <Applications /> },
           { path: 'analytics', element: <Analytics /> },
           { path: 'interview-requests', element: <InterviewRequests /> },

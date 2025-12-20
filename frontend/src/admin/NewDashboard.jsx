@@ -1,0 +1,207 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { 
+  FiUsers, FiUserCheck, FiUserPlus, FiCalendar, 
+  FiClock, FiCheckCircle, FiPackage, FiHelpCircle,
+  FiTrendingUp, FiArrowRight, FiFileText
+} from 'react-icons/fi';
+import { BACKEND_URL } from '../config';
+
+const StatCard = ({ title, value, icon: Icon, change, color, link }) => (
+  <Link
+    to={link}
+    className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 group"
+  >
+    <div className="flex items-center justify-between mb-4">
+      <div className={`p-3 rounded-lg ${color}`}>
+        <Icon size={24} className="text-white" />
+      </div>
+      {change && (
+        <div className={`flex items-center gap-1 text-sm font-medium ${
+          change > 0 ? 'text-green-600' : 'text-red-600'
+        }`}>
+          <FiTrendingUp size={16} />
+          <span>{Math.abs(change)}%</span>
+        </div>
+      )}
+    </div>
+    <div className="mb-1">
+      <p className="text-3xl font-bold text-gray-900">{value}</p>
+    </div>
+    <div className="flex items-center justify-between">
+      <p className="text-sm text-gray-600">{title}</p>
+      <FiArrowRight size={16} className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+    </div>
+  </Link>
+);
+
+const NewDashboard = () => {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    pendingApplications: 0,
+    totalInterviews: 0,
+    pendingInterviews: 0,
+    completedInterviews: 0,
+    totalPackages: 0,
+    helpRequests: 0,
+    // Trend data (percentage changes)
+    usersTrend: 0,
+    activeUsersTrend: 0,
+    interviewsTrend: 0,
+    completedInterviewsTrend: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/admin/stats`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch stats');
+        }
+        
+        const data = await response.json();
+        const statsData = data.stats || data; // Handle both nested and direct response
+        
+        setStats({
+          totalUsers: statsData.totalUsers || 0,
+          activeUsers: statsData.activeUsers || 0,
+          pendingApplications: statsData.pendingExperts || 0, // Pending interviewer applications
+          totalInterviews: statsData.totalInterviewRequests || 0,
+          pendingInterviews: statsData.pendingInterviewRequests || 0,
+          completedInterviews: (statsData.totalInterviewRequests || 0) - (statsData.pendingInterviewRequests || 0) - (statsData.assignedInterviewRequests || 0),
+          totalPackages: statsData.totalPackages || 0,
+          helpRequests: statsData.pendingHelpRequests || 0,
+          // Trend percentages from API (if available)
+          usersTrend: statsData.usersTrend || null,
+          activeUsersTrend: statsData.activeUsersTrend || null,
+          interviewsTrend: statsData.interviewsTrend || null,
+          completedInterviewsTrend: statsData.completedInterviewsTrend || null,
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const kpiCards = [
+    {
+      title: 'Total Users',
+      value: loading ? '...' : stats.totalUsers,
+      icon: FiUsers,
+      color: 'bg-blue-500',
+      link: '/admin/users',
+      change: stats.usersTrend
+    },
+    {
+      title: 'Active Users',
+      value: loading ? '...' : stats.activeUsers,
+      icon: FiUserCheck,
+      color: 'bg-green-500',
+      link: '/admin/users',
+      change: stats.activeUsersTrend
+    },
+    {
+      title: 'Pending Applications',
+      value: loading ? '...' : stats.pendingApplications,
+      icon: FiUserPlus,
+      color: 'bg-yellow-500',
+      link: '/admin/applications'
+    },
+    {
+      title: 'Total Interviews',
+      value: loading ? '...' : stats.totalInterviews,
+      icon: FiCalendar,
+      color: 'bg-purple-500',
+      link: '/admin/interview-requests',
+      change: stats.interviewsTrend
+    },
+    {
+      title: 'Pending Interviews',
+      value: loading ? '...' : stats.pendingInterviews,
+      icon: FiClock,
+      color: 'bg-orange-500',
+      link: '/admin/interview-requests'
+    },
+    {
+      title: 'Completed Interviews',
+      value: loading ? '...' : stats.completedInterviews,
+      icon: FiCheckCircle,
+      color: 'bg-teal-500',
+      link: '/admin/interview-requests',
+      change: stats.completedInterviewsTrend
+    },
+    {
+      title: 'Active Packages',
+      value: loading ? '...' : stats.totalPackages,
+      icon: FiPackage,
+      color: 'bg-indigo-500',
+      link: '/admin/packages'
+    },
+    {
+      title: 'Help Requests',
+      value: loading ? '...' : stats.helpRequests,
+      icon: FiHelpCircle,
+      color: 'bg-red-500',
+      link: '/admin/help-support'
+    }
+  ];
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        <p className="text-gray-600">Welcome back! Here's what's happening today.</p>
+      </div>
+
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {kpiCards.map((card, index) => (
+          <StatCard key={index} {...card} />
+        ))}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="mt-8 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link
+            to="/admin/applications"
+            className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
+          >
+            <FiFileText className="text-blue-600 mb-2" size={24} />
+            <p className="font-medium text-gray-900">Review Applications</p>
+            <p className="text-sm text-gray-600 mt-1">Process pending requests</p>
+          </Link>
+          <Link
+            to="/admin/interview-requests"
+            className="p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all"
+          >
+            <FiCalendar className="text-purple-600 mb-2" size={24} />
+            <p className="font-medium text-gray-900">Manage Interviews</p>
+            <p className="text-sm text-gray-600 mt-1">Schedule and track</p>
+          </Link>
+          <Link
+            to="/admin/packages"
+            className="p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all"
+          >
+            <FiPackage className="text-indigo-600 mb-2" size={24} />
+            <p className="font-medium text-gray-900">Manage Packages</p>
+            <p className="text-sm text-gray-600 mt-1">Create and edit</p>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NewDashboard;
