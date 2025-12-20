@@ -146,6 +146,7 @@ exports.verifyOtp = async (req, res) => {
     username: user.username,
     email: user.email,
     role: user.role,
+    isTutor: user.isTutor || false,
     skillsToTeach: user.skillsToTeach,
     skillsToLearn: user.skillsToLearn,
     silverCoins: user.silverCoins,

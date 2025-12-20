@@ -155,6 +155,10 @@ router.get('/:userId', async (req, res) => {
 		let interviewSessions = 0;
 		let totalOneOnOneAsTutor = 0;
 		let totalOneOnOneAsLearner = 0;
+		let skillMateConnections = 0;
+		let dailyLogins = 0;
+		let questionsPosted = 0;
+		let videosUploaded = 0;
 
 		for (const d of docs) {
 			if ((d.count || 0) > 0) activeDays += 1;
@@ -166,6 +170,11 @@ router.get('/:userId', async (req, res) => {
 			oneOnOneSessions += asTutor + asLearner;
 			// Prefer new field; fall back to older interviewsRated if needed
 			interviewSessions += (b.interviewsCompleted || 0) + (b.interviewsRated || 0);
+			// New activity types
+			skillMateConnections += (b.skillmatesAdded || b.skillMateApprovals || 0);
+			dailyLogins += (b.dailyLogins || 0);
+			questionsPosted += (b.questionsPosted || 0);
+			videosUploaded += (b.videosUploaded || 0);
 		}
 
 		dateKeys.forEach(k => {
@@ -182,6 +191,10 @@ router.get('/:userId', async (req, res) => {
 				oneOnOneAsTutor: totalOneOnOneAsTutor,
 				oneOnOneAsLearner: totalOneOnOneAsLearner,
 				interviewSessions,
+				skillMateConnections,
+				dailyLogins,
+				questionsPosted,
+				videosUploaded,
 			},
 		});
 	} catch (err) {

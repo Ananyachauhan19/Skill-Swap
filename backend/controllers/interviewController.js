@@ -1361,17 +1361,18 @@ exports.getTopPerformers = async (req, res) => {
       status: 'completed',
       assignedInterviewer: { $exists: true, $ne: null }
     })
-      .select('assignedInterviewer rating')
-      .populate('assignedInterviewer', 'firstName lastName username profilePic company position')
+      .select('assignedInterviewer rating company position')
+      .populate('assignedInterviewer', 'firstName lastName username profilePic')
       .lean();
 
     // Fetch all requests for candidates count
     const allRequests = await InterviewRequest.find({ requester: { $exists: true, $ne: null } })
-      .select('requester')
-      .populate('requester', 'firstName lastName username profilePic company position')
+      .select('requester company position')
+      .populate('requester', 'firstName lastName username profilePic')
       .lean();
 
     // Count interviews conducted by each interviewer (completed only)
+    // Track company & position for each interviewer
     const interviewerMap = new Map();
     for (const interview of completedInterviews) {
       if (interview.assignedInterviewer) {
@@ -1381,11 +1382,24 @@ exports.getTopPerformers = async (req, res) => {
             user: interview.assignedInterviewer,
             count: 0,
             totalRating: 0,
-            ratingCount: 0
+            ratingCount: 0,
+            companyCount: {},
+            positionCount: {}
           });
         }
         const data = interviewerMap.get(interviewerId);
         data.count += 1;
+        
+        // Track company frequency
+        if (interview.company) {
+          data.companyCount[interview.company] = (data.companyCount[interview.company] || 0) + 1;
+        }
+        
+        // Track position frequency
+        if (interview.position) {
+          data.positionCount[interview.position] = (data.positionCount[interview.position] || 0) + 1;
+        }
+        
         if (interview.rating && interview.rating > 0) {
           data.totalRating += interview.rating;
           data.ratingCount += 1;
@@ -1394,6 +1408,7 @@ exports.getTopPerformers = async (req, res) => {
     }
 
     // Count for candidates (all requests)
+    // Track position for each candidate
     const candidateMap = new Map();
     for (const request of allRequests) {
       if (request.requester) {
@@ -1401,19 +1416,34 @@ exports.getTopPerformers = async (req, res) => {
         if (!candidateMap.has(candidateId)) {
           candidateMap.set(candidateId, {
             user: request.requester,
-            count: 0
+            count: 0,
+            positionCount: {}
           });
         }
-        candidateMap.get(candidateId).count += 1;
+        const data = candidateMap.get(candidateId);
+        data.count += 1;
+        
+        // Track position frequency for candidates
+        if (request.position) {
+          data.positionCount[request.position] = (data.positionCount[request.position] || 0) + 1;
+        }
       }
     }
+
+    // Helper function to get most frequent value
+    const getMostFrequent = (countObj) => {
+      if (!countObj || Object.keys(countObj).length === 0) return null;
+      return Object.entries(countObj).sort((a, b) => b[1] - a[1])[0][0];
+    };
 
     // Convert to arrays and calculate averages - limit to top 3 for performance
     const topInterviewers = Array.from(interviewerMap.values())
       .map(item => ({
         user: item.user,
         count: item.count,
-        avgRating: item.ratingCount > 0 ? Math.round((item.totalRating / item.ratingCount) * 10) / 10 : 0
+        avgRating: item.ratingCount > 0 ? Math.round((item.totalRating / item.ratingCount) * 10) / 10 : 0,
+        company: getMostFrequent(item.companyCount) || 'Not specified',
+        position: getMostFrequent(item.positionCount) || 'Not specified'
       }))
       .sort((a, b) => {
         // Sort by count first, then by rating
@@ -1423,6 +1453,12 @@ exports.getTopPerformers = async (req, res) => {
       .slice(0, 3); // Only return top 3
 
     const topCandidates = Array.from(candidateMap.values())
+      .map(item => ({
+        user: item.user,
+        count: item.count,
+        position: getMostFrequent(item.positionCount) || 'Not specified',
+        avgRating: 0 // Candidates don't have ratings
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 3); // Only return top 3
 

@@ -180,6 +180,35 @@ exports.status = async (req, res) => {
   }
 };
 
+// Get verified tutor skills (skills from approved TutorApplication)
+exports.getVerifiedSkills = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    
+    // Check if user is a tutor
+    if (!user || !user.isTutor) {
+      return res.status(200).json({ skills: [], isTutor: false });
+    }
+
+    // Find the approved application
+    const app = await TutorApplication.findOne({ user: userId, status: 'approved' });
+    if (!app || !app.skills) {
+      return res.status(200).json({ skills: [], isTutor: true });
+    }
+
+    // Return the approved skills
+    return res.status(200).json({ 
+      skills: app.skills, 
+      isTutor: true,
+      skillsToTeach: user.skillsToTeach || [] // Also include user's skillsToTeach for backward compatibility
+    });
+  } catch (e) {
+    console.error('[Tutor] getVerifiedSkills error:', e);
+    return res.status(500).json({ message: 'Server error', details: e.message });
+  }
+};
+
 // Prefill defaults for apply/tutor form using last verified/approved or latest pending application
 exports.prefillApplyDefaults = async (req, res) => {
   try {
@@ -329,7 +358,8 @@ exports.revertPendingUpdate = async (req, res) => {
 // Middleware no longer needed for timed activation; keep as no-op to avoid breaking imports
 exports.ensureTutorActivation = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const userId = req.user._id || req.user.id;
+    const user = await User.findById(userId);
     if (!user) return res.status(401).json({ message: 'Unauthorized' });
     // Immediate activation handled at approval time
     next();
@@ -341,7 +371,8 @@ exports.ensureTutorActivation = async (req, res, next) => {
 // Guard for tutor-only endpoints
 exports.requireActiveTutor = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const userId = req.user._id || req.user.id;
+    const user = await User.findById(userId);
     if (!user) return res.status(401).json({ message: 'Unauthorized' });
     // Allow all roles except explicit 'learner'
     if (user.role && user.role.toLowerCase() === 'learner') {

@@ -157,84 +157,80 @@ const TeachingHistory = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
       <div className="w-full pt-20">
         
         {/* Mobile menu toggle */}
         <button 
-          className="lg:hidden m-4 p-2 bg-white rounded-lg shadow"
+          className="lg:hidden m-4 p-2 bg-white rounded-lg shadow-sm border border-slate-200"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
-          <FaBars className="text-gray-700" />
+          <FaBars className="text-slate-600" />
         </button>
 
         <div className="flex flex-col lg:flex-row min-h-[calc(100vh-5rem)]">
           {/* Left Sidebar - Sticky */}
-          <aside className={`${sidebarOpen ? 'block' : 'hidden'} lg:block lg:sticky lg:top-20 lg:self-start lg:h-[calc(100vh-5rem)] lg:overflow-y-auto w-full lg:w-80 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg p-6 space-y-6`}>
+          <aside className={`${sidebarOpen ? 'block' : 'hidden'} lg:block lg:sticky lg:top-20 lg:self-start lg:h-[calc(100vh-5rem)] lg:overflow-y-auto w-full lg:w-64 bg-white border-r border-slate-200 shadow-sm`}>
             
-            {/* Header */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <FaChalkboardTeacher className="text-blue-600" />
-                Teaching Stats
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">Your teaching impact</p>
+            <div className="p-4 border-b border-slate-100">
+              {/* Header */}
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+                  <FaChalkboardTeacher className="text-emerald-600 text-sm" />
+                </div>
+                <h2 className="text-base font-semibold text-slate-700">Teaching Stats</h2>
+              </div>
+              <p className="text-xs text-slate-500 ml-10">Your teaching impact</p>
             </div>
 
-            {/* Total Stats Card */}
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-blue-200">
-              <p className="text-sm text-gray-600 mb-2">Total Teaching Sessions</p>
-              <p className="text-4xl font-bold text-blue-700">{stats.totalSessions}</p>
-              <p className="text-xs text-gray-500 mt-2">{stats.totalHours} hours taught</p>
-            </div>
-
-            {/* Stats Summary */}
-            <div className="border-t pt-4">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Session Overview</p>
-              
-              {/* Teaching Hours */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                    <FaClock className="text-indigo-500" />
-                    Teaching Hours
-                  </span>
-                  <span className="text-sm font-bold text-gray-800">{stats.totalHours}h</span>
-                </div>
+            <div className="p-4 space-y-4">
+              {/* Total Stats Card */}
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <p className="text-xs text-slate-500 mb-1">Total Sessions</p>
+                <p className="text-2xl font-bold text-slate-800">{stats.totalSessions}</p>
+                <p className="text-xs text-slate-500 mt-1">{stats.totalHours} hours taught</p>
               </div>
 
-              {/* Average Rating */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                    <FaStar className="text-yellow-500" />
-                    Average Rating
-                  </span>
-                  <span className="text-sm font-bold text-yellow-600">{stats.averageRating} ⭐</span>
-                </div>
-              </div>
-
-              {/* Coins Earned */}
-              <div className="border-t pt-4 mt-4">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Coins Earned</p>
+              {/* Stats Summary */}
+              <div className="space-y-3">
+                <p className="text-xs font-medium text-slate-600 uppercase tracking-wide">Overview</p>
                 
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                      <FaCoins className="text-gray-500" />
-                      Silver Coins
-                    </span>
-                    <span className="text-sm font-bold text-gray-800">{stats.silverEarned}</span>
-                  </div>
+                {/* Teaching Hours */}
+                <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                  <span className="text-sm text-slate-600 flex items-center gap-2">
+                    <FaClock className="text-purple-500 text-xs" />
+                    Hours
+                  </span>
+                  <span className="text-sm font-semibold text-slate-800">{stats.totalHours}h</span>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                      <FaCoins className="text-yellow-500" />
-                      Gold Coins
+                {/* Average Rating */}
+                <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                  <span className="text-sm text-slate-600 flex items-center gap-2">
+                    <FaStar className="text-amber-500 text-xs" />
+                    Rating
+                  </span>
+                  <span className="text-sm font-semibold text-amber-600">{stats.averageRating} ⭐</span>
+                </div>
+
+                {/* Coins Earned */}
+                <div className="pt-2">
+                  <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">Coins Earned</p>
+                  
+                  <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                    <span className="text-sm text-slate-600 flex items-center gap-2">
+                      <FaCoins className="text-slate-400 text-xs" />
+                      Silver
                     </span>
-                    <span className="text-sm font-bold text-yellow-600">{stats.goldEarned}</span>
+                    <span className="text-sm font-semibold text-slate-700">{stats.silverEarned}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-slate-600 flex items-center gap-2">
+                      <FaCoins className="text-amber-500 text-xs" />
+                      Gold
+                    </span>
+                    <span className="text-sm font-semibold text-amber-600">{stats.goldEarned}</span>
                   </div>
                 </div>
               </div>
@@ -246,30 +242,30 @@ const TeachingHistory = () => {
           <main className="w-full lg:flex-1 pb-12">
             
             {/* Search and Filter Bar */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg p-6">
+            <div className="bg-white border-b border-slate-200 p-4">
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="relative flex-1">
-                  <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400" />
+                  <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm" />
                   <input 
                     value={search} 
                     onChange={(e) => setSearch(e.target.value)} 
                     placeholder="Search by student, subject, topic..." 
-                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition text-sm"
                   />
                 </div>
-                <div className="relative w-full md:w-48">
-                  <FaCalendarAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400" />
+                <div className="relative w-full md:w-44">
+                  <FaCalendarAlt className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 text-sm" />
                   <input 
                     value={selectedDate} 
                     onChange={(e) => setSelectedDate(e.target.value)} 
                     type="date" 
-                    className="w-full pl-11 pr-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition text-sm"
                   />
                 </div>
                 {(search || selectedDate) && (
                   <button 
                     onClick={() => { setSearch(''); setSelectedDate(''); }}
-                    className="px-6 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-semibold transition"
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium text-sm text-slate-600 transition"
                   >
                     Clear
                   </button>
@@ -278,37 +274,37 @@ const TeachingHistory = () => {
             </div>
 
             {/* Sessions List */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-4">
               {loading ? (
                 <SkeletonLoader />
               ) : error ? (
-                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                  <div className="bg-red-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-10 text-center">
+                  <div className="bg-rose-50 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-7 h-7 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Oops! Something went wrong</h3>
-                  <p className="text-gray-600 mb-6">{error}</p>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">Oops! Something went wrong</h3>
+                  <p className="text-slate-500 text-sm mb-4">{error}</p>
                   <button 
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg transition duration-200"
+                    className="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition"
                     onClick={() => window.location.reload()}
                   >
                     Try Again
                   </button>
                 </div>
               ) : filteredHistory.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                  <div className="bg-blue-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <FaChalkboardTeacher className="text-4xl text-blue-600" />
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-10 text-center">
+                  <div className="bg-emerald-50 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaChalkboardTeacher className="text-2xl text-emerald-600" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">No sessions found</h3>
-                  <p className="text-gray-600 mb-6">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">No sessions found</h3>
+                  <p className="text-slate-500 text-sm mb-4">
                     {search || selectedDate ? 'Try adjusting your filters' : 'Your completed teaching sessions will appear here'}
                   </p>
                   {(search || selectedDate) && (
                     <button 
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-xl font-semibold shadow-lg transition duration-200"
+                      className="bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition"
                       onClick={() => {
                         setSearch("");
                         setSelectedDate("");
@@ -320,12 +316,12 @@ const TeachingHistory = () => {
                 </div>
               ) : (
                 filteredHistory.map((entry, idx) => (
-                  <div key={idx} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
+                  <div key={idx} className="bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200 hover:shadow-md transition-shadow duration-300">
+                    <div className="bg-slate-50 px-4 py-3 border-b border-slate-100">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                            <FaCalendarAlt className="text-blue-600" />
+                          <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
+                            <FaCalendarAlt className="text-teal-600 text-sm" />
                             {new Date(entry.date).toLocaleDateString(undefined, {
                               weekday: 'long',
                               year: 'numeric',
@@ -333,78 +329,77 @@ const TeachingHistory = () => {
                               day: 'numeric'
                             })}
                           </h3>
-                          <p className="text-gray-600 mt-1">
+                          <p className="text-slate-500 text-sm mt-0.5">
                             {entry.sessions.length} session{entry.sessions.length !== 1 ? 's' : ''}
                           </p>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="p-6">
-                      <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+                    <div className="p-4">
+                      <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                         {entry.sessions.map((s) => (
                           <div 
                             key={s.id}
-                            className={`relative bg-gradient-to-br from-white to-gray-50 border-2 rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer ${
-                              expandedSession === s.id ? 'ring-4 ring-blue-500 border-blue-500' : 'border-gray-200 hover:border-blue-300'
+                            className={`relative bg-white border rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
+                              expandedSession === s.id ? 'ring-2 ring-teal-500 border-teal-300' : 'border-slate-200 hover:border-teal-300'
                             }`}
                             onClick={() => setExpandedSession(expandedSession === s.id ? null : s.id)}
                           >
-                            <div className="p-5">
+                            <div className="p-4">
                               <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="text-4xl">
+                                <div className="flex items-center gap-2">
+                                  <div className="text-2xl">
                                     {sessionTypeLabel(s.type)}
                                   </div>
                                   <div>
-                                    <h4 className="font-bold text-gray-900 text-lg">
+                                    <h4 className="font-semibold text-slate-800 text-sm">
                                       {s.type === 'gd' ? 'Group Discussion' : 
                                        s.type === 'interview' ? 'Interview Session' : '1-on-1 Session'}
                                     </h4>
-                                    <p className="text-sm text-gray-600 flex items-center gap-1">
-                                      <FaChalkboardTeacher className="text-blue-600" />
+                                    <p className="text-xs text-slate-500 flex items-center gap-1">
+                                      <FaChalkboardTeacher className="text-teal-600 text-xs" />
                                       {s.type === 'gd' ? 
                                         `${Array.isArray(s.with) ? s.with.join(', ') : s.with}` : 
                                         s.with}
                                     </p>
                                   </div>
                                 </div>
-                                <div className={`px-3 py-1.5 rounded-full font-bold text-sm flex items-center gap-1 shadow-md ${
+                                <div className={`px-2 py-1 rounded-full font-medium text-xs flex items-center gap-1 ${
                                   s.coinType === 'gold' 
-                                    ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white' 
-                                    : 'bg-gradient-to-r from-gray-400 to-gray-500 text-white'
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200' 
+                                    : 'bg-slate-50 text-slate-600 border border-slate-200'
                                 }`}>
-                                  <FaCoins /> {s.coinsSpent} {s.coinType === 'gold' ? 'Gold' : 'Silver'}
+                                  <FaCoins className="text-xs" /> {s.coinsSpent}
                                 </div>
                               </div>
                               
-                              <div className="flex flex-wrap gap-2 mb-3">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-blue-100 text-blue-700 border border-blue-200">
-                                  <FaClock />
+                              <div className="flex flex-wrap gap-1.5 mb-3">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100">
+                                  <FaClock className="text-xs" />
                                   {formatTime(s.when)}
                                 </span>
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-teal-50 text-teal-700 border border-teal-100">
                                   ⏱️ {s.duration} min
                                 </span>
                               </div>
                               
                               {s.subject && (
-                                <div className="bg-gray-100 rounded-lg p-3 mb-3">
-                                  <p className="text-sm font-semibold text-gray-700">
-                                    📚 <span className="font-bold">{s.subject}</span>
-                                    {s.topic && <span className="text-gray-600"> • {s.topic}</span>}
-                                    {s.subtopic && <span className="text-gray-500"> • {s.subtopic}</span>}
+                                <div className="bg-slate-50 rounded-lg p-2.5">
+                                  <p className="text-xs text-slate-600">
+                                    📚 <span className="font-medium text-slate-700">{s.subject}</span>
+                                    {s.topic && <span className="text-slate-500"> • {s.topic}</span>}
                                   </p>
                                 </div>
                               )}
                             </div>
                             
                             {expandedSession === s.id && (
-                              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t-2 border-blue-200 p-5 animate-fade-in">
-                                <h5 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2">
+                              <div className="bg-teal-50 border-t border-teal-100 p-4 animate-fade-in">
+                                <h5 className="text-xs font-semibold text-teal-800 mb-1.5 flex items-center gap-1">
                                   📝 Session Notes
                                 </h5>
-                                <p className="text-sm text-gray-700 leading-relaxed">
+                                <p className="text-xs text-slate-600 leading-relaxed">
                                   {s.notes || "No additional notes provided for this session."}
                                 </p>
                               </div>
