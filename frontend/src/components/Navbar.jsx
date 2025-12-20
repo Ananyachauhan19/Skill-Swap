@@ -644,40 +644,38 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full h-[64px] sm:h-[72px] bg-[#F5F9FF] text-blue-900 px-3 sm:px-4 py-2 shadow-md border-b border-gray-200/50 z-50 backdrop-blur-sm">
+      <nav className="fixed top-0 left-0 w-full h-[64px] sm:h-[72px] bg-[#F5F9FF] text-blue-900 px-3 sm:px-4 shadow-md border-b border-gray-200/50 z-50 backdrop-blur-sm">
         <div className="flex items-center justify-between max-w-7xl mx-auto h-full">
           {/* Logo */}
           <div
-            className="flex items-center gap-2 cursor-pointer transition-transform duration-300 hover:scale-105"
+            className="flex items-center gap-1.5 sm:gap-2 cursor-pointer transition-transform duration-300 hover:scale-105 flex-shrink-0"
             onClick={() => navigate('/')}
           >
             <img
               src="/assets/skillswap-logo.webp"
               alt="SkillSwapHub Logo"
-              className="h-10 w-10 sm:h-12 sm:w-12 object-contain rounded-full shadow-md border-2 border-blue-900"
+              className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 object-contain rounded-full shadow-md border-2 border-blue-900"
             />
-            <span className="text-base sm:text-lg font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
+            <span className="text-sm md:text-base lg:text-lg font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
               SkillSwapHub
             </span>
           </div>
 
           {/* Desktop/Tablet Navigation */}
-          <div className="hidden md:flex items-center gap-3 lg:gap-4">
+          <div className="hidden md:flex items-center gap-1.5 lg:gap-3 xl:gap-4">
             {[
               { path: '/home', label: 'Home' },
               { path: '/one-on-one', label: '1-on-1' },
-              // { path: '/discuss', label: 'GD' },
               { path: '/interview', label: 'Interview' },
-              // { path: '/session', label: 'Session' },
               { path: '/session-requests', label: 'Requests' },
             ].map(({ path, label }) => (
               <button
                 key={path}
-                className={`text-xs lg:text-sm font-bold px-3 py-1.5 rounded-full text-blue-900 bg-blue-100/50 shadow-sm transition-all duration-300 ${
+                className={`text-[11px] lg:text-xs xl:text-sm font-bold px-2 md:px-2.5 lg:px-3 py-1.5 rounded-full text-blue-900 bg-blue-100/50 shadow-sm transition-all duration-300 whitespace-nowrap ${
                   isActive(path)
                     ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md'
                     : 'hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105'
-                } touch-manipulation`}
+                } touch-manipulation`
                 onClick={() => navigate(path)}
               >
                 {label}
@@ -686,16 +684,16 @@ const Navbar = () => {
           </div>
 
           {/* Right Side: Icons and Search */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Search - only show when logged in */}
-            {isLoggedIn && <form onSubmit={handleSearch} className="hidden md:flex items-center" ref={searchRef}>
+          <div className="flex items-center gap-2">
+            {/* Search - only show when logged in and on large screens */}
+            {isLoggedIn && <form onSubmit={handleSearch} className="hidden lg:flex items-center" ref={searchRef}>
               <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search Skillmate..."
-                  className="w-48 lg:w-64 pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
+                  className="w-44 xl:w-56 2xl:w-64 pl-8 pr-3 py-1.5 text-xs rounded-full bg-white border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-blue-900 placeholder-blue-400 font-nunito shadow-sm"
                 />
                 <button
                   type="submit"
@@ -744,9 +742,9 @@ const Navbar = () => {
                               }}
                             >
                               {u.profilePic ? (
-                                <img src={u.profilePic} alt={u.username} className="w-12 h-12 rounded-full object-cover border-2 border-blue-300 shadow-sm" />
+                                <img src={u.profilePic} alt={u.username} className="w-12 h-12 rounded-full object-cover border-2 border-blue-300 shadow-sm flex-shrink-0" />
                               ) : (
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-base font-bold shadow-sm">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-base font-bold shadow-sm flex-shrink-0">
                                   {(u.firstName?.[0] || u.username?.[0] || 'U').toUpperCase()}
                                 </div>
                               )}
@@ -772,15 +770,15 @@ const Navbar = () => {
             {isLoggedIn ? (
               <>
                 {/* SkillCoin */}
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <button
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md border border-blue-700 hover:scale-105 transition duration-300 touch-manipulation"
+                    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md border border-blue-700 hover:scale-105 transition duration-300 touch-manipulation"
                     onClick={() => setShowCoinsDropdown((prev) => !prev)}
                     title="SkillCoin"
                     ref={coinsRef}
                     aria-label="View SkillCoin balance"
                   >
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="none">
+                    <svg className="w-4 h-4 lg:w-5 lg:h-5" viewBox="0 0 24 24" fill="none">
                       <defs>
                         <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
                           <stop offset="0%" stopColor="#fff9c4" />
@@ -840,25 +838,25 @@ const Navbar = () => {
                   )}
                 </div>
 
-                {/* Notifications */}
+                {/* Notifications - Fixed circular container */}
                 <Notifications
                   notifications={notifications}
                   setNotifications={setNotifications}
-                  iconSize="w-4 h-4 sm:w-5 sm:h-5"
+                  iconSize="w-5 h-5"
                   className="relative flex items-center justify-center"
-                  dropdownClassName="absolute right-[-10px] sm:right-0 mt-2 w-64 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50"
+                  dropdownClassName="absolute right-0 mt-2 w-64 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50"
                 />
 
                 {/* Profile */}
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <button
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation"
+                    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation"
                     onClick={() => setShowProfileMenu((v) => !v)}
                     title="Profile"
                     ref={menuRef}
                     aria-label="Open profile menu"
                   >
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
                     </svg>
                   </button>
@@ -884,11 +882,11 @@ const Navbar = () => {
 
             {/* Hamburger (only visible on mobile) */}
             <button
-              className="md:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation"
+              className="md:hidden w-9 h-9 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation flex-shrink-0"
               onClick={handleMobileMenu}
               aria-label="Toggle mobile menu"
             >
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
