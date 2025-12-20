@@ -171,6 +171,96 @@ const ToastSocketBridge = () => {
           return;
         }
       }
+
+      // Interview notifications
+      if (n.type === 'interview-requested') {
+        const requester = n.requesterName || 'A user';
+        addToast({
+          title: 'New Interview Request',
+          message: `${requester} requested an interview session.`,
+          variant: 'info',
+          timeout: 0,
+          actions: [
+            {
+              label: 'Check Details',
+              variant: 'primary',
+              onClick: () => navigate('/interview-requests'),
+            },
+          ],
+        });
+        return;
+      }
+
+      if (n.type === 'interview-approved') {
+        addToast({
+          title: 'Interview Approved',
+          message: 'Your interview request was approved. You'll be notified when the interviewer starts the session.',
+          variant: 'success',
+          timeout: 0,
+          actions: [
+            {
+              label: 'Check Details',
+              variant: 'primary',
+              onClick: () => navigate('/interview-requests'),
+            },
+          ],
+        });
+        return;
+      }
+
+      if (n.type === 'interview-rejected') {
+        addToast({
+          title: 'Interview Denied',
+          message: 'Your interview request was denied. You may request again if needed.',
+          variant: 'error',
+          timeout: 0,
+          actions: [
+            { label: 'Okay', variant: 'primary' },
+          ],
+        });
+        return;
+      }
+
+      if (n.type === 'interview-started') {
+        addToast({
+          title: 'Interview Started',
+          message: 'Your interview has started. Join now!',
+          variant: 'success',
+          timeout: 0,
+          actions: [
+            {
+              label: 'Join Now',
+              variant: 'primary',
+              onClick: () => {
+                try {
+                  if (n.interviewId || n.sessionId) {
+                    const interviewId = n.interviewId || n.sessionId;
+                    const role = (user && n.interviewer && user._id === n.interviewer._id) ? 'interviewer' : 'interviewee';
+                    localStorage.setItem('pendingJoinInterview', JSON.stringify({ interviewId, role, ts: Date.now() }));
+                  }
+                } catch {
+                  // ignore write errors
+                }
+                navigate('/interview-requests', { state: { openFromToast: true } });
+              },
+            },
+          ],
+        });
+        return;
+      }
+
+      if (n.type === 'interview-cancelled') {
+        addToast({
+          title: 'Interview Cancelled',
+          message: n.message || 'The interview has been cancelled.',
+          variant: 'warning',
+          timeout: 0,
+          actions: [
+            { label: 'Okay', variant: 'primary' },
+          ],
+        });
+        return;
+      }
     };
 
     socket.on('notification', onNotification);
