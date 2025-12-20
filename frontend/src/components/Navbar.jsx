@@ -675,7 +675,7 @@ const Navbar = () => {
                   isActive(path)
                     ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md'
                     : 'hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105'
-                } touch-manipulation`
+                } touch-manipulation`}
                 onClick={() => navigate(path)}
               >
                 {label}

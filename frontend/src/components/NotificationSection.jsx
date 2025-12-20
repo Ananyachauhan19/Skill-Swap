@@ -406,7 +406,12 @@ const NotificationSection = ({ userId }) => {
           n.type === 'session-approved' ||
           n.type === 'session-rejected' ||
           n.type === 'session-cancelled' ||
-          n.type === 'session-requested'
+          n.type === 'session-requested' ||
+          n.type === 'interview-requested' ||
+          n.type === 'interview-approved' ||
+          n.type === 'interview-rejected' ||
+          n.type === 'interview-started' ||
+          n.type === 'interview-cancelled'
       );
     } else if (activeTab === 'skillmate') {
       filtered = filtered.filter(
@@ -430,6 +435,11 @@ const NotificationSection = ({ userId }) => {
       'session-rejected',
       'session-cancelled',
       'session-requested',
+      'interview-requested',
+      'interview-approved',
+      'interview-rejected',
+      'interview-started',
+      'interview-cancelled',
     ];
     const skillmateTypes = [
       'skillmate-requested',
@@ -480,10 +490,10 @@ const NotificationSection = ({ userId }) => {
       {show && (
         <div
           ref={dropdownRef}
-          className="absolute right-0 mt-3 w-[95vw] max-w-md sm:w-[28rem] bg-white rounded-2xl shadow-2xl z-[5100] overflow-hidden border border-gray-100"
+          className="fixed sm:absolute left-0 sm:left-auto right-0 top-[60px] sm:top-auto sm:mt-3 w-full sm:w-[90vw] sm:max-w-md md:w-[28rem] bg-white sm:rounded-2xl rounded-b-2xl shadow-2xl z-[5100] overflow-hidden border-t sm:border border-gray-100 max-h-[calc(100vh-60px)] sm:max-h-[85vh] flex flex-col"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 flex-shrink-0">
             <h3 className="font-semibold text-lg text-gray-900">Notifications</h3>
             <button
               className="text-xs text-gray-500 hover:text-blue-600 hover:underline transition-colors duration-200 font-medium"
@@ -494,19 +504,19 @@ const NotificationSection = ({ userId }) => {
           </div>
           
           {/* Tabs */}
-          <div className="flex bg-white border-b border-gray-100 px-2">
+          <div className="flex bg-white border-b border-gray-100 px-1 sm:px-2 flex-shrink-0">
             <button
-              className={`flex-1 py-3 px-4 text-sm font-medium relative transition-all duration-200 ${
+              className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium relative transition-all duration-200 ${
                 activeTab === 'all'
                   ? 'text-blue-600'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
               onClick={() => setActiveTab('all')}
             >
-              <span className="flex items-center justify-center gap-2">
-                All
+              <span className="flex items-center justify-center gap-1 sm:gap-2">
+                <span className="whitespace-nowrap">All</span>
                 {unreadCounts.all > 0 && (
-                  <span className="bg-blue-100 text-blue-600 text-[10px] font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  <span className="bg-blue-100 text-blue-600 text-[9px] sm:text-[10px] font-semibold rounded-full px-1.5 sm:px-2 py-0.5 min-w-[18px] sm:min-w-[20px] text-center">
                     {unreadCounts.all}
                   </span>
                 )}
@@ -516,17 +526,17 @@ const NotificationSection = ({ userId }) => {
               )}
             </button>
             <button
-              className={`flex-1 py-3 px-4 text-sm font-medium relative transition-all duration-200 ${
+              className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium relative transition-all duration-200 ${
                 activeTab === 'session'
                   ? 'text-blue-600'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
               onClick={() => setActiveTab('session')}
             >
-              <span className="flex items-center justify-center gap-2">
-                Session
+              <span className="flex items-center justify-center gap-1 sm:gap-2">
+                <span className="whitespace-nowrap">Session</span>
                 {unreadCounts.session > 0 && (
-                  <span className="bg-blue-100 text-blue-600 text-[10px] font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  <span className="bg-blue-100 text-blue-600 text-[9px] sm:text-[10px] font-semibold rounded-full px-1.5 sm:px-2 py-0.5 min-w-[18px] sm:min-w-[20px] text-center">
                     {unreadCounts.session}
                   </span>
                 )}
@@ -536,17 +546,17 @@ const NotificationSection = ({ userId }) => {
               )}
             </button>
             <button
-              className={`flex-1 py-3 px-4 text-sm font-medium relative transition-all duration-200 ${
+              className={`flex-1 py-2.5 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium relative transition-all duration-200 ${
                 activeTab === 'skillmate'
                   ? 'text-blue-600'
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
               onClick={() => setActiveTab('skillmate')}
             >
-              <span className="flex items-center justify-center gap-2">
-                SkillMate
+              <span className="flex items-center justify-center gap-1 sm:gap-2">
+                <span className="whitespace-nowrap">SkillMate</span>
                 {unreadCounts.skillmate > 0 && (
-                  <span className="bg-blue-100 text-blue-600 text-[10px] font-semibold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                  <span className="bg-blue-100 text-blue-600 text-[9px] sm:text-[10px] font-semibold rounded-full px-1.5 sm:px-2 py-0.5 min-w-[18px] sm:min-w-[20px] text-center">
                     {unreadCounts.skillmate}
                   </span>
                 )}
@@ -558,9 +568,9 @@ const NotificationSection = ({ userId }) => {
           </div>
           
           {/* Notifications List */}
-          <ul className="max-h-[65vh] overflow-y-auto bg-gray-50">
+          <ul className="flex-1 overflow-y-auto bg-gray-50">
             {filteredNotifications.length === 0 ? (
-              <li className="px-6 py-12 text-center">
+              <li className="px-4 sm:px-6 py-8 sm:py-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                   <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -573,7 +583,7 @@ const NotificationSection = ({ userId }) => {
                 return (
                 <li
                   key={n._id || idx}
-                  className="notification-item mx-3 my-3 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
+                  className="notification-item mx-2 sm:mx-3 my-2 sm:my-3 bg-white rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden"
                 >
                   {n.type === 'session-requested' && n.sessionRequest ? (
                     <SessionRequestNotification
@@ -744,6 +754,190 @@ const NotificationSection = ({ userId }) => {
                       </div>
                       <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'Your session has been cancelled.'}
+                      </p>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
+                    </div>
+                  ) : n.type === 'interview-requested' ? (
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Interview Requested</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
+                        {!n.read && (
+                          <span className="flex items-center justify-center w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0"></span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 mb-3">
+                        {n.message || 'You have a new interview request.'}
+                      </p>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
+                    </div>
+                  ) : n.type === 'interview-approved' ? (
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Interview Approved</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
+                        {!n.read && (
+                          <span className="flex items-center justify-center w-2 h-2 bg-green-600 rounded-full flex-shrink-0"></span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 mb-3">
+                        {n.message || 'Your interview request has been approved.'}
+                      </p>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
+                    </div>
+                  ) : n.type === 'interview-rejected' ? (
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Interview Rejected</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
+                        {!n.read && (
+                          <span className="flex items-center justify-center w-2 h-2 bg-red-600 rounded-full flex-shrink-0"></span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 mb-3">
+                        {n.message || 'Your interview request has been rejected.'}
+                      </p>
+                      <button
+                        onClick={() => handleNotificationRead(n._id, idx)}
+                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                      >
+                        Mark as Read
+                      </button>
+                    </div>
+                  ) : n.type === 'interview-started' ? (
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Interview Started</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
+                        {!n.read && (
+                          <span className="flex items-center justify-center w-2 h-2 bg-indigo-600 rounded-full flex-shrink-0"></span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 mb-4">
+                        {n.message || 'Your interview has started! Click Join to begin.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (n.interviewId) {
+                              navigate(`/interview/${n.interviewId}`);
+                              setShow(false);
+                            }
+                            handleNotificationRead(n._id, idx);
+                          }}
+                          className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          Join Interview
+                        </button>
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  ) : n.type === 'interview-cancelled' ? (
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-sm">Interview Cancelled</h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleTimeString('en-US', {
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                          </div>
+                        </div>
+                        {!n.read && (
+                          <span className="flex items-center justify-center w-2 h-2 bg-orange-600 rounded-full flex-shrink-0"></span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 mb-3">
+                        {n.message || 'Your interview has been cancelled.'}
                       </p>
                       <button
                         onClick={() => handleNotificationRead(n._id, idx)}
