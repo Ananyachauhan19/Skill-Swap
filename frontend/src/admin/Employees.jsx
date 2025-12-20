@@ -531,7 +531,7 @@ const Employees = () => {
 
               {!editingEmployee && (
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-700">Initial password</label>
+                  <label className="text-xs font-medium text-gray-700">Password</label>
                   <div className="relative">
                     <FiKey className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                     <input
@@ -540,13 +540,10 @@ const Employees = () => {
                       value={form.password}
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Temporary password"
+                      placeholder="Password"
                       required
                     />
                   </div>
-                  <p className="text-[11px] text-gray-500">
-                    They will be forced to change this password on first login.
-                  </p>
                 </div>
               )}
 
