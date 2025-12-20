@@ -21,6 +21,8 @@ const tutorApplicationSchema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'approved', 'rejected', 'reverted'], default: 'pending' },
   submittedAt: { type: Date, default: Date.now },
   approvedAt: { type: Date },
+  approvedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+  rejectedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
   rejectionReason: { type: String },
 });
 

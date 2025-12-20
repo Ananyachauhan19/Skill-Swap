@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const requireAuth = require('../middleware/requireAuth');
 const requireAdmin = require('../middleware/requireAdmin');
+const { requireEmployee, requireEmployeeAccess } = require('../middleware/requireEmployee');
 const ctrl = require('../controllers/interviewController');
 
 // Create interview request (by logged-in user)
@@ -13,8 +14,10 @@ router.post('/apply', requireAuth, ctrl.applyInterviewer);
 // Public: list approved interviewers (filter by company/position)
 router.get('/interviewers', requireAuth, ctrl.getApprovedInterviewers);
 
-// Admin: list all interviewer applications
+// Admin / employee: list all interviewer applications
 router.get('/applications', requireAuth, ctrl.listApplications);
+// Employee-only listing with explicit access check (interviewer approval module)
+router.get('/employee/applications', requireEmployee, requireEmployeeAccess('interviewer'), ctrl.listApplications);
 
 // Get current user's application
 router.get('/application', requireAuth, ctrl.getMyApplication);
@@ -23,6 +26,10 @@ router.get('/application', requireAuth, ctrl.getMyApplication);
 router.post('/applications/:id/approve', requireAuth, requireAdmin, ctrl.approveApplication);
 // Admin reject application
 router.post('/applications/:id/reject', requireAuth, requireAdmin, ctrl.rejectApplication);
+
+// Employee approve/reject interviewer application (interview-expert module)
+router.post('/employee/applications/:id/approve', requireEmployee, requireEmployeeAccess('interviewer'), ctrl.approveApplication);
+router.post('/employee/applications/:id/reject', requireEmployee, requireEmployeeAccess('interviewer'), ctrl.rejectApplication);
 
 // Get requests for user (or all if admin)
 router.get('/requests', requireAuth, ctrl.getUserRequests);

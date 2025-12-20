@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const requireAuth = require('../middleware/requireAuth');
 const requireAdmin = require('../middleware/requireAdmin');
+const { requireEmployee, requireEmployeeAccess } = require('../middleware/requireEmployee');
 const tutor = require('../controllers/tutorController');
 
 // User submits application
@@ -21,5 +22,10 @@ router.post('/tutor/skills/revert-pending', requireAuth, tutor.revertPendingUpda
 router.get('/admin/tutor/applications', requireAuth, requireAdmin, tutor.list);
 router.put('/admin/tutor/applications/:id/approve', requireAuth, requireAdmin, tutor.approve);
 router.put('/admin/tutor/applications/:id/reject', requireAuth, requireAdmin, tutor.reject);
+
+// Employee tutor-approval routes (Employee dashboard)
+router.get('/employee/tutor/applications', requireEmployee, requireEmployeeAccess('tutor'), tutor.list);
+router.put('/employee/tutor/applications/:id/approve', requireEmployee, requireEmployeeAccess('tutor'), tutor.approve);
+router.put('/employee/tutor/applications/:id/reject', requireEmployee, requireEmployeeAccess('tutor'), tutor.reject);
 
 module.exports = router;

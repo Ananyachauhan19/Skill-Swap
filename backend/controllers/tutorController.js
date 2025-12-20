@@ -4,6 +4,32 @@ const TutorApplication = require('../models/TutorApplication');
 const User = require('../models/User');
 const supabase = require('../utils/supabaseClient');
 
+// Helper: check whether a tutor application is within an employee's
+// allowed class/subject scope. If either allowedClasses or
+// allowedSubjects is empty, that dimension is treated as "all".
+const isApplicationAllowedForEmployee = (employee, app) => {
+  if (!employee) return true; // admin routes
+
+  const allowedClasses = Array.isArray(employee.allowedClasses)
+    ? employee.allowedClasses
+    : [];
+  const allowedSubjects = Array.isArray(employee.allowedSubjects)
+    ? employee.allowedSubjects
+    : [];
+
+  const allowAllClasses = allowedClasses.length === 0;
+  const allowAllSubjects = allowedSubjects.length === 0;
+
+  if (allowAllClasses && allowAllSubjects) return true;
+
+  const skills = Array.isArray(app.skills) ? app.skills : [];
+  return skills.some((s) => {
+    const clsOk = allowAllClasses || allowedClasses.includes(s.class);
+    const subjOk = allowAllSubjects || allowedSubjects.includes(s.subject);
+    return clsOk && subjOk;
+  });
+};
+
 // Multer memory storage (we upload directly to Supabase; no local persistence needed)
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -205,17 +231,29 @@ exports.prefillApplyDefaults = async (req, res) => {
   }
 };
 
-// Admin list all applications
+// Admin / employee list all applications
 exports.list = async (req, res) => {
   try {
     // Include tutor activation fields (no countdown anymore, activation is immediate)
-    const apps = await TutorApplication.find().populate('user', 'username email firstName lastName isTutor skillsToTeach');
+    const apps = await TutorApplication.find().populate(
+      'user',
+      'username email firstName lastName isTutor skillsToTeach',
+    );
+
+    // For employees, restrict visibility based on allowedClasses/allowedSubjects.
+    if (req.employee) {
+      const filtered = apps.filter((app) => isApplicationAllowedForEmployee(req.employee, app));
+      return res.status(200).json(filtered);
+    }
+
+    // Admins see all applications
     return res.status(200).json(apps);
   } catch (e) {
     return res.status(500).json({ message: 'Server error', details: e.message });
   }
 };
 
+// Admin / employee approve
 exports.approve = async (req, res) => {
   try {
     const { id } = req.params;
@@ -223,8 +261,17 @@ exports.approve = async (req, res) => {
     if (!app) return res.status(404).json({ message: 'Application not found' });
     if (app.status === 'approved') return res.status(400).json({ message: 'Already approved' });
 
+    // Enforce employee tutor-scope permissions
+    if (req.employee && !isApplicationAllowedForEmployee(req.employee, app)) {
+      return res.status(403).json({ message: 'Not authorized to approve this tutor application' });
+    }
+
     app.status = 'approved';
     app.approvedAt = new Date();
+    if (req.employee) {
+      app.approvedByEmployee = req.employee._id;
+      app.rejectedByEmployee = undefined;
+    }
     await app.save();
 
     // Activate tutor features immediately upon approval
@@ -262,6 +309,7 @@ exports.approve = async (req, res) => {
   }
 };
 
+// Admin / employee reject
 exports.reject = async (req, res) => {
   try {
     const { id } = req.params;
@@ -269,8 +317,17 @@ exports.reject = async (req, res) => {
     const app = await TutorApplication.findById(id);
     if (!app) return res.status(404).json({ message: 'Application not found' });
 
+    // Enforce employee tutor-scope permissions
+    if (req.employee && !isApplicationAllowedForEmployee(req.employee, app)) {
+      return res.status(403).json({ message: 'Not authorized to reject this tutor application' });
+    }
+
     app.status = 'rejected';
     app.rejectionReason = reason || 'Not specified';
+    if (req.employee) {
+      app.rejectedByEmployee = req.employee._id;
+      app.approvedByEmployee = undefined;
+    }
     await app.save();
 
     await User.findByIdAndUpdate(app.user, { tutorActivationAt: undefined, isTutor: false });
