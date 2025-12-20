@@ -1,7 +1,7 @@
 import React from "react";
 
 const CookiesPolicy = () => (
-  <div className="max-w-3xl mx-auto px-4 py-10 text-gray-800">
+  <div className="max-w-3xl mx-auto px-4 pt-16 sm:pt-20 pb-10 text-gray-800">
     <h1 className="text-3xl font-bold mb-4">SkillSwap Hub – Cookies Policy</h1>
   <p className="mb-4 text-sm text-gray-500">This Cookies Policy applies to all Users accessing the SkillSwap Hub platform, website (<a href="https://skillswaphub.in" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">www.skillswaphub.in</a>), and associated services. By using the platform, users consent to the use of cookies and similar tracking technologies as described in this Policy. SkillSwap Hub is committed to ensuring transparency regarding the collection and use of data through cookies and maintaining users’ privacy while improving platform functionality.</p>
 

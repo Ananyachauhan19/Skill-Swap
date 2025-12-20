@@ -36,16 +36,6 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   // Duplicate images for seamless infinite loop
   const extendedImages = [...carouselImages, carouselImages[0]];
 
-  // Individual image sizing for consistent top/bottom alignment
-  const getImageStyle = (src) => {
-    // expert-connect-illustration increased by 10%
-    if (src.includes('expert-connect-illustration')) {
-      return { width: '140%', height: '110%', objectFit: 'contain', objectPosition: 'center' };
-    }
-    // All other images set to 100% for consistent alignment
-    return { width: '110%', height: '100%', objectFit: 'contain', objectPosition: 'center' };
-  };
-
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) => {
@@ -179,18 +169,22 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
               <img src="/assets/skillswap-logo.webp" alt="SkillSwap Logo" className="h-6 sm:h-7 md:h-8 w-auto" />
             </div>
 
-            <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div className="relative w-[85%] xs:w-[80%] sm:w-[75%] md:w-[70%] lg:w-[72%] max-w-[450px] aspect-square overflow-hidden p-2 sm:p-4">
+            <div className="absolute inset-0 flex items-center justify-center z-20 p-8">
+              <div className="relative w-full h-full max-w-[400px] max-h-[400px] overflow-hidden rounded-2xl">
                 <div
-                  className="flex carousel-container"
+                  className="flex carousel-container h-full"
                   style={{
                     transform: `translateX(-${100 * currentImageIndex}%)`,
                     transition: 'transform 1500ms ease-in-out',
                   }}
                 >
                   {extendedImages.map((src, idx) => (
-                    <div key={idx} className="min-w-full h-full flex items-center justify-center">
-                      <img src={src} alt={`Feature ${idx + 1}`} style={getImageStyle(src)} />
+                    <div key={idx} className="min-w-full w-full h-full flex-shrink-0 flex items-center justify-center p-4">
+                      <img 
+                        src={src} 
+                        alt={`Feature ${idx + 1}`} 
+                        className="w-full h-full object-contain"
+                      />
                     </div>
                   ))}
                 </div>

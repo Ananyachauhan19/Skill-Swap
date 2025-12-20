@@ -68,7 +68,7 @@ const GoPro = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 pt-16 sm:pt-20 pb-8 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-900 mb-4 tracking-tight">

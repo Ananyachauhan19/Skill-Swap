@@ -318,9 +318,7 @@ function App() {
             }`}
           >
             {!isAdminUser && !isAuthPage && !isRatingPage && <Navbar />}
-            <div className={location.pathname === '/home' ? '' : 'pt-8'}>
-              {element}
-            </div>
+            {element}
             {!isAdminUser && !isAuthPage && !isRatingPage && <Footer />}
           </div>
         </SkillMatesProvider>

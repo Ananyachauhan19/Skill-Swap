@@ -136,7 +136,7 @@ const RatingPage = () => {
   }, [session, rating, feedback]);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 pt-24 pb-16 px-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 pt-16 sm:pt-20 pb-16 px-4">
       <div className="max-w-xl mx-auto">
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-2xl border border-blue-100 overflow-hidden">

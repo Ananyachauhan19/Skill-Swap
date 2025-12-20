@@ -84,7 +84,7 @@ const HelpSupportPage = () => {
   }, []);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 text-gray-800 bg-gray-50 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-8 sm:pb-12 text-gray-800 bg-gray-50 min-h-screen">
       {/* Hero Section */}
       <div className="text-center mb-12 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-8 text-white">
         <h1 className="text-3xl sm:text-4xl font-bold mb-4">Help & Support</h1>

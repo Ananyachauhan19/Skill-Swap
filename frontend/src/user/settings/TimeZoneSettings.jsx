@@ -39,7 +39,8 @@ const TimeZoneSettings = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-4 sm:p-8 bg-white rounded-xl shadow border border-blue-100 mt-8">
+    <div className="min-h-screen bg-blue-50 pt-16 sm:pt-20">
+      <div className="max-w-lg mx-auto p-4 sm:p-8 bg-white rounded-xl shadow border border-blue-100 mt-8">
       <h1 className="text-2xl font-bold mb-6 text-blue-900 text-center">Time Zone Settings</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <select
@@ -57,6 +58,7 @@ const TimeZoneSettings = () => {
       </form>
       {message && <p className="text-green-600 text-sm mt-2 text-center">{message}</p>}
       {error && <p className="text-red-600 text-sm mt-2 text-center">{error}</p>}
+      </div>
     </div>
   );
 };

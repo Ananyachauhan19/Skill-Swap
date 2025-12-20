@@ -1,7 +1,7 @@
 import React from "react";
 
 const TermsConditions = () => (
-  <div className="max-w-3xl mx-auto px-4 py-10 text-gray-800">
+  <div className="max-w-3xl mx-auto px-4 pt-16 sm:pt-20 pb-10 text-gray-800">
     <h1 className="text-3xl font-bold mb-4">SkillSwap Hub – Terms &amp; Conditions</h1>
     <p className="text-sm text-gray-500 mb-6">Last Updated: August 2025</p>
   <p className="mb-4">These Terms &amp; Conditions apply to all Users accessing the SkillSwap Hub platform, website (<a href="https://skillswaphub.in" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">www.skillswaphub.in</a>), and associated services. By using the platform, users provide implied consent to these Terms. Users are strongly encouraged to read and understand these terms fully before accessing or using the platform. SkillSwap Hub reserves the right to enforce these terms at all times and to update them periodically to reflect the platform’s evolving operations, features, and legal obligations.</p>

@@ -33,7 +33,7 @@ const EmailSettings = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center justify-center">
+    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 sm:pt-20">
       <div className="max-w-lg w-full p-6 bg-white rounded-xl shadow border border-blue-100 mt-8 mx-auto">
         <h2 className="text-xl font-bold mb-4 text-center">Update Email Address</h2>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit}>

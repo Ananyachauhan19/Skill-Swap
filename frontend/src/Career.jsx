@@ -1,7 +1,7 @@
 import React from "react";
 
 const Career = () => (
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 text-gray-800">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-6 sm:pb-10 text-gray-800">
     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 text-center lg:text-left">Careers at SkillSwap Hub</h1>
     <p className="mb-4">At SkillSwap Hub, we believe that learning never stops. We’re building the world’s first peer-to-peer micro-tutoring and skill-exchange ecosystem where anyone can <b>Teach what you know, Learn what you don’t – and Earn while you do!</b></p>
     <p className="mb-4">Joining SkillSwap Hub means becoming part of a revolutionary mission:</p>

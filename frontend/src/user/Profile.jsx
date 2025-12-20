@@ -411,7 +411,7 @@ const Profile = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-blue-50 pt-24 px-2 sm:px-4 md:px-8 lg:px-12 py-8 ${editMode ? 'edit-mode-bg' : ''}`}>
+    <div className={`min-h-screen bg-blue-50 pt-16 sm:pt-20 px-2 sm:px-4 md:px-8 lg:px-12 pb-8 ${editMode ? 'edit-mode-bg' : ''}`}>
       <Toaster position="top-center" />
       {loading && <div>Loading...</div>}
       {error && <div className="text-red-500">{error}</div>}

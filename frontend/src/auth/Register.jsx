@@ -55,16 +55,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   ];
   const extendedImages = [...carouselImages, carouselImages[0]]; // Append first image for seamless loop
 
-  // Individual image sizing for consistent top/bottom alignment
-  const getImageStyle = (src) => {
-    // expert-connect-illustration increased by 10%
-    if (src.includes('expert-connect-illustration')) {
-      return { width: '110%', height: '110%', objectFit: 'contain', objectPosition: 'center' };
-    }
-    // All other images set to 100% for consistent alignment
-    return { width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center' };
-  };
-
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -254,21 +244,21 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
               />
             </div>
 
-            <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div className="relative w-[75%] lg:w-[72%] max-w-[450px] aspect-square overflow-hidden p-4">
+            <div className="absolute inset-0 flex items-center justify-center z-20 p-8">
+              <div className="relative w-full h-full max-w-[350px] max-h-[350px] overflow-hidden rounded-2xl">
                 <div
-                  className="flex carousel-container"
+                  className="flex carousel-container h-full"
                   style={{
                     transform: `translateX(-${100 * currentImageIndex}%)`,
                     transition: 'transform 1500ms ease-in-out',
                   }}
                 >
                   {extendedImages.map((src, idx) => (
-                    <div key={idx} className="min-w-full h-full flex items-center justify-center">
+                    <div key={idx} className="min-w-full w-full h-full flex-shrink-0 flex items-center justify-center p-4">
                       <img
                         src={src}
                         alt={`Feature ${idx + 1}`}
-                        style={getImageStyle(src)}
+                        className="w-full h-full object-contain"
                       />
                     </div>
                   ))}

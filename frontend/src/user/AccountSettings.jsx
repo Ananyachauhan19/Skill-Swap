@@ -108,7 +108,7 @@ const AccountSettings = () => {
   };
 
   return (
-    <div className="min-h-screen p-4 bg-gradient-to-b from-[#f0f6ff] to-white font-sans">
+    <div className="min-h-screen pt-16 sm:pt-20 px-4 pb-4 bg-gradient-to-b from-[#f0f6ff] to-white font-sans">
       <div className="flex flex-1 mt-[3%] gap-6">
         <aside className="sticky top-[3%] w-64 h-fit bg-blue-50/90 backdrop-blur-sm p-6 shadow-lg">
           <div className="flex items-center gap-3 pb-4 mb-4 border-b border-gray-200">

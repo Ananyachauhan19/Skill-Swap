@@ -192,7 +192,7 @@ const About = () => {
   };
 
   return (
-    <div className="min-h-screen bg-home-bg">
+    <div className="min-h-screen bg-home-bg pt-16 sm:pt-20">
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-[#0A2540] to-[#1e3a8a] text-white overflow-hidden">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgdmlld0JveD0iMCAwIDYwIDYwIj48ZyBmaWxsPSJub25lIiBzdHJva2U9IiMzODg0ZTMiIHN0cm9rZS13aWR0aD0iMSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMTUiLz48L2c+PC9zdmc+')] opacity-10"></div>

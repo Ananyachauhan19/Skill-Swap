@@ -99,7 +99,7 @@ const TutorVerificationStatus = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-16 sm:pt-20 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin h-12 w-12 border-4 border-blue-900 border-t-transparent rounded-full mx-auto mb-4"></div>
           <p className="text-sm text-gray-600">Loading status...</p>
@@ -109,8 +109,8 @@ const TutorVerificationStatus = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-      <div className="max-w-4xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-16 sm:pt-20">
+      <div className="max-w-4xl mx-auto px-6 pb-12">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-blue-900 mb-3">Tutor Verification Status</h1>
