@@ -176,7 +176,7 @@ exports.prefillApplyDefaults = async (req, res) => {
   }
 };
 
-// Admin list all applications
+// Admin / employee list all applications
 exports.list = async (req, res) => {
   try {
     // Include tutor activation fields (no countdown anymore, activation is immediate)
@@ -187,6 +187,7 @@ exports.list = async (req, res) => {
   }
 };
 
+// Admin / employee approve
 exports.approve = async (req, res) => {
   try {
     const { id } = req.params;
@@ -196,6 +197,10 @@ exports.approve = async (req, res) => {
 
     app.status = 'approved';
     app.approvedAt = new Date();
+    if (req.employee) {
+      app.approvedByEmployee = req.employee._id;
+      app.rejectedByEmployee = undefined;
+    }
     await app.save();
 
     // Activate tutor features immediately upon approval
@@ -233,6 +238,7 @@ exports.approve = async (req, res) => {
   }
 };
 
+// Admin / employee reject
 exports.reject = async (req, res) => {
   try {
     const { id } = req.params;
@@ -242,6 +248,10 @@ exports.reject = async (req, res) => {
 
     app.status = 'rejected';
     app.rejectionReason = reason || 'Not specified';
+    if (req.employee) {
+      app.rejectedByEmployee = req.employee._id;
+      app.approvedByEmployee = undefined;
+    }
     await app.save();
 
     await User.findByIdAndUpdate(app.user, { tutorActivationAt: undefined, isTutor: false });

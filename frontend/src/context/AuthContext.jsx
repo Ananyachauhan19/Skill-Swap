@@ -41,12 +41,14 @@ export function AuthProvider({ children }) {
         setIsAuthenticated(false);
       }
     } catch (error) {
-      console.error('Failed to fetch user:', error);
-      if (error.response && error.response.status === 401) {
+      // Treat 401 as an expected "not logged in" state to avoid noisy errors
+      const status = error?.response?.status;
+      if (status === 401) {
         clearAuthData();
         setUser(null);
         setIsAuthenticated(false);
       } else {
+        console.error('Failed to fetch user:', error);
         setIsAuthenticated(null);
       }
     } finally {

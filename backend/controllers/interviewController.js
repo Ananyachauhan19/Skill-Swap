@@ -215,9 +215,12 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
 // Returns unified list: interviewer applications (type='interview-expert') + tutor role users (type='tutor').
 exports.listApplications = async (req, res) => {
   try {
-    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
-    if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
-      return res.status(403).json({ message: 'Forbidden' });
+    // Admin-only via email check OR authenticated employee (handled by route-level middleware)
+    if (!req.employee) {
+      const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
+      if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
     }
 
     const { status = 'all', search = '', category = 'all', startDate = '', endDate = '' } = req.query;
@@ -314,18 +317,24 @@ exports.listApplications = async (req, res) => {
   }
 };
 
-// Admin approves an application
+// Admin / employee approves an application
 exports.approveApplication = async (req, res) => {
   try {
-    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
-    if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
-      return res.status(403).json({ message: 'Forbidden' });
+    if (!req.employee) {
+      const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
+      if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
     }
     const { id } = req.params;
     console.info('[DEBUG] approveApplication called by admin:', req.user && req.user._id ? req.user._id.toString() : req.user, 'appId:', id);
     const app = await InterviewerApplication.findById(id).populate('user');
     if (!app) return res.status(404).json({ message: 'Application not found' });
     app.status = 'approved';
+    if (req.employee) {
+      app.approvedByEmployee = req.employee._id;
+      app.rejectedByEmployee = undefined;
+    }
     await app.save();
 
     // Mark user as interviewer by adding their expertise into profile (simple approach)
@@ -388,18 +397,24 @@ exports.approveApplication = async (req, res) => {
   }
 };
 
-// Admin rejects an application
+// Admin / employee rejects an application
 exports.rejectApplication = async (req, res) => {
   try {
-    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
-    if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
-      return res.status(403).json({ message: 'Forbidden' });
+    if (!req.employee) {
+      const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
+      if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
     }
     const { id } = req.params;
     console.info('[DEBUG] rejectApplication called by admin:', req.user && req.user._id ? req.user._id.toString() : req.user, 'appId:', id);
     const app = await InterviewerApplication.findById(id).populate('user');
     if (!app) return res.status(404).json({ message: 'Application not found' });
     app.status = 'rejected';
+    if (req.employee) {
+      app.rejectedByEmployee = req.employee._id;
+      app.approvedByEmployee = undefined;
+    }
     await app.save();
 
     const io = req.app.get('io');

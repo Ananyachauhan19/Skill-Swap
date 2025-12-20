@@ -112,7 +112,7 @@ const GoPro = () => {
                   </div>
                   <p className="ml-3">
                     <b>Silver Coin Packages:</b> Buy Silver Skill Coins for live
-                    1-on-1 sessions. <b>Worth:</b> ₹0.25 per Silver Skill Coin.
+                    1-on-1 sessions.
                   </p>
                 </li>
                 <li className="flex items-start">
@@ -121,8 +121,7 @@ const GoPro = () => {
                   </div>
                   <p className="ml-3">
                     <b>Golden Coin Packages:</b> Buy Golden Skill Coins for
-                    unlocking premium content. <b>Worth:</b> ₹2 per Golden Skill
-                    Coin.
+                    unlocking premium content. 
                   </p>
                 </li>
                 <li className="flex items-start">
@@ -243,7 +242,7 @@ const GoPro = () => {
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   </div>
                   <p className="ml-3">
-                    <b>Group Discussions:</b> ₹1500 per head for each GD session
+                    <b>Group Discussions:</b> ₹500 per head for each GD session
                   </p>
                 </li>
                 <li className="flex items-start">
@@ -251,7 +250,7 @@ const GoPro = () => {
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   </div>
                   <p className="ml-3">
-                    <b>Interview Rounds:</b> ₹500 per head per interview session
+                    <b>Interview Rounds:</b> ₹1500 per head per interview session
                   </p>
                 </li>
                 <li className="flex items-start">

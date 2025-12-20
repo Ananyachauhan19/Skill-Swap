@@ -28,23 +28,31 @@ const dateRangeOptions = [
   { id: 'custom', label: 'Custom Range' },
 ];
 
-export default function Applications() {
+export default function Applications({ mode = 'admin', allowedCategories, initialCategory }) {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState({});
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
-  const [category, setCategory] = useState('interview-expert');
   const [selectedId, setSelectedId] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailTab, setDetailTab] = useState('overview');
+  // Restore category and status for admin, set sensible defaults for employee
+  const [category, setCategory] = useState(initialCategory || 'interview-expert');
+  const [status, setStatus] = useState('all');
+  const [viewMode, setViewMode] = useState(mode === 'employee' ? 'comfortable' : 'comfortable');
+  // Add search and date filter state for employee mode (since top bar is removed)
+  const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [viewMode, setViewMode] = useState('comfortable'); // 'compact' | 'comfortable'
-  const debounceRef = useRef(null);
   useAuth();
+
+  const visibleCategoryOptions = useMemo(() => {
+    if (!allowedCategories || !Array.isArray(allowedCategories) || !allowedCategories.length) {
+      return categoryOptions;
+    }
+    return categoryOptions.filter(opt => allowedCategories.includes(opt.id));
+  }, [allowedCategories]);
 
   const getDateRange = (filter) => {
     const today = new Date();
@@ -80,8 +88,12 @@ export default function Applications() {
       setLoading(true); setError(null);
       let list = [];
       if (effectiveCategory === 'tutor') {
-        // Tutor applications use a separate admin endpoint without query filters.
-        const res = await axios.get(`${BACKEND_URL}/api/admin/tutor/applications`, { withCredentials: true });
+        // Tutor applications use separate endpoints for admin vs employee.
+        const tutorUrl =
+          mode === 'employee'
+            ? `${BACKEND_URL}/api/employee/tutor/applications`
+            : `${BACKEND_URL}/api/admin/tutor/applications`;
+        const res = await axios.get(tutorUrl, { withCredentials: true });
         list = Array.isArray(res.data) ? res.data : [];
         // Client-side filter by status
         if (effectiveStatus !== 'all') {
@@ -109,7 +121,11 @@ export default function Applications() {
         if (start) params.startDate = start.toISOString().split('T')[0];
         if (end) params.endDate = end.toISOString().split('T')[0];
         const qs = new URLSearchParams(params);
-        const res = await fetch(`${BACKEND_URL}/api/interview/applications?${qs.toString()}`, { credentials: 'include' });
+        const baseUrl =
+          mode === 'employee'
+            ? `${BACKEND_URL}/api/interview/employee/applications`
+            : `${BACKEND_URL}/api/interview/applications`;
+        const res = await fetch(`${baseUrl}?${qs.toString()}`, { credentials: 'include' });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error((data && data.message) || 'Failed to load applications');
         list = data.applications || data || [];
@@ -123,21 +139,35 @@ export default function Applications() {
 
   useEffect(() => { fetchApps(); /* eslint-disable-next-line */ }, []);
 
+  // Only use effect for admin mode filters
+  // For employee mode, sidebar tab selection triggers fetchApps
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => { fetchApps({}); }, 300);
-    return () => debounceRef.current && clearTimeout(debounceRef.current);
+    if (mode !== 'employee') {
+      // debounce filter/search for admin mode
+      const debounceRef = { current: null };
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => { fetchApps({}); }, 300);
+      return () => debounceRef.current && clearTimeout(debounceRef.current);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, status, category, dateFilter, customStartDate, customEndDate]);
+  }, [mode]);
 
   const approve = async (id) => {
     if (!window.confirm('Approve this application?')) return;
     try {
       setActionLoading(prev => ({ ...prev, [id]: true }));
       if (category === 'tutor') {
-        await axios.put(`${BACKEND_URL}/api/admin/tutor/applications/${id}/approve`, {}, { withCredentials: true });
+        const tutorUrl =
+          mode === 'employee'
+            ? `${BACKEND_URL}/api/employee/tutor/applications/${id}/approve`
+            : `${BACKEND_URL}/api/admin/tutor/applications/${id}/approve`;
+        await axios.put(tutorUrl, {}, { withCredentials: true });
       } else {
-        const res = await fetch(`${BACKEND_URL}/api/interview/applications/${id}/approve`, { method: 'POST', credentials: 'include' });
+        const baseUrl =
+          mode === 'employee'
+            ? `${BACKEND_URL}/api/interview/employee/applications/${id}/approve`
+            : `${BACKEND_URL}/api/interview/applications/${id}/approve`;
+        const res = await fetch(baseUrl, { method: 'POST', credentials: 'include' });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.message || 'Approve failed');
       }
@@ -152,9 +182,17 @@ export default function Applications() {
     try {
       setActionLoading(prev => ({ ...prev, [id]: true }));
       if (category === 'tutor') {
-        await axios.put(`${BACKEND_URL}/api/admin/tutor/applications/${id}/reject`, { reason }, { withCredentials: true });
+        const tutorUrl =
+          mode === 'employee'
+            ? `${BACKEND_URL}/api/employee/tutor/applications/${id}/reject`
+            : `${BACKEND_URL}/api/admin/tutor/applications/${id}/reject`;
+        await axios.put(tutorUrl, { reason }, { withCredentials: true });
       } else {
-        const res = await fetch(`${BACKEND_URL}/api/interview/applications/${id}/reject`, { method: 'POST', credentials: 'include' });
+        const baseUrl =
+          mode === 'employee'
+            ? `${BACKEND_URL}/api/interview/employee/applications/${id}/reject`
+            : `${BACKEND_URL}/api/interview/applications/${id}/reject`;
+        const res = await fetch(baseUrl, { method: 'POST', credentials: 'include' });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.message || 'Reject failed');
       }
@@ -605,139 +643,8 @@ export default function Applications() {
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Top Control Bar */}
-      <div className="flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
-        <div className="px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-semibold text-gray-900">Applications</h1>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <span className="font-medium">{applications.length}</span>
-                <span>results</span>
-              </div>
-              <div className="h-5 w-px bg-gray-300"></div>
-              <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('comfortable')}
-                  className={`p-1.5 rounded transition-colors ${
-                    viewMode === 'comfortable'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  title="Comfortable view"
-                >
-                  <FiGrid size={16} />
-                </button>
-                <button
-                  onClick={() => setViewMode('compact')}
-                  className={`p-1.5 rounded transition-colors ${
-                    viewMode === 'compact'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                  title="Compact view"
-                >
-                  <FiList size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Filters Row */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search */}
-            <div className="relative flex-1 min-w-[280px]">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name, email, company..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            {/* Category Dropdown */}
-            <div className="relative">
-              <select
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value);
-                  setSelectedId(null);
-                  setDrawerOpen(false);
-                }}
-                className="appearance-none pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-              >
-                {categoryOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-              <FiUsers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-              <FiFilter className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-            </div>
-
-            {/* Status Dropdown */}
-            <div className="relative">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-              >
-                {statusOptions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    Status: {s.label}
-                  </option>
-                ))}
-              </select>
-              <FiFilter className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-            </div>
-
-            {/* Date Range Dropdown */}
-            <div className="relative">
-              <select
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="appearance-none pl-9 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-              >
-                {dateRangeOptions.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.label}
-                  </option>
-                ))}
-              </select>
-              <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-              <FiFilter className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-            </div>
-          </div>
-
-          {/* Custom Date Range */}
-          {dateFilter === 'custom' && (
-            <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-200">
-              <span className="text-sm font-medium text-gray-700">From:</span>
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <span className="text-sm font-medium text-gray-700">To:</span>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          )}
-
-          {error && (
-            <div className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {error}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Top Control Bar: Only show for admin mode, not employee */}
+      {mode !== 'employee' && <></>}
 
       {/* Main Content Area - Two Column Layout */}
       <div className="flex-1 flex overflow-hidden">

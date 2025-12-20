@@ -15,6 +15,7 @@ const { trackDailyLogin, trackActivity, ACTIVITY_TYPES } = require('../utils/con
 const crypto = require('crypto');
 const { sendMail } = require('../utils/sendMail');
 const T = require('../utils/emailTemplates');
+const jwt = require('jsonwebtoken');
 
 // Sanitize array fields to remove invalid keys (e.g., _id)
 const sanitizeArrayFields = (data, validKeys) => {
@@ -952,14 +953,43 @@ router.post('/live/:id/archive', requireAuth, async (req, res) => {
   }
 });
 
-// Return the logged-in user using the cookie JWT
-router.get('/me', requireAuth, (req, res) => {
-  console.info('[DEBUG] /me called, session:', req.sessionID, 'user:', req.user?._id);
-  if (!req.sessionID || !req.user) {
-    console.info('[DEBUG] No valid session or user for /me');
-    return res.status(401).json({ message: 'No user logged in', user: null });
+// Return the logged-in user using the cookie JWT.
+// This is a "soft" auth check: if there is no valid token, we
+// simply return { user: null } with 200 instead of a 401 to avoid
+// noisy browser errors during unauthenticated visits.
+router.get('/me', async (req, res) => {
+  try {
+    let token;
+    const authHeader = req.headers.authorization;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
+
+    if (!token) {
+      return res.status(200).json({ user: null });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (e) {
+      // Invalid/expired token – treat as logged out
+      return res.status(200).json({ user: null });
+    }
+
+    const user = await User.findById(decoded.id).select('-password');
+    if (!user) {
+      return res.status(200).json({ user: null });
+    }
+
+    return res.json({ user });
+  } catch (err) {
+    console.error('[DEBUG] /me error:', err);
+    return res.status(500).json({ message: 'Failed to fetch current user' });
   }
-  res.json({ user: req.user });
 });
 
 module.exports = router;

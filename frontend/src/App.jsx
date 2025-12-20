@@ -11,6 +11,7 @@ import { ToastProvider } from './components/ToastProvider.jsx';
 import ToastSocketBridge from './components/ToastSocketBridge.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext.jsx';
+import { useEmployeeAuth } from './context/EmployeeAuthContext.jsx';
 import RegisterInterviewer from './user/RegisterInterviewer.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
 import socket from './socket';
@@ -72,6 +73,11 @@ import TutorVerification from './admin/TutorVerification.jsx';
 import ForgotPassword from './auth/ForgotPassword.jsx';
 import ResetPassword from './auth/ResetPassword.jsx';
 import Reports from './admin/Reports.jsx';
+import Employees from './admin/Employees.jsx';
+import EmployeeRoute from './routes/EmployeeRoute.jsx';
+import EmployeeLayout from './employee/EmployeeLayout.jsx';
+import EmployeeDashboard from './employee/EmployeeDashboard.jsx';
+import EmployeeApplicationsPage from './employee/EmployeeApplicationsPage.jsx';
 
 // Define full (regular user) routes
 const appRoutes = [
@@ -116,6 +122,20 @@ const appRoutes = [
   { path: '/teaching-history', element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> },
   { path: '/blog', element: <ProtectedRoute><Blog /></ProtectedRoute> },
   { path: '/search', element: <ProtectedRoute><SearchPage /></ProtectedRoute> },
+  {
+    path: '/employee',
+    element: <EmployeeRoute />,
+    children: [
+      {
+        element: <EmployeeLayout />,
+        children: [
+          { index: true, element: <EmployeeDashboard /> },
+          { path: 'dashboard', element: <EmployeeDashboard /> },
+          { path: 'applications/:category', element: <EmployeeApplicationsPage /> },
+        ],
+      },
+    ],
+  },
   {
     path: '/admin',
     element: <AdminRoute />,
@@ -162,6 +182,7 @@ const adminOnlyRoutes = [
           { path: 'session-requests', element: <AdminSessionRequests /> },
           { path: 'skillmate-requests', element: <SkillMateRequests /> },
           { path: 'users', element: <Users /> },
+          { path: 'employees', element: <Employees /> },
           { path: 'packages', element: <AdminPackages /> },
           { path: 'reports', element: <Reports /> },
           { path: 'help-support', element: <AdminHelpSupport /> },
@@ -207,6 +228,7 @@ function ProtectedRouteWithModal({ children }) {
 
 function App() {
   const { user, loading, setUser } = useAuth();
+  const { employee } = useEmployeeAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
@@ -302,6 +324,8 @@ function App() {
     return <LoadingScreen />;
   }
 
+  // Hide Navbar and Footer for employee dashboard routes
+  const isEmployeeRoute = location.pathname.startsWith('/employee');
   return (
     <ToastProvider>
       <ToastSocketBridge />
@@ -310,16 +334,15 @@ function App() {
           <ModalBodyScrollLock />
           <GlobalModals />
           <SkillMatesModal />
-          
           {/* Main content with fade-in transition */}
-          <div 
+          <div
             className={`transition-opacity duration-500 ${
               showContent ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            {!isAdminUser && !isAuthPage && !isRatingPage && <Navbar />}
+            {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && <Navbar />}
             {element}
-            {!isAdminUser && !isAuthPage && !isRatingPage && <Footer />}
+            {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && <Footer />}
           </div>
         </SkillMatesProvider>
       </ModalProvider>

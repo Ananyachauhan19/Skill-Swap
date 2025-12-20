@@ -1,44 +1,30 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  FiHome, FiUsers, FiFileText, FiPackage, FiHelpCircle, 
-  FiSettings, FiCalendar, FiChevronLeft, FiChevronRight,
-  FiLogOut, FiAlertCircle
+import {
+  FiHome, FiFileText, FiUsers, FiLogOut, FiChevronLeft, FiChevronRight
 } from 'react-icons/fi';
-import { useAuth } from '../context/AuthContext';
+import { useEmployeeAuth } from '../context/EmployeeAuthContext.jsx';
 
-const AdminSidebar = ({ collapsed, setCollapsed }) => {
-  const { logout } = useAuth();
+const EmployeeSidebar = ({ collapsed, setCollapsed }) => {
+  const { logout, employee } = useEmployeeAuth();
   const navigate = useNavigate();
 
+  // Role-based menu
+  const access = employee?.accessPermissions || 'both';
+  const canInterviewer = access === 'interviewer' || access === 'both';
+  const canTutor = access === 'tutor' || access === 'both';
   const menuItems = [
     {
       title: 'Overview',
       items: [
-        { label: 'Dashboard', icon: FiHome, path: '/admin/dashboard' }
+        { label: 'Dashboard', icon: FiHome, path: '/employee/dashboard' }
       ]
     },
     {
-      title: 'Management',
+      title: 'Applications',
       items: [
-        { label: 'Applications', icon: FiFileText, path: '/admin/applications' },
-        { label: 'Interview Requests', icon: FiCalendar, path: '/admin/interview-requests' },
-        { label: 'Users', icon: FiUsers, path: '/admin/users' },
-        { label: 'Employees', icon: FiUsers, path: '/admin/employees' },
-        { label: 'Packages', icon: FiPackage, path: '/admin/packages' }
-      ]
-    },
-    {
-      title: 'Support',
-      items: [
-        { label: 'Help Requests', icon: FiHelpCircle, path: '/admin/help-support' },
-        { label: 'Reports', icon: FiAlertCircle, path: '/admin/reports' }
-      ]
-    },
-    {
-      title: 'System',
-      items: [
-        { label: 'Settings', icon: FiSettings, path: '/admin/settings' }
+        ...(canInterviewer ? [{ label: 'Interview Expert Applications', icon: FiFileText, path: '/employee/applications/interview-expert' }] : []),
+        ...(canTutor ? [{ label: 'Tutor Applications', icon: FiUsers, path: '/employee/applications/tutor' }] : []),
       ]
     }
   ];
@@ -49,7 +35,7 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
   };
 
   return (
-    <div 
+    <div
       className={`${
         collapsed ? 'w-20' : 'w-64'
       } bg-white border-r border-gray-200 h-screen sticky top-0 flex flex-col transition-all duration-300 ease-in-out`}
@@ -59,7 +45,7 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
         {!collapsed && (
           <div className="flex items-center gap-2">
             <img src="/assets/skillswap-logo.webp" alt="SkillSwap" className="w-8 h-8" />
-            <span className="font-bold text-blue-700 text-lg">Admin</span>
+            <span className="font-bold text-blue-700 text-lg">Employee</span>
           </div>
         )}
         <button
@@ -119,4 +105,4 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
   );
 };
 
-export default AdminSidebar;
+export default EmployeeSidebar;

@@ -14,6 +14,8 @@ const interviewerAppSchema = new mongoose.Schema({
   averageRating: { type: Number, default: 0, min: 0, max: 5 },
   totalRatings: { type: Number, default: 0 },
   conductedInterviews: { type: Number, default: 0 }, // Actual interviews conducted
+  approvedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+  rejectedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('InterviewerApplication', interviewerAppSchema);

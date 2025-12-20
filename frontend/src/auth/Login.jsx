@@ -6,11 +6,13 @@ import { useModal } from '../context/ModalContext';
 import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
+import { useEmployeeAuth } from '../context/EmployeeAuthContext.jsx';
 
 const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const navigate = useNavigate();
   const { openRegister } = useModal();
-  const { setUser } = useAuth(); // Added to update AuthContext
+  const { setUser } = useAuth();
+  const { setEmployee } = useEmployeeAuth();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +28,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const [otp, setOtp] = useState("");
   const [showOtp, setShowOtp] = useState(false);
   const [emailForOtp, setEmailForOtp] = useState("");
+  const [isEmployeeOtp, setIsEmployeeOtp] = useState(false);
 
   const carouselImages = [
     "/assets/interview-illustration.webp",
@@ -107,12 +110,33 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       setIsLoading(true);
       setError("");
 
+      // First, try regular user login (with OTP flow)
       await axios.post(`${BACKEND_URL}/api/auth/login`, { email, password }, { withCredentials: true });
       setEmailForOtp(email);
+      setIsEmployeeOtp(false);
       setShowOtp(true);
       setError("");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Please try again.");
+      // If regular user login fails with client/auth error, try employee login (OTP) on same form
+      const status = err.response?.status;
+      if (status >= 400 && status < 500) {
+        try {
+          await axios.post(`${BACKEND_URL}/api/employee/login`, {
+            identifier: email,
+            password,
+          }, { withCredentials: true });
+
+          setEmailForOtp(email);
+          setIsEmployeeOtp(true);
+          setShowOtp(true);
+          setError("");
+          return; // We'll proceed with OTP verification as employee
+        } catch (empErr) {
+          setError(empErr.response?.data?.message || empErr.message || err.response?.data?.message || "Login failed. Please try again.");
+        }
+      } else {
+        setError(err.response?.data?.message || "Login failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -122,21 +146,38 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     if (!otp) return setError("Enter the OTP sent to your email.");
 
     try {
-      const res = await axios.post(`${BACKEND_URL}/api/auth/verify-otp`, {
-        email: emailForOtp,
-        otp,
-      }, { withCredentials: true });
+      if (isEmployeeOtp) {
+        // Verify OTP for employee accounts
+        const res = await axios.post(`${BACKEND_URL}/api/employee/verify-otp`, {
+          email: emailForOtp,
+          otp,
+        }, { withCredentials: true });
 
-      const { user } = res.data;
-      Cookies.set('user', JSON.stringify(user), { expires: 1 });
-      localStorage.setItem('user', JSON.stringify(user));
-      Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
-      Cookies.set('isRegistered', 'true', { expires: 1 });
-      setUser(user); // Update AuthContext immediately
-      window.dispatchEvent(new Event("authChanged"));
-      if (onLoginSuccess) onLoginSuccess(user);
-      if (isModal && onClose) onClose();
-      else navigate("/home");
+        const { employee } = res.data;
+        if (employee && setEmployee) {
+          setEmployee(employee);
+        }
+
+        if (isModal && onClose) onClose();
+        navigate('/employee/dashboard');
+      } else {
+        // Verify OTP for regular users/admin
+        const res = await axios.post(`${BACKEND_URL}/api/auth/verify-otp`, {
+          email: emailForOtp,
+          otp,
+        }, { withCredentials: true });
+
+        const { user } = res.data;
+        Cookies.set('user', JSON.stringify(user), { expires: 1 });
+        localStorage.setItem('user', JSON.stringify(user));
+        Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
+        Cookies.set('isRegistered', 'true', { expires: 1 });
+        setUser(user);
+        window.dispatchEvent(new Event("authChanged"));
+        if (onLoginSuccess) onLoginSuccess(user);
+        if (isModal && onClose) onClose();
+        else navigate("/home");
+      }
     } catch (err) {
       setError(err.response?.data?.message || "OTP verification failed.");
     }
