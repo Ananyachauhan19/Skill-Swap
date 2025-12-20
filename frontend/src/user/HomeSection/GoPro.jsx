@@ -1,102 +1,70 @@
 import React, { useState, useEffect } from "react";
-
-// Static offers data (replace with API call when backend is ready)
-const staticOffers = [
-  {
-    id: "silver-100",
-    name: "Silver Starter",
-    type: "silver",
-    coins: "100 Silver Coins",
-    value: "₹25",
-  },
-  {
-    id: "golden-50",
-    name: "Golden Pro",
-    type: "golden",
-    coins: "50 Golden Coins",
-    value: "₹100",
-  },
-  {
-    id: "combo-1",
-    name: "Combo Elite",
-    type: "combo",
-    coins: "50 Silver + 25 Golden Coins",
-    value: "₹75",
-  },
-];
-
-// Backend function: Fetch offers from backend (admin panel)
-// async function fetchOffers() {
-//   const res = await fetch('/api/offers');
-//   return res.json();
-// }
-// Backend function: Buy coins
-// async function purchasePackage(offerId) {
-//   return fetch('/api/purchase', {
-//     method: 'POST',
-//     headers: { 'Content-Type': 'application/json' },
-//     body: JSON.stringify({ offerId }),
-//   }).then(res => res.json());
-// }
+import PackageCard from "../../components/PackageCard";
+import { BACKEND_URL } from "../../config";
 
 const GoPro = () => {
-  const [offers, setOffers] = useState(staticOffers);
-  const [loading, setLoading] = useState(false);
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [selectedOffer, setSelectedOffer] = useState(null);
+  const [selectedPackageId, setSelectedPackageId] = useState(null);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
 
-  // Uncomment this when backend API is ready
-  // useEffect(() => {
-  //   const loadOffers = async () => {
-  //     try {
-  //       const data = await fetchOffers();
-  //       setOffers(data);
-  //     } catch (err) {
-  //       setError("Failed to load offers. Please try again later.");
-  //     }
-  //   };
-  //   loadOffers();
-  // }, []);
-
-  const handlePurchase = async (offerId) => {
-    setLoading(true);
-    setError("");
-    setMessage("");
-    try {
-      const offer = offers.find((o) => o.id === offerId);
-      if (!offer) throw new Error("Offer not found");
-      setSelectedOffer(offerId);
-      // Simulate API delay for better UX (replace with actual API call)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      // Uncomment when backend is ready
-      // await purchasePackage(offerId);
-      setMessage(`Purchased ${offer.name} successfully!`);
-    } catch (err) {
-      setError("Failed to purchase package. Please try again.");
-    } finally {
-      setLoading(false);
-      setTimeout(() => setSelectedOffer(null), 2000);
-    }
-  };
-
-  // Badge component for offer types
-  const OfferBadge = ({ type }) => {
-    const typeStyles = {
-      silver: "bg-gray-100 text-gray-800 border-gray-300",
-      golden: "bg-yellow-100 text-yellow-800 border-yellow-300",
-      combo: "bg-purple-100 text-purple-800 border-purple-300",
+  // Fetch active packages from backend
+  useEffect(() => {
+    const fetchPackages = async () => {
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/packages`, {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          setPackages(data.data);
+        } else {
+          setError('Failed to load packages');
+        }
+      } catch (err) {
+        console.error('Error fetching packages:', err);
+        setError('Failed to load packages. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    return (
-      <span
-        className={`text-xs font-semibold px-2 sm:px-3 py-1 rounded-full border ${
-          typeStyles[type] || typeStyles.silver
-        }`}
-      >
-        {type.charAt(0).toUpperCase() + type.slice(1)}
-      </span>
-    );
+    fetchPackages();
+  }, []);
+
+  const handlePurchase = async (packageId) => {
+    setPurchaseLoading(true);
+    setError("");
+    setMessage("");
+    setSelectedPackageId(packageId);
+    
+    try {
+      const selectedPackage = packages.find((p) => p._id === packageId);
+      if (!selectedPackage) throw new Error("Package not found");
+      
+      // Simulate API delay for better UX (replace with actual payment gateway API call)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      // TODO: Integrate payment gateway here
+      // await fetch(`${BACKEND_URL}/api/purchase`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ packageId }),
+      //   credentials: 'include'
+      // });
+      
+      setMessage(`Successfully purchased ${selectedPackage.name}!`);
+      setTimeout(() => setMessage(""), 3000);
+    } catch (err) {
+      setError("Failed to purchase package. Please try again.");
+      setTimeout(() => setError(""), 3000);
+    } finally {
+      setPurchaseLoading(false);
+      setTimeout(() => setSelectedPackageId(null), 2000);
+    }
   };
 
   return (
@@ -307,150 +275,50 @@ const GoPro = () => {
           </h3>
           <p className="text-blue-800 max-w-2xl mx-auto mb-8 sm:mb-12 text-sm sm:text-base">
             Choose the perfect package for your learning journey. All packages
-            come with bonus coins and exclusive benefits.
+            come with instant delivery and exclusive benefits.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12">
-            {offers.map((offer) => (
-              <div
-                key={offer.id}
-                className={`bg-white rounded-2xl overflow-hidden shadow-lg border-2 transition-all duration-300 hover:-translate-y-2 ${
-                  selectedOffer === offer.id
-                    ? "border-blue-500 shadow-xl ring-4 ring-blue-100"
-                    : "border-blue-100"
-                }`}
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <svg
+                className="animate-spin h-10 w-10 text-blue-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
               >
-                <div
-                  className={`p-1 ${
-                    offer.type === "silver"
-                      ? "bg-gray-300"
-                      : offer.type === "golden"
-                      ? "bg-gradient-to-r from-yellow-400 to-yellow-300"
-                      : "bg-gradient-to-r from-purple-500 to-indigo-500"
-                  }`}
-                ></div>
-
-                <div className="p-4 sm:p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <OfferBadge type={offer.type} />
-                    <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      {offer.type === "combo" ? "POPULAR" : "LIMITED"}
-                    </span>
-                  </div>
-
-                  <h4 className="font-bold text-lg sm:text-xl text-blue-900 mb-2">
-                    {offer.name}
-                  </h4>
-                  <p className="text-2xl sm:text-3xl font-bold text-blue-800 mb-1">
-                    {offer.coins}
-                  </p>
-                  <p className="text-sm sm:text-base text-gray-700 mb-2">
-                    Worth {offer.value}
-                  </p>
-
-                  <div className="my-4 sm:my-6">
-                    <button
-                      className={`w-full py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 text-sm sm:text-base ${
-                        selectedOffer === offer.id
-                          ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg"
-                          : "bg-gradient-to-r from-blue-500 to-blue-700 text-white hover:from-blue-600 hover:to-blue-800 shadow-md"
-                      }`}
-                      onClick={() => handlePurchase(offer.id)}
-                      disabled={loading}
-                    >
-                      {loading && selectedOffer === offer.id ? (
-                        <span className="flex items-center justify-center">
-                          <svg
-                            className="animate-spin -ml-1 mr-2 sm:mr-3 h-4 w-4 sm:h-5 sm:w-5 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                          </svg>
-                          Processing...
-                        </span>
-                      ) : (
-                        `Purchase for ${offer.value}`
-                      )}
-                    </button>
-                  </div>
-
-                  <ul className="text-left text-xs sm:text-sm text-gray-600 space-y-2 mt-4">
-                    <li className="flex items-center">
-                      <svg
-                        className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      {offer.type === "combo"
-                        ? "Silver + Golden coins"
-                        : `${
-                            offer.type.charAt(0).toUpperCase() +
-                            offer.type.slice(1)
-                          } coins only`}
-                    </li>
-                    <li className="flex items-center">
-                      <svg
-                        className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      {offer.id.includes("6m") || offer.id.includes("12m")
-                        ? "Long-term validity"
-                        : "30 days validity"}
-                    </li>
-                    <li className="flex items-center">
-                      <svg
-                        className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 mr-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      {offer.type === "combo"
-                        ? "Bonus coins included"
-                        : "No expiration"}
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </div>
+          ) : packages.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-600 text-lg">No packages available at the moment.</p>
+              <p className="text-gray-500 text-sm mt-2">Check back soon for new offers!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12">
+              {packages.map((pkg) => (
+                <PackageCard
+                  key={pkg._id}
+                  package={pkg}
+                  onPurchase={handlePurchase}
+                  isLoading={purchaseLoading}
+                  selectedPackageId={selectedPackageId}
+                />
+              ))}
+            </div>
+          )}
 
           {message && (
             <div className="animate-fadeIn fixed bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 bg-green-100 border border-green-400 text-green-700 px-4 sm:px-6 py-2 sm:py-3 rounded-xl shadow-lg w-11/12 sm:w-auto">

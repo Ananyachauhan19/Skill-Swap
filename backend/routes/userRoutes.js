@@ -1,6 +1,16 @@
 const express = require('express');
 const requireAuth = require('../middleware/requireAuth');
-const { uploadProfileImage, updateProfilePhoto } = require('../controllers/userController');
+const {
+  uploadProfileImage,
+  updateProfilePhoto,
+  updateEmail,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+  changePassword,
+  getActiveDevices,
+  logoutDevice,
+  logoutAllDevices,
+} = require('../controllers/userController');
 
 const router = express.Router();
 
@@ -16,5 +26,26 @@ router.patch('/user/profile-photo', requireAuth, (req, res, next) => {
     updateProfilePhoto(req, res, next);
   });
 });
+
+// PATCH /api/user/email - update email if not already taken
+router.patch('/user/email', requireAuth, updateEmail);
+
+// POST /api/user/phone/send-otp - start phone verification
+router.post('/user/phone/send-otp', requireAuth, sendPhoneOtp);
+
+// POST /api/user/phone/verify-otp - verify OTP and update phone
+router.post('/user/phone/verify-otp', requireAuth, verifyPhoneOtp);
+
+// POST /api/user/password - change password for logged-in user
+router.post('/user/password', requireAuth, changePassword);
+
+// GET /api/user/devices - list active devices
+router.get('/user/devices', requireAuth, getActiveDevices);
+
+// POST /api/user/devices/:id/logout - revoke a specific device session
+router.post('/user/devices/:id/logout', requireAuth, logoutDevice);
+
+// POST /api/user/devices/logout-all - revoke all other device sessions
+router.post('/user/devices/logout-all', requireAuth, logoutAllDevices);
 
 module.exports = router;

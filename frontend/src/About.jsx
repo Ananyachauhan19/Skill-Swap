@@ -3,7 +3,7 @@ import {Link} from 'react-router-dom';
 import { 
   ChevronDown, Users, Target, Heart, Lightbulb, Zap, 
   Globe, BookOpen, TrendingUp, Award, Star, Rocket, 
-  ArrowRight, Play, Github, Linkedin, Twitter, Menu, X
+  ArrowRight, Play, Menu, X
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -107,7 +107,7 @@ const About = () => {
     </SectionCard>
   );
 
-  const TeamMemberCard = ({ name, role, description, index }) => (
+  const TeamMemberCard = ({ name, role, description, index, image }) => (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
@@ -116,8 +116,16 @@ const About = () => {
       className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100"
     >
       <div className="flex items-center mb-4">
-        <div className="w-14 h-14 bg-[#0A2540] rounded-full flex items-center justify-center text-white font-bold text-lg mr-4">
-          {name.split(" ").map(n => n[0]).join("")}
+        <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0A2540] flex items-center justify-center text-white font-bold text-lg mr-4">
+          {image ? (
+            <img
+              src={image}
+              alt={name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span>{name.split(" ").map(n => n[0]).join("")}</span>
+          )}
         </div>
         <div>
           <h4 className="font-bold text-[#0A2540] text-lg">{name}</h4>
@@ -125,18 +133,6 @@ const About = () => {
         </div>
       </div>
       <p className="text-gray-600 leading-relaxed text-sm">{description}</p>
-      <div className="flex space-x-3 mt-4">
-        {[Twitter, Linkedin, Github].map((Icon, i) => (
-          <motion.a 
-            key={i}
-            href="#"
-            whileHover={{ y: -2 }}
-            className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 hover:bg-gray-200 transition-colors"
-          >
-            <Icon size={15} />
-          </motion.a>
-        ))}
-      </div>
     </motion.div>
   );
 
@@ -660,32 +656,37 @@ const About = () => {
 
                   <motion.div variants={itemVariants}>
                     <SectionCard>
-                      <h3 className="text-2xl font-bold text-blue-800 mb-8 text-center">Meet Our Co-Founders</h3>
+                      <h3 className="text-2xl font-bold text-blue-800 mb-8 text-center">Meet Our Founders</h3>
                       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[
                           {
                             name: "Abhishek Kumar",
                             role: "Founder & CEO",
+                            image: "/assets/team/abhishek.jpeg",
                             description: "Abhishek is the visionary behind SkillSwap Hub. With a passion for technology, education, and innovation, Abhishek drives the platform's strategy, vision, and growth. A coder, problem-solver, and lifelong learner, he ensures that the platform evolves with the needs of students and tutors, combining technology with practical learning solutions."
                           },
                           {
                             name: "Ananya Chauhan",
-                            role: "CMO",
-                            description: "Ananya leads marketing and community engagement. Her expertise in branding, growth strategies, and communication ensures that SkillSwap Hub reaches learners and tutors globally. She is passionate about building inclusive communities and helping users unlock their full potential."
+                            role: "Co-Founder",
+                            image: "/assets/team/Ananya.jpg",
+                            description: "Ananya leads community engagement. Her expertise in growth strategies, and communication ensures that SkillSwap Hub reaches learners and tutors globally. She is passionate about building inclusive communities and helping users unlock their full potential."
                           },
                           {
                             name: "Anubhav Dhyani",
                             role: "CTO",
+                            image: "/assets/team/anubhav.jpeg",
                             description: "Anubhav heads the technology and product development. With a strong background in software development, AI, and system architecture, he ensures that SkillSwap Hub is scalable, secure, and feature-rich, providing a seamless experience to every user."
                           },
                           {
                             name: "Vivek",
                             role: "Co-Founder",
+                            image: "/assets/team/vivek.jpeg",
                             description: "Vivek focuses on platform operations and user experience. His attention to detail and dedication ensures that every session, SkillCoin transaction, and gamification feature works flawlessly, creating a smooth experience for all learners and tutors."
                           },
                           {
                             name: "Akshit",
                             role: "Co-Founder",
+                            image: "/assets/team/akshit.jpeg",
                             description: "Akshit brings his expertise in data, analytics, and innovation to optimize platform features. His insights help in improving AI matchmaking, gamification, and content recommendations, making the learning process smarter and more personalized."
                           }
                         ].map((member, index) => (
@@ -695,6 +696,7 @@ const About = () => {
                             role={member.role}
                             description={member.description}
                             index={index}
+                            image={member.image}
                           />
                         ))}
                       </div>

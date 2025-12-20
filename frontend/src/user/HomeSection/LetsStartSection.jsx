@@ -13,7 +13,7 @@ const LetsStartSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="relative bg-gradient-to-br from-[#0A2540] to-[#1e3a8a] rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-16 overflow-hidden text-center shadow-2xl">
+          className="relative bg-gradient-to-br from-[#0A2540] to-[#1e3a8a] rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-16 overflow-hidden text-center shadow-2xl"
         >
           {/* Background Decorative Elements */}
           <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">

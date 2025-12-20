@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema({
   lastName: { type: String, required: false },
   email: { type: String, unique: true, required: false },
   phone: { type: String, required: false },
+  pendingPhone: { type: String, required: false },
   gender: { type: String, required: false },
   password: { type: String, required: false }, // optional if Google user
   googleId: { type: String, required: false },
@@ -76,6 +77,8 @@ const userSchema = new mongoose.Schema({
   // Tutor verification / activation fields
   isTutor: { type: Boolean, default: false },
   tutorApplicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'TutorApplication', required: false },
+}, {
+  timestamps: true,
 });
 
 module.exports = mongoose.model('User', userSchema);

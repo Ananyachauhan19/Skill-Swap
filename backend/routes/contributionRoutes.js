@@ -10,7 +10,7 @@ const requireAdmin = require('../middleware/requireAdmin');
 // Utils
 const toDateKeyUTC = (date) => {
 	const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-	return d.toISOString().slice(0, 10); // YYYY-MM-DD
+	return d.toISOString().slice(0, 10); 
 };
 
 const getUTCDayBounds = (date) => {
@@ -21,6 +21,13 @@ const getUTCDayBounds = (date) => {
 
 // Core recompute worker: aggregates contribution sources for a single UTC day
 async function recomputeContributionsForDate(targetDate) {
+	// Ensure legacy index on { user, date } does not block bulkWrite
+	try {
+		await Contribution.collection.dropIndex('user_1_date_1');
+	} catch (e) {
+		// Ignore if index is already dropped or missing
+	}
+
 	const { start, end } = getUTCDayBounds(targetDate);
 	const dateKey = toDateKeyUTC(targetDate);
 
@@ -61,9 +68,21 @@ async function recomputeContributionsForDate(targetDate) {
 		bump(doc.recipient, 'skillMateApprovals', 1);
 	});
 
-		// 3) Interviews completed (when rated)
+		// 3) Interviews completed
 		const ivAgg = await InterviewRequest.aggregate([
-			{ $match: { ratedAt: { $gte: start, $lte: end } } },
+			{
+				$match: {
+					$or: [
+						{ ratedAt: { $gte: start, $lte: end } },
+						{
+							status: 'completed',
+							// unrated but completed on this day
+							ratedAt: null,
+							updatedAt: { $gte: start, $lte: end },
+						},
+					],
+				},
+			},
 			{ $project: { requester: 1, assignedInterviewer: 1 } },
 		]);
 		ivAgg.forEach(doc => {
@@ -77,7 +96,15 @@ async function recomputeContributionsForDate(targetDate) {
 	const ops = Array.from(tallies.entries()).map(([userId, { count, breakdown }]) => ({
 		updateOne: {
 			filter: { userId, dateKey },
-			update: { $set: { count, breakdown } },
+			update: {
+				$set: {
+					count,
+					breakdown,
+					// Also hydrate legacy fields used by old unique index (user, date)
+					user: userId,
+					date: dateKey,
+				},
+			},
 			upsert: true,
 		}
 	}));
@@ -102,14 +129,61 @@ router.get('/:userId', async (req, res) => {
 			dateKeys.push(toDateKeyUTC(d));
 		}
 
-		const docs = await Contribution.find({ userId, dateKey: { $in: dateKeys } }).lean();
+		let docs = await Contribution.find({ userId, dateKey: { $in: dateKeys } }).lean();
+		let totalExisting = docs.reduce((sum, d) => sum + (d.count || 0), 0);
+		
+		if (!docs.length || totalExisting === 0) {
+			try {
+				for (let i = 0; i < rangeDays; i++) {
+					const d = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate()));
+					d.setUTCDate(d.getUTCDate() - i);
+					// eslint-disable-next-line no-await-in-loop
+					await recomputeContributionsForDate(d);
+				}
+				// Re-query after backfill
+				docs = await Contribution.find({ userId, dateKey: { $in: dateKeys } }).lean();
+				totalExisting = docs.reduce((sum, d) => sum + (d.count || 0), 0);
+				console.log('[Contributions] Auto-backfill complete for user', userId, 'total=', totalExisting);
+			} catch (e) {
+				console.error('Error during auto-backfill of contributions:', e);
+			}
+		}
 		const map = new Map(docs.map(d => [d.dateKey, d.count]));
+
+		let activeDays = 0;
+		let oneOnOneSessions = 0;
+		let interviewSessions = 0;
+		let totalOneOnOneAsTutor = 0;
+		let totalOneOnOneAsLearner = 0;
+
+		for (const d of docs) {
+			if ((d.count || 0) > 0) activeDays += 1;
+			const b = d.breakdown || {};
+			const asTutor = b.sessionsAsTutor || b.sessionsCompletedEarned || 0;
+			const asLearner = b.sessionsAsLearner || b.sessionsCompletedSpent || 0;
+			totalOneOnOneAsTutor += asTutor;
+			totalOneOnOneAsLearner += asLearner;
+			oneOnOneSessions += asTutor + asLearner;
+			// Prefer new field; fall back to older interviewsRated if needed
+			interviewSessions += (b.interviewsCompleted || 0) + (b.interviewsRated || 0);
+		}
 
 		dateKeys.forEach(k => {
 			items.push({ date: k, count: map.get(k) || 0 });
 		});
 
-		res.json({ items, rangeDays });
+		res.json({
+			items,
+			rangeDays,
+			stats: {
+				activeDays,
+				totalDays: dateKeys.length,
+				oneOnOneSessions,
+				oneOnOneAsTutor: totalOneOnOneAsTutor,
+				oneOnOneAsLearner: totalOneOnOneAsLearner,
+				interviewSessions,
+			},
+		});
 	} catch (err) {
 		console.error('Error fetching contributions:', err);
 		res.status(500).json({ message: 'Failed to fetch contributions' });

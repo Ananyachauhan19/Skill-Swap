@@ -3,13 +3,13 @@ import {
   Mail,
   ShieldCheck,
   CreditCard,
-  Settings,
   IndianRupee,
   BookOpen,
   Headphones,
   Globe,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const sections = [
   {
@@ -27,7 +27,6 @@ const sections = [
       "Change Password",
       "Two-Factor Authentication (2FA)",
       "Login Activity / Active Devices",
-      "Deactivate Account",
     ],
   },
   {
@@ -42,31 +41,12 @@ const sections = [
     ],
   },
   {
-    title: "Platform Preferences",
-    icon: <Settings className="w-5 h-5 text-blue-900" />,
-    items: [
-      "Theme Mode (Light/Dark)",
-      "Notification Settings",
-      "Email Notifications",
-    ],
-  },
-  {
     title: "Credits & Coins",
     icon: <IndianRupee className="w-5 h-5 text-blue-900" />,
     items: [
-      "Current Silver & Golden Coin Balance",
       "Coin Earning History",
-      "Coin & Payment Spending History",
+      "Coin Spending History",
       "Buy More Coins / Redeem Offers",
-    ],
-  },
-  {
-    title: "Learning & Teaching Records",
-    icon: <BookOpen className="w-5 h-5 text-blue-900" />,
-    items: [
-      "My Sessions (as Learner/Expert)",
-      "Past Bookings",
-      "Skill Badges / Certifications Earned",
     ],
   },
   {
@@ -89,22 +69,10 @@ const sections = [
   },
 ];
 
-const themeOptions = [
-  { value: "light", label: "Light" },
-  { value: "dark", label: "Dark" },
-  { value: "system", label: "System Default" },
-];
-const notificationOptions = [
-  { value: "all", label: "All Notifications" },
-  { value: "important", label: "Only Important" },
-  { value: "none", label: "None" },
-];
-
 const AccountSettings = () => {
   const [activeSection, setActiveSection] = useState(sections[0].title);
-  const [theme, setTheme] = useState("system");
-  const [notification, setNotification] = useState("all");
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleAction = (sectionTitle, item) => {
     const navigateMap = {
@@ -116,19 +84,14 @@ const AccountSettings = () => {
       "Change Password": "/settings/password",
       "Two-Factor Authentication (2FA)": "/settings/twofactor",
       "Login Activity / Active Devices": "/settings/activedevices",
-      "Deactivate Account": "/settings/deactivate",
       "Saved Payment Methods": "/settings/payment-methods",
       "Billing History": "/settings/billing-history",
       "Invoices & Receipts": "/settings/invoices",
       "Active Subscriptions / Packages": "/settings/subscriptions",
       "Upgrade or Cancel Plan": "/settings/plan",
-      "Current Silver & Golden Coin Balance": "/settings/coin-balance",
-      "Coin Earning History": "/settings/coin-earning-history",
-      "Coin Spending / Usage History": "/settings/coin-spending-history",
+      "Coin Earning History": "/teaching-history",
+      "Coin Spending History": "/learning-history",
       "Buy More Coins / Redeem Offers": "/settings/buy-redeem-coins",
-      "My Sessions (as Learner/Expert)": "/settings/my-sessions",
-      "Past Bookings": "/settings/past-bookings",
-      "Skill Badges / Certifications Earned": "/settings/skill-badges",
       "Help Center / Support Ticket": "/help",
       "Submit Feedback": "/help#contact-support",
       "Report a Problem": "/help#contact-support",
@@ -192,7 +155,14 @@ const AccountSettings = () => {
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
               Active
             </div>
-            <p className="text-xs text-gray-600 mt-1">Member since Jan 2023</p>
+            <p className="text-xs text-gray-600 mt-1">
+              {user && user.createdAt
+                ? `Member since ${new Date(user.createdAt).toLocaleString(undefined, {
+                    month: 'short',
+                    year: 'numeric',
+                  })}`
+                : 'Member status active'}
+            </p>
           </div>
         </aside>
 

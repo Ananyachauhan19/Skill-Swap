@@ -6,6 +6,8 @@ const requireAdmin = require('../middleware/requireAdmin');
 const User = require('../models/User');
 const Session = require('../models/Session');
 const SkillMate = require('../models/SkillMate');
+const Video = require('../models/Video');
+const supabase = require('../utils/supabaseClient');
 const adminStatsController = require('../controllers/adminStatsController');
 
 // Protect all routes in this file with both authentication and admin authorization
@@ -108,6 +110,60 @@ router.get('/users/:userId', async (req, res) => {
   } catch (error) {
     console.error('Error fetching user details:', error);
     res.status(500).json({ message: 'Failed to fetch user details' });
+  }
+});
+
+// Delete a user account (admin only) and detach basic relations
+router.delete('/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Remove this user from other users' skillMates arrays
+    await User.updateMany(
+      { skillMates: userId },
+      { $pull: { skillMates: userId } }
+    );
+
+    // Delete SkillMate relationship documents
+    await SkillMate.deleteMany({
+      $or: [{ requester: userId }, { recipient: userId }],
+    });
+
+    // Delete user's videos (including Supabase files where possible)
+    const videos = await Video.find({ userId }).lean();
+    if (Array.isArray(videos) && videos.length) {
+      const pathsToRemove = [];
+      for (const v of videos) {
+        if (v.videoPath) pathsToRemove.push(v.videoPath);
+        if (v.thumbnailPath) pathsToRemove.push(v.thumbnailPath);
+      }
+      if (pathsToRemove.length) {
+        try {
+          const { error } = await supabase.storage
+            .from('videos')
+            .remove(pathsToRemove);
+          if (error) {
+            console.error('[Admin] Failed to delete some Supabase video assets:', error.message);
+          }
+        } catch (e) {
+          console.error('[Admin] Supabase deletion error:', e.message);
+        }
+      }
+      await Video.deleteMany({ userId });
+    }
+
+    // Finally delete the user document
+    await User.deleteOne({ _id: userId });
+
+    res.json({ message: 'User account deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user account:', error);
+    res.status(500).json({ message: 'Failed to delete user account' });
   }
 });
 

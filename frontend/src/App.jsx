@@ -54,6 +54,8 @@ import SkillMateRequests from './admin/SkillMateRequests.jsx';
 import Users from './admin/Users.jsx';
 import Settings from './admin/Settings.jsx';
 import Analytics from './admin/Analytics.jsx';
+import AdminHelpSupport from './admin/AdminHelpSupport.jsx';
+import AdminPackages from './admin/AdminPackages.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
 import PrivacyPolicy from './PrivacyPolicy.jsx';
 import Community from './Community.jsx';
@@ -69,6 +71,7 @@ import TutorVerificationStatus from './tutor/TutorVerificationStatus.jsx';
 import TutorVerification from './admin/TutorVerification.jsx';
 import ForgotPassword from './auth/ForgotPassword.jsx';
 import ResetPassword from './auth/ResetPassword.jsx';
+import Reports from './admin/Reports.jsx';
 
 // Define full (regular user) routes
 const appRoutes = [
@@ -159,6 +162,9 @@ const adminOnlyRoutes = [
           { path: 'session-requests', element: <AdminSessionRequests /> },
           { path: 'skillmate-requests', element: <SkillMateRequests /> },
           { path: 'users', element: <Users /> },
+          { path: 'packages', element: <AdminPackages /> },
+          { path: 'reports', element: <Reports /> },
+          { path: 'help-support', element: <AdminHelpSupport /> },
           { path: 'settings', element: <Settings /> },
           { path: 'tutor-verification', element: <TutorVerification /> },
         ],

@@ -3,7 +3,6 @@ import socket from '../socket.js';
 import InterviewSessionRatingModal from './InterviewSessionRatingModal.jsx';
 import { BACKEND_URL } from '../config.js';
 
-// InterviewCall: same features as VideoCall but without coin/skill-coin logic
 const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', onEnd }) => {
   console.info('[DEBUG] InterviewCall: Init session:', sessionId, 'role:', userRole);
 
@@ -165,34 +164,29 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
         const onSharedImage = (data) => { if (data && data.imageUrl) setSharedImage(data.imageUrl); };
         const onRemoveImage = () => setSharedImage(null);
 
-        const onStartCall = async (payload) => {
-          console.log('[INTERVIEW] start-call received - initiating offer', payload);
-          // Only the second joiner gets this event and creates the offer
-          const pc = createPeerConnection();
+        // For interview calls we rely on the server's
+        // `interview-ready` event to coordinate offer/answer.
+        // Only the interviewer creates the offer; the student waits
+        // for the offer and answers.
+        const onInterviewReady = async (payload) => {
+          console.log('[INTERVIEW] interview-ready received', payload);
           try {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            console.log('[INTERVIEW] emitting offer to sessionId:', sessionId);
-            socket.emit('offer', { sessionId, offer });
-          } catch (err) { console.error('[INTERVIEW] onStartCall error', err); }
-        };
-
-        const onPeerJoined = (payload) => {
-          console.log('[INTERVIEW] peer-joined received - waiting for offer', payload);
-          // First joiner gets this - just create peer connection and wait for offer
-          createPeerConnection();
-        };
-
-        const onUserJoined = async (payload) => {
-          console.log('[INTERVIEW] user-joined received (legacy)', payload);
-          // This is for backward compatibility with regular sessions
-          const pc = createPeerConnection();
-          try {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            console.log('[INTERVIEW] emitting offer to sessionId:', sessionId);
-            socket.emit('offer', { sessionId, offer });
-          } catch (err) { console.error('[INTERVIEW] onUserJoined error', err); }
+            if (userRole === 'interviewer') {
+              const pc = createPeerConnection();
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              console.log('[INTERVIEW] emitting offer to sessionId:', sessionId);
+              socket.emit('offer', { sessionId, offer });
+            } else {
+              // Student: just ensure the peer connection exists and
+              // wait for the interviewer offer.
+              if (!peerConnectionRef.current) {
+                createPeerConnection();
+              }
+            }
+          } catch (err) {
+            console.error('[INTERVIEW] onInterviewReady error', err);
+          }
         };
 
         const onOffer = async (data) => {
@@ -247,9 +241,7 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
         socket.on('shared-image', onSharedImage);
         socket.on('remove-image', onRemoveImage);
 
-        socket.on('start-call', onStartCall);
-        socket.on('peer-joined', onPeerJoined);
-        socket.on('user-joined', onUserJoined);
+        socket.on('interview-ready', onInterviewReady);
         socket.on('offer', onOffer);
         socket.on('answer', onAnswer);
         socket.on('ice-candidate', onIceCandidate);
@@ -296,7 +288,7 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
       localStorage.removeItem('activeSession');
 
       socket.off('end-call');
-      socket.off('user-joined');
+      socket.off('interview-ready');
       socket.off('offer');
       socket.off('answer');
       socket.off('ice-candidate');

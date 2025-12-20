@@ -1,12 +1,7 @@
 import React, { useState } from "react";
+import api from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 
-// Backend functions:
-// async function sendOtp(phone) {
-//   return fetch('/api/user/phone/send-otp', { method: 'POST', body: JSON.stringify({ phone }) });
-// }
-// async function verifyOtp(phone, otp) {
-//   return fetch('/api/user/phone/verify-otp', { method: 'POST', body: JSON.stringify({ phone, otp }) });
-// }
 const PhoneVerification = () => {
   const [phone, setPhone] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -14,6 +9,7 @@ const PhoneVerification = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const { setUser } = useAuth();
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -21,11 +17,16 @@ const PhoneVerification = () => {
     setError("");
     setMessage("");
     try {
-      // await sendOtp(phone);
+      await api.post("/api/user/phone/send-otp", { phone });
       setOtpSent(true);
       setMessage("OTP sent to " + phone);
     } catch (err) {
-      setError("Failed to send OTP. Please try again.");
+      const msg = err?.response?.data?.message;
+      if (err?.response?.status === 409) {
+        setError(msg || "This phone number is already registered with another account.");
+      } else {
+        setError(msg || "Failed to send OTP. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -37,10 +38,15 @@ const PhoneVerification = () => {
     setError("");
     setMessage("");
     try {
-      // await verifyOtp(phone, otp);
-      setMessage("Phone verified successfully.");
+      const res = await api.post("/api/user/phone/verify-otp", { phone, otp });
+      if (res?.data?.user) {
+        setUser(res.data.user);
+      }
+      setMessage(res?.data?.message || "Phone verified successfully.");
+      setOtpSent(false);
     } catch (err) {
-      setError("Failed to verify OTP. Please try again.");
+      const msg = err?.response?.data?.message;
+      setError(msg || "Failed to verify OTP. Please try again.");
     } finally {
       setLoading(false);
     }

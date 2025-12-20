@@ -6,6 +6,7 @@ import VideoCall from '../components/VideoCall';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 import { useAuth } from '../context/AuthContext.jsx'; // Import useAuth
+import DateTimePicker from '../components/DateTimePicker.jsx';
 
 const CreateSession = () => {
   const { user: currentUser } = useAuth(); // Use useAuth hook
@@ -870,27 +871,13 @@ const CreateSession = () => {
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <label className="block text-blue-900 font-medium mb-1 font-lora">Date</label>
-                    <input
-                      type="date"
-                      name="date"
-                      value={form.date}
-                      onChange={handleChange}
-                      className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
-                      required
-                      min={getTodayDate()}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-blue-900 font-medium mb-1 font-lora">Time</label>
-                    <input
-                      type="time"
-                      name="time"
-                      value={form.time}
-                      onChange={handleChange}
-                      className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
-                      required
-                      min={form.date === getTodayDate() ? getCurrentTime() : undefined}
+                    <label className="block text-blue-900 font-medium mb-1 font-lora">Date &amp; Time</label>
+                    <DateTimePicker
+                      date={form.date}
+                      time={form.time}
+                      onChange={(dateStr, timeStr) =>
+                        setForm(prev => ({ ...prev, date: dateStr, time: timeStr }))
+                      }
                     />
                   </div>
                 </div>

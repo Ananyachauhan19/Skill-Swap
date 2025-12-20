@@ -1,11 +1,13 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { BACKEND_URL } from '../config.js';
+import { useAuth } from '../context/AuthContext';
 import { FiSearch, FiMail, FiMessageSquare, FiChevronDown, FiChevronUp, FiExternalLink } from "react-icons/fi";
 import { FaCoins, FaUserGraduate, FaChalkboardTeacher, FaHistory, FaLock } from "react-icons/fa";
 import faqs from "./faqs";
 
 const HelpSupportPage = () => {
+  const { user } = useAuth();
   // FAQ search state
   const [faqSearch, setFaqSearch] = useState("");
   const [showAllFaqs, setShowAllFaqs] = useState(false);
@@ -13,6 +15,17 @@ const HelpSupportPage = () => {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [formStatus, setFormStatus] = useState("");
   const [formLoading, setFormLoading] = useState(false);
+
+  // Auto-fill name and email when user is logged in
+  useEffect(() => {
+    if (user) {
+      setForm(prev => ({
+        ...prev,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || '',
+        email: user.email || ''
+      }));
+    }
+  }, [user]);
 
   // Filtered FAQs
   const filteredFaqs = faqs.filter((faq) =>
@@ -44,14 +57,16 @@ const HelpSupportPage = () => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/support/contact`, {
         method: "POST",
+        credentials: 'include',
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error("Failed to submit request");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to submit request");
       setFormStatus("Your request has been submitted! We'll get back to you soon.");
-      setForm({ name: "", email: "", message: "" });
+      setForm(prev => ({ ...prev, message: "" }));
     } catch (err) {
-      setFormStatus("Failed to submit your request. Please try again later.");
+      setFormStatus(err.message || "Failed to submit your request. Please try again later.");
     } finally {
       setFormLoading(false);
     }
@@ -278,10 +293,11 @@ const HelpSupportPage = () => {
                     type="text"
                     id="name"
                     name="name"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
                     value={form.name}
                     onChange={handleFormChange}
                     disabled={formLoading}
+                    readOnly={!!user}
                   />
                 </div>
                 
@@ -291,10 +307,11 @@ const HelpSupportPage = () => {
                     type="email"
                     id="email"
                     name="email"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
                     value={form.email}
                     onChange={handleFormChange}
                     disabled={formLoading}
+                    readOnly={!!user}
                   />
                 </div>
                 

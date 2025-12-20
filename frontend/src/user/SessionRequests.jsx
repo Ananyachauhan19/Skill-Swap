@@ -17,6 +17,7 @@ import socket from '../socket';
 import { useAuth } from '../context/AuthContext';
 import VideoCall from '../components/VideoCall';
 import SessionRatingModal from '../components/SessionRatingModal.jsx';
+import DateTimePicker from '../components/DateTimePicker.jsx';
 
 const SessionRequests = () => {
   const [interviewRequests, setInterviewRequests] = useState({ received: [], sent: [] });
@@ -527,18 +528,16 @@ const SessionRequests = () => {
 
     return (
       <div className="flex items-center gap-2 flex-wrap">
-        <input
-          type="date"
-          className="border-2 border-gray-200 px-3 py-2 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
-        <input
-          type="time"
-          className="border-2 border-gray-200 px-3 py-2 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-          value={time}
-          onChange={(e) => setTime(e.target.value)}
-        />
+        <div className="w-64 min-w-[16rem]">
+          <DateTimePicker
+            date={date}
+            time={time}
+            onChange={(d, t) => {
+              setDate(d);
+              setTime(t);
+            }}
+          />
+        </div>
         <button
           className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={submitSchedule}

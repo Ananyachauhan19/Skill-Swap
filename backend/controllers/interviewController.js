@@ -1100,35 +1100,44 @@ exports.rateInterviewer = async (req, res) => {
         feedback: request.feedback
       }
     });
-    // Contribution: count once for both users when interview is marked completed via rating (idempotent)
+    // Contribution:
+    //  - SESSION_RATED for the requester (student)
+    //  - INTERVIEW_COMPLETED for both requester and interviewer
+    // These use ContributionEvent for idempotency, so if the socket
+    // end-call handler has already recorded INTERVIEW_COMPLETED, these
+    // calls will safely no-op on duplicates.
     try {
       const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
       const io = req.app.get('io');
       const interviewerId = request.assignedInterviewer && (request.assignedInterviewer._id || request.assignedInterviewer);
-      
-      await Promise.all([
-        // Track interview completion for requester
-        trackActivity({
-          userId,
-          activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
-          activityId: request._id.toString(),
-          io
-        }),
-        // Track interview completion for interviewer
-        interviewerId ? trackActivity({
-          userId: interviewerId,
-          activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
-          activityId: request._id.toString(),
-          io
-        }) : Promise.resolve(),
-        // Track session rating
+
+      const tasks = [
         trackActivity({
           userId,
           activityType: ACTIVITY_TYPES.SESSION_RATED,
           activityId: request._id.toString(),
-          io
-        })
-      ]);
+          io,
+        }),
+        trackActivity({
+          userId,
+          activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
+          activityId: request._id.toString(),
+          io,
+        }),
+      ];
+
+      if (interviewerId) {
+        tasks.push(
+          trackActivity({
+            userId: interviewerId,
+            activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
+            activityId: request._id.toString(),
+            io,
+          })
+        );
+      }
+
+      await Promise.all(tasks);
     } catch (_) {}
 
     // Update ApprovedInterviewer stats and aggregates

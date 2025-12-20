@@ -133,6 +133,18 @@ router.post('/upload', requireAuth, upload.fields([
     // Populate user info
     await newVideo.populate('userId', 'firstName lastName username');
 
+    // Contribution: track video upload for uploader (idempotent per video)
+    try {
+      const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
+      const io = req.app.get('io');
+      await trackActivity({
+        userId,
+        activityType: ACTIVITY_TYPES.VIDEO_UPLOADED,
+        activityId: newVideo._id.toString(),
+        io,
+      });
+    } catch (_) {}
+
     res.status(201).json({
       message: 'Video uploaded successfully',
       video: newVideo
@@ -303,14 +315,18 @@ router.put('/:id', requireAuth, upload.fields([
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
+    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
+    const userEmail = (req.user.email || '').toLowerCase();
     const video = await Video.findById(req.params.id);
 
     if (!video) {
       return res.status(404).json({ message: 'Video not found' });
     }
 
-    // Check ownership
-    if (video.userId.toString() !== userId.toString()) {
+    // Check ownership or admin
+    const isOwner = video.userId.toString() === userId.toString();
+    const isAdmin = adminEmail && userEmail === adminEmail;
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({ message: 'Not authorized to delete this video' });
     }
 
