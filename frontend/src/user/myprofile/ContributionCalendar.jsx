@@ -67,17 +67,17 @@ const buildContributionMap = (currentDate, items) => {
   return map;
 };
 
-// Color by contribution count with enhanced gradient
+// Color by contribution count with professional teal gradient
 const getContributionColor = (count) => {
-  if (count <= 0) return 'bg-gray-100 hover:bg-gray-200';
-  if (count === 1) return 'bg-blue-200 hover:bg-blue-300';
-  if (count === 2) return 'bg-blue-300 hover:bg-blue-400';
-  if (count === 3) return 'bg-blue-400 hover:bg-blue-500';
-  if (count === 4) return 'bg-blue-500 hover:bg-blue-600';
-  if (count === 5) return 'bg-blue-600 hover:bg-blue-700';
-  if (count === 6) return 'bg-blue-700 hover:bg-blue-800';
-  if (count >= 10) return 'bg-gradient-to-br from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950';
-  return 'bg-blue-800 hover:bg-blue-900'; // 7-9
+  if (count <= 0) return 'bg-slate-100 hover:bg-slate-200';
+  if (count === 1) return 'bg-teal-100 hover:bg-teal-200';
+  if (count === 2) return 'bg-teal-200 hover:bg-teal-300';
+  if (count === 3) return 'bg-teal-300 hover:bg-teal-400';
+  if (count === 4) return 'bg-teal-400 hover:bg-teal-500';
+  if (count === 5) return 'bg-teal-500 hover:bg-teal-600';
+  if (count === 6) return 'bg-teal-600 hover:bg-teal-700';
+  if (count >= 10) return 'bg-teal-700 hover:bg-teal-800';
+  return 'bg-teal-700 hover:bg-teal-800'; // 7-9
 };
 
 // Get intensity label
@@ -104,6 +104,10 @@ const ContributionCalendar = ({ userId: propUserId }) => {
     totalDays: 365,
     oneOnOneSessions: 0,
     interviewSessions: 0,
+    skillMateConnections: 0,
+    dailyLogins: 0,
+    questionsPosted: 0,
+    videosUploaded: 0,
   });
   const { user } = useAuth();
   const effectiveUserId = propUserId || (user && user._id);
@@ -167,6 +171,10 @@ const ContributionCalendar = ({ userId: propUserId }) => {
           totalDays,
           oneOnOneSessions: stats?.oneOnOneSessions || 0,
           interviewSessions: stats?.interviewSessions || 0,
+          skillMateConnections: stats?.skillMateConnections || 0,
+          dailyLogins: stats?.dailyLogins || 0,
+          questionsPosted: stats?.questionsPosted || 0,
+          videosUploaded: stats?.videosUploaded || 0,
         });
       } catch (e) {
         console.error('Failed to fetch contributions', e);
@@ -199,6 +207,10 @@ const ContributionCalendar = ({ userId: propUserId }) => {
           totalDays,
           oneOnOneSessions: stats?.oneOnOneSessions || 0,
           interviewSessions: stats?.interviewSessions || 0,
+          skillMateConnections: stats?.skillMateConnections || 0,
+          dailyLogins: stats?.dailyLogins || 0,
+          questionsPosted: stats?.questionsPosted || 0,
+          videosUploaded: stats?.videosUploaded || 0,
         });
       } catch {
         // non-blocking
@@ -211,16 +223,16 @@ const ContributionCalendar = ({ userId: propUserId }) => {
   return (
     <>
       {loading ? (
-        <p className="text-gray-500">Loading contribution calendar...</p>
+        <p className="text-slate-500 text-sm">Loading contribution calendar...</p>
       ) : error ? (
-        <p className="text-red-500">{error}</p>
+        <p className="text-rose-600 text-sm">{error}</p>
       ) : (
-        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6">
           {/* Header */}
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-lg font-semibold text-blue-900">Contribution Activity</h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+            <h3 className="text-lg font-bold text-black">Contribution Activity</h3>
             <select
-              className="bg-transparent border border-blue-600 text-gray-700 text-sm px-3 py-1.5 rounded-md hover:bg-blue-600 hover:text-white transition"
+              className="bg-white border border-slate-300 text-slate-700 text-sm px-3 py-1.5 rounded-md hover:border-teal-500 transition focus:outline-none focus:ring-2 focus:ring-teal-500"
               value={`${currentDate.getFullYear() - 1}-${currentDate.getFullYear()}`}
               onChange={(e) => e.preventDefault()}
             >
@@ -228,58 +240,78 @@ const ContributionCalendar = ({ userId: propUserId }) => {
             </select>
           </div>
 
-          {/* Statistics Grid */}
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-3 border border-indigo-200">
-              <p className="text-xs text-indigo-600 font-medium mb-1">Active Days</p>
-              <p className="text-lg font-bold text-indigo-900">
-                {contributionStats.activeDays} / {contributionStats.totalDays}
+          {/* Compact Statistics Grid - Responsive */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+              <p className="text-xs text-slate-600 mb-1">Active Days</p>
+              <p className="text-xl font-bold text-black">
+                {contributionStats.activeDays}
               </p>
-              <p className="text-[10px] text-indigo-600">days with any activity</p>
+              <p className="text-[10px] text-slate-500 mt-1">of {contributionStats.totalDays}</p>
             </div>
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
-              <p className="text-xs text-green-600 font-medium mb-1">Current Streak</p>
-              <p className="text-2xl font-bold text-green-900">{contributionStats.currentStreak}</p>
-              <p className="text-[10px] text-green-600">consecutive active days</p>
+            <div className="bg-teal-50 rounded-lg p-3 border border-teal-200">
+              <p className="text-xs text-teal-700 mb-1">Current Streak</p>
+              <p className="text-xl font-bold text-black">{contributionStats.currentStreak}</p>
+              <p className="text-[10px] text-teal-600 mt-1">days</p>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200">
-              <p className="text-xs text-purple-600 font-medium mb-1">Best Streak</p>
-              <p className="text-2xl font-bold text-purple-900">{contributionStats.maxStreak}</p>
-              <p className="text-[10px] text-purple-600">longest run of activity</p>
+            <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+              <p className="text-xs text-purple-700 mb-1">Best Streak</p>
+              <p className="text-xl font-bold text-black">{contributionStats.maxStreak}</p>
+              <p className="text-[10px] text-purple-600 mt-1">days</p>
             </div>
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
-              <p className="text-xs text-blue-600 font-medium mb-1">1:1 Sessions</p>
-              <p className="text-2xl font-bold text-blue-900">{contributionStats.oneOnOneSessions}</p>
-              <p className="text-[10px] text-blue-600">total completed (tutor + learner)</p>
+            <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+              <p className="text-xs text-emerald-700 mb-1">1:1 Sessions</p>
+              <p className="text-xl font-bold text-black">{contributionStats.oneOnOneSessions}</p>
+              <p className="text-[10px] text-emerald-600 mt-1">completed</p>
             </div>
-            <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-3 border border-rose-200">
-              <p className="text-xs text-rose-600 font-medium mb-1">Interview Sessions</p>
-              <p className="text-2xl font-bold text-rose-900">{contributionStats.interviewSessions}</p>
-              <p className="text-[10px] text-rose-600">completed & rated</p>
+            <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+              <p className="text-xs text-amber-700 mb-1">Interviews</p>
+              <p className="text-xl font-bold text-black">{contributionStats.interviewSessions}</p>
+              <p className="text-[10px] text-amber-600 mt-1">completed</p>
             </div>
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-3 border border-slate-200">
-              <p className="text-xs text-slate-600 font-medium mb-1">Total Contributions</p>
-              <p className="text-2xl font-bold text-slate-900">{contributionStats.total}</p>
-              <p className="text-[10px] text-slate-600">activity increments this year</p>
+            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+              <p className="text-xs text-blue-700 mb-1">SkillMates</p>
+              <p className="text-xl font-bold text-black">{contributionStats.skillMateConnections}</p>
+              <p className="text-[10px] text-blue-600 mt-1">connections</p>
+            </div>
+            <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
+              <p className="text-xs text-indigo-700 mb-1">Daily Logins</p>
+              <p className="text-xl font-bold text-black">{contributionStats.dailyLogins}</p>
+              <p className="text-[10px] text-indigo-600 mt-1">days</p>
+            </div>
+            <div className="bg-rose-50 rounded-lg p-3 border border-rose-200">
+              <p className="text-xs text-rose-700 mb-1">Questions</p>
+              <p className="text-xl font-bold text-black">{contributionStats.questionsPosted}</p>
+              <p className="text-[10px] text-rose-600 mt-1">posted</p>
+            </div>
+            <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-200">
+              <p className="text-xs text-cyan-700 mb-1">Videos</p>
+              <p className="text-xl font-bold text-black">{contributionStats.videosUploaded}</p>
+              <p className="text-[10px] text-cyan-600 mt-1">uploaded</p>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+              <p className="text-xs text-slate-600 mb-1">Total</p>
+              <p className="text-xl font-bold text-black">{contributionStats.total}</p>
+              <p className="text-[10px] text-slate-500 mt-1">contributions</p>
             </div>
           </div>
 
           {/* Activity Legend */}
-          <div className="flex items-center gap-2 mb-4 text-xs text-gray-600">
+          <div className="flex items-center gap-2 mb-4 text-xs text-slate-600">
             <span>Less</span>
             <div className="flex gap-1">
-              <div className="w-3 h-3 bg-gray-100 rounded-sm border border-gray-200"></div>
-              <div className="w-3 h-3 bg-blue-200 rounded-sm"></div>
-              <div className="w-3 h-3 bg-blue-400 rounded-sm"></div>
-              <div className="w-3 h-3 bg-blue-600 rounded-sm"></div>
-              <div className="w-3 h-3 bg-blue-800 rounded-sm"></div>
+              <div className="w-3 h-3 bg-slate-100 rounded-sm border border-slate-200"></div>
+              <div className="w-3 h-3 bg-teal-200 rounded-sm"></div>
+              <div className="w-3 h-3 bg-teal-400 rounded-sm"></div>
+              <div className="w-3 h-3 bg-teal-600 rounded-sm"></div>
+              <div className="w-3 h-3 bg-teal-700 rounded-sm"></div>
             </div>
             <span>More</span>
           </div>
 
           {/* Calendar Grid */}
-          <div className="overflow-x-auto hide-scrollbar">
-            <div className="flex gap-4">
+          <div className="overflow-x-auto hide-scrollbar pb-2">
+            <div className="flex gap-2 sm:gap-3 md:gap-4 min-w-max">
               {months.map((month, monthIdx) => {
                 const { name, year, days, monthIndex } = month;
 
@@ -298,12 +330,12 @@ const ContributionCalendar = ({ userId: propUserId }) => {
                   grid[dayIndex][weekIndex] = day;
                 }
 
-                const boxClass = "w-3 h-2 rounded-sm";
+                const boxClass = "w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm";
 
                 return (
-                  <div key={monthIdx} className="min-w-[60px]">
+                  <div key={monthIdx} className="min-w-[50px] sm:min-w-[60px]">
                     {/* Month label */}
-                    <div className="text-[10px] text-blue-900 font-medium text-center mb-2">
+                    <div className="text-[10px] text-slate-700 font-medium text-center mb-2">
                       {name} {year}
                     </div>
 
@@ -331,7 +363,7 @@ const ContributionCalendar = ({ userId: propUserId }) => {
                                 key={colIdx}
                                 className={`${boxClass} ${getContributionColor(
                                   count
-                                )} hover:ring-2 hover:ring-blue-400 hover:ring-offset-1 transition-all duration-200 cursor-pointer relative group`}
+                                )} hover:ring-2 hover:ring-teal-500 hover:ring-offset-1 transition-all duration-200 cursor-pointer relative group border border-slate-200/50`}
                                 title={`${name} ${day}, ${year}\n${count} contribution${count !== 1 ? 's' : ''}\n${getIntensityLabel(count)}`}
                                 onMouseEnter={() => setHoveredDay({ date: dateStr, count, label: `${name} ${day}, ${year}` })}
                                 onMouseLeave={() => setHoveredDay(null)}
@@ -349,12 +381,12 @@ const ContributionCalendar = ({ userId: propUserId }) => {
 
           {/* Hover Tooltip */}
           {hoveredDay && (
-            <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-              <p className="text-sm font-semibold text-blue-900">{hoveredDay.label}</p>
-              <p className="text-xs text-blue-700 mt-1">
-                <span className="font-bold text-lg">{hoveredDay.count}</span> contribution{hoveredDay.count !== 1 ? 's' : ''}
+            <div className="mt-4 p-3 bg-teal-50 rounded-lg border border-teal-200">
+              <p className="text-sm font-semibold text-black">{hoveredDay.label}</p>
+              <p className="text-xs text-slate-700 mt-1">
+                <span className="font-bold text-lg text-teal-700">{hoveredDay.count}</span> contribution{hoveredDay.count !== 1 ? 's' : ''}
               </p>
-              <p className="text-xs text-blue-600 mt-1">{getIntensityLabel(hoveredDay.count)}</p>
+              <p className="text-xs text-slate-600 mt-1">{getIntensityLabel(hoveredDay.count)}</p>
             </div>
           )}
         </div>

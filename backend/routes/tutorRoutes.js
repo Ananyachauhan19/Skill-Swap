@@ -8,6 +8,8 @@ const tutor = require('../controllers/tutorController');
 router.post('/tutor/apply', requireAuth, tutor.uploadFields, tutor.apply);
 // User checks status
 router.get('/tutor/status', requireAuth, tutor.ensureTutorActivation, tutor.status);
+// Get verified tutor skills (approved skills from TutorApplication)
+router.get('/tutor/verified-skills', requireAuth, tutor.getVerifiedSkills);
 // Prefill defaults for apply/tutor form
 router.get('/tutor/apply/defaults', requireAuth, tutor.prefillApplyDefaults);
 // Tutor requests a skills update (pending until admin approval)

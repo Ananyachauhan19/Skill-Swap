@@ -68,32 +68,32 @@ const YourInterviews = () => {
   const getStatusIcon = (status) => {
     switch (status?.toLowerCase()) {
       case 'completed':
-        return <FaCheckCircle className="text-[#1e3a8a]" />;
+        return <FaCheckCircle className="text-emerald-600" />;
       case 'cancelled':
       case 'rejected':
-        return <FaTimesCircle className="text-[#1e3a8a]" />;
+        return <FaTimesCircle className="text-rose-500" />;
       case 'pending':
-        return <FaHourglassHalf className="text-[#1e3a8a]" />;
+        return <FaHourglassHalf className="text-amber-500" />;
       case 'scheduled':
-        return <FaCalendarAlt className="text-[#1e3a8a]" />;
+        return <FaCalendarAlt className="text-teal-600" />;
       default:
-        return <FaHourglassHalf className="text-[#1e3a8a]" />;
+        return <FaHourglassHalf className="text-slate-400" />;
     }
   };
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'completed':
-        return 'bg-green-50 text-[#1e3a8a] border-green-200';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'cancelled':
       case 'rejected':
-        return 'bg-red-50 text-[#1e3a8a] border-red-200';
+        return 'bg-rose-50 text-rose-700 border-rose-200';
       case 'pending':
-        return 'bg-yellow-50 text-[#1e3a8a] border-yellow-200';
+        return 'bg-amber-50 text-amber-700 border-amber-200';
       case 'scheduled':
-        return 'bg-blue-50 text-[#1e3a8a] border-blue-200';
+        return 'bg-teal-50 text-teal-700 border-teal-200';
       default:
-        return 'bg-gray-50 text-[#1e3a8a] border-gray-200';
+        return 'bg-slate-50 text-slate-600 border-slate-200';
     }
   };
 
@@ -192,28 +192,28 @@ const YourInterviews = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-[#e6f0fa] via-[#f0f6fc] to-[#e6f0fa] pt-16 md:pt-20">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-20">
       <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)]">
         {/* Sidebar */}
-        <aside className="w-full lg:w-72 bg-white shadow-xl border-b lg:border-b-0 lg:border-r border-gray-200 flex-shrink-0 lg:sticky lg:top-16 md:lg:top-20 lg:h-[calc(100vh-4rem)] md:lg:h-[calc(100vh-5rem)] lg:overflow-y-auto">
-          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-[#1e3a8a] to-[#2563eb]">
-            <h2 className="text-xl font-bold text-white flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <FaVideo className="text-white text-lg" />
+        <aside className="w-full lg:w-60 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 flex-shrink-0 lg:sticky lg:top-16 md:lg:top-20 lg:h-[calc(100vh-4rem)] md:lg:h-[calc(100vh-5rem)] lg:overflow-y-auto shadow-sm">
+          <div className="px-4 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+            <h2 className="text-base font-semibold text-slate-700 flex items-center gap-2">
+              <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center">
+                <FaVideo className="text-teal-600 text-sm" />
               </div>
               <span>Interview Dashboard</span>
             </h2>
           </div>
-          <div className="p-4 space-y-2 max-h-[calc(100vh-16rem)] overflow-y-auto">
+          <div className="p-3 space-y-1 max-h-[calc(100vh-14rem)] overflow-y-auto">
             {[
-              { key: 'all', label: 'All Interviews', icon: <FaList className="w-4 h-4" /> },
-              { key: 'conducted', label: 'Conducted', icon: <FaBullseye className="w-4 h-4" /> },
-              { key: 'attended', label: 'Attended', icon: <FaUserCheck className="w-4 h-4" /> },
-              { key: 'pending', label: 'Pending', icon: <FaHourglassStart className="w-4 h-4" /> },
-              { key: 'scheduled', label: 'Scheduled', icon: <FaCalendarCheck className="w-4 h-4" /> },
-              { key: 'completed', label: 'Completed', icon: <FaCheck className="w-4 h-4" /> },
-              { key: 'cancelled', label: 'Cancelled', icon: <FaTimes className="w-4 h-4" /> },
-              { key: 'past', label: 'Past', icon: <FaHistory className="w-4 h-4" /> },
+              { key: 'all', label: 'All Interviews', icon: <FaList className="w-3.5 h-3.5" /> },
+              { key: 'conducted', label: 'Conducted', icon: <FaBullseye className="w-3.5 h-3.5" /> },
+              { key: 'attended', label: 'Attended', icon: <FaUserCheck className="w-3.5 h-3.5" /> },
+              { key: 'pending', label: 'Pending', icon: <FaHourglassStart className="w-3.5 h-3.5" /> },
+              { key: 'scheduled', label: 'Scheduled', icon: <FaCalendarCheck className="w-3.5 h-3.5" /> },
+              { key: 'completed', label: 'Completed', icon: <FaCheck className="w-3.5 h-3.5" /> },
+              { key: 'cancelled', label: 'Cancelled', icon: <FaTimes className="w-3.5 h-3.5" /> },
+              { key: 'past', label: 'Past', icon: <FaHistory className="w-3.5 h-3.5" /> },
             ].map((f) => {
               const count = filter === f.key ? filteredInterviews.length : 
                 f.key === 'all' ? interviews.length :
@@ -230,20 +230,20 @@ const YourInterviews = () => {
                 <button
                   key={f.key}
                   onClick={() => setFilter(f.key)}
-                  className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm flex items-center gap-3 transition-all duration-200 ${
+                  className={`w-full text-left px-3 py-2 rounded-lg font-medium text-sm flex items-center gap-2.5 transition-all duration-200 ${
                     filter === f.key
-                      ? 'bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white shadow-lg transform scale-105'
-                      : 'text-[#1e3a8a] hover:bg-blue-50 hover:scale-102 border border-transparent hover:border-blue-200'
+                      ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800 border border-transparent'
                   }`}
                 >
-                  <div className={`flex-shrink-0 ${filter === f.key ? 'text-white' : 'text-[#2563eb]'}`}>
+                  <div className={`flex-shrink-0 ${filter === f.key ? 'text-teal-600' : 'text-slate-400'}`}>
                     {f.icon}
                   </div>
-                  <span className="flex-1">{f.label}</span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  <span className="flex-1 truncate">{f.label}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                     filter === f.key 
-                      ? 'bg-white/20 text-white' 
-                      : 'bg-blue-100 text-[#1e3a8a]'
+                      ? 'bg-teal-100 text-teal-700' 
+                      : 'bg-slate-100 text-slate-500'
                   }`}>
                     {count}
                   </span>
@@ -251,53 +251,53 @@ const YourInterviews = () => {
               );
             })}
           </div>
-          <div className="p-6 border-t-2 border-gray-200 bg-gradient-to-br from-blue-50 to-white">
+          <div className="p-4 border-t border-slate-100 bg-slate-50/50">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide mb-1">Total Interviews</p>
-                <p className="text-3xl font-black text-[#1e3a8a]">{interviews.length}</p>
+                <p className="text-xs text-slate-500 font-medium mb-0.5">Total Interviews</p>
+                <p className="text-2xl font-bold text-slate-800">{interviews.length}</p>
               </div>
-              <div className="w-14 h-14 bg-gradient-to-br from-[#1e3a8a] to-[#2563eb] rounded-xl flex items-center justify-center shadow-lg">
-                <FaVideo className="text-white text-2xl" />
+              <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center">
+                <FaVideo className="text-teal-600 text-lg" />
               </div>
             </div>
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto bg-transparent">
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto bg-transparent">
           <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-3xl md:text-4xl font-bold text-[#1e3a8a] mb-2 flex items-center gap-3">
-                <span>Your Interviews</span>
+            <div className="mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-800 mb-1">
+                Your Interviews
               </h1>
-              <p className="text-gray-600 text-base md:text-lg">Manage your mock interviews with ease and precision</p>
+              <p className="text-slate-500 text-sm md:text-base">Manage your mock interviews with ease</p>
             </div>
             {loading ? (
-              <div className="bg-white rounded-2xl shadow-xl p-12 flex flex-col items-center justify-center text-center min-h-[50vh]">
-                <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#1e3a8a] border-t-transparent mb-4"></div>
-                <p className="text-gray-600 text-lg font-semibold">Loading interviews...</p>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-10 flex flex-col items-center justify-center text-center min-h-[50vh]">
+                <div className="animate-spin rounded-full h-12 w-12 border-3 border-teal-500 border-t-transparent mb-4"></div>
+                <p className="text-slate-600 text-base font-medium">Loading interviews...</p>
               </div>
             ) : error ? (
-              <div className="bg-white rounded-2xl shadow-xl border-2 border-red-200 p-12 flex flex-col items-center justify-center text-center min-h-[50vh]">
-                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
-                  <FaTimesCircle className="text-red-600 text-5xl" />
+              <div className="bg-white rounded-xl shadow-sm border border-red-100 p-10 flex flex-col items-center justify-center text-center min-h-[50vh]">
+                <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                  <FaTimesCircle className="text-red-500 text-3xl" />
                 </div>
-                <p className="text-red-600 text-lg font-semibold mb-3">{error}</p>
+                <p className="text-red-600 text-base font-medium mb-3">{error}</p>
                 <button
                   onClick={fetchInterviews}
-                  className="px-6 py-3 bg-[#1e3a8a] text-white rounded-xl font-semibold hover:bg-[#1e3a8a]/90 transition-all shadow-lg"
+                  className="px-5 py-2.5 bg-slate-800 text-white rounded-lg font-medium text-sm hover:bg-slate-700 transition-all"
                 >
                   Try Again
                 </button>
               </div>
             ) : filteredInterviews.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-xl p-12 flex flex-col items-center justify-center text-center min-h-[50vh]">
-                <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-                  <FaVideo className="text-[#2563eb] text-5xl" />
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-10 flex flex-col items-center justify-center text-center min-h-[50vh]">
+                <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center mb-4">
+                  <FaVideo className="text-teal-600 text-3xl" />
                 </div>
-                <h3 className="text-2xl font-bold text-[#1e3a8a] mb-2">No Interviews Found</h3>
-                <p className="text-gray-600 mb-6 max-w-md">
+                <h3 className="text-xl font-bold text-slate-800 mb-2">No Interviews Found</h3>
+                <p className="text-slate-500 mb-5 max-w-md text-sm">
                   {filter === 'all'
                     ? "You haven't conducted or attended any interviews yet. Start your journey now!"
                     : `No ${filter} interviews found. Try selecting a different filter.`}
@@ -305,7 +305,7 @@ const YourInterviews = () => {
                 {filter === 'all' && (
                   <button
                     onClick={() => (window.location.href = '/interview')}
-                    className="px-8 py-4 bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white rounded-xl font-bold text-base hover:shadow-2xl transition-all hover:scale-105"
+                    className="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-medium text-sm hover:bg-teal-700 transition-all"
                   >
                     📅 Book Your First Interview
                   </button>
@@ -313,20 +313,18 @@ const YourInterviews = () => {
               </div>
             ) : (
               <div>
-                <div className="bg-white rounded-2xl shadow-xl border-2 border-blue-100 p-6 mb-6">
-                  <div className="flex items-center justify-between flex-wrap gap-4">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-5">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
                     <div>
-                      <h2 className="text-2xl md:text-3xl font-bold text-[#1e3a8a] mb-1">
+                      <h2 className="text-lg md:text-xl font-semibold text-slate-800">
                         {filter.charAt(0).toUpperCase() + filter.slice(1)} Interviews
                       </h2>
-                      <p className="text-gray-600">
+                      <p className="text-slate-500 text-sm">
                         Showing {filteredInterviews.length} {filteredInterviews.length === 1 ? 'interview' : 'interviews'}
                       </p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-[#1e3a8a] to-[#2563eb] rounded-xl flex items-center justify-center shadow-lg">
-                        <FaVideo className="text-white text-xl" />
-                      </div>
+                    <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center">
+                      <FaVideo className="text-teal-600 text-lg" />
                     </div>
                   </div>
                 </div>

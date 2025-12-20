@@ -1,16 +1,17 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import Cookies from 'js-cookie';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import axios from 'axios';
 import Fuse from 'fuse.js';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../components/ToastContext';
+import DateTimePicker from '../components/DateTimePicker';
 import VideoCall from '../components/VideoCall';
-import { BACKEND_URL } from '../config.js';
-import socket from '../socket.js';
-import { useAuth } from '../context/AuthContext.jsx'; // Import useAuth
-import DateTimePicker from '../components/DateTimePicker.jsx';
+import socket from '../socket';
+import { BACKEND_URL } from '../config';
 
-const CreateSession = () => {
-  const { user: currentUser } = useAuth(); // Use useAuth hook
-  const cardRef = useRef(null);
+const CreateSessionNew = () => {
+  const { user: currentUser } = useAuth();
+  const { addToast } = useToast();
   const [form, setForm] = useState({
     subject: '',
     topic: '',
@@ -32,9 +33,10 @@ const CreateSession = () => {
   const [actionLoading, setActionLoading] = useState({});
   const [startingSession, setStartingSession] = useState(null);
   const [activeSession, setActiveSession] = useState(null);
-  // const [currentUser, setCurrentUser] = useState(null); // Remove this line
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [userSkills, setUserSkills] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // State for Google Sheet data
   const [classes, setClasses] = useState([]);
@@ -42,7 +44,6 @@ const CreateSession = () => {
   const [topicsBySubject, setTopicsBySubject] = useState({});
 
   // Allow all roles except explicit 'learner' to create sessions
-  // Also allow if user has isTutor flag (approved tutors)
   const isTutorRole = (
     currentUser && (
       currentUser.isTutor === true ||
@@ -53,266 +54,278 @@ const CreateSession = () => {
 
   // Derived skill lists for tutor-capable user
   const tutorClasses = useMemo(() => {
-    if (!isTutorRole) return [];
-    return [...new Set(userSkills.map(skill => skill.class))].filter(Boolean);
+    if (!isTutorRole || !userSkills.length) {
+      console.log('[CreateSession] No classes available:', { isTutorRole, userSkillsLength: userSkills.length });
+      return [];
+    }
+    const classSet = new Set(userSkills.map(sk => sk.class).filter(Boolean));
+    const result = Array.from(classSet);
+    console.log('[CreateSession] Available classes:', result);
+    return result;
   }, [userSkills, isTutorRole]);
 
   const tutorSubjects = useMemo(() => {
-    if (!isTutorRole) return [];
-    // Filter subjects based on selected class
-    if (form.subject) {
-      return [...new Set(
-        userSkills
-          .filter(skill => skill.class === form.subject)
-          .map(skill => skill.subject)
-      )].filter(Boolean);
-    }
-    return [...new Set(userSkills.map(skill => skill.subject))].filter(Boolean);
+    if (!isTutorRole || !userSkills.length) return [];
+    if (!form.subject) return [];
+    const filtered = userSkills.filter(sk => sk.class === form.subject);
+    const subjectSet = new Set(filtered.map(sk => sk.subject).filter(Boolean));
+    const result = Array.from(subjectSet);
+    console.log('[CreateSession] Available subjects for', form.subject, ':', result);
+    return result;
   }, [userSkills, isTutorRole, form.subject]);
 
-  // Check if user has ALL topics for a given subject
-  const hasAllTopics = useMemo(() => {
-    if (!isTutorRole) return {};
-    const allTopicsMap = {};
-    userSkills.forEach(skill => {
-      if (skill.topic === 'ALL' && skill.subject) {
-        allTopicsMap[skill.subject] = true;
+  const tutorTopicsBySubject = useMemo(() => {
+    if (!isTutorRole || !userSkills.length || !form.subject) return {};
+    const result = {};
+    const filtered = userSkills.filter(sk => sk.class === form.subject);
+    
+    filtered.forEach(sk => {
+      if (!sk.subject) return;
+      
+      // Check if topic is "ALL" (case-insensitive)
+      if (sk.topic && sk.topic.toUpperCase() === 'ALL') {
+        // User can teach all topics in this subject - get from master list and filter out "ALL"
+        const allTopics = topicsBySubject[sk.subject] || [];
+        result[sk.subject] = allTopics.filter(t => t && t.toUpperCase() !== 'ALL' && t.trim() !== '');
+        console.log(`[CreateSession] Tutor has ALL permission for ${sk.subject}, showing ${result[sk.subject].length} topics`);
+      } else if (sk.topic) {
+        // User can teach specific topic (not "ALL")
+        if (!result[sk.subject]) result[sk.subject] = [];
+        if (!result[sk.subject].includes(sk.topic) && sk.topic.toUpperCase() !== 'ALL') {
+          result[sk.subject].push(sk.topic);
+        }
       }
     });
-    return allTopicsMap;
-  }, [userSkills, isTutorRole]);
-
-  const tutorTopicsBySubject = useMemo(() => {
-    if (!isTutorRole) return {};
-    return userSkills.reduce((acc, skill) => {
-      // Filter by selected class if specified
-      if (form.subject && skill.class !== form.subject) {
-        return acc;
-      }
-      if (skill.subject && skill.topic) {
-        if (!acc[skill.subject]) {
-          acc[skill.subject] = [];
-        }
-        // If user has 'ALL', include all available topics from Google Sheet
-        if (skill.topic === 'ALL') {
-          const allTopicsForSubject = topicsBySubject[skill.subject] || [];
-          acc[skill.subject] = [...new Set([...acc[skill.subject], ...allTopicsForSubject])];
-        } else {
-          acc[skill.subject].push(skill.topic);
-        }
-      }
-      return acc;
-    }, {});
+    
+    console.log('[CreateSession] Available topics by subject:', result);
+    console.log('[CreateSession] Master topicsBySubject:', topicsBySubject);
+    return result;
   }, [userSkills, isTutorRole, topicsBySubject, form.subject]);
 
-  // Get available classes based on teacher's skills
   const availableClasses = useMemo(() => {
-    if (!isTutorRole || !userSkills.length) return [];
-    // Simply return all unique classes from user's skills
+    if (!isTutorRole || !userSkills.length) {
+      console.log('[CreateSession] No available classes - isTutorRole:', isTutorRole, 'userSkills:', userSkills);
+      return [];
+    }
     return tutorClasses;
   }, [tutorClasses, isTutorRole, userSkills.length]);
 
-
   // Fetch skills list from Google Sheet
   useEffect(() => {
-    const fetchLists = async () => {
+    const fetchSkills = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/skills-list`);
-        if (!response.ok) throw new Error('Failed to fetch skills list');
-        const data = await response.json();
-        setClasses(data.classes || []);
-        setSubjectsByClass(data.subjectsByClass || {});
-        setTopicsBySubject(data.topicsBySubject || {});
-        console.log('✅ [CreateSession] Loaded skills from Google Sheet:', data);
-      } catch (error) {
-        console.error('❌ [CreateSession] Error fetching skills list:', error);
+        console.log('[CreateSession] Fetching skills list from CSV...');
+        const res = await axios.get(`${BACKEND_URL}/api/skills-list`);
+        if (res.data) {
+          console.log('[CreateSession] Skills list fetched successfully');
+          console.log('[CreateSession] Classes:', res.data.classes?.length || 0);
+          console.log('[CreateSession] Subjects by class keys:', Object.keys(res.data.subjectsByClass || {}).length);
+          console.log('[CreateSession] Topics by subject keys:', Object.keys(res.data.topicsBySubject || {}).length);
+          console.log('[CreateSession] Sample topicsBySubject:', Object.keys(res.data.topicsBySubject || {}).slice(0, 3));
+          
+          setClasses(res.data.classes || []);
+          setSubjectsByClass(res.data.subjectsByClass || {});
+          setTopicsBySubject(res.data.topicsBySubject || {});
+        }
+      } catch (err) {
+        console.error('[CreateSession] Failed to fetch skills:', err);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchLists();
+    fetchSkills();
   }, []);
 
   // Helper function to normalize user IDs for comparison
   const normalizeUserId = (userId) => {
-    if (!userId) return null;
-    return userId.toString();
+    return userId ? userId.toString() : null;
   };
 
   // Helper function to check if current user is creator
   const isCurrentUserCreator = (session) => {
     if (!currentUser || !session) return false;
-    const currentUserId = normalizeUserId(currentUser._id);
-    const creatorId = normalizeUserId(session.creator?._id || session.creator);
-    return currentUserId === creatorId;
+    return normalizeUserId(session.creator?._id || session.creator) === normalizeUserId(currentUser._id);
   };
 
   // Helper function to check if current user is requester
   const isCurrentUserRequester = (session) => {
     if (!currentUser || !session) return false;
-    const currentUserId = normalizeUserId(currentUser._id);
-    const requesterId = normalizeUserId(session.requester?._id || session.requester);
-    return currentUserId === requesterId;
+    return normalizeUserId(session.requester?._id || session.requester) === normalizeUserId(currentUser._id);
   };
 
   // Get current user and skills from cookies
   useEffect(() => {
-    if (currentUser) {
-      setUserSkills(currentUser.skillsToTeach || []);
-    }
+    const fetchUserSkills = async () => {
+      if (!currentUser) return;
+      
+      try {
+        // First, check if user has skillsToTeach from auth response
+        if (currentUser.skillsToTeach && currentUser.skillsToTeach.length > 0) {
+          console.log('[CreateSession] Setting skills from currentUser.skillsToTeach:', currentUser.skillsToTeach);
+          setUserSkills(currentUser.skillsToTeach);
+        }
+        
+        // If user is a tutor, also fetch verified skills from approved application
+        if (currentUser.isTutor) {
+          console.log('[CreateSession] Fetching verified skills for tutor...');
+          const res = await axios.get(
+            `${BACKEND_URL}/api/tutor/verified-skills`,
+            { withCredentials: true }
+          );
+          
+          console.log('[CreateSession] Verified skills response:', res.data);
+          
+          if (res.data && res.data.skills && res.data.skills.length > 0) {
+            // Use verified skills from approved application
+            console.log('[CreateSession] Using verified skills from approved application:', res.data.skills);
+            setUserSkills(res.data.skills);
+          } else if (res.data && res.data.skillsToTeach && res.data.skillsToTeach.length > 0) {
+            // Fallback to skillsToTeach if available
+            console.log('[CreateSession] Using fallback skillsToTeach:', res.data.skillsToTeach);
+            setUserSkills(res.data.skillsToTeach);
+          } else {
+            console.log('[CreateSession] No verified skills found in response');
+          }
+        }
+      } catch (err) {
+        console.error('[CreateSession] Failed to fetch user skills:', err);
+        // Fallback to currentUser.skillsToTeach if API call fails
+        if (currentUser.skillsToTeach) {
+          console.log('[CreateSession] Using fallback currentUser.skillsToTeach after error:', currentUser.skillsToTeach);
+          setUserSkills(currentUser.skillsToTeach);
+        }
+      }
+    };
+    
+    fetchUserSkills();
   }, [currentUser]);
-
 
   // Load active session from localStorage on component mount
   useEffect(() => {
-    const savedActiveSession = localStorage.getItem('activeSession');
-    if (savedActiveSession) {
+    const savedSession = localStorage.getItem('activeSession');
+    if (savedSession) {
       try {
-        const session = JSON.parse(savedActiveSession);
-        if (session.sessionId) {
-          setActiveSession(session);
-          setShowVideoModal(true); // Automatically show video modal if active session exists
-        } else {
-          localStorage.removeItem('activeSession');
-        }
-      } catch (error) {
+        const parsed = JSON.parse(savedSession);
+        setActiveSession(parsed);
+        setShowVideoModal(true);
+      } catch (e) {
+        console.error('Failed to parse saved session', e);
         localStorage.removeItem('activeSession');
       }
     }
-    fetchUserSessions(); // To validate if the session is still active
   }, []);
 
   // Socket listeners for real-time updates
   useEffect(() => {
     if (!currentUser) return;
 
-    // Register socket
-    socket.emit('register', currentUser._id);
+    socket.on('session-requested', (data) => {
+      if (normalizeUserId(data.session.userId) === normalizeUserId(currentUser._id)) {
+        setScheduledSessions(prev => [...prev, data.session]);
+        addToast({ message: 'New session request received!', variant: 'info', timeout: 3000 });
+      }
+    });
 
-    // Listen for session-started (for requesters)
+    socket.on('session-approved', (data) => {
+      setScheduledSessions(prev => prev.map(s => s._id === data.sessionId ? { ...s, status: 'approved' } : s));
+      if (normalizeUserId(data.session.requestedBy) === normalizeUserId(currentUser._id)) {
+        addToast({ message: 'Your session request has been approved!', variant: 'success', timeout: 3000 });
+      }
+    });
+
+    socket.on('session-rejected', (data) => {
+      setScheduledSessions(prev => prev.filter(s => s._id !== data.sessionId));
+      if (normalizeUserId(data.session.requestedBy) === normalizeUserId(currentUser._id)) {
+        addToast({ message: 'Your session request has been rejected', variant: 'error', timeout: 3000 });
+      }
+    });
+
     socket.on('session-started', (data) => {
-      const role = isCurrentUserRequester({ requester: { _id: data.requesterId } }) ? 'student' : null;
-      if (role) {
-        const newActiveSession = {
-          sessionId: data.sessionId,
-          role
-        };
-        setActiveSession(newActiveSession);
-        setShowVideoModal(true); // Show video modal when session starts
-        localStorage.setItem('activeSession', JSON.stringify(newActiveSession));
+      setScheduledSessions(prev => prev.map(s => s._id === data.sessionId ? { ...s, status: 'active' } : s));
+      if (normalizeUserId(data.session.requestedBy) === normalizeUserId(currentUser._id)) {
+        addToast({ message: 'Session has started! You can now join.', variant: 'success', timeout: 3000 });
       }
-      fetchUserSessions();
     });
 
-    // Listen for session-cancelled (for creators)
+    socket.on('session-completed', (data) => {
+      setScheduledSessions(prev => prev.map(s => s._id === data.sessionId ? { ...s, status: 'completed' } : s));
+    });
+
     socket.on('session-cancelled', (data) => {
+      setScheduledSessions(prev => prev.filter(s => s._id !== data.sessionId));
+      addToast({ message: 'Session has been cancelled', variant: 'info', timeout: 3000 });
       if (activeSession && activeSession.sessionId === data.sessionId) {
-        setActiveSession(null);
-        setShowVideoModal(false); // Close video modal
-        localStorage.removeItem('activeSession');
-      }
-      fetchUserSessions();
-    });
-
-    socket.on('end-call', ({ sessionId }) => {
-      if (activeSession && activeSession.sessionId === sessionId) {
-        setActiveSession(null);
-        setShowVideoModal(false); // Close video modal
-        localStorage.removeItem('activeSession');
-      }
-    });
-
-    socket.on('session-completed', ({ sessionId }) => {
-      if (activeSession && activeSession.sessionId === sessionId) {
-        setActiveSession(null);
-        setShowVideoModal(false); // Close video modal
-        localStorage.removeItem('activeSession');
+        handleEndCall();
       }
     });
 
     return () => {
+      socket.off('session-requested');
+      socket.off('session-approved');
+      socket.off('session-rejected');
       socket.off('session-started');
-      socket.off('session-cancelled');
-      socket.off('end-call');
       socket.off('session-completed');
+      socket.off('session-cancelled');
     };
-  }, [currentUser, activeSession]);
+  }, [currentUser, activeSession, addToast]);
 
   // Initialize Fuse.js instances for fuzzy search
   const fuseClasses = useMemo(() => {
-    const classList = isTutorRole ? availableClasses : classes;
-    return new Fuse(classList, {
-      threshold: 0.3,
-      distance: 100,
-      keys: ['']
-    });
+    const list = isTutorRole ? availableClasses : classes;
+    return new Fuse(list, { threshold: 0.3 });
   }, [availableClasses, classes, isTutorRole]);
 
   const fuseSubjects = useMemo(() => {
-    if (!isTutorRole) return null;
-    return new Fuse(tutorSubjects, {
-      threshold: 0.3,
-      distance: 100,
-      keys: ['']
-    });
-  }, [tutorSubjects, isTutorRole]);
+    const list = isTutorRole ? tutorSubjects : (subjectsByClass[form.subject] || []);
+    return new Fuse(list, { threshold: 0.3 });
+  }, [tutorSubjects, isTutorRole, subjectsByClass, form.subject]);
 
   const fuseTopics = useMemo(() => {
-    if (!isTutorRole || !form.topic) return null;
-    const topicList = tutorTopicsBySubject[form.topic] || [];
-    return new Fuse(topicList, {
-      threshold: 0.3,
-      distance: 100,
-      keys: ['']
-    });
-  }, [form.topic, tutorTopicsBySubject, isTutorRole]);
-
+    if (!form.topic) return null;
+    const list = isTutorRole
+      ? (tutorTopicsBySubject[form.topic] || [])
+      : (topicsBySubject[form.topic] || []);
+    return new Fuse(list, { threshold: 0.3 });
+  }, [form.topic, tutorTopicsBySubject, isTutorRole, topicsBySubject]);
 
   // Filter using Fuse.js fuzzy search
   const courseList = useMemo(() => {
-    const baseList = isTutorRole ? availableClasses : classes;
-    if ((form.subject || '').trim() === '') return baseList;
-    if (!fuseClasses) return baseList;
-    const results = fuseClasses.search(form.subject);
-    return results.map(result => result.item);
+    const list = isTutorRole ? availableClasses : classes;
+    if (!form.subject.trim()) return list;
+    return fuseClasses.search(form.subject).map(res => res.item);
   }, [form.subject, availableClasses, classes, fuseClasses, isTutorRole]);
 
   const unitDropdownList = useMemo(() => {
-    if (!isTutorRole) return [];
-    const baseList = tutorSubjects;
-    if ((form.topic || '').trim() === '') return baseList;
-    if (!fuseSubjects) return baseList;
-    const results = fuseSubjects.search(form.topic);
-    return results.map(result => result.item);
-  }, [form.topic, tutorSubjects, fuseSubjects, isTutorRole]);
+    const list = isTutorRole ? tutorSubjects : (subjectsByClass[form.subject] || []);
+    if (!form.topic.trim()) return list;
+    return fuseSubjects.search(form.topic).map(res => res.item);
+  }, [form.topic, tutorSubjects, fuseSubjects, isTutorRole, subjectsByClass, form.subject]);
 
   const topicDropdownList = useMemo(() => {
-    if (!isTutorRole || !form.topic) return [];
-    const baseList = tutorTopicsBySubject[form.topic] || [];
-    if ((form.subtopic || '').trim() === '') return baseList;
-    if (!fuseTopics) return baseList;
-    const results = fuseTopics.search(form.subtopic);
-    return results.map(result => result.item);
-  }, [form.subtopic, form.topic, tutorTopicsBySubject, fuseTopics, isTutorRole]);
+    const list = isTutorRole
+      ? (tutorTopicsBySubject[form.topic] || [])
+      : (topicsBySubject[form.topic] || []);
+    if (!form.subtopic.trim()) return list;
+    return fuseTopics ? fuseTopics.search(form.subtopic).map(res => res.item) : list;
+  }, [form.subtopic, form.topic, tutorTopicsBySubject, fuseTopics, isTutorRole, topicsBySubject]);
 
-
-  // Helper computed values for dropdown lists
   const unitList = useMemo(() => {
-    if (!isTutorRole) return [];
-    return tutorSubjects;
-  }, [tutorSubjects, isTutorRole, form.subject]);
+    return isTutorRole ? tutorSubjects : (subjectsByClass[form.subject] || []);
+  }, [tutorSubjects, isTutorRole, subjectsByClass, form.subject]);
 
   const topicList = useMemo(() => {
-    if (!isTutorRole || !form.topic) return [];
-    return tutorTopicsBySubject[form.topic] || [];
-  }, [form.topic, tutorTopicsBySubject, isTutorRole]);
-
+    const topics = isTutorRole ? (tutorTopicsBySubject[form.topic] || []) : (topicsBySubject[form.topic] || []);
+    // Filter out "ALL" if it somehow got included - we only want individual topics
+    const filteredTopics = topics.filter(t => t && t.toUpperCase() !== 'ALL' && t.trim() !== '');
+    console.log('[CreateSession] topicList for subject', form.topic, ':', filteredTopics);
+    console.log('[CreateSession] tutorTopicsBySubject:', tutorTopicsBySubject);
+    console.log('[CreateSession] topicsBySubject[form.topic]:', topicsBySubject[form.topic]);
+    return filteredTopics;
+  }, [form.topic, tutorTopicsBySubject, isTutorRole, topicsBySubject]);
 
   const handleChange = e => {
     const { name, value } = e.target;
-    setForm(prev => {
-      if (name === 'subject') return { ...prev, subject: value, topic: '', subtopic: '' };
-      if (name === 'topic') return { ...prev, topic: value, subtopic: '' };
-      return { ...prev, [name]: value };
-    });
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
   const getTodayDate = () => {
@@ -326,97 +339,90 @@ const CreateSession = () => {
   const getCurrentTime = () => {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
-    const min = String(now.getMinutes()).padStart(2, '0');
-    return `${hh}:${min}`;
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
-
-    // Check tutor capability: block only explicit learners without isTutor flag
-    const canTutor = currentUser?.isTutor === true || 
-                     (currentUser?.role && currentUser.role.toLowerCase() !== 'learner');
-    if (!canTutor) {
-      alert('Tutor access required. Please apply and get approved as a tutor.');
+    console.log('[CreateSession] Form submission started', { form, currentUser, userSkills });
+    
+    if (!currentUser) {
+      addToast({ message: 'You must be logged in to create a session', variant: 'error', timeout: 3000 });
       return;
     }
 
-    // Check if user has the selected skill
-    // If user has 'ALL' for the subject, they can teach any topic in that subject
-    const hasSkill = userSkills.some(skill =>
-      skill.class === form.subject &&
-      skill.subject === form.topic &&
-      (skill.topic === form.subtopic || skill.topic === 'ALL')
-    );
-
-    if (!hasSkill) {
-      alert('You can only create sessions for your registered skills (Class, Subject, and Topic).');
+    const { subject, topic, subtopic, description, date, time } = form;
+    if (!subject || !topic || !subtopic || !description || !date || !time) {
+      const missing = [];
+      if (!subject) missing.push('Class');
+      if (!topic) missing.push('Subject');
+      if (!subtopic) missing.push('Topic');
+      if (!description) missing.push('Description');
+      if (!date || !time) missing.push('Date & Time');
+      
+      console.error('[CreateSession] Missing required fields:', missing);
+      console.error('[CreateSession] Current form values:', { subject, topic, subtopic, description, date, time });
+      
+      addToast({ 
+        message: `Please fill all required fields: ${missing.join(', ')}`, 
+        variant: 'error', 
+        timeout: 4000 
+      });
       return;
     }
 
-    // Prevent scheduling in the past
-    const today = getTodayDate();
-    const now = getCurrentTime();
-    if (form.date < today || (form.date === today && form.time < now)) {
-      alert('Cannot schedule a session in the past. Please select a valid date and time.');
+    const selectedDate = new Date(`${date}T${time}`);
+    const now = new Date();
+    if (selectedDate <= now) {
+      addToast({ message: 'Session date and time must be in the future', variant: 'error', timeout: 3000 });
       return;
     }
 
     try {
+      const payload = {
+        subject,
+        topic,
+        subtopic,
+        description,
+        date,
+        time,
+        userId: currentUser._id,
+      };
+
+      console.log('[CreateSession] Sending payload:', payload);
+
       if (editId) {
-        // Update existing session
-        const response = await fetch(`${BACKEND_URL}/api/sessions/${editId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(form),
-        });
-        if (!response.ok) {
-          const err = await response.json();
-          if (response.status === 404) {
-            alert('Session not found. It may have been deleted.');
-            fetchUserSessions();
-            return;
-          }
-          throw new Error(err.message || 'Failed to update session');
-        }
+        const res = await axios.put(
+          `${BACKEND_URL}/api/sessions/${editId}`,
+          payload,
+          { withCredentials: true }
+        );
+        setScheduledSessions(prev => prev.map(s => (s._id === editId ? res.data : s)));
+        addToast({ message: 'Session updated successfully!', variant: 'success', timeout: 3000 });
         setEditId(null);
       } else {
-        // Create new session
-        const response = await fetch(`${BACKEND_URL}/api/sessions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify(form),
-        });
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.message || 'Failed to create session');
-        }
-        const createdSession = await response.json();
+        const res = await axios.post(
+          `${BACKEND_URL}/api/sessions/create`,
+          payload,
+          { withCredentials: true }
+        );
+        console.log('[CreateSession] Session created:', res.data);
+        setScheduledSessions(prev => [...prev, res.data]);
+        addToast({ message: 'Session created successfully!', variant: 'success', timeout: 3000 });
         setScheduled(true);
+        setTimeout(() => setScheduled(false), 3000);
       }
-      setForm({
-        subject: '',
-        topic: '',
-        subtopic: '',
-        description: '',
-        date: '',
-        time: '',
-      });
-      fetchUserSessions();
+
+      setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
     } catch (error) {
-      console.error('Error creating/updating session:', error.message);
-      alert('Error: ' + error.message);
+      console.error('[CreateSession] Error creating/updating session:', error);
+      console.error('[CreateSession] Error response:', error.response?.data);
+      addToast({ message: error.response?.data?.message || 'Failed to create/update session', variant: 'error', timeout: 3000 });
     }
   };
 
   const handleEdit = (session) => {
-    setEditId(session._id);
     setForm({
       subject: session.subject || '',
       topic: session.topic || '',
@@ -425,54 +431,40 @@ const CreateSession = () => {
       date: session.date || '',
       time: session.time || '',
     });
-    if (cardRef.current) {
-      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    setEditId(session._id);
+    setSelectedSession(null);
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this session?")) return;
+    if (!window.confirm('Are you sure you want to delete this session?')) return;
     try {
-      const response = await fetch(`${BACKEND_URL}/api/sessions/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
+      await axios.delete(`${BACKEND_URL}/api/sessions/${id}`, {
+        withCredentials: true
       });
-      if (!response.ok) {
-        const err = await response.json();
-        if (response.status === 404) {
-          alert('Session not found. It may have already been deleted.');
-          fetchUserSessions();
-          return;
-        }
-        throw new Error(err.message || 'Failed to delete session');
-      }
       setScheduledSessions(prev => prev.filter(s => s._id !== id));
-      if (editId === id) setEditId(null);
-      alert('Session deleted!');
+      addToast({ message: 'Session deleted successfully!', variant: 'success', timeout: 3000 });
+      if (selectedSession && selectedSession._id === id) {
+        setSelectedSession(null);
+      }
     } catch (error) {
-      alert('Error deleting session: ' + error.message);
+      console.error('Error deleting session:', error);
+      addToast({ message: 'Failed to delete session', variant: 'error', timeout: 3000 });
     }
   };
 
   const handleApproveSession = async (id) => {
     setActionLoading(prev => ({ ...prev, [`approve-${id}`]: true }));
     try {
-      const response = await fetch(`${BACKEND_URL}/api/sessions/${id}/approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Failed to approve session');
-      }
-      alert('Session approved!');
-      fetchUserSessions();
+      const res = await axios.put(
+        `${BACKEND_URL}/api/sessions/${id}/approve`,
+        {},
+        { withCredentials: true }
+      );
+      setScheduledSessions(prev => prev.map(s => (s._id === id ? res.data : s)));
+      addToast({ message: 'Session approved successfully', variant: 'success', timeout: 3000 });
     } catch (error) {
       console.error('Error approving session:', error);
-      alert('Error: ' + error.message);
+      addToast({ message: 'Failed to approve session', variant: 'error', timeout: 3000 });
     } finally {
       setActionLoading(prev => ({ ...prev, [`approve-${id}`]: false }));
     }
@@ -481,22 +473,19 @@ const CreateSession = () => {
   const handleRejectSession = async (id) => {
     setActionLoading(prev => ({ ...prev, [`reject-${id}`]: true }));
     try {
-      const response = await fetch(`${BACKEND_URL}/api/sessions/${id}/reject`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Failed to reject session');
+      await axios.put(
+        `${BACKEND_URL}/api/sessions/${id}/reject`,
+        {},
+        { withCredentials: true }
+      );
+      setScheduledSessions(prev => prev.filter(s => s._id !== id));
+      addToast({ message: 'Session rejected', variant: 'info', timeout: 3000 });
+      if (selectedSession && selectedSession._id === id) {
+        setSelectedSession(null);
       }
-      alert('Session rejected!');
-      fetchUserSessions();
     } catch (error) {
       console.error('Error rejecting session:', error);
-      alert('Error: ' + error.message);
+      addToast({ message: 'Failed to reject session', variant: 'error', timeout: 3000 });
     } finally {
       setActionLoading(prev => ({ ...prev, [`reject-${id}`]: false }));
     }
@@ -505,124 +494,91 @@ const CreateSession = () => {
   const handleJoinSession = async (session) => {
     setActionLoading(prev => ({ ...prev, [`join-${session._id}`]: true }));
     try {
-      const role = 'student';
-      const newActiveSession = { sessionId: session._id, role };
-      setActiveSession(newActiveSession);
-      setShowVideoModal(true); // Show video modal when joining
-      localStorage.setItem('activeSession', JSON.stringify(newActiveSession));
+      const activeSessionData = {
+        sessionId: session._id,
+        role: 'requester',
+        createdAt: Date.now(),
+      };
+      setActiveSession(activeSessionData);
+      setShowVideoModal(true);
+      localStorage.setItem('activeSession', JSON.stringify(activeSessionData));
+      addToast({ message: 'Joining session...', variant: 'info', timeout: 3000 });
     } catch (error) {
       console.error('Error joining session:', error);
-      alert('Error joining session: ' + error.message);
+      addToast({ message: 'Failed to join session', variant: 'error', timeout: 3000 });
     } finally {
       setActionLoading(prev => ({ ...prev, [`join-${session._id}`]: false }));
     }
   };
 
   const handleCancelSession = async (session) => {
+    if (!window.confirm('Are you sure you want to cancel this session?')) return;
     setActionLoading(prev => ({ ...prev, [`cancel-${session._id}`]: true }));
     try {
-      const response = await fetch(`${BACKEND_URL}/api/sessions/${session._id}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.message || 'Failed to cancel session');
+      await axios.delete(
+        `${BACKEND_URL}/api/sessions/${session._id}`,
+        { withCredentials: true }
+      );
+      setScheduledSessions(prev => prev.filter(s => s._id !== session._id));
+      addToast({ message: 'Session cancelled successfully', variant: 'success', timeout: 3000 });
+      if (selectedSession && selectedSession._id === session._id) {
+        setSelectedSession(null);
       }
-      setActiveSession(null);
-      setShowVideoModal(false); // Close video modal
-      localStorage.removeItem('activeSession');
-      alert('Session cancelled!');
-      fetchUserSessions();
     } catch (error) {
       console.error('Error cancelling session:', error);
-      alert('Error: ' + error.message);
+      addToast({ message: 'Failed to cancel session', variant: 'error', timeout: 3000 });
     } finally {
       setActionLoading(prev => ({ ...prev, [`cancel-${session._id}`]: false }));
     }
   };
 
   const handleStartSession = async (session) => {
-    if (session.status !== 'approved') {
-      alert('Only approved sessions can be started.');
-      return;
-    }
-
     setStartingSession(session._id);
-    
     try {
-      const response = await fetch(`${BACKEND_URL}/api/sessions/${session._id}/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to start session');
-      }
-
-      const result = await response.json();
-      
-      // Show success message
-      alert('Session started! The approved user has been notified.');
-      
-      // Start video call for creator
-      const role = 'teacher';
-      const newActiveSession = { sessionId: session._id, role };
-      setActiveSession(newActiveSession);
-      setShowVideoModal(true); // Show video modal when starting
-      localStorage.setItem('activeSession', JSON.stringify(newActiveSession));
-      
-      // Refresh sessions list
-      fetchUserSessions();
-      
+      const res = await axios.put(
+        `${BACKEND_URL}/api/sessions/${session._id}/start`,
+        {},
+        { withCredentials: true }
+      );
+      setScheduledSessions(prev => prev.map(s => (s._id === session._id ? res.data : s)));
+      const activeSessionData = {
+        sessionId: session._id,
+        role: 'creator',
+        createdAt: Date.now(),
+      };
+      setActiveSession(activeSessionData);
+      setShowVideoModal(true);
+      localStorage.setItem('activeSession', JSON.stringify(activeSessionData));
+      addToast({ message: 'Session started successfully!', variant: 'success', timeout: 3000 });
     } catch (error) {
       console.error('Error starting session:', error);
-      alert(error.message || 'Failed to start session');
+      addToast({ message: 'Failed to start session', variant: 'error', timeout: 3000 });
     } finally {
       setStartingSession(null);
     }
   };
 
   const handleEndCall = () => {
-    if (activeSession) {
-      socket.emit('end-call', { sessionId: activeSession.sessionId });
-      setActiveSession(null);
-      setShowVideoModal(false); // Close video modal
-      localStorage.removeItem('activeSession');
-    }
+    setShowVideoModal(false);
+    setActiveSession(null);
+    localStorage.removeItem('activeSession');
+    addToast({ message: 'Call ended', variant: 'info', timeout: 3000 });
   };
 
   const fetchUserSessions = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const response = await fetch(`${BACKEND_URL}/api/sessions/mine`, {
-        credentials: 'include',
+      console.log('[CreateSession] Fetching user sessions...');
+      const res = await axios.get(`${BACKEND_URL}/api/sessions/mine`, {
+        withCredentials: true
       });
-      if (!response.ok) {
-        throw new Error('Failed to fetch sessions');
-      }
-      const sessions = await response.json();
-      
+      console.log('[CreateSession] Sessions response:', res.data);
+      const sessions = Array.isArray(res.data) ? res.data : [];
+      console.log('[CreateSession] Setting sessions:', sessions);
       setScheduledSessions(sessions);
-
-      // Validate activeSession
-      if (activeSession) {
-        const currentSession = sessions.find(s => s._id === activeSession.sessionId);
-        if (!currentSession || currentSession.status !== 'active') {
-          setActiveSession(null);
-          setShowVideoModal(false); // Close video modal
-          localStorage.removeItem('activeSession');
-        }
-      }
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      console.error('[CreateSession] Error fetching sessions:', error);
+      setScheduledSessions([]);
     } finally {
       setLoading(false);
     }
@@ -635,243 +591,582 @@ const CreateSession = () => {
   // Block non-tutor users from creating sessions once auth is ready
   if (authReady && !isTutorRole) {
     return (
-      <div className="max-w-2xl mx-auto mt-10 p-6 bg-yellow-50 border border-yellow-200 rounded-xl">
-        <h2 className="text-xl font-semibold text-yellow-800 mb-2">Tutor access required</h2>
-        <p className="text-yellow-700">You are currently a learner. To create sessions, apply and get approved as a tutor. If you recently unregistered, tutor features are disabled.</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 pt-20 pb-8 px-4">
+        <div className="max-w-2xl mx-auto text-center mt-20">
+          <p className="text-red-600 text-lg font-semibold">Only verified tutors can create sessions. Please add skills to your profile.</p>
+        </div>
       </div>
     );
   }
 
   useEffect(() => {
-    // Socket listeners for real-time updates
-    socket.on('session-approved', (data) => {
-      fetchUserSessions(); // Refresh sessions
-    });
-
-    socket.on('session-rejected', (data) => {
-      fetchUserSessions(); // Refresh sessions
-    });
-
-    return () => {
-      socket.off('session-approved');
-      socket.off('session-rejected');
+    if (!currentUser) return;
+    const handleBeforeUnload = (e) => {
+      if (activeSession) {
+        e.preventDefault();
+        e.returnValue = 'You have an active session. Are you sure you want to leave?';
+        return e.returnValue;
+      }
     };
-  }, []);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [activeSession, currentUser]);
 
-  // Skeleton Loader for Scheduled Sessions
-  const SkeletonLoader = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-      {[...Array(3)].map((_, idx) => (
-        <div key={idx} className="bg-gray-100 rounded-2xl p-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent animate-shimmer"></div>
-          <div className="h-4 w-24 bg-blue-100 rounded mb-2"></div>
-          <div className="h-5 w-48 bg-blue-100 rounded mb-2"></div>
-          <div className="h-16 w-full bg-blue-100 rounded mb-4"></div>
-          <div className="h-4 w-32 bg-blue-100 rounded mb-4"></div>
-          <div className="flex gap-3">
-            <div className="h-4 w-16 bg-blue-100 rounded"></div>
-            <div className="h-4 w-16 bg-blue-100 rounded"></div>
-          </div>
-        </div>
-      ))}
+  const handleSessionClick = (session) => {
+    setSelectedSession(session);
+    setEditId(null);
+  };
 
-    </div>
-  );
+  // Filter sessions based on search query
+  const filteredSessions = useMemo(() => {
+    if (!searchQuery.trim()) return scheduledSessions;
+    const query = searchQuery.toLowerCase();
+    return (Array.isArray(scheduledSessions) ? scheduledSessions : []).filter(session => 
+      session.subject?.toLowerCase().includes(query) ||
+      session.topic?.toLowerCase().includes(query) ||
+      session.subtopic?.toLowerCase().includes(query) ||
+      session.description?.toLowerCase().includes(query)
+    );
+  }, [scheduledSessions, searchQuery]);
 
   const username = currentUser ? currentUser.username || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'User' : 'User';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-gray-50 to-blue-100 pt-20 pb-8 px-4 sm:px-6 lg:px-8 font-inter">
-      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-start justify-center gap-10">
-        {/* Create Session Card */}
-        <div ref={cardRef} className="bg-white/95 rounded-3xl shadow-xl border border-blue-200 p-10 w-full max-w-lg min-w-[320px] mx-auto lg:mx-0 mb-10 lg:mb-0 relative animate-slide-up">
-          <h1 className="text-3xl font-bold text-blue-900 mb-8 text-center font-lora tracking-tight relative group">
-            Create Your Own 1-on-1 Session
-            <span className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
-          </h1>
-          {/* Schedule Session Section */}
-          <section className="mb-10">
-            <h2 className="text-lg font-semibold text-blue-900 mb-4 border-b border-blue-100 pb-2 font-lora animate-fade-in">Schedule Your Session</h2>
-            {scheduled ? (
-              <div className="text-center animate-fade-in">
-                <p className="text-green-700 font-semibold mb-4 font-nunito">Session scheduled successfully!</p>
-                <button
-                  className="bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                  onClick={() => {
-                    setScheduled(false);
-                    setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
-                  }}
-                >
-                  Schedule Another
-                </button>
+    <div className="min-h-screen bg-gray-50 pt-16 font-inter">
+      {/* Two-Panel Layout Container */}
+      <div className="flex flex-col lg:flex-row h-screen overflow-hidden">
+        
+        {/* LEFT SIDEBAR - Scheduled Sessions */}
+        <aside className="w-full lg:w-80 bg-white border-r border-gray-200 flex flex-col overflow-hidden lg:max-h-screen">
+          {/* Sidebar Header */}
+          <div className="p-4 lg:p-5 border-b border-gray-200 bg-gradient-to-br from-blue-50 to-white">
+            <h2 className="text-lg font-bold text-[#1e40af] flex items-center gap-2">
+              <svg className="w-6 h-6 text-brand-primary" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+              </svg>
+              <span>My Sessions</span>
+            </h2>
+            <p className="text-[11px] text-gray-500 mt-0.5">Click to view details</p>
+            
+            {/* Search Bar */}
+            <div className="mt-3 relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search sessions..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all bg-white"
+              />
+              <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Sessions List - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+            {loading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
               </div>
-            ) : !isTutorRole ? (
-              <div className="text-center animate-fade-in">
-                <p className="text-red-600 font-semibold mb-4 font-nunito">Only teachers can create sessions. Please add skills to your profile to begin.</p>
+            ) : filteredSessions.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <svg className="w-16 h-16 mx-auto mb-3 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm font-semibold text-gray-600">{searchQuery ? 'No matching sessions' : 'No sessions yet'}</p>
+                <p className="text-xs mt-1 text-gray-500">{searchQuery ? 'Try different keywords' : 'Create your first session to get started'}</p>
               </div>
             ) : (
-              <form className="flex flex-col gap-5" onSubmit={handleSubmit} autoComplete="off">
-                <div className="relative">
-                  <label className="block text-blue-900 font-medium mb-1 font-lora">Class</label>
-                  <input
-                    type="text"
-                    name="subject"
-                    value={form.subject}
-                    onChange={e => { handleChange(e); setShowCourseDropdown(true); setHighlightedCourseIdx(-1); }}
-                    onFocus={() => setShowCourseDropdown(true)}
-                    onBlur={() => setTimeout(() => { setShowCourseDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
-                    onKeyDown={e => {
-                      if (!showCourseDropdown || courseList.length === 0) return;
-                      if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
-                        e.preventDefault();
-                        setHighlightedCourseIdx(idx => (idx + 1) % courseList.length);
-                      } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
-                        e.preventDefault();
-                        setHighlightedCourseIdx(idx => (idx - 1 + courseList.length) % courseList.length);
-                      } else if (e.key === 'Enter') {
-                        if (highlightedCourseIdx >= 0 && highlightedCourseIdx < courseList.length) {
-                          setForm(prev => ({ ...prev, subject: courseList[highlightedCourseIdx], topic: '', subtopic: '' }));
-                          setShowCourseDropdown(false);
-                          setHighlightedCourseIdx(-1);
-                        }
-                      }
-                    }}
-                    placeholder="Search Class..."
-                    className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
-                    required
-                    autoComplete="off"
-                  />
-                  {showCourseDropdown && (
-                    <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
-                      {courseList.length > 0 ? courseList.map((s, idx) => (
-                        <li
-                          key={idx}
-                          className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedCourseIdx === idx ? 'bg-blue-200' : ''}`}
-                          onMouseDown={() => {
-                            setForm(prev => ({ ...prev, subject: s, topic: '', subtopic: '' }));
+              filteredSessions.map((session) => (
+                <div
+                  key={session._id}
+                  onClick={() => handleSessionClick(session)}
+                  className={`p-2.5 rounded-lg border cursor-pointer transition-all duration-150 hover:shadow-sm ${
+                    selectedSession?._id === session._id
+                      ? 'bg-blue-50 border-[#1e40af] shadow-sm ring-1 ring-[#1e40af] ring-opacity-30'
+                      : 'bg-white border-gray-200 hover:border-[#1e40af]'
+                  }`}
+                >
+                  {/* Minimal Info - Keywords Only */}
+                  <div className="flex items-start justify-between mb-1">
+                    <h3 className="font-bold text-xs text-[#1e40af] line-clamp-1 flex-1">
+                      {session.subject || 'No Subject'}
+                    </h3>
+                    <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wide ml-1.5 ${
+                      session.status === 'completed' ? 'bg-green-100 text-green-700' :
+                      session.status === 'approved' || session.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                      session.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {session.status || 'pending'}
+                    </span>
+                  </div>
+                  
+                  {/* Topic - Single line */}
+                  <p className="text-[11px] text-[#475569] line-clamp-1 mb-1.5">
+                    {session.topic || 'N/A'} • {session.subtopic || 'N/A'}
+                  </p>
+                  
+                  {/* Date & Role Badge */}
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-gray-500 font-medium">
+                      {session.date ? new Date(session.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No date'}
+                    </span>
+                    {currentUser && isCurrentUserCreator(session) && (
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-bold bg-[#1e40af] text-white text-[9px]">
+                        Expert
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </aside>
+
+        {/* RIGHT MAIN PANEL */}
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+            
+            {selectedSession ? (
+              /* ============================================ */
+              /* SESSION DETAILS VIEW */
+              /* ============================================ */
+              <div className="animate-fade-in">
+                {/* Header with Close Button */}
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h1 className="text-2xl lg:text-3xl font-bold text-black">Session Details</h1>
+                    <p className="text-xs text-[#475569] mt-1">Review and manage this session</p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedSession(null)}
+                    className="p-2 text-gray-500 hover:text-[#1e40af] hover:bg-gray-100 rounded-lg transition-all"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Status and Role Badges */}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm ${
+                    selectedSession.status === 'completed' ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 
+                    selectedSession.status === 'approved' || selectedSession.status === 'active' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white' : 
+                    selectedSession.status === 'rejected' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' : 
+                    'bg-gradient-to-r from-amber-400 to-orange-500 text-white'
+                  }`}>
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    {(selectedSession.status || 'pending').toUpperCase()}
+                  </span>
+                  {currentUser && isCurrentUserCreator(selectedSession) && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#1e40af] text-white shadow-sm">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" />
+                      </svg>
+                      You are the Expert
+                    </span>
+                  )}
+                </div>
+
+                {/* Session Information Card */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4 mb-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] text-[#475569] font-semibold uppercase tracking-wider mb-1 block">Class</label>
+                      <p className="text-lg font-bold text-black">{selectedSession.subject}</p>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[#475569] font-semibold uppercase tracking-wider mb-1 block">Subject</label>
+                      <p className="text-lg font-bold text-black">{selectedSession.topic}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-gray-100">
+                    <label className="text-[10px] text-[#475569] font-semibold uppercase tracking-wider mb-1 block">Topic</label>
+                    <p className="text-base font-bold text-black">{selectedSession.subtopic}</p>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-gray-100">
+                    <label className="text-[10px] text-[#475569] font-semibold uppercase tracking-wider mb-1 block">Description</label>
+                    <p className="text-sm text-[#475569] leading-relaxed">{selectedSession.description}</p>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-gray-100 grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] text-[#475569] font-semibold uppercase tracking-wider mb-1 block flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                        </svg>
+                        Date
+                      </label>
+                      <p className="text-base font-bold text-black">{selectedSession.date}</p>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-[#475569] font-semibold uppercase tracking-wider mb-1 block flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                        Time
+                      </label>
+                      <p className="text-base font-bold text-black">{selectedSession.time}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2">
+                  {currentUser && isCurrentUserCreator(selectedSession) && (
+                    <>
+                      <button
+                        onClick={() => handleEdit(selectedSession)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1e40af] text-white rounded-lg text-sm font-semibold hover:bg-[#1e3a8a] transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                        Edit Session
+                      </button>
+                      <button
+                        onClick={() => handleDelete(selectedSession._id)}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-status-error-button text-white rounded-xl font-bold hover:bg-status-error-button-hover transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        Delete Session
+                      </button>
+                    </>
+                  )}
+
+                  {selectedSession.status === 'requested' && currentUser && isCurrentUserCreator(selectedSession) && (
+                    <>
+                      <button
+                        onClick={() => handleApproveSession(selectedSession._id)}
+                        disabled={actionLoading[`approve-${selectedSession._id}`]}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        {actionLoading[`approve-${selectedSession._id}`] ? 'Approving...' : 'Approve Request'}
+                      </button>
+                      <button
+                        onClick={() => handleRejectSession(selectedSession._id)}
+                        disabled={actionLoading[`reject-${selectedSession._id}`]}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-status-error-button text-white rounded-xl font-bold hover:bg-status-error-button-hover transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        {actionLoading[`reject-${selectedSession._id}`] ? 'Rejecting...' : 'Reject Request'}
+                      </button>
+                    </>
+                  )}
+
+                  {selectedSession.status === 'approved' && currentUser && isCurrentUserCreator(selectedSession) && (
+                    <button
+                      onClick={() => handleStartSession(selectedSession)}
+                      disabled={startingSession === selectedSession._id}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                      </svg>
+                      {startingSession === selectedSession._id ? 'Starting...' : 'Start Session'}
+                    </button>
+                  )}
+
+                  {selectedSession.status === 'active' && currentUser && isCurrentUserRequester(selectedSession) && (
+                    <>
+                      <button
+                        onClick={() => handleJoinSession(selectedSession)}
+                        disabled={actionLoading[`join-${selectedSession._id}`]}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                        </svg>
+                        {actionLoading[`join-${selectedSession._id}`] ? 'Joining...' : 'Join Session'}
+                      </button>
+                      <button
+                        onClick={() => handleCancelSession(selectedSession)}
+                        disabled={actionLoading[`cancel-${selectedSession._id}`]}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-status-error-button text-white rounded-xl font-bold hover:bg-status-error-button-hover transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                        {actionLoading[`cancel-${selectedSession._id}`] ? 'Cancelling...' : 'Cancel'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* ============================================ */
+              /* CREATE SESSION FORM */
+              /* ============================================ */
+              <div className="animate-fade-in">
+                {/* Header */}
+                <div className="mb-5">
+                  <h1 className="text-2xl lg:text-3xl font-bold text-black mb-1">
+                    Create Your Expert Session
+                  </h1>
+                  <p className="text-xs text-[#475569]">
+                    Schedule a session to share your expertise with learners
+                  </p>
+                </div>
+
+                {scheduled && (
+                  <div className="mb-6 p-4 bg-status-success-bg border-2 border-status-success-border rounded-xl flex items-center gap-3 shadow-sm">
+                    <svg className="w-6 h-6 text-status-success-icon flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <div>
+                      <p className="text-status-success-text font-bold">Session scheduled successfully!</p>
+                      <p className="text-status-success-text text-sm">Your session has been added to the list</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Form Card */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                  <h2 className="text-base font-bold text-[#1e40af] mb-4 flex items-center gap-2">
+                    <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                      <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                    </svg>
+                    Schedule Your Session
+                  </h2>
+                  
+                  {/* No Skills Warning */}
+                  {isTutorRole && userSkills.length === 0 && (
+                    <div className="mb-6 p-4 bg-status-warning-bg border-2 border-status-warning-border rounded-xl flex items-start gap-3">
+                      <svg className="w-6 h-6 text-status-warning-icon flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-status-warning-text font-bold mb-1">No Verified Skills Found</p>
+                        <p className="text-sm text-gray-600">
+                          You need to get your teaching skills verified before creating sessions. 
+                          Please apply for tutor verification from your profile page.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+                  {/* Class Dropdown */}
+                  <div className="relative">
+                    <label className="block text-[#475569] font-semibold mb-1.5 text-xs uppercase tracking-wide">Class</label>
+                    <input
+                      type="text"
+                      name="subject"
+                      value={form.subject}
+                      onChange={e => { handleChange(e); setShowCourseDropdown(true); setHighlightedCourseIdx(-1); }}
+                      onFocus={() => setShowCourseDropdown(true)}
+                      onBlur={() => setTimeout(() => { setShowCourseDropdown(false); setHighlightedCourseIdx(-1); }, 120)}
+                      onKeyDown={e => {
+                        if (!showCourseDropdown || courseList.length === 0) return;
+                        if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+                          e.preventDefault();
+                          setHighlightedCourseIdx(idx => (idx + 1) % courseList.length);
+                        } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+                          e.preventDefault();
+                          setHighlightedCourseIdx(idx => (idx - 1 + courseList.length) % courseList.length);
+                        } else if (e.key === 'Enter') {
+                          if (highlightedCourseIdx >= 0 && highlightedCourseIdx < courseList.length) {
+                            setForm(prev => ({ ...prev, subject: courseList[highlightedCourseIdx], topic: '', subtopic: '' }));
                             setShowCourseDropdown(false);
                             setHighlightedCourseIdx(-1);
-                          }}
-                        >
-                          {s}
-                        </li>
-                      )) : <li className="px-4 py-2 text-gray-500">No classes found.</li>}
-                    </ul>
-                  )}
-                </div>
-                <div className="relative">
-                  <label className="block text-blue-900 font-medium mb-1 font-lora">Subject</label>
-                  <input
-                    type="text"
-                    name="topic"
-                    value={form.topic}
-                    onChange={e => { handleChange(e); setShowUnitDropdown(true); setHighlightedUnitIdx(-1); }}
-                    onFocus={() => { if (form.subject) setShowUnitDropdown(true); }}
-                    onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
-                    onKeyDown={e => {
-                      if (!showUnitDropdown || unitDropdownList.length === 0) return;
-                      if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
-                        e.preventDefault();
-                        setHighlightedUnitIdx(idx => (idx + 1) % unitDropdownList.length);
-                      } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
-                        e.preventDefault();
-                        setHighlightedUnitIdx(idx => (idx - 1 + unitDropdownList.length) % unitDropdownList.length);
-                      } else if (e.key === 'Enter') {
-                        if (highlightedUnitIdx >= 0 && highlightedUnitIdx < unitDropdownList.length) {
-                          setForm(prev => ({ ...prev, topic: unitDropdownList[highlightedUnitIdx], subtopic: '' }));
-                          setShowUnitDropdown(false);
-                          setHighlightedUnitIdx(-1);
+                          }
                         }
-                      }
-                    }}
-                    placeholder="Search Subject..."
-                    className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
-                    required
-                    autoComplete="off"
-                    disabled={!form.subject || unitList.length === 0}
-                  />
-                  {showUnitDropdown && form.subject && (
-                    <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
-                      {unitDropdownList.length > 0 ? unitDropdownList.map((u, idx) => (
-                        <li
-                          key={idx}
-                          className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedUnitIdx === idx ? 'bg-blue-200' : ''}`}
-                          onMouseDown={() => {
-                            setForm(prev => ({ ...prev, topic: u, subtopic: '' }));
+                      }}
+                      placeholder="Search Class..."
+                      className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-black focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all bg-white shadow-sm hover:border-brand-primary disabled:bg-gray-100 disabled:cursor-not-allowed disabled:border-gray-200"
+                      required
+                      autoComplete="off"
+                      disabled={userSkills.length === 0}
+                    />
+                    {showCourseDropdown && (
+                      <ul className="absolute z-10 left-0 right-0 bg-white border-2 border-brand-primary rounded-xl shadow-2xl max-h-60 overflow-y-auto mt-2">
+                        {courseList.length > 0 ? courseList.map((s, idx) => (
+                          <li
+                            key={idx}
+                            className={`px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors text-black font-medium ${highlightedCourseIdx === idx ? 'bg-brand-primary text-white' : ''}`}
+                            onMouseDown={() => {
+                              setForm(prev => ({ ...prev, subject: s, topic: '', subtopic: '' }));
+                              setShowCourseDropdown(false);
+                              setHighlightedCourseIdx(-1);
+                            }}
+                          >
+                            {s}
+                          </li>
+                        )) : (
+                          <li className="px-4 py-3 text-text-muted">
+                            {isTutorRole && userSkills.length === 0 ? (
+                              <div className="text-center py-2">
+                                <p className="font-medium text-status-warning-text">No verified skills found</p>
+                                <p className="text-xs mt-1">Please apply for tutor verification to add your teaching skills</p>
+                              </div>
+                            ) : (
+                              'No classes found'
+                            )}
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Subject Dropdown */}
+                  <div className="relative">
+                    <label className="block text-[#475569] font-semibold mb-1.5 text-xs uppercase tracking-wide">Subject</label>
+                    <input
+                      type="text"
+                      name="topic"
+                      value={form.topic}
+                      onChange={e => { handleChange(e); setShowUnitDropdown(true); setHighlightedUnitIdx(-1); }}
+                      onFocus={() => { if (form.subject) setShowUnitDropdown(true); }}
+                      onBlur={() => setTimeout(() => { setShowUnitDropdown(false); setHighlightedUnitIdx(-1); }, 120)}
+                      onKeyDown={e => {
+                        if (!showUnitDropdown || unitDropdownList.length === 0) return;
+                        if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+                          e.preventDefault();
+                          setHighlightedUnitIdx(idx => (idx + 1) % unitDropdownList.length);
+                        } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+                          e.preventDefault();
+                          setHighlightedUnitIdx(idx => (idx - 1 + unitDropdownList.length) % unitDropdownList.length);
+                        } else if (e.key === 'Enter') {
+                          if (highlightedUnitIdx >= 0 && highlightedUnitIdx < unitDropdownList.length) {
+                            setForm(prev => ({ ...prev, topic: unitDropdownList[highlightedUnitIdx], subtopic: '' }));
                             setShowUnitDropdown(false);
                             setHighlightedUnitIdx(-1);
-                          }}
-                        >
-                          {u}
-                        </li>
-                      )) : <li className="px-4 py-2 text-gray-500">No matching subjects found in your skills.</li>}
-                    </ul>
-                  )}
-                </div>
-                <div className="relative">
-                  <label className="block text-blue-900 font-medium mb-1 font-lora">Topic</label>
-                  <input
-                    type="text"
-                    name="subtopic"
-                    value={form.subtopic}
-                    onChange={e => { handleChange(e); setShowSubtopicDropdown(true); setHighlightedSubtopicIdx(-1); }}
-                    onFocus={() => setShowSubtopicDropdown(true)}
-                    onBlur={() => setTimeout(() => { setShowSubtopicDropdown(false); setHighlightedSubtopicIdx(-1); }, 120)}
-                    onKeyDown={e => {
-                      if (!showSubtopicDropdown || topicDropdownList.length === 0) return;
-                      if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
-                        e.preventDefault();
-                        setHighlightedSubtopicIdx(idx => (idx + 1) % topicDropdownList.length);
-                      } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
-                        e.preventDefault();
-                        setHighlightedSubtopicIdx(idx => (idx - 1 + topicDropdownList.length) % topicDropdownList.length);
-                      } else if (e.key === 'Enter') {
-                        if (highlightedSubtopicIdx >= 0 && highlightedSubtopicIdx < topicDropdownList.length) {
-                          setForm(prev => ({ ...prev, subtopic: topicDropdownList[highlightedSubtopicIdx] }));
-                          setShowSubtopicDropdown(false);
-                          setHighlightedSubtopicIdx(-1);
+                          }
                         }
-                      }
-                    }}
-                    placeholder="Search Topic..."
-                    className="w-full border border-blue-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
-                    required
-                    autoComplete="off"
-                    disabled={!form.topic || topicList.length === 0}
-                  />
-                  {showSubtopicDropdown && form.topic && (
-                    <ul className="absolute z-10 left-0 right-0 bg-white/95 border border-blue-200 rounded-b-lg shadow-lg max-h-48 overflow-y-auto mt-1 animate-fade-in">
-                      {topicDropdownList.length > 0 ? topicDropdownList.map((t, idx) => (
-                        <li
-                          key={idx}
-                          className={`px-4 py-2 hover:bg-blue-100 cursor-pointer text-base font-nunito transition duration-150 ${highlightedSubtopicIdx === idx ? 'bg-blue-200' : ''}`}
-                          onMouseDown={() => {
-                            setForm(prev => ({ ...prev, subtopic: t }));
+                      }}
+                      placeholder="Search Subject..."
+                      className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 text-black focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition-all bg-white shadow-sm hover:border-brand-primary disabled:bg-slate-100 disabled:cursor-not-allowed"
+                      required
+                      autoComplete="off"
+                      disabled={!form.subject || unitList.length === 0}
+                    />
+                    {showUnitDropdown && form.subject && (
+                      <ul className="absolute z-10 left-0 right-0 bg-white border-2 border-[#1e40af] rounded-lg shadow-xl max-h-60 overflow-y-auto mt-1">
+                        {unitDropdownList.length > 0 ? unitDropdownList.map((u, idx) => (
+                          <li
+                            key={idx}
+                            className={`px-3 py-2 hover:bg-blue-50 cursor-pointer transition-colors text-sm text-black font-medium ${highlightedUnitIdx === idx ? 'bg-[#1e40af] text-white' : ''}`}
+                            onMouseDown={() => {
+                              setForm(prev => ({ ...prev, topic: u, subtopic: '' }));
+                              setShowUnitDropdown(false);
+                              setHighlightedUnitIdx(-1);
+                            }}
+                          >
+                            {u}
+                          </li>
+                        )) : <li className="px-4 py-3 text-text-muted">No matching subjects found.</li>}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Topic Dropdown */}
+                  <div className="relative">
+                    <label className="block text-brand-primary font-bold mb-2 text-sm uppercase tracking-wide">Topic *</label>
+                    {form.topic && topicList.length === 0 && (
+                      <div className="mb-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                        <p className="font-medium">⚠️ No topics available for "{form.topic}"</p>
+                        <p className="text-xs mt-1">You may not be verified to teach any topics in this subject. Please select a different subject or contact support.</p>
+                      </div>
+                    )}
+                    <input
+                      type="text"
+                      name="subtopic"
+                      value={form.subtopic}
+                      onChange={e => { handleChange(e); setShowSubtopicDropdown(true); setHighlightedSubtopicIdx(-1); }}
+                      onFocus={() => { 
+                        if (form.topic) {
+                          console.log('[CreateSession] Topic field focused, form.topic:', form.topic);
+                          console.log('[CreateSession] topicList:', topicList);
+                          setShowSubtopicDropdown(true); 
+                        }
+                      }}
+                      onBlur={() => setTimeout(() => { setShowSubtopicDropdown(false); setHighlightedSubtopicIdx(-1); }, 120)}
+                      onKeyDown={e => {
+                        if (!showSubtopicDropdown || topicDropdownList.length === 0) return;
+                        if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+                          e.preventDefault();
+                          setHighlightedSubtopicIdx(idx => (idx + 1) % topicDropdownList.length);
+                        } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+                          e.preventDefault();
+                          setHighlightedSubtopicIdx(idx => (idx - 1 + topicDropdownList.length) % topicDropdownList.length);
+                        } else if (e.key === 'Enter') {
+                          if (highlightedSubtopicIdx >= 0 && highlightedSubtopicIdx < topicDropdownList.length) {
+                            setForm(prev => ({ ...prev, subtopic: topicDropdownList[highlightedSubtopicIdx] }));
                             setShowSubtopicDropdown(false);
                             setHighlightedSubtopicIdx(-1);
-                          }}
-                        >
-                          {t}
-                        </li>
-                      )) : <li className="px-4 py-2 text-gray-500">No matching topics found for this subject in your skills.</li>}
-                    </ul>
-                  )}
-                </div>
-                <div>
-                  <label className="block text-blue-900 font-medium mb-1 font-lora">Description</label>
-                  <textarea
-                    name="description"
-                    value={form.description}
-                    onChange={handleChange}
-                    className="w-full border border-blue-200 rounded-lg px-3 py-2 min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-400 transition duration-200 bg-white/80 font-nunito"
-                    placeholder="Describe your learning goals or questions..."
-                    maxLength={500}
-                    required
-                  />
-                </div>
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-blue-900 font-medium mb-1 font-lora">Date &amp; Time</label>
+                          }
+                        }
+                      }}
+                      placeholder="Search Topic..."
+                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all bg-white shadow-sm hover:border-[#1e40af] disabled:bg-gray-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:text-gray-500"
+                      required
+                      autoComplete="off"
+                      disabled={!form.topic || topicList.length === 0}
+                    />
+                    {showSubtopicDropdown && form.topic && (
+                      <ul className="absolute z-10 left-0 right-0 bg-white border-2 border-brand-primary rounded-xl shadow-2xl max-h-60 overflow-y-auto mt-2">
+                        {topicDropdownList.length > 0 ? topicDropdownList.map((t, idx) => (
+                          <li
+                            key={idx}
+                            className={`px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors text-black font-medium ${highlightedSubtopicIdx === idx ? 'bg-brand-primary text-white' : ''}`}
+                            onMouseDown={() => {
+                              setForm(prev => ({ ...prev, subtopic: t }));
+                              setShowSubtopicDropdown(false);
+                              setHighlightedSubtopicIdx(-1);
+                            }}
+                          >
+                            {t}
+                          </li>
+                        )) : (
+                          <li className="px-4 py-3 text-text-muted">
+                            {topicList.length === 0 ? (
+                              <div className="text-center py-2">
+                                <p className="font-medium text-status-warning-text">No topics available</p>
+                                <p className="text-xs mt-1">Please select a different subject</p>
+                              </div>
+                            ) : (
+                              'No matching topics found'
+                            )}
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1.5 text-xs uppercase tracking-wide">Description</label>
+                    <textarea
+                      name="description"
+                      value={form.description}
+                      onChange={handleChange}
+                      className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 min-h-[100px] text-sm text-black focus:outline-none focus:ring-2 focus:ring-[#1e40af] focus:border-[#1e40af] transition-all bg-white shadow-sm hover:border-[#1e40af] resize-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:border-gray-200"
+                      placeholder="Describe your learning goals or questions..."
+                      maxLength={500}
+                      required
+                      disabled={userSkills.length === 0}
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">{form.description.length}/500 characters</p>
+                  </div>
+
+                  {/* Date & Time */}
+                  <div>
+                    <label className="block text-[#475569] font-semibold mb-1.5 text-xs uppercase tracking-wide">Date & Time</label>
                     <DateTimePicker
                       date={form.date}
                       time={form.time}
@@ -880,159 +1175,58 @@ const CreateSession = () => {
                       }
                     />
                   </div>
-                </div>
-                <div className="flex gap-4">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-800 text-white px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                  >
-                    {editId ? 'Update Session' : 'Schedule Session'}
-                  </button>
-                  {editId && (
-                    <button
-                      type="button"
-                      className="flex-1 bg-gradient-to-r from-gray-300 to-gray-400 text-gray-800 px-6 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                      onClick={() => {
-                        setEditId(null);
-                        setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
-                      }}
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                </div>
-              </form>
-            )}
-          </section>
-        </div>
-        {/* Scheduled Sessions (Right) */}
-        <div className="flex-1 w-full">
-          <section>
-            <h2 className="text-xl font-bold text-blue-900 mb-6 border-b-2 border-blue-200 pb-2 font-lora tracking-tight relative group animate-fade-in">
-              Scheduled Sessions
-              <span className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full w-0 group-hover:w-full transition-all duration-300"></span>
-            </h2>
-            {loading ? (
-              <SkeletonLoader />
-            ) : scheduledSessions.length > 0 ? (
-              <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-                {scheduledSessions.map(session => (
-                  <li
-                    key={session._id}
-                    className="border border-blue-200 rounded-2xl p-6 bg-white/80 flex flex-col justify-between min-h-[200px] shadow-sm hover:shadow-xl hover:scale-105 transition duration-300 transform animate-slide-up"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <div className={`text-xs font-semibold uppercase tracking-wider font-nunito ${
-                          session.status === 'completed' ? 'text-green-600' : 
-                          session.status === 'approved' ? 'text-blue-600' : 
-                          session.status === 'rejected' ? 'text-red-600' : 
-                          'text-yellow-600'
-                        }`}>
-                          {session.status.toUpperCase()}
-                        </div>
-                        {currentUser && (
-                          <div className={`text-xs px-2 py-1 rounded-full font-nunito ${
-                            isCurrentUserCreator(session) 
-                              ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                          }`}>
-                            {isCurrentUserCreator(session) ? 'Creator' : 'Requester'}
-                          </div>
-                        )}
-                      </div>
-                      <div className="font-semibold text-blue-900 mb-1 text-lg truncate font-lora">
-                        {[session.subject, session.topic, session.subtopic].filter(x => x && x.trim()).join(' - ')}
-                      </div>
-                      <div className="text-gray-600 text-sm mb-2 line-clamp-3 font-nunito">{session.description}</div>
-                      <div className="text-gray-500 text-xs mb-4 font-nunito">{session.date} at {session.time}</div>
-                    </div>
-                    <div className="flex gap-3 mt-auto">
-                      {currentUser && isCurrentUserCreator(session) && (
-                        <>
-                          <button
-                            className="text-blue-600 hover:underline text-sm font-medium font-nunito"
-                            onClick={() => handleEdit(session)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="text-red-600 hover:underline text-sm font-medium font-nunito"
-                            onClick={() => handleDelete(session._id)}
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </div>
-                    <div className="mt-6 flex justify-end">
-                      {/* Approve/Reject for creator when requested */}
-                      {session.status === 'requested' && currentUser && isCurrentUserCreator(session) && (
-                        <div className="flex gap-2 w-full">
-                          <button
-                            className="flex-1 bg-gradient-to-r from-green-600 to-green-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                            onClick={() => handleApproveSession(session._id)}
-                            disabled={actionLoading[`approve-${session._id}`]}
-                          >
-                            {actionLoading[`approve-${session._id}`] ? 'Approving...' : 'Approve'}
-                          </button>
-                          <button
-                            className="flex-1 bg-gradient-to-r from-red-600 to-red-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                            onClick={() => handleRejectSession(session._id)}
-                            disabled={actionLoading[`reject-${session._id}`]}
-                          >
-                            {actionLoading[`reject-${session._id}`] ? 'Rejecting...' : 'Reject'}
-                          </button>
-                        </div>
-                      )}
-                      {/* Start Session for creator when approved */}
-                      {session.status === 'approved' && currentUser && isCurrentUserCreator(session) && (
-                        <button
-                          className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-800 text-white px-5 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                          onClick={() => handleStartSession(session)}
-                          disabled={startingSession === session._id}
-                        >
-                          {startingSession === session._id ? 'Starting...' : 'Start Session'}
-                        </button>
-                      )}
-                      {/* Join/Cancel for requester when active */}
-                      {session.status === 'active' && currentUser && isCurrentUserRequester(session) && (
-                        <div className="flex gap-2 w-full">
-                          <button
-                            className="flex-1 bg-gradient-to-r from-green-600 to-green-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                            onClick={() => handleJoinSession(session)}
-                            disabled={actionLoading[`join-${session._id}`]}
-                          >
-                            {actionLoading[`join-${session._id}`] ? 'Joining...' : 'Join Session'}
-                          </button>
-                          <button
-                            className="flex-1 bg-gradient-to-r from-red-600 to-red-800 text-white px-4 py-2 rounded-lg font-semibold hover:scale-105 hover:shadow-lg transition duration-200 transform font-nunito"
-                            onClick={() => handleCancelSession(session)}
-                            disabled={actionLoading[`cancel-${session._id}`]}
-                          >
-                            {actionLoading[`cancel-${session._id}`] ? 'Cancelling...' : 'Cancel Session'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </li>
-                ))}
 
-              </ul>
-            ) : (
-              <div className="text-gray-500 text-center text-lg mt-10 font-nunito animate-fade-in">No sessions scheduled yet.</div>
-            )}
-          </section>
-        </div>
+                  {/* Submit Button */}
+                  <div className="flex gap-3 pt-4 border-t border-gray-200 mt-5">
+                    <button
+                      type="submit"
+                      className="flex-1 bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none"
+                      disabled={userSkills.length === 0}
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      {editId ? 'Update Session' : 'Schedule Session'}
+                    </button>
+                    {editId && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditId(null);
+                          setForm({ subject: '', topic: '', subtopic: '', description: '', date: '', time: '' });
+                        }}
+                        className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+          </div>
+        </main>
       </div>
+
+      {/* Video Call Modal */}
       {showVideoModal && activeSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300">
-          <div className="w-full h-full bg-gray-900 rounded-lg shadow-2xl flex flex-col overflow-hidden">
-            <div className="flex justify-between items-center p-4 bg-blue-800 text-white">
-              <h2 className="text-lg font-semibold font-lora">Video Call Session</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-full h-full bg-gray-900 flex flex-col overflow-hidden">
+            <div className="flex justify-between items-center p-4 bg-button-primary text-white">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                </svg>
+                Video Call Session
+              </h2>
               <button
-                className="bg-red-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-red-700 hover:scale-105 transition duration-200 transform font-nunito"
                 onClick={handleEndCall}
+                className="bg-status-error-button text-white px-5 py-2 rounded-lg font-bold hover:bg-status-error-button-hover transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
               >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
                 End Call
               </button>
             </div>
@@ -1051,4 +1245,4 @@ const CreateSession = () => {
   );
 };
 
-export default CreateSession;
+export default CreateSessionNew;

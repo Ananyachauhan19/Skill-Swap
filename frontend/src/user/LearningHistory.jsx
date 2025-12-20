@@ -161,90 +161,78 @@ const LearningHistory = () => {
 
   try {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 pt-20">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-20">
         <div className="w-full flex flex-col lg:flex-row gap-0">
         
         {/* Left Sidebar - Sticky */}
         <aside className={`
           ${sidebarOpen ? 'block' : 'hidden'} 
-          lg:block lg:sticky lg:top-20 lg:w-80 
-          bg-gradient-to-br from-blue-50 to-indigo-50 
+          lg:block lg:sticky lg:top-20 lg:w-64 
+          bg-white border-r border-slate-200 shadow-sm
           lg:h-[calc(100vh-5rem)] lg:overflow-y-auto
-          border-r border-blue-100
         `}>
-          <div className="p-6">
+          <div className="p-4">
             
             {/* Header */}
-            <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100">
-              <div className="flex items-center gap-3 mb-2">
-                <FaUserGraduate className="text-3xl text-blue-600" />
-                <h2 className="text-2xl font-bold text-gray-800">Learning History</h2>
+            <div className="mb-4 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                  <FaUserGraduate className="text-purple-600 text-sm" />
+                </div>
+                <h2 className="text-base font-semibold text-slate-700">Learning History</h2>
               </div>
-              <p className="text-sm text-gray-600">Sessions where you learned</p>
+              <p className="text-xs text-slate-500 ml-10">Sessions where you learned</p>
             </div>
 
             {/* Stats Card */}
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-blue-200 mb-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Your Stats</h3>
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 space-y-3">
+              <h3 className="text-sm font-medium text-slate-700">Your Stats</h3>
               
               {/* Total Sessions */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                    <FaBook className="text-blue-600" />
-                    Total Sessions
-                  </span>
-                  <span className="text-sm font-bold text-gray-800">{stats.totalSessions}</span>
-                </div>
+              <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                <span className="text-sm text-slate-600 flex items-center gap-2">
+                  <FaBook className="text-purple-500 text-xs" />
+                  Sessions
+                </span>
+                <span className="text-sm font-semibold text-slate-800">{stats.totalSessions}</span>
               </div>
 
-              {/* Divider */}
-              <div className="border-t border-gray-300 my-4"></div>
-
               {/* Learning Hours */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                    <FaClock className="text-blue-600" />
-                    Learning Hours
-                  </span>
-                  <span className="text-sm font-bold text-gray-800">{stats.totalHours}h</span>
-                </div>
+              <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                <span className="text-sm text-slate-600 flex items-center gap-2">
+                  <FaClock className="text-teal-500 text-xs" />
+                  Hours
+                </span>
+                <span className="text-sm font-semibold text-slate-800">{stats.totalHours}h</span>
               </div>
 
               {/* Average Rating */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600 flex items-center gap-2">
-                    <FaStar className="text-yellow-500" />
-                    Average Rating
-                  </span>
-                  <span className="text-sm font-bold text-yellow-600">{stats.averageRating} ⭐</span>
-                </div>
+              <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                <span className="text-sm text-slate-600 flex items-center gap-2">
+                  <FaStar className="text-amber-500 text-xs" />
+                  Rating
+                </span>
+                <span className="text-sm font-semibold text-amber-600">{stats.averageRating} ⭐</span>
               </div>
 
               {/* Coins Spent */}
-              <div className="border-t pt-4 mt-4">
-                <p className="text-sm font-semibold text-gray-700 mb-3">Coins Spent</p>
+              <div className="pt-2">
+                <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-2">Coins Spent</p>
                 
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                      <FaCoins className="text-gray-500" />
-                      Silver Coins
-                    </span>
-                    <span className="text-sm font-bold text-gray-800">{stats.silverSpent}</span>
-                  </div>
+                <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                  <span className="text-sm text-slate-600 flex items-center gap-2">
+                    <FaCoins className="text-slate-400 text-xs" />
+                    Silver
+                  </span>
+                  <span className="text-sm font-semibold text-slate-700">{stats.silverSpent}</span>
                 </div>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600 flex items-center gap-2">
-                      <FaCoins className="text-yellow-500" />
-                      Gold Coins
-                    </span>
-                    <span className="text-sm font-bold text-yellow-600">{stats.goldSpent}</span>
-                  </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm text-slate-600 flex items-center gap-2">
+                    <FaCoins className="text-amber-500 text-xs" />
+                    Gold
+                  </span>
+                  <span className="text-sm font-semibold text-amber-600">{stats.goldSpent}</span>
                 </div>
               </div>
             </div>
@@ -257,25 +245,25 @@ const LearningHistory = () => {
         <main className="w-full lg:flex-1 pb-12">
           
           {/* Search and Filter Bar */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg p-6">
+          <div className="bg-white border-b border-slate-200 p-4">
             <div className="flex flex-col md:flex-row gap-3">
               {/* Mobile Menu Toggle */}
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden bg-white/80 backdrop-blur-sm border border-blue-200 p-3 rounded-xl hover:bg-white transition-colors"
+                className="lg:hidden bg-slate-50 border border-slate-200 p-2.5 rounded-lg hover:bg-slate-100 transition-colors"
               >
-                <FaBars className="text-blue-600" />
+                <FaBars className="text-slate-600" />
               </button>
 
               {/* Search */}
               <div className="flex-1 relative">
-                <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" />
                 <input
                   type="text"
                   placeholder="Search by teacher, subject, or topic..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all text-sm"
                 />
               </div>
 
@@ -286,7 +274,7 @@ const LearningHistory = () => {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full md:w-auto pl-12 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-blue-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                  className="w-full md:w-auto pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all text-sm"
                 />
               </div>
 
@@ -297,7 +285,7 @@ const LearningHistory = () => {
                     setSearch("");
                     setSelectedDate("");
                   }}
-                  className="px-6 py-3 bg-white/80 backdrop-blur-sm border border-blue-200 rounded-xl hover:bg-white transition-colors text-gray-700 font-medium"
+                  className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors text-slate-600 font-medium text-sm"
                 >
                   Clear
                 </button>
@@ -306,27 +294,27 @@ const LearningHistory = () => {
           </div>
 
           {/* Content Area */}
-          <div className="p-6 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100">
+          <div className="p-4 bg-slate-50">
             {loading ? (
               <SkeletonLoader />
             ) : error ? (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-                <p className="text-red-600 font-semibold">Error: {error}</p>
+              <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 text-center">
+                <p className="text-rose-600 font-medium text-sm">Error: {error}</p>
               </div>
             ) : filteredHistory.length === 0 ? (
-              <div className="bg-white/60 backdrop-blur-sm border border-blue-200 rounded-xl p-12 text-center">
-                <FaUserGraduate className="text-6xl text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">No learning history found</p>
-                <p className="text-gray-400 text-sm mt-2">Your completed learning sessions will appear here</p>
+              <div className="bg-white border border-slate-200 rounded-lg p-8 text-center">
+                <FaUserGraduate className="text-4xl text-slate-300 mx-auto mb-3" />
+                <p className="text-slate-500 text-sm">No learning history found</p>
+                <p className="text-slate-400 text-xs mt-1">Your completed learning sessions will appear here</p>
               </div>
             ) : (
               filteredHistory.map((entry, idx) => (
-                <div key={idx} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow duration-300 mb-6">
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
+                <div key={idx} className="bg-white rounded-lg shadow-sm overflow-hidden border border-slate-200 hover:shadow-md transition-shadow duration-300 mb-4">
+                  <div className="bg-slate-50 px-4 py-3 border-b border-slate-100">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                          <FaCalendarAlt className="text-blue-600" />
+                        <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
+                          <FaCalendarAlt className="text-purple-500 text-sm" />
                           {new Date(entry.date).toLocaleDateString(undefined, {
                             weekday: 'long',
                             year: 'numeric',
@@ -334,69 +322,69 @@ const LearningHistory = () => {
                             day: 'numeric'
                           })}
                         </h3>
-                        <p className="text-gray-600 mt-1">
+                        <p className="text-slate-500 text-xs mt-0.5">
                           {entry.sessions.length} session{entry.sessions.length !== 1 ? 's' : ''}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-6">
-                    <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+                  <div className="p-4">
+                    <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
                       {entry.sessions.map((session) => (
                         <div
                           key={session.id}
-                          className="bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden border border-blue-100"
+                          className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-slate-200"
                         >
-                          <div className="p-5">
+                          <div className="p-4">
                             {/* Session Type Badge */}
-                            <div className="flex items-center gap-2 mb-3">
-                              <span className="text-2xl">{sessionTypeLabel(session.sessionType || 'one-on-one')}</span>
-                              <span className="text-xs font-semibold text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-lg">{sessionTypeLabel(session.sessionType || 'one-on-one')}</span>
+                              <span className="text-xs font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full">
                                 {session.sessionType ? session.sessionType.toUpperCase() : 'ONE-ON-ONE'}
                               </span>
                             </div>
 
                             {/* Teacher Name */}
-                            <h4 className="text-lg font-bold text-gray-800 mb-2">
+                            <h4 className="text-sm font-semibold text-slate-800 mb-1.5">
                               {session.with || 'Unknown Teacher'}
                             </h4>
 
                             {/* Subject and Topic */}
-                            <div className="mb-3 space-y-1">
-                              <p className="text-sm text-gray-700">
-                                <span className="font-semibold">Subject:</span> {session.subject || 'N/A'}
+                            <div className="mb-2 space-y-0.5">
+                              <p className="text-xs text-slate-600">
+                                <span className="font-medium">Subject:</span> {session.subject || 'N/A'}
                               </p>
-                              <p className="text-sm text-gray-700">
-                                <span className="font-semibold">Topic:</span> {session.topic || 'N/A'}
+                              <p className="text-xs text-slate-600">
+                                <span className="font-medium">Topic:</span> {session.topic || 'N/A'}
                               </p>
                             </div>
 
                             {/* Time and Duration */}
-                            <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
+                            <div className="flex items-center gap-3 mb-2 text-xs text-slate-500">
                               <div className="flex items-center gap-1">
-                                <FaClock className="text-blue-500" />
+                                <FaClock className="text-teal-500" />
                                 <span>{formatTime(session.when)}</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <FaClock className="text-green-500" />
+                                <FaClock className="text-emerald-500" />
                                 <span>{session.duration} min</span>
                               </div>
                             </div>
 
                             {/* Coins Spent */}
-                            <div className="flex items-center gap-2 mb-3">
-                              <FaCoins className={session.coinType === 'gold' ? 'text-yellow-500' : 'text-gray-500'} />
-                              <span className="text-sm font-semibold text-gray-700">
-                                {session.coinsSpent} {session.coinType === 'gold' ? 'Gold' : 'Silver'} Coins
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <FaCoins className={session.coinType === 'gold' ? 'text-amber-500' : 'text-slate-400'} />
+                              <span className="text-xs font-medium text-slate-600">
+                                {session.coinsSpent} {session.coinType === 'gold' ? 'Gold' : 'Silver'}
                               </span>
                             </div>
 
                             {/* Rating */}
                             {session.rating && (
-                              <div className="flex items-center gap-2 mb-3">
-                                <FaStar className="text-yellow-500" />
-                                <span className="text-sm font-semibold text-gray-700">
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <FaStar className="text-amber-500" />
+                                <span className="text-xs font-medium text-slate-600">
                                   {session.rating} / 5
                                 </span>
                               </div>
@@ -404,15 +392,15 @@ const LearningHistory = () => {
 
                             {/* Notes */}
                             {session.notes && (
-                              <div className="mt-3 pt-3 border-t border-blue-100">
+                              <div className="mt-2 pt-2 border-t border-slate-100">
                                 <button
                                   onClick={() => setExpandedSession(expandedSession === session.id ? null : session.id)}
-                                  className="text-sm text-blue-600 hover:text-blue-800 font-semibold transition-colors"
+                                  className="text-xs text-purple-600 hover:text-purple-800 font-medium transition-colors"
                                 >
                                   {expandedSession === session.id ? 'Hide Notes' : 'Show Notes'}
                                 </button>
                                 {expandedSession === session.id && (
-                                  <p className="mt-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                                  <p className="mt-1.5 text-xs text-slate-600 bg-slate-50 p-2 rounded-lg">
                                     {session.notes}
                                   </p>
                                 )}
@@ -434,11 +422,11 @@ const LearningHistory = () => {
   } catch (err) {
     console.error('Error rendering LearningHistory:', err);
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 pt-20 flex items-center justify-center">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 max-w-md">
-          <h2 className="text-red-600 font-bold text-xl mb-2">Rendering Error</h2>
-          <p className="text-red-600">{err.message}</p>
-          <p className="text-sm text-gray-600 mt-2">Check console for details</p>
+      <div className="min-h-screen bg-slate-50 pt-20 flex items-center justify-center">
+        <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 max-w-md">
+          <h2 className="text-rose-600 font-semibold text-base mb-1">Rendering Error</h2>
+          <p className="text-rose-600 text-sm">{err.message}</p>
+          <p className="text-xs text-slate-500 mt-1">Check console for details</p>
         </div>
       </div>
     );

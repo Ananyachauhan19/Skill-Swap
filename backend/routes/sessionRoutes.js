@@ -36,9 +36,31 @@ router.get('/search', async (req, res) => {
 router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.requireActiveTutor, async (req, res) => {
   try {
     console.log('Session creation - req.user:', req.user); // Debug log
-    const { subject, topic, description, date, time } = req.body;
+    const { subject, topic, subtopic, description, date, time } = req.body;
+    
+    // Validate required fields
+    if (!subject || !topic || !subtopic || !description || !date || !time) {
+      const missing = [];
+      if (!subject) missing.push('subject');
+      if (!topic) missing.push('topic');
+      if (!subtopic) missing.push('subtopic');
+      if (!description) missing.push('description');
+      if (!date) missing.push('date');
+      if (!time) missing.push('time');
+      
+      return res.status(400).json({ 
+        message: `Missing required fields: ${missing.join(', ')}`,
+        missingFields: missing 
+      });
+    }
+    
     const session = await Session.create({
-      subject, topic, description, date, time,
+      subject, 
+      topic, 
+      subtopic, 
+      description, 
+      date, 
+      time,
       creator: req.user._id
     });
     
@@ -76,6 +98,78 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
     }
     res.status(201).json(session);
   } catch (err) {
+    res.status(500).json({ message: 'Error creating session', error: err.message });
+  }
+});
+
+// Alias route for /create (same as POST /)
+router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.requireActiveTutor, async (req, res) => {
+  try {
+    console.log('Session creation via /create - req.user:', req.user); // Debug log
+    const { subject, topic, subtopic, description, date, time } = req.body;
+    
+    // Validate required fields
+    if (!subject || !topic || !subtopic || !description || !date || !time) {
+      const missing = [];
+      if (!subject) missing.push('subject');
+      if (!topic) missing.push('topic');
+      if (!subtopic) missing.push('subtopic');
+      if (!description) missing.push('description');
+      if (!date) missing.push('date');
+      if (!time) missing.push('time');
+      
+      return res.status(400).json({ 
+        message: `Missing required fields: ${missing.join(', ')}`,
+        missingFields: missing 
+      });
+    }
+    
+    const session = await Session.create({
+      subject, 
+      topic, 
+      subtopic, 
+      description, 
+      date, 
+      time,
+      creator: req.user._id
+    });
+    
+    // Track session creation contribution
+    try {
+      const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
+      const io = req.app.get('io');
+      await trackActivity({
+        userId: req.user._id,
+        activityType: ACTIVITY_TYPES.SESSION_CREATED,
+        activityId: session._id.toString(),
+        io
+      });
+    } catch (_) {}
+    
+    // Email SkillMates
+    try {
+      const creator = await User.findById(req.user._id).select('skillMates firstName lastName email username');
+      if (creator && Array.isArray(creator.skillMates) && creator.skillMates.length > 0) {
+        const mates = await User.find({ _id: { $in: creator.skillMates } }).select('email firstName username');
+        for (const m of mates) {
+          if (m.email) {
+            const tpl = T.skillmateSessionCreated({
+              mateName: m.firstName || m.username,
+              creatorName: creator.firstName || creator.username,
+              subject,
+              topic
+            });
+            await sendMail({ to: m.email, subject: tpl.subject, html: tpl.html });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to send skillmate session email', e);
+    }
+    
+    res.status(201).json(session);
+  } catch (err) {
+    console.error('Session creation error:', err);
     res.status(500).json({ message: 'Error creating session', error: err.message });
   }
 });
@@ -143,14 +237,44 @@ router.get('/mine', requireAuth, async (req, res) => {
 // PUT /api/sessions/:id
 router.put('/:id', requireAuth, async (req, res) => {
   try {
-    const session = await Session.findOneAndUpdate(
-      { _id: req.params.id, createdBy: req.user._id },
-      req.body,
-      { new: true }
-    );
-    if (!session) return res.status(404).json({ error: 'Session not found or not yours' });
-    res.json(session);
+    const { subject, topic, subtopic, description, date, time } = req.body;
+    
+    // Validate required fields if provided
+    if (subject !== undefined || topic !== undefined || subtopic !== undefined || description !== undefined || date !== undefined || time !== undefined) {
+      const updates = {};
+      if (subject) updates.subject = subject;
+      if (topic) updates.topic = topic;
+      if (subtopic) updates.subtopic = subtopic;
+      if (description) updates.description = description;
+      if (date) updates.date = date;
+      if (time) updates.time = time;
+      
+      // Ensure all required fields are present in the update
+      const session = await Session.findOne({ _id: req.params.id, creator: req.user._id });
+      if (!session) return res.status(404).json({ error: 'Session not found or not yours' });
+      
+      // Merge with existing values to ensure required fields remain
+      Object.assign(updates, {
+        subject: updates.subject || session.subject,
+        topic: updates.topic || session.topic,
+        subtopic: updates.subtopic || session.subtopic,
+        description: updates.description || session.description,
+        date: updates.date || session.date,
+        time: updates.time || session.time,
+      });
+      
+      const updatedSession = await Session.findOneAndUpdate(
+        { _id: req.params.id, creator: req.user._id },
+        updates,
+        { new: true, runValidators: true }
+      );
+      
+      return res.json(updatedSession);
+    }
+    
+    res.status(400).json({ error: 'No valid fields to update' });
   } catch (err) {
+    console.error('Session update error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 const SessionSchema = new mongoose.Schema({
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  subject: String,
-  topic: String,
-  date: String,
-  time: String,
+  subject: { type: String, required: true },
+  topic: { type: String, required: true },
+  subtopic: { type: String, required: true },
+  date: { type: String, required: true },
+  time: { type: String, required: true },
   status: { type: String, default: 'pending' },
   requester: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  description: String,
+  description: { type: String, required: true },
 });
 module.exports = mongoose.model('Session', SessionSchema);

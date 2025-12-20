@@ -528,7 +528,7 @@ const SessionRequests = () => {
 
     return (
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="w-64 min-w-[16rem]">
+        <div className="w-56 min-w-[14rem]">
           <DateTimePicker
             date={date}
             time={time}
@@ -539,7 +539,7 @@ const SessionRequests = () => {
           />
         </div>
         <button
-          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all transform hover:scale-105 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-teal-600 hover:bg-teal-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={submitSchedule}
           disabled={loadingSchedule}
         >
@@ -550,81 +550,77 @@ const SessionRequests = () => {
   };
 
   const RequestCard = ({ request, isReceived, type }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-      <div className="flex items-start justify-between mb-5">
-        <div className="flex items-center gap-4">
-          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${
+    <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-300">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
             type === 'skillmate' 
-              ? 'bg-gradient-to-br from-purple-500 to-purple-600' 
-              : 'bg-gradient-to-br from-blue-500 to-blue-600'
+              ? 'bg-purple-50' 
+              : 'bg-teal-50'
           }`}>
             {type === 'skillmate' ? (
-              <FaUserFriends className="text-white text-xl" />
+              <FaUserFriends className="text-purple-600 text-sm" />
             ) : (
-              <FaUser className="text-white text-xl" />
+              <FaUser className="text-teal-600 text-sm" />
             )}
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">{getDisplayName(request, isReceived)}</h3>
-            <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+            <h3 className="text-sm font-semibold text-slate-800">{getDisplayName(request, isReceived)}</h3>
+            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
               {isReceived ? (
                 <>
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                   Requested from you
                 </>
               ) : (
                 <>
-                  <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                  <span className="w-1.5 h-1.5 bg-teal-500 rounded-full"></span>
                   Requested by you
                 </>
               )}
             </p>
           </div>
         </div>
-        <span className={`px-4 py-2 rounded-xl text-xs font-bold shadow-sm ${getStatusColor(request.status)}`}>
+        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(request.status)}`}>
           {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
         </span>
       </div>
 
       {(request.subject || request.topic || type === 'skillmate') && (
-        <div className="mb-4 p-4 bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-xl border border-gray-100">
+        <div className="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
           {type === 'skillmate' ? (
-            <p className="text-sm text-gray-700 font-medium flex items-center gap-2">
-              <FaHandshake className="text-purple-600" />
+            <p className="text-xs text-slate-600 font-medium flex items-center gap-2">
+              <FaHandshake className="text-purple-500" />
               Connection request for skill sharing
             </p>
           ) : (
-            <div className="text-sm text-gray-700 space-y-2">
+            <div className="text-xs text-slate-600 space-y-1">
               {request.subject && (
                 <div className="flex items-start gap-2">
-                  <span className="font-semibold text-blue-700 min-w-[60px]">Subject:</span>
-                  <span className="text-gray-900">{request.subject}</span>
+                  <span className="font-medium text-teal-700 min-w-[50px]">Subject:</span>
+                  <span className="text-slate-700">{request.subject}</span>
                 </div>
               )}
               {request.topic && (
                 <div className="flex items-start gap-2">
-                  <span className="font-semibold text-blue-700 min-w-[60px]">Topic:</span>
-                  <span className="text-gray-900">{request.topic}</span>
+                  <span className="font-medium text-teal-700 min-w-[50px]">Topic:</span>
+                  <span className="text-slate-700">{request.topic}</span>
                 </div>
               )}
             </div>
           )}
           {request.message && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <p className="text-sm text-gray-600 italic flex items-start gap-2">
-                <span className="text-blue-500 text-lg">"</span>
-                <span>{request.message}</span>
-                <span className="text-blue-500 text-lg">"</span>
-              </p>
+            <div className="mt-2 pt-2 border-t border-slate-200">
+              <p className="text-xs text-slate-500 italic">"{request.message}"</p>
             </div>
           )}
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-            <FaClock className="text-blue-600" size={14} />
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
+            <FaClock className="text-slate-500" size={10} />
           </div>
           <span className="font-medium">{formatDate(request.createdAt)}</span>
         </div>
@@ -636,24 +632,24 @@ const SessionRequests = () => {
                 const otherUser = isReceived ? request.requester : request.recipient;
                 navigate(`/profile/${otherUser?.username || otherUser?._id}`);
               }}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
+              className="bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-teal-200"
             >
-              <FaUser size={14} /> View Profile
+              <FaUser size={10} /> View Profile
             </button>
           )}
           {isReceived && request.status === 'pending' && (
             <>
               <button
                 onClick={() => handleApprove(request._id, type)}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
+                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-emerald-200"
               >
-                <FaCheck size={14} /> Approve
+                <FaCheck size={10} /> Approve
               </button>
               <button
                 onClick={() => handleReject(request._id, type)}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
+                className="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-rose-200"
               >
-                <FaTimes size={14} /> Reject
+                <FaTimes size={10} /> Reject
               </button>
             </>
           )}
@@ -670,53 +666,49 @@ const SessionRequests = () => {
       String(user._id) === String(request.assignedInterviewer._id || request.assignedInterviewer);
 
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-        <div className="flex items-start justify-between mb-5">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <FaUser className="text-white text-xl" />
+      <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
+              <FaUser className="text-amber-600 text-sm" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900">
+              <h3 className="text-sm font-semibold text-slate-800">
                 {isReceived
                   ? `${request.requester?.firstName || ''} ${request.requester?.lastName || ''}`.trim()
                   : `${request.assignedInterviewer?.firstName || ''} ${request.assignedInterviewer?.lastName || ''}`.trim()}
               </h3>
-              <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+              <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
                 {isReceived ? 'Interview requested' : 'Interview sent'}
               </p>
             </div>
           </div>
-          <span className={`px-4 py-2 rounded-xl text-xs font-bold shadow-sm ${getStatusColor(request.status)}`}>
+          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(request.status)}`}>
             {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
           </span>
         </div>
 
-        <div className="mb-4 p-4 bg-gradient-to-br from-gray-50 to-indigo-50/30 rounded-xl border border-gray-100 space-y-2">
-          <div className="flex items-start gap-2">
-            <span className="font-semibold text-indigo-700 min-w-[80px]">Company:</span>
-            <span className="text-gray-900 font-medium">{request.company || '—'}</span>
+        <div className="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
+          <div className="flex items-start gap-2 text-xs">
+            <span className="font-medium text-amber-700 min-w-[60px]">Company:</span>
+            <span className="text-slate-700 font-medium">{request.company || '—'}</span>
           </div>
-          <div className="flex items-start gap-2">
-            <span className="font-semibold text-indigo-700 min-w-[80px]">Position:</span>
-            <span className="text-gray-900 font-medium">{request.position || '—'}</span>
+          <div className="flex items-start gap-2 text-xs">
+            <span className="font-medium text-amber-700 min-w-[60px]">Position:</span>
+            <span className="text-slate-700 font-medium">{request.position || '—'}</span>
           </div>
           {request.message && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <p className="text-sm text-gray-600 italic flex items-start gap-2">
-                <span className="text-indigo-500 text-lg">"</span>
-                <span>{request.message}</span>
-                <span className="text-indigo-500 text-lg">"</span>
-              </p>
+            <div className="mt-2 pt-2 border-t border-slate-200">
+              <p className="text-xs text-slate-500 italic">"{request.message}"</p>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-              <FaClock className="text-indigo-600" size={14} />
+        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center">
+              <FaClock className="text-slate-500" size={10} />
             </div>
             <span className="font-medium">{formatDate(request.scheduledAt || request.createdAt)}</span>
           </div>
@@ -734,9 +726,9 @@ const SessionRequests = () => {
             {request.status === 'scheduled' && (
               <button
                 onClick={() => handleJoinInterview(request)}
-                className="bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all transform hover:scale-105 shadow-md flex items-center gap-2"
+                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200"
               >
-                <FaVideo size={14} /> Join Interview
+                <FaVideo size={10} /> Join Interview
               </button>
             )}
           </div>
@@ -749,58 +741,58 @@ const SessionRequests = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center pt-20">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center pt-20">
         <div className="text-center">
           <div className="relative">
-            <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-200 border-t-blue-700 mx-auto shadow-lg"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-200 border-t-teal-600 mx-auto shadow-sm"></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <FaUserFriends className="text-blue-600 text-2xl animate-pulse" />
+              <FaUserFriends className="text-teal-600 text-xl animate-pulse" />
             </div>
           </div>
-          <h3 className="mt-6 text-xl font-bold text-gray-900">Loading Requests</h3>
-          <p className="text-gray-600 mt-2">Please wait while we fetch your data...</p>
+          <h3 className="mt-4 text-lg font-semibold text-slate-800">Loading Requests</h3>
+          <p className="text-slate-500 mt-1 text-sm">Please wait while we fetch your data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-20">
       <div className="flex relative">
         {/* Sidebar - Sticky positioning (scrolls up when footer appears) */}
         <div
           className={`${
-            sidebarOpen ? 'w-64' : 'w-0'
-          } bg-white text-gray-800 transition-all duration-300 sticky top-20 self-start z-40 overflow-hidden shadow-lg border-r border-gray-200 hidden md:block`}
+            sidebarOpen ? 'w-60' : 'w-0'
+          } bg-white text-slate-800 transition-all duration-300 sticky top-20 self-start z-40 overflow-hidden shadow-sm border-r border-slate-200 hidden md:block`}
           style={{ 
             height: 'calc(100vh - 80px)',
             maxHeight: 'calc(100vh - 80px)'
           }}
         >
           {/* Sidebar Header - Fixed */}
-          <div className="p-6 border-b border-gray-200 bg-white">
-            <h2 className="text-lg font-semibold text-gray-900">
+          <div className="p-4 border-b border-slate-100 bg-white">
+            <h2 className="text-base font-semibold text-slate-700">
               Requests Hub
             </h2>
           </div>
 
           {/* Navigation Buttons - Fixed (No Scroll) */}
-          <nav className="p-4 space-y-2">
+          <nav className="p-3 space-y-1">
             <button
               onClick={() => {
                 setRequestType('session');
                 setActiveTab('received');
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
                 requestType === 'session'
-                  ? 'bg-blue-600 text-white'
-                  : 'hover:bg-gray-100 text-gray-700'
+                  ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                  : 'hover:bg-slate-50 text-slate-600'
               }`}
             >
-              <FaVideo className="text-sm" />
-              <span className="font-medium text-sm">Session Requests</span>
+              <FaVideo className="text-xs" />
+              <span className="font-medium">Session Requests</span>
               {requests.received.filter((req) => req.status === 'pending').length > 0 && (
-                <span className="ml-auto bg-red-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
+                <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                   {requests.received.filter((req) => req.status === 'pending').length}
                 </span>
               )}
@@ -811,16 +803,16 @@ const SessionRequests = () => {
                 setRequestType('skillmate');
                 setActiveTab('received');
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
                 requestType === 'skillmate'
-                  ? 'bg-blue-600 text-white'
-                  : 'hover:bg-gray-100 text-gray-700'
+                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                  : 'hover:bg-slate-50 text-slate-600'
               }`}
             >
-              <FaHandshake className="text-sm" />
-              <span className="font-medium text-sm">SkillMate Requests</span>
+              <FaHandshake className="text-xs" />
+              <span className="font-medium">SkillMate Requests</span>
               {skillMateRequests.received.filter((req) => req.status === 'pending').length > 0 && (
-                <span className="ml-auto bg-red-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
+                <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                   {skillMateRequests.received.filter((req) => req.status === 'pending').length}
                 </span>
               )}
@@ -831,16 +823,16 @@ const SessionRequests = () => {
                 setRequestType('interview');
                 setActiveTab('received');
               }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
                 requestType === 'interview'
-                  ? 'bg-blue-600 text-white'
-                  : 'hover:bg-gray-100 text-gray-700'
+                  ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                  : 'hover:bg-slate-50 text-slate-600'
               }`}
             >
-              <FaUser className="text-sm" />
-              <span className="font-medium text-sm">Interview Requests</span>
+              <FaUser className="text-xs" />
+              <span className="font-medium">Interview Requests</span>
               {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length > 0 && (
-                <span className="ml-auto bg-red-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
+                <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                   {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length}
                 </span>
               )}
@@ -852,44 +844,40 @@ const SessionRequests = () => {
         {sidebarOpen && (
           <>
             <div
-              className="fixed inset-0 bg-black bg-opacity-60 md:hidden z-30 backdrop-blur-sm"
+              className="fixed inset-0 bg-black bg-opacity-40 md:hidden z-30 backdrop-blur-sm"
               onClick={() => setSidebarOpen(false)}
             ></div>
             <div
-              className="fixed left-0 top-20 bottom-0 w-64 bg-white text-gray-800 z-40 shadow-2xl border-r border-gray-200 md:hidden overflow-y-auto"
+              className="fixed left-0 top-20 bottom-0 w-60 bg-white text-slate-800 z-40 shadow-lg border-r border-slate-200 md:hidden overflow-y-auto"
             >
               {/* Sidebar Header */}
-              <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                <h2 className="text-xl font-bold flex items-center gap-3 text-gray-900">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-900 to-blue-800 rounded-xl flex items-center justify-center shadow-lg">
-                    <FaHome className="text-white" size={18} />
+              <div className="p-4 border-b border-slate-100 bg-white">
+                <h2 className="text-base font-semibold flex items-center gap-2 text-slate-700">
+                  <div className="w-8 h-8 bg-teal-50 rounded-lg flex items-center justify-center">
+                    <FaHome className="text-teal-600 text-sm" />
                   </div>
-                  <span className="bg-gradient-to-r from-blue-900 to-blue-800 bg-clip-text text-transparent">
-                    Requests Hub
-                  </span>
+                  <span>Requests Hub</span>
                 </h2>
               </div>
 
               {/* Navigation Buttons */}
-              <nav className="p-4 space-y-3">
+              <nav className="p-3 space-y-1">
                 <button
                   onClick={() => {
                     setRequestType('session');
                     setActiveTab('received');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
                     requestType === 'session'
-                      ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg'
-                      : 'hover:bg-gray-50 text-blue-900'
+                      ? 'bg-teal-50 text-teal-700 border border-teal-200'
+                      : 'hover:bg-slate-50 text-slate-600'
                   }`}
                 >
-                  <div className={`p-2 rounded-lg ${requestType === 'session' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
-                    <FaVideo className={`text-base ${requestType === 'session' ? 'text-white' : 'text-blue-900'}`} />
-                  </div>
-                  <span className="font-medium text-sm">Session Requests</span>
+                  <FaVideo className={`text-xs ${requestType === 'session' ? 'text-teal-600' : 'text-slate-500'}`} />
+                  <span className="font-medium">Session Requests</span>
                   {requests.received.filter((req) => req.status === 'pending').length > 0 && (
-                    <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold text-white">
+                    <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                       {requests.received.filter((req) => req.status === 'pending').length}
                     </span>
                   )}
@@ -901,18 +889,16 @@ const SessionRequests = () => {
                     setActiveTab('received');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
                     requestType === 'skillmate'
-                      ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg'
-                      : 'hover:bg-gray-50 text-blue-900'
+                      ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                      : 'hover:bg-slate-50 text-slate-600'
                   }`}
                 >
-                  <div className={`p-2 rounded-lg ${requestType === 'skillmate' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
-                    <FaHandshake className={`text-base ${requestType === 'skillmate' ? 'text-white' : 'text-blue-900'}`} />
-                  </div>
-                  <span className="font-medium text-sm">SkillMate Requests</span>
+                  <FaHandshake className={`text-xs ${requestType === 'skillmate' ? 'text-purple-600' : 'text-slate-500'}`} />
+                  <span className="font-medium">SkillMate Requests</span>
                   {skillMateRequests.received.filter((req) => req.status === 'pending').length > 0 && (
-                    <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold text-white">
+                    <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                       {skillMateRequests.received.filter((req) => req.status === 'pending').length}
                     </span>
                   )}
@@ -924,18 +910,16 @@ const SessionRequests = () => {
                     setActiveTab('received');
                     setSidebarOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
                     requestType === 'interview'
-                      ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-lg'
-                      : 'hover:bg-gray-50 text-blue-900'
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'hover:bg-slate-50 text-slate-600'
                   }`}
                 >
-                  <div className={`p-2 rounded-lg ${requestType === 'interview' ? 'bg-white/20' : 'bg-blue-900/10'}`}>
-                    <FaUser className={`text-base ${requestType === 'interview' ? 'text-white' : 'text-blue-900'}`} />
-                  </div>
-                  <span className="font-medium text-sm">Interview Requests</span>
+                  <FaUser className={`text-xs ${requestType === 'interview' ? 'text-amber-600' : 'text-slate-500'}`} />
+                  <span className="font-medium">Interview Requests</span>
                   {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length > 0 && (
-                    <span className="ml-auto bg-gradient-to-r from-red-500 to-red-600 rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold text-white">
+                    <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                       {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length}
                     </span>
                   )}
@@ -947,72 +931,72 @@ const SessionRequests = () => {
 
         {/* Main Content - Scrollable */}
         <div className="flex-1 transition-all duration-300">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-20">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pb-16">
           {/* Mobile Menu Button */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="md:hidden mb-6 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-all"
+            className="md:hidden mb-4 p-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg flex items-center gap-2 transition-all text-sm"
           >
-            <FaBars size={18} />
+            <FaBars size={14} />
             <span className="font-medium">Menu</span>
           </button>
 
           {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <div className="mb-6">
+            <h1 className="text-xl font-bold text-slate-800 mb-1">
               Manage Your Requests
             </h1>
-            <p className="text-gray-600">
+            <p className="text-slate-500 text-sm">
               View and manage all your session, skill mate, and interview requests
             </p>
           </div>          {/* Error Message */}
           {error && (
-            <div className="mb-6 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500 text-red-700 px-6 py-4 rounded-xl shadow-md flex items-center gap-3">
-              <FaTimes className="text-red-500 text-xl" />
+            <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
+              <FaTimes className="text-rose-500" />
               <span className="font-medium">{error}</span>
             </div>
           )}
 
           {/* Session Ready Banner */}
           {readyToStartSession && (
-            <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 px-6 py-5 rounded-xl shadow-lg flex items-center justify-between animate-fadeIn">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center shadow-md">
-                  <FaCheck className="text-white text-xl" />
+            <div className="mb-4 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                  <FaCheck className="text-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-green-900 text-lg">Session Approved!</p>
-                  <p className="text-green-700 text-sm mt-1">Your session is ready to start. Click the button to begin.</p>
+                  <p className="font-semibold text-emerald-800 text-sm">Session Approved!</p>
+                  <p className="text-emerald-600 text-xs mt-0.5">Your session is ready to start.</p>
                 </div>
               </div>
               <button
-                className="bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all transform hover:scale-105 shadow-lg"
+                className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 transition-all text-sm"
                 onClick={handleStartSession}
               >
-                <FaPlay size={16} /> Start Session
+                <FaPlay size={12} /> Start Session
               </button>
             </div>
           )}
 
           {/* Cancelled Message */}
           {cancelledMessage && (
-            <div className="mb-6 bg-gradient-to-r from-red-50 to-pink-50 border-l-4 border-red-500 px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 animate-fadeIn">
-              <FaTimes className="text-red-500 text-2xl" />
-              <span className="text-red-800 font-medium">{cancelledMessage}</span>
+            <div className="mb-4 bg-rose-50 border border-rose-200 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
+              <FaTimes className="text-rose-500" />
+              <span className="text-rose-700 font-medium">{cancelledMessage}</span>
             </div>
           )}
 
           {/* Interview Banner */}
           {interviewBanner && (
-            <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-900 px-6 py-5 rounded-xl shadow-lg flex items-center justify-between animate-fadeIn">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-900 rounded-xl flex items-center justify-center shadow-md">
-                  <FaVideo className="text-white text-xl" />
+            <div className="mb-4 bg-amber-50 border border-amber-200 px-4 py-3 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
+                  <FaVideo className="text-white" />
                 </div>
-                <span className="text-blue-900 font-semibold text-lg">{interviewBanner.message}</span>
+                <span className="text-amber-800 font-medium text-sm">{interviewBanner.message}</span>
               </div>
               <button
-                className="bg-white hover:bg-gray-50 text-blue-900 px-5 py-2 rounded-lg font-medium border border-blue-900 transition-all hover:shadow-md"
+                className="bg-white hover:bg-slate-50 text-amber-700 px-4 py-2 rounded-lg font-medium border border-amber-300 transition-all text-sm"
                 onClick={() => setInterviewBanner(null)}
               >
                 Dismiss
@@ -1022,29 +1006,29 @@ const SessionRequests = () => {
 
           {/* Active Session Banner */}
           {activeSession && (
-            <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 px-6 py-5 rounded-xl shadow-lg flex items-center justify-between animate-fadeIn">
-              <div className="flex items-center gap-4">
+            <div className="mb-4 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center shadow-md">
-                    <FaVideo className="text-white text-xl" />
+                  <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                    <FaVideo className="text-white" />
                   </div>
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-pulse border-2 border-white"></div>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 rounded-full animate-pulse border-2 border-white"></div>
                 </div>
                 <div>
-                  <p className="font-bold text-green-900 text-lg">Your session is live!</p>
-                  <p className="text-green-700 text-sm mt-1">Join the video call to start your session</p>
+                  <p className="font-semibold text-emerald-800 text-sm">Your session is live!</p>
+                  <p className="text-emerald-600 text-xs mt-0.5">Join the video call to start your session</p>
                 </div>
               </div>
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <button
-                  className="bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-950 hover:to-blue-900 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+                  className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 text-sm"
                   onClick={() => setShowVideoModal(true)}
                 >
-                  <FaVideo size={16} /> Join Session
+                  <FaVideo size={12} /> Join Session
                 </button>
                 {activeSession.role === 'student' && (
                   <button
-                    className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-3 rounded-xl font-semibold transition-all transform hover:scale-105 shadow-lg"
+                    className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg font-medium transition-all text-sm"
                     onClick={handleCancelSession}
                   >
                     Cancel
@@ -1074,19 +1058,19 @@ const SessionRequests = () => {
           />
 
           {/* Tabs */}
-          <div className="mb-8">
-            <div className="inline-flex gap-1 border-b border-gray-200">
+          <div className="mb-6">
+            <div className="inline-flex gap-1 bg-slate-100 p-1 rounded-lg">
               <button
                 onClick={() => setActiveTab('received')}
-                className={`px-6 py-3 font-medium transition-all ${
+                className={`px-4 py-2 font-medium transition-all rounded-lg text-sm ${
                   activeTab === 'received'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-teal-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span>Received</span>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                  <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">
                     {requestType === 'session'
                       ? requests.received.length
                       : requestType === 'skillmate'
@@ -1097,15 +1081,15 @@ const SessionRequests = () => {
               </button>
               <button
                 onClick={() => setActiveTab('sent')}
-                className={`px-6 py-3 font-medium transition-all ${
+                className={`px-4 py-2 font-medium transition-all rounded-lg text-sm ${
                   activeTab === 'sent'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-teal-700 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span>Sent</span>
-                  <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                  <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">
                     {requestType === 'session'
                       ? requests.sent.length
                       : requestType === 'skillmate'
@@ -1117,17 +1101,17 @@ const SessionRequests = () => {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {requestType === 'session' ? (
               activeTab === 'received' ? (
                 requests.received.length === 0 ? (
-                  <div className="text-center py-20 bg-gradient-to-br from-white to-blue-50 rounded-2xl border-2 border-dashed border-blue-200 shadow-sm">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
-                      <FaClock className="text-white text-4xl" />
+                  <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FaClock className="text-slate-400 text-xl" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">No Received Session Requests</h3>
-                    <p className="text-gray-600 text-lg">You haven't received any session requests yet.</p>
-                    <p className="text-gray-500 text-sm mt-2">New requests will appear here when they arrive</p>
+                    <h3 className="text-base font-semibold text-slate-700 mb-1">No Received Session Requests</h3>
+                    <p className="text-slate-500 text-sm">You haven't received any session requests yet.</p>
+                    <p className="text-slate-400 text-xs mt-1">New requests will appear here when they arrive</p>
                   </div>
                 ) : (
                   requests.received.map((request) => (
@@ -1135,13 +1119,13 @@ const SessionRequests = () => {
                   ))
                 )
               ) : requests.sent.length === 0 ? (
-                <div className="text-center py-20 bg-gradient-to-br from-white to-blue-50 rounded-2xl border-2 border-dashed border-blue-200 shadow-sm">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
-                    <FaVideo className="text-white text-4xl" />
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                  <div className="w-14 h-14 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaVideo className="text-teal-500 text-xl" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">No Sent Session Requests</h3>
-                  <p className="text-gray-600 text-lg">You haven't sent any session requests yet.</p>
-                  <p className="text-gray-500 text-sm mt-2">Start requesting sessions with tutors!</p>
+                  <h3 className="text-base font-semibold text-slate-700 mb-1">No Sent Session Requests</h3>
+                  <p className="text-slate-500 text-sm">You haven't sent any session requests yet.</p>
+                  <p className="text-slate-400 text-xs mt-1">Start requesting sessions with tutors!</p>
                 </div>
               ) : (
                 requests.sent.map((request) => (
@@ -1151,13 +1135,13 @@ const SessionRequests = () => {
             ) : requestType === 'skillmate' ? (
               activeTab === 'received' ? (
                 skillMateRequests.received.length === 0 ? (
-                  <div className="text-center py-20 bg-gradient-to-br from-white to-purple-50 rounded-2xl border-2 border-dashed border-purple-200 shadow-sm">
-                    <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
-                      <FaUserFriends className="text-white text-4xl" />
+                  <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div className="w-14 h-14 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FaUserFriends className="text-purple-500 text-xl" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">No Received SkillMate Requests</h3>
-                    <p className="text-gray-600 text-lg">You haven't received any SkillMate requests yet.</p>
-                    <p className="text-gray-500 text-sm mt-2">Connect with others to share skills</p>
+                    <h3 className="text-base font-semibold text-slate-700 mb-1">No Received SkillMate Requests</h3>
+                    <p className="text-slate-500 text-sm">You haven't received any SkillMate requests yet.</p>
+                    <p className="text-slate-400 text-xs mt-1">Connect with others to share skills</p>
                   </div>
                 ) : (
                   skillMateRequests.received.map((request) => (
@@ -1165,13 +1149,13 @@ const SessionRequests = () => {
                   ))
                 )
               ) : skillMateRequests.sent.length === 0 ? (
-                <div className="text-center py-20 bg-gradient-to-br from-white to-purple-50 rounded-2xl border-2 border-dashed border-purple-200 shadow-sm">
-                  <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
-                    <FaHandshake className="text-white text-4xl" />
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                  <div className="w-14 h-14 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaHandshake className="text-purple-500 text-xl" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">No Sent SkillMate Requests</h3>
-                  <p className="text-gray-600 text-lg">You haven't sent any SkillMate requests yet.</p>
-                  <p className="text-gray-500 text-sm mt-2">Find SkillMates to connect with!</p>
+                  <h3 className="text-base font-semibold text-slate-700 mb-1">No Sent SkillMate Requests</h3>
+                  <p className="text-slate-500 text-sm">You haven't sent any SkillMate requests yet.</p>
+                  <p className="text-slate-400 text-xs mt-1">Find SkillMates to connect with!</p>
                 </div>
               ) : (
                 skillMateRequests.sent.map((request) => (
@@ -1180,13 +1164,13 @@ const SessionRequests = () => {
               )
             ) : activeTab === 'received' ? (
               (interviewRequests?.received || []).length === 0 ? (
-                <div className="text-center py-20 bg-gradient-to-br from-white to-indigo-50 rounded-2xl border-2 border-dashed border-indigo-200 shadow-sm">
-                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
-                    <FaUser className="text-white text-4xl" />
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                  <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaUser className="text-amber-500 text-xl" />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">No Received Interview Requests</h3>
-                  <p className="text-gray-600 text-lg">You haven't received any interview requests yet.</p>
-                  <p className="text-gray-500 text-sm mt-2">Interview requests will appear here</p>
+                  <h3 className="text-base font-semibold text-slate-700 mb-1">No Received Interview Requests</h3>
+                  <p className="text-slate-500 text-sm">You haven't received any interview requests yet.</p>
+                  <p className="text-slate-400 text-xs mt-1">Interview requests will appear here</p>
                 </div>
               ) : (
                 (interviewRequests?.received || []).map((request) => (
@@ -1194,13 +1178,13 @@ const SessionRequests = () => {
                 ))
               )
             ) : (interviewRequests?.sent || []).length === 0 ? (
-              <div className="text-center py-20 bg-gradient-to-br from-white to-indigo-50 rounded-2xl border-2 border-dashed border-indigo-200 shadow-sm">
-                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto shadow-lg mb-6">
-                  <FaVideo className="text-white text-4xl" />
+              <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FaVideo className="text-amber-500 text-xl" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">No Sent Interview Requests</h3>
-                <p className="text-gray-600 text-lg">You haven't sent any interview requests yet.</p>
-                <p className="text-gray-500 text-sm mt-2">Request mock interviews to practice!</p>
+                <h3 className="text-base font-semibold text-slate-700 mb-1">No Sent Interview Requests</h3>
+                <p className="text-slate-500 text-sm">You haven't sent any interview requests yet.</p>
+                <p className="text-slate-400 text-xs mt-1">Request mock interviews to practice!</p>
               </div>
             ) : (
               (interviewRequests?.sent || []).map((request) => (
