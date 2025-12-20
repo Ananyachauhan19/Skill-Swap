@@ -68,7 +68,7 @@ const Footer = () => {
                     </a>
                   </li>
                   <li>
-                    <a href="/session" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
+                    <a href="/profile/panel/your-home" className="text-gray-800 hover:text-blue-700 hover:underline transition-all duration-300 flex items-center gap-2">
                       <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                       Learning Sessions
                     </a>
