@@ -37,6 +37,7 @@ const tutorRoutes = require('./routes/tutorRoutes');
 const userRoutes = require('./routes/userRoutes');
 const tutorFeedbackRoutes = require('./routes/tutorFeedbackRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const helpRoutes = require('./routes/helpRoutes');
 const cron = require('node-cron');
 
 const app = express();
@@ -117,9 +118,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 require('./socket')(io);
 app.set('io', io);
-
-// Local /uploads serving removed (resumes now stored in Supabase). If other local assets needed, re-add selectively.
-
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/session-requests', sessionRequestRoutes);
@@ -139,6 +137,7 @@ app.use('/api', tutorRoutes);
 app.use('/api', userRoutes);
 app.use('/api/tutors', tutorFeedbackRoutes);
 app.use('/api', reportRoutes);
+app.use('/api/support', helpRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');

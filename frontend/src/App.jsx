@@ -54,6 +54,7 @@ import SkillMateRequests from './admin/SkillMateRequests.jsx';
 import Users from './admin/Users.jsx';
 import Settings from './admin/Settings.jsx';
 import Analytics from './admin/Analytics.jsx';
+import AdminHelpSupport from './admin/AdminHelpSupport.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
 import PrivacyPolicy from './PrivacyPolicy.jsx';
 import Community from './Community.jsx';
@@ -161,6 +162,7 @@ const adminOnlyRoutes = [
           { path: 'skillmate-requests', element: <SkillMateRequests /> },
           { path: 'users', element: <Users /> },
           { path: 'reports', element: <Reports /> },
+          { path: 'help-support', element: <AdminHelpSupport /> },
           { path: 'settings', element: <Settings /> },
           { path: 'tutor-verification', element: <TutorVerification /> },
         ],

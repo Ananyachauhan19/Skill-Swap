@@ -7,6 +7,7 @@ const navItems = [
   { label: 'Applications', to: '/admin/applications' },
   { label: 'Interview Requests', to: '/admin/interview-requests' },
   { label: 'Users', to: '/admin/users' },
+  { label: 'Help', to: '/admin/help-support' },
   { label: 'Settings', to: '/admin/settings' },
 ];
 
