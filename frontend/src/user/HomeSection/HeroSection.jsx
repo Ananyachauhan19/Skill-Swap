@@ -233,7 +233,7 @@ const HeroSection = ({ exploreRef }) => {
               <img
                 src="/assets/skillswap-hero.png"
                 alt="SkillSwap Hero Image"
-                className="w-full h-auto object-contain hover:scale-105 transition-transform duration-300"
+                className="w-full h-auto object-contain scale-[1.15] hover:scale-[1.2] transition-transform duration-300"
               />
             </picture>
           </motion.div>
