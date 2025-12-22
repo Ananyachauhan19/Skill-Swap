@@ -386,10 +386,11 @@ const Navbar = () => {
       const now = new Date();
       const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
 
-      const [sessionRes, expertRes, skillmateReceivedRes, interviewRes] = await Promise.allSettled([
+      const [sessionRes, expertRes, skillmateReceivedRes, skillmateSentRes, interviewRes] = await Promise.allSettled([
         fetch(`${BACKEND_URL}/api/session-requests/all`, { credentials: 'include' }),
         fetch(`${BACKEND_URL}/api/session-requests/expert`, { credentials: 'include' }),
         fetch(`${BACKEND_URL}/api/skillmates/requests/received`, { credentials: 'include' }),
+        fetch(`${BACKEND_URL}/api/skillmates/requests/sent`, { credentials: 'include' }),
         fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' }),
       ]);
 
@@ -397,8 +398,10 @@ const Navbar = () => {
       if (sessionRes.status === 'fulfilled' && sessionRes.value.ok) {
         const data = await sessionRes.value.json();
         const received = Array.isArray(data.received) ? data.received : [];
+        const sent = Array.isArray(data.sent) ? data.sent : [];
+        const all = [...received, ...sent];
         // Match SessionRequests.jsx: only last 2 days are visible
-        sessionPending = received.filter((r) => {
+        sessionPending = all.filter((r) => {
           const status = (r.status || '').toLowerCase();
           if (status !== 'pending') return false;
           const createdAt = new Date(r.createdAt || r.requestedAt);
@@ -410,8 +413,10 @@ const Navbar = () => {
       if (expertRes.status === 'fulfilled' && expertRes.value.ok) {
         const data = await expertRes.value.json();
         const received = Array.isArray(data.received) ? data.received : [];
+        const sent = Array.isArray(data.sent) ? data.sent : [];
+        const all = [...received, ...sent];
         // Match expertSessionRequests filter: last 2 days only
-        expertPending = received.filter((r) => {
+        expertPending = all.filter((r) => {
           const status = (r.status || '').toLowerCase();
           if (status !== 'pending') return false;
           const createdAt = new Date(r.createdAt || r.requestedAt);
@@ -420,21 +425,31 @@ const Navbar = () => {
       }
 
       let skillmatePending = 0;
-      if (skillmateReceivedRes.status === 'fulfilled' && skillmateReceivedRes.value.ok) {
-        const data = await skillmateReceivedRes.value.json();
-        const list = Array.isArray(data) ? data : [];
-        skillmatePending = list.filter((r) => (r.status || '').toLowerCase() === 'pending').length;
+      if (
+        skillmateReceivedRes.status === 'fulfilled' &&
+        skillmateReceivedRes.value.ok &&
+        skillmateSentRes.status === 'fulfilled' &&
+        skillmateSentRes.value.ok
+      ) {
+        const receivedData = await skillmateReceivedRes.value.json();
+        const sentData = await skillmateSentRes.value.json();
+        const receivedList = Array.isArray(receivedData) ? receivedData : [];
+        const sentList = Array.isArray(sentData) ? sentData : [];
+        const all = [...receivedList, ...sentList];
+        skillmatePending = all.filter((r) => (r.status || '').toLowerCase() === 'pending').length;
       }
 
       let interviewPending = 0;
       if (interviewRes.status === 'fulfilled' && interviewRes.value.ok) {
         const data = await interviewRes.value.json();
         const received = Array.isArray(data.received) ? data.received : [];
+        const sent = Array.isArray(data.sent) ? data.sent : [];
+        const all = [...received, ...sent];
 
         // First apply the same visibility filter as SessionRequests.jsx:
         // - keep all 'scheduled' interviews regardless of age
         // - for others, only keep last 2 days
-        const visible = received.filter((req) => {
+        const visible = all.filter((req) => {
           const status = (req.status || '').toLowerCase();
           if (status === 'scheduled') return true;
           const createdAt = new Date(req.createdAt || req.requestedAt);
