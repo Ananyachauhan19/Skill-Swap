@@ -92,8 +92,9 @@ const CoinsHistory = () => {
     });
 
     teaching.forEach(e => {
-      if (e.coinType === 'gold') goldEarned += e.coinsSpent || 0;
-      else silverEarned += e.coinsSpent || 0;
+      const earned = (typeof e.coinsEarned === 'number' ? e.coinsEarned : (e.coinsSpent || 0));
+      if (e.coinType === 'gold') goldEarned += earned;
+      else silverEarned += earned;
     });
 
     const calculatedStats = {
@@ -404,7 +405,7 @@ const CoinsHistory = () => {
                           <p className={`text-2xl font-bold ${
                             event.coinType === 'gold' ? 'text-yellow-700' : 'text-gray-700'
                           }`}>
-                            {event.type === 'spent' ? '-' : '+'}{event.coinsSpent || 0}
+                            {event.type === 'spent' ? '-' : '+'}{(event.type === 'earned' ? (event.coinsEarned ?? event.coinsSpent ?? 0) : (event.coinsSpent || 0))}
                           </p>
                           <p className={`text-xs uppercase font-semibold ${
                             event.coinType === 'gold' ? 'text-yellow-600' : 'text-gray-600'

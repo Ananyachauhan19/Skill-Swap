@@ -10,6 +10,19 @@ const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
 const { sendMail } = require('../utils/sendMail');
 const T = require('../utils/emailTemplates');
 
+// Coin rate configuration
+// If business rules change, update these in one place.
+const COIN_RATES = {
+  silver: {
+    spendPerMinute: 1,
+    earnMultiplier: 0.75,
+  },
+  gold: {
+    spendPerMinute: 1,
+    earnMultiplier: 0.75,
+  },
+};
+
 // Rate limiter for sensitive endpoints
 const requestLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -528,9 +541,10 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
     sessionRequest.duration = durationMinutes;
 
     // Derive coins spent from duration if not already tracked
-    const perMinute = sessionRequest.coinType === 'gold' ? 1 : 1; // adjust if gold pricing differs later
+    const coinTypeKey = (sessionRequest.coinType || 'silver').toLowerCase();
+    const spendPerMinute = (COIN_RATES[coinTypeKey] || COIN_RATES.silver).spendPerMinute;
     if (typeof sessionRequest.coinsSpent !== 'number' || sessionRequest.coinsSpent < 0) {
-      sessionRequest.coinsSpent = durationMinutes * perMinute;
+      sessionRequest.coinsSpent = durationMinutes * spendPerMinute;
     }
 
     sessionRequest.status = 'completed';
@@ -676,14 +690,11 @@ router.post('/cancel/:requestId', requireAuth, requestLimiter, validateRequestId
 router.get('/learning-history', requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
     // Find completed sessions where user was the requester (student)
     const sessions = await SessionRequest.find({
       requester: userId,
-      status: 'completed',
-      createdAt: { $lt: twoDaysAgo }
+      status: 'completed'
     })
       .populate('tutor', 'firstName lastName profilePic')
       .sort({ createdAt: -1 });
@@ -695,18 +706,28 @@ router.get('/learning-history', requireAuth, async (req, res) => {
       if (!groupedByDate[date]) {
         groupedByDate[date] = [];
       }
-      
+
+      const tutorFirst = session.tutor && session.tutor.firstName ? session.tutor.firstName : 'Unknown';
+      const tutorLast = session.tutor && session.tutor.lastName ? session.tutor.lastName : '';
+
+      // Recompute coinsSpent from duration to handle old static values
+      const duration = typeof session.duration === 'number' ? session.duration : 0;
+      const cType = (session.coinType || 'silver').toLowerCase();
+      const spendRate = (COIN_RATES[cType] || COIN_RATES.silver).spendPerMinute;
+      const computedSpent = duration * spendRate;
+      const coinsSpent = computedSpent > 0 ? computedSpent : (typeof session.coinsSpent === 'number' ? session.coinsSpent : 0);
+
       groupedByDate[date].push({
         id: session._id,
-        type: session.sessionType, // Get actual session type
-        with: `${session.tutor.firstName} ${session.tutor.lastName}`,
+        type: session.sessionType || 'ONE-ON-ONE',
+        with: `${tutorFirst} ${tutorLast}`.trim(),
         when: session.createdAt,
-        duration: session.duration, // Actual duration from database
-        coinType: session.coinType, // silver or gold
-        coinsSpent: session.coinsSpent, // Actual coins spent
-        subject: session.subject,
-        topic: session.topic,
-        rating: session.rating,
+        duration,
+        coinType: session.coinType || 'silver',
+        coinsSpent,
+        subject: session.subject || 'N/A',
+        topic: session.topic || 'N/A',
+        rating: typeof session.rating === 'number' ? session.rating : null,
         notes: session.message || ''
       });
     });
@@ -732,14 +753,11 @@ router.get('/learning-history', requireAuth, async (req, res) => {
 router.get('/teaching-history', requireAuth, async (req, res) => {
   try {
     const userId = req.user._id;
-    const twoDaysAgo = new Date();
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
 
     // Find completed sessions where user was the tutor (teacher)
     const sessions = await SessionRequest.find({
       tutor: userId,
-      status: 'completed',
-      createdAt: { $lt: twoDaysAgo }
+      status: 'completed'
     })
       .populate('requester', 'firstName lastName profilePic')
       .sort({ createdAt: -1 });
@@ -751,15 +769,25 @@ router.get('/teaching-history', requireAuth, async (req, res) => {
       if (!groupedByDate[date]) {
         groupedByDate[date] = [];
       }
+      const cType = (session.coinType || 'silver').toLowerCase();
+      const spendRate = (COIN_RATES[cType] || COIN_RATES.silver).spendPerMinute;
+      const earnMultiplier = (COIN_RATES[cType] || COIN_RATES.silver).earnMultiplier;
+      
+      // Recompute from duration to handle old static values
+      const duration = session.duration || 0;
+      const computedSpent = duration * spendRate;
+      const baseSpent = computedSpent > 0 ? computedSpent : (typeof session.coinsSpent === 'number' ? session.coinsSpent : 0);
+      const computedEarned = Math.round(baseSpent * earnMultiplier);
       
       groupedByDate[date].push({
         id: session._id,
         type: session.sessionType || 'ONE-ON-ONE',
         with: `${(session.requester && session.requester.firstName) ? session.requester.firstName : 'Unknown'} ${session.requester && session.requester.lastName ? session.requester.lastName : ''}`.trim(),
         when: session.createdAt,
-        duration: session.duration || 0,
+        duration,
         coinType: session.coinType || 'silver',
-        coinsSpent: typeof session.coinsSpent === 'number' ? session.coinsSpent : 0,
+        coinsSpent: baseSpent, // kept for backward compatibility
+        coinsEarned: computedEarned,
         subject: session.subject || 'N/A',
         topic: session.topic || 'N/A',
         rating: session.rating || null,
@@ -811,38 +839,59 @@ router.get('/all-coin-history', requireAuth, async (req, res) => {
     ]);
 
     // Process learning sessions (spent)
-    const learningHistory = learningSessions.map(session => ({
-      id: session._id,
-      type: 'spent',
-      sessionType: session.sessionType || 'ONE-ON-ONE',
-      with: `${(session.tutor && session.tutor.firstName) ? session.tutor.firstName : 'Unknown'} ${session.tutor && session.tutor.lastName ? session.tutor.lastName : ''}`.trim(),
-      when: session.createdAt,
-      date: new Date(session.createdAt).toISOString().split('T')[0],
-      duration: session.duration || 0,
-      coinType: session.coinType || 'silver',
-      coinsSpent: typeof session.coinsSpent === 'number' ? session.coinsSpent : 0,
-      subject: session.subject || 'N/A',
-      topic: session.topic || 'N/A',
-      rating: session.rating || null,
-      notes: session.message || ''
-    }));
+    const learningHistory = learningSessions.map(session => {
+      const duration = session.duration || 0;
+      const cType = (session.coinType || 'silver').toLowerCase();
+      const spendRate = (COIN_RATES[cType] || COIN_RATES.silver).spendPerMinute;
+      const computedSpent = duration * spendRate;
+      const coinsSpent = computedSpent > 0 ? computedSpent : (typeof session.coinsSpent === 'number' ? session.coinsSpent : 0);
+      
+      return ({
+        id: session._id,
+        type: 'spent',
+        sessionType: session.sessionType || 'ONE-ON-ONE',
+        with: `${(session.tutor && session.tutor.firstName) ? session.tutor.firstName : 'Unknown'} ${session.tutor && session.tutor.lastName ? session.tutor.lastName : ''}`.trim(),
+        when: session.createdAt,
+        date: new Date(session.createdAt).toISOString().split('T')[0],
+        duration,
+        coinType: session.coinType || 'silver',
+        coinsSpent,
+        subject: session.subject || 'N/A',
+        topic: session.topic || 'N/A',
+        rating: session.rating || null,
+        notes: session.message || ''
+      });
+    });
 
     // Process teaching sessions (earned)
-    const teachingHistory = teachingSessions.map(session => ({
-      id: session._id,
-      type: 'earned',
-      sessionType: session.sessionType || 'ONE-ON-ONE',
-      with: `${(session.requester && session.requester.firstName) ? session.requester.firstName : 'Unknown'} ${session.requester && session.requester.lastName ? session.requester.lastName : ''}`.trim(),
-      when: session.createdAt,
-      date: new Date(session.createdAt).toISOString().split('T')[0],
-      duration: session.duration || 0,
-      coinType: session.coinType || 'silver',
-      coinsSpent: typeof session.coinsSpent === 'number' ? session.coinsSpent : 0, // earned
-      subject: session.subject || 'N/A',
-      topic: session.topic || 'N/A',
-      rating: session.rating || null,
-      notes: session.message || ''
-    }));
+    const teachingHistory = teachingSessions.map(session => {
+      const duration = session.duration || 0;
+      const cType = (session.coinType || 'silver').toLowerCase();
+      const spendRate = (COIN_RATES[cType] || COIN_RATES.silver).spendPerMinute;
+      const earnMultiplier = (COIN_RATES[cType] || COIN_RATES.silver).earnMultiplier;
+      
+      // Recompute from duration to handle old static values
+      const computedSpent = duration * spendRate;
+      const baseSpent = computedSpent > 0 ? computedSpent : (typeof session.coinsSpent === 'number' ? session.coinsSpent : 0);
+      const coinsEarned = Math.round(baseSpent * earnMultiplier);
+      
+      return ({
+        id: session._id,
+        type: 'earned',
+        sessionType: session.sessionType || 'ONE-ON-ONE',
+        with: `${(session.requester && session.requester.firstName) ? session.requester.firstName : 'Unknown'} ${session.requester && session.requester.lastName ? session.requester.lastName : ''}`.trim(),
+        when: session.createdAt,
+        date: new Date(session.createdAt).toISOString().split('T')[0],
+        duration,
+        coinType: session.coinType || 'silver',
+        coinsSpent: baseSpent, // spent by student (legacy)
+        coinsEarned,
+        subject: session.subject || 'N/A',
+        topic: session.topic || 'N/A',
+        rating: session.rating || null,
+        notes: session.message || ''
+      });
+    });
 
     // Combine and sort all transactions by date
     const allTransactions = [...learningHistory, ...teachingHistory]

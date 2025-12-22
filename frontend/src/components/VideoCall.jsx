@@ -43,6 +43,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   const [callStartTime, setCallStartTime] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
+  const [goldCoins, setGoldCoins] = useState(0);
   const hasEndedRef = useRef(false);
 
   // AV controls
@@ -308,8 +309,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
           }
         };
 
-        const onCoinUpdate = ({ silverCoins }) => {
-          setSilverCoins(Number(silverCoins ?? 0));
+        const onCoinUpdate = ({ silverCoins, goldCoins }) => {
+          if (silverCoins !== undefined) setSilverCoins(Number(silverCoins ?? 0));
+          if (goldCoins !== undefined) setGoldCoins(Number(goldCoins ?? 0));
         };
 
         // Whiteboard sync events (both directions)
@@ -1145,7 +1147,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
             <span>Waiting for connection...</span>
           )}
           {typeof silverCoins === 'number' && (
-            <span className="ml-2 sm:ml-4" title="Your current coins">Coins: {silverCoins.toFixed(2)}</span>
+            <span className="ml-2 sm:ml-4" title="Your current silver coins">Silver: {silverCoins.toFixed(2)}</span>
+          )}
+          {typeof goldCoins === 'number' && (
+            <span className="ml-2 sm:ml-4" title="Your current gold coins">Gold: {goldCoins.toFixed(2)}</span>
           )}
         </div>
 
