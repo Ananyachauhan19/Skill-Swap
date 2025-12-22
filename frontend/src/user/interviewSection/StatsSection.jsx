@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BACKEND_URL } from "../../config.js";
+import { useAuth } from "../../context/AuthContext";
 
 const StatsSection = () => {
   const [stats, setStats] = useState({
@@ -9,6 +10,8 @@ const StatsSection = () => {
     loading: true,
     error: null,
   });
+
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchStats() {
@@ -44,12 +47,18 @@ const StatsSection = () => {
             let completed = 0;
             let hosted = 0;
             let scheduled = 0;
-            const currentUserId = list[0]?.requester?._id || list[0]?.assignedInterviewer?._id;
+            const currentUserId = user?._id;
             for (const r of list) {
               if ((r.status || '').toLowerCase() === 'completed') completed += 1;
               if ((r.status || '').toLowerCase() === 'scheduled' || (r.status || '').toLowerCase() === 'completed') scheduled += 1;
               const interId = r.assignedInterviewer && (r.assignedInterviewer._id || r.assignedInterviewer);
-              if (interId && String(interId) === String(currentUserId)) {
+              // Only count hosted when this user is the interviewer AND interview is completed
+              if (
+                currentUserId &&
+                interId &&
+                String(interId) === String(currentUserId) &&
+                (r.status || '').toLowerCase() === 'completed'
+              ) {
                 hosted += 1;
               }
             }
@@ -68,13 +77,18 @@ const StatsSection = () => {
             let hosted = 0;
             let scheduled = 0;
             // Get current user ID from auth context
-            const currentUserId = list[0]?.requester?._id || list[0]?.assignedInterviewer?._id;
+            const currentUserId = user?._id;
             for (const r of list) {
               if ((r.status || '').toLowerCase() === 'completed') completed += 1;
               if ((r.status || '').toLowerCase() === 'scheduled' || (r.status || '').toLowerCase() === 'completed') scheduled += 1;
-              // Count interviews where current user was the interviewer
+              // Count interviews where current user was the interviewer and interview is completed
               const interId = r.assignedInterviewer && (r.assignedInterviewer._id || r.assignedInterviewer);
-              if (interId && String(interId) === String(currentUserId)) {
+              if (
+                currentUserId &&
+                interId &&
+                String(interId) === String(currentUserId) &&
+                (r.status || '').toLowerCase() === 'completed'
+              ) {
                 hosted += 1;
               }
             }
@@ -94,7 +108,7 @@ const StatsSection = () => {
       }
     }
     fetchStats();
-  }, []);
+  }, [user?._id]);
 
   return (
     <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 sm:gap-8 pt-4 sm:pt-6">

@@ -1323,17 +1323,10 @@ exports.getInterviewStats = async (req, res) => {
     // Calculate success rate based on all interviews
     const successRate = totalInterviews > 0 ? Math.round((totalCompleted / totalInterviews) * 100) : 0;
 
-    // Count unique experts (when user was a participant)
-    const uniqueExperts = new Set();
-    myRequests.forEach(i => {
-      if (i.assignedInterviewer) {
-        uniqueExperts.add(String(i.assignedInterviewer));
-      }
-    });
-
     // If user is an interviewer, get their stats
     const interviewerApp = await InterviewerApplication.findOne({ user: userId });
     let asInterviewer = null;
+    let totalHosted = 0;
     
     if (interviewerApp && interviewerApp.status === 'approved') {
       asInterviewer = {
@@ -1342,13 +1335,22 @@ exports.getInterviewStats = async (req, res) => {
         totalRatings: interviewerApp.totalRatings || 0,
         conductedInterviews: interviewerApp.conductedInterviews || 0
       };
+      // Hosted interviews = interviews this user actually conducted (completed)
+      totalHosted = interviewerApp.conductedInterviews || 0;
+    }
+
+    // If user is not an approved interviewer, they should not have any hosted interviews
+    if (!asInterviewer) {
+      totalHosted = 0;
     }
 
     res.json({
       // For StatsSection component - includes both participant and interviewer interviews
       totalInterviews,
       successRate,
-      totalExperts: uniqueExperts.size,
+      // For the public stats widget, "Interviews Hosted" should only count
+      // interviews where this user acted as interviewer and the session was completed.
+      totalExperts: totalHosted,
       // Detailed breakdown
       asRequester: {
         totalRequested,
