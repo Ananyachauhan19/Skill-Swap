@@ -28,8 +28,8 @@ export const ToastProvider = ({ children }) => {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {/* Toast stack - front center */}
-      <div className="fixed z-[3000] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[92vw] max-w-[520px] space-y-2">
+      {/* Toast stack - top center */}
+      <div className="fixed z-[3000] top-4 left-1/2 -translate-x-1/2 w-[92vw] max-w-[520px] px-4 space-y-2">
         {toasts.map((t) => (
           <Toast key={t.id} toast={t} onClose={() => removeToast(t.id)} />
         ))}
