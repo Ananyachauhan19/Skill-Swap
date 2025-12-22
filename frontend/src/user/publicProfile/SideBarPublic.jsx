@@ -455,10 +455,19 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 <ul className="flex flex-col gap-3">
                   {profile.experience.map((exp, i) => (
                     <li key={i} className="text-xs text-gray-600">
-                      <span className="font-medium">{exp.title}</span>
-                      {exp.company ? ` at ${exp.company}` : ""}
-                      {exp.duration ? ` (${exp.duration})` : ""}
-                      {exp.description ? `: ${exp.description}` : ""}
+                      {exp.position && exp.company && exp.duration && exp.description ? (
+                        <span>
+                          <span className="font-medium">{exp.position}</span>
+                          {` at ${exp.company} for ${exp.duration}. ${exp.description}`}
+                        </span>
+                      ) : (
+                        <span>
+                          {exp.position && <span className="font-medium">{exp.position}</span>}
+                          {exp.company ? ` at ${exp.company}` : ""}
+                          {exp.duration ? ` (${exp.duration})` : ""}
+                          {exp.description ? `: ${exp.description}` : ""}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -497,23 +506,21 @@ const SideBarPublic = ({ username, setNotFound }) => {
               ) : error ? (
                 <span className="text-red-500 text-sm">{error}</span>
               ) : profile?.skillsToTeach && profile.skillsToTeach.length > 0 ? (
-                <ul className="flex flex-wrap gap-2">
-                  {profile.skillsToTeach.map((s, i) => (
-                    <li
-                      key={i}
-                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1"
-                    >
-                      {s.class ? `${s.class} • ` : ""}
-                      {s.subject}{" "}
-                      {s.topic === "ALL"
-                        ? " > ALL Topics"
-                        : s.topic
-                        ? `> ${s.topic}`
-                        : ""}{" "}
-                      {s.subtopic ? `> ${s.subtopic}` : ""}
-                    </li>
-                  ))}
-                </ul>
+                (() => {
+                  const teachSkills = profile.skillsToTeach.filter(s => s.class);
+                  if (teachSkills.length === 0) {
+                    return <span className="text-xs text-gray-600">Not added yet</span>;
+                  }
+                  return (
+                    <ul className="flex flex-wrap gap-2">
+                      {teachSkills.map((skill, i) => (
+                        <li key={i} className="text-xs text-gray-600 bg-blue-50 px-3 py-1 rounded-full">
+                          {skill.class ? `${skill.class} • ` : ''}{skill.subject} {skill.topic === 'ALL' ? ' > ALL Topics' : skill.topic ? `> ${skill.topic}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()
               ) : (
                 <span className="text-xs text-gray-600">Not added yet</span>
               )}

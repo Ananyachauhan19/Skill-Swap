@@ -10,6 +10,7 @@ const {
 } = require('../controllers/authController');
 const User = require('../models/User');
 const Session = require('../models/Session');
+const InterviewerApplication = require('../models/InterviewerApplication');
 const requireAuth = require('../middleware/requireAuth');
 const { trackDailyLogin, trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
 const crypto = require('crypto');
@@ -325,6 +326,38 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     console.log('[DEBUG] User found, preparing response. isTutor:', user.isTutor, 'role:', user.role);
+
+    // Enrich experience from approved interviewer application so that
+    // the interviewer position, duration and total interview count are
+    // reflected consistently in the profile (including edit forms).
+    let experience = user.experience;
+    try {
+      const app = await InterviewerApplication.findOne({ user: user._id, status: 'approved' });
+      if (app && Array.isArray(experience) && experience.length > 0) {
+        const totalPast = typeof app.totalPastInterviews === 'number' ? app.totalPastInterviews : null;
+        if (totalPast !== null) {
+          const description = totalPast === 1
+            ? 'Has experience conducting 1 interview.'
+            : `Has experience conducting ${totalPast} interviews.`;
+          experience = experience.map((exp) => {
+            const plain = exp && typeof exp.toObject === 'function' ? exp.toObject() : exp || {};
+            const sameCompany = (plain.company || '') === (app.company || '');
+            const sameDuration = (plain.duration || '') === (app.experience || '') || !plain.duration;
+            if (sameCompany && sameDuration) {
+              return {
+                ...plain,
+                position: app.position || plain.position || 'Interviewer',
+                duration: app.experience || plain.duration || '',
+                description,
+              };
+            }
+            return plain;
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[DEBUG] Failed to enrich experience from interviewer application', e);
+    }
     res.json({
       _id: user._id,
       firstName: user.firstName,
@@ -339,7 +372,7 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       skillsToLearn: user.skillsToLearn,
       country: user.country,
       education: user.education,
-      experience: user.experience,
+      experience,
       certificates: user.certificates,
       linkedin: user.linkedin,
       website: user.website,
@@ -643,6 +676,38 @@ router.get('/user/public/:username', async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    // Enrich experience from approved interviewer application, same logic
+    // as /user/profile so public and private views stay consistent.
+    let experience = user.experience;
+    try {
+      const app = await InterviewerApplication.findOne({ user: user._id, status: 'approved' });
+      if (app && Array.isArray(experience) && experience.length > 0) {
+        const totalPast = typeof app.totalPastInterviews === 'number' ? app.totalPastInterviews : null;
+        if (totalPast !== null) {
+          const description = totalPast === 1
+            ? 'Has experience conducting 1 interview.'
+            : `Has experience conducting ${totalPast} interviews.`;
+          experience = experience.map((exp) => {
+            const plain = exp && typeof exp.toObject === 'function' ? exp.toObject() : exp || {};
+            const sameCompany = (plain.company || '') === (app.company || '');
+            const sameDuration = (plain.duration || '') === (app.experience || '') || !plain.duration;
+            if (sameCompany && sameDuration) {
+              return {
+                ...plain,
+                position: app.position || plain.position || 'Interviewer',
+                duration: app.experience || plain.duration || '',
+                description,
+              };
+            }
+            return plain;
+          });
+        }
+      }
+    } catch (e) {
+      console.error('[DEBUG] Failed to enrich public experience from interviewer application', e);
+    }
+
     res.json({
       _id: user._id,
       firstName: user.firstName,
@@ -655,7 +720,7 @@ router.get('/user/public/:username', async (req, res) => {
       skillsToLearn: user.skillsToLearn,
       country: user.country,
       education: user.education,
-      experience: user.experience,
+      experience,
       certificates: user.certificates,
       linkedin: user.linkedin,
       website: user.website,

@@ -547,15 +547,26 @@ exports.approveApplication = async (req, res) => {
     }
     await app.save();
 
-    // Mark user as interviewer by adding their expertise into profile (simple approach)
+    // Mark user as interviewer by adding their expertise into profile.
+    // We only update the Experience section, not "What I Can Teach".
     const user = await User.findById(app.user._id);
     if (user) {
       user.role = 'both';
-      // append to experience and skillsToTeach
+      // Append interviewer experience entry
       user.experience = user.experience || [];
-      user.experience.push({ company: app.company || '', position: 'Interviewer', duration: app.experience || '', description: app.qualification || '' });
-      user.skillsToTeach = user.skillsToTeach || [];
-      user.skillsToTeach.push({ subject: app.company || '', topic: app.qualification || '' });
+      const totalPast = typeof app.totalPastInterviews === 'number' ? app.totalPastInterviews : 0;
+      let description = '';
+      if (totalPast > 0) {
+        description = totalPast === 1
+          ? 'Has experience conducting 1 interview.'
+          : `Has experience conducting ${totalPast} interviews.`;
+      }
+      user.experience.push({
+        company: app.company || '',
+        position: app.position || 'Interviewer',
+        duration: app.experience || '',
+        description,
+      });
       await user.save();
     }
 
