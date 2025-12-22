@@ -41,22 +41,29 @@ const SessionRequests = () => {
   const [ratingContext, setRatingContext] = useState(null); // { sessionId, expertName, sessionType }
   const [negotiationModalState, setNegotiationModalState] = useState({ open: false, request: null });
 
-  // Deep-link support: /session-requests?tab=expert
+  // Deep-link support: /session-requests?tab=expert&view=sent
   useEffect(() => {
     try {
       const params = new URLSearchParams(location.search);
       const tab = params.get('tab');
-      if (tab === 'expert') {
-        setRequestType('expert');
+      const view = params.get('view');
+      
+      // Set request type from tab param
+      if (tab === 'session' || tab === 'expert' || tab === 'skillmate' || tab === 'interview') {
+        setRequestType(tab);
+      }
+      
+      // Set active tab from view param
+      if (view === 'sent' || view === 'received') {
+        setActiveTab(view);
+      }
+      
+      // Legacy support for old URLs without explicit params
+      if (tab === 'expert' && !view) {
         setActiveTab('received');
       }
-
-      if (tab === 'interview') {
-        setRequestType('interview');
-        const view = (params.get('view') || '').toLowerCase();
-        if (view === 'sent' || view === 'received') {
-          setActiveTab(view);
-        }
+      if (tab === 'interview' && !view) {
+        setActiveTab('received');
       }
 
       const early = params.get('interviewEarly');
@@ -222,11 +229,29 @@ const SessionRequests = () => {
         if (t.startsWith('expert-session')) {
           fetchExpertSessionRequests();
         }
-        if (t === 'interview-scheduled') {
+        // Show toaster for interview schedule/reschedule notifications
+        if (t === 'interview-scheduled' || t === 'interview-rescheduled' || t === 'interview-scheduled-confirmation' || t === 'interview-rescheduled-confirmation') {
           const notifUserId = String(notification.userId || notification.userId?._id || '');
           if (user && String(user._id) === notifUserId) {
+            const isReschedule = t.includes('rescheduled');
+            const isConfirmation = t.includes('confirmation');
+            
+            addToast({
+              title: isReschedule ? (isConfirmation ? 'Interview Rescheduled' : 'Interview Time Changed') : (isConfirmation ? 'Interview Scheduled' : 'New Interview Time'),
+              message: notification.message || `Your interview session has been ${isReschedule ? 'rescheduled' : 'scheduled'}.`,
+              variant: isConfirmation ? 'info' : 'success',
+              timeout: 6000,
+              actions: [
+                {
+                  label: 'View Details',
+                  variant: 'primary',
+                  onClick: () => navigate('/session-requests?tab=interview&view=received'),
+                },
+              ],
+            });
+
             setInterviewBanner({
-              message: notification.message || 'Your interview has been scheduled',
+              message: notification.message || `Your interview has been ${isReschedule ? 'rescheduled' : 'scheduled'}`,
               requestId: notification.requestId,
             });
             setTimeout(() => setInterviewBanner(null), 12000);
@@ -235,6 +260,92 @@ const SessionRequests = () => {
       } catch {
         // Silent fail
       }
+    });
+
+    // Listen for real-time interview time updates
+    socket.on('interview-time-update', (data) => {
+      console.log('[Socket] Interview time update received:', data);
+      
+      let title = 'Interview Update';
+      let message = data.message || 'Your interview has been updated.';
+      let variant = 'info';
+      
+      // Handle different notification types with detailed information
+      switch (data.type) {
+        case 'schedule':
+        case 'schedule-confirmation':
+          title = '✅ Interview Scheduled';
+          message = data.scheduledAt 
+            ? `Your mock interview for ${data.position} at ${data.company} is scheduled for ${new Date(data.scheduledAt).toLocaleString()}`
+            : data.message || `Interview scheduled for ${data.position} at ${data.company}`;
+          variant = 'success';
+          break;
+          
+        case 'reschedule':
+        case 'reschedule-confirmation':
+          title = '🔄 Interview Rescheduled';
+          message = data.scheduledAt 
+            ? `Your interview for ${data.position} at ${data.company} has been rescheduled to ${new Date(data.scheduledAt).toLocaleString()}`
+            : data.message || `Interview rescheduled for ${data.position} at ${data.company}`;
+          variant = 'warning';
+          break;
+          
+        case 'slots-suggested':
+          title = '📅 Time Slots Available';
+          const slotsCount = data.slots?.length || 0;
+          message = `The interviewer has suggested ${slotsCount} time slot${slotsCount !== 1 ? 's' : ''} for your ${data.position} interview at ${data.company}. Please review and select your preferred time.`;
+          variant = 'info';
+          break;
+          
+        case 'alternate-slots-suggested':
+          title = '🔄 Alternate Slots Proposed';
+          const altSlotsCount = data.slots?.length || 0;
+          message = `The candidate has proposed ${altSlotsCount} alternate time slot${altSlotsCount !== 1 ? 's' : ''} for the ${data.position} interview at ${data.company}. ${data.reason ? `Reason: ${data.reason}` : 'Please review and respond.'}`;
+          variant = 'warning';
+          break;
+          
+        case 'alternate-rejected':
+          title = '❌ Alternate Slots Declined';
+          message = data.message || `Your alternate time slots for ${data.position} at ${data.company} were not available. Please choose from the original suggestions.`;
+          variant = 'error';
+          break;
+          
+        default:
+          title = '📢 Interview Update';
+          message = data.message || `Update for your ${data.position} interview at ${data.company}`;
+      }
+      
+      addToast({
+        title,
+        message,
+        variant,
+        timeout: 8000,
+        actions: [
+          {
+            label: 'View Details',
+            variant: 'primary',
+            onClick: () => {
+              navigate('/session-requests?tab=interview&view=received');
+              // Scroll to the specific request if ID is available
+              if (data.requestId) {
+                setTimeout(() => {
+                  const element = document.getElementById(`interview-${data.requestId}`);
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    element.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+                    setTimeout(() => {
+                      element.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
+                    }, 3000);
+                  }
+                }, 500);
+              }
+            },
+          },
+        ],
+      });
+
+      // Refetch interview requests to show updated data
+      fetchInterviewRequests();
     });
 
     return () => {
@@ -247,6 +358,7 @@ const SessionRequests = () => {
       socket.off('skillmate-request-approved');
       socket.off('skillmate-request-rejected');
       socket.off('notification');
+      socket.off('interview-time-update');
     };
   }, [user, activeSession, navigate]);
 
@@ -587,6 +699,18 @@ const SessionRequests = () => {
         return;
       }
       const dt = new Date(`${date}T${time}`);
+      
+      // Check if the scheduled time is in the past
+      if (dt < new Date()) {
+        addToast({
+          title: 'Invalid time',
+          message: 'Cannot schedule an interview in the past. Please select a future date and time.',
+          variant: 'error',
+          timeout: 4000,
+        });
+        return;
+      }
+      
       setLoadingSchedule(true);
       try {
         const res = await fetch(`${BACKEND_URL}/api/interview/schedule`, {
@@ -597,16 +721,25 @@ const SessionRequests = () => {
         });
         const j = await res.json();
         if (!res.ok) throw new Error(j.message || 'Failed to schedule');
-        const requestId = j?.request?._id || j?.requestId || request?._id;
+        
+        const scheduledTimeStr = dt.toLocaleString();
         addToast({
-          title: 'Schedule saved',
-          message: requestId
-            ? `Interview time saved successfully. (Request ID: ${requestId})`
-            : 'Interview time saved successfully.',
+          title: 'Interview Scheduled',
+          message: `Successfully scheduled for ${scheduledTimeStr}. The candidate has been notified.`,
           variant: 'success',
-          timeout: 4500,
+          timeout: 6000,
+          actions: [
+            {
+              label: 'View Details',
+              variant: 'primary',
+              onClick: () => navigate('/session-requests?tab=interview&view=received'),
+            },
+          ],
         });
+        
+        // Refresh the interview requests list
         onScheduled && onScheduled();
+        fetchInterviewRequests();
       } catch (err) {
         console.error(err);
         addToast({
@@ -1321,6 +1454,7 @@ const SessionRequests = () => {
               onClick={() => {
                 setRequestType('session');
                 setActiveTab('received');
+                navigate('/session-requests?tab=session&view=received', { replace: true });
               }}
               className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
                 requestType === 'session'
@@ -1341,6 +1475,7 @@ const SessionRequests = () => {
               onClick={() => {
                 setRequestType('expert');
                 setActiveTab('received');
+                navigate('/session-requests?tab=expert&view=received', { replace: true });
               }}
               className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
                 requestType === 'expert'
@@ -1361,6 +1496,7 @@ const SessionRequests = () => {
               onClick={() => {
                 setRequestType('skillmate');
                 setActiveTab('received');
+                navigate('/session-requests?tab=skillmate&view=received', { replace: true });
               }}
               className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
                 requestType === 'skillmate'
@@ -1381,6 +1517,7 @@ const SessionRequests = () => {
               onClick={() => {
                 setRequestType('interview');
                 setActiveTab('received');
+                navigate('/session-requests?tab=interview&view=received', { replace: true });
               }}
               className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
                 requestType === 'interview'
@@ -1431,6 +1568,7 @@ const SessionRequests = () => {
                   onClick={() => {
                     setRequestType('session');
                     setActiveTab('received');
+                    navigate('/session-requests?tab=session&view=received', { replace: true });
                     setSidebarOpen(false);
                   }}
                   className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
@@ -1452,6 +1590,7 @@ const SessionRequests = () => {
                   onClick={() => {
                     setRequestType('expert');
                     setActiveTab('received');
+                    navigate('/session-requests?tab=expert&view=received', { replace: true });
                     setSidebarOpen(false);
                   }}
                   className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
@@ -1473,6 +1612,7 @@ const SessionRequests = () => {
                   onClick={() => {
                     setRequestType('skillmate');
                     setActiveTab('received');
+                    navigate('/session-requests?tab=skillmate&view=received', { replace: true });
                     setSidebarOpen(false);
                   }}
                   className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
@@ -1494,6 +1634,7 @@ const SessionRequests = () => {
                   onClick={() => {
                     setRequestType('interview');
                     setActiveTab('received');
+                    navigate('/session-requests?tab=interview&view=received', { replace: true });
                     setSidebarOpen(false);
                   }}
                   className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
@@ -1642,7 +1783,10 @@ const SessionRequests = () => {
           <div className="mb-6">
             <div className="inline-flex gap-1 bg-slate-100 p-1 rounded-lg">
               <button
-                onClick={() => setActiveTab('received')}
+                onClick={() => {
+                  setActiveTab('received');
+                  navigate(`/session-requests?tab=${requestType}&view=received`, { replace: true });
+                }}
                 className={`px-4 py-2 font-medium transition-all rounded-lg text-sm ${
                   activeTab === 'received'
                     ? 'bg-white text-teal-700 shadow-sm'
@@ -1663,7 +1807,10 @@ const SessionRequests = () => {
                 </div>
               </button>
               <button
-                onClick={() => setActiveTab('sent')}
+                onClick={() => {
+                  setActiveTab('sent');
+                  navigate(`/session-requests?tab=${requestType}&view=sent`, { replace: true });
+                }}
                 className={`px-4 py-2 font-medium transition-all rounded-lg text-sm ${
                   activeTab === 'sent'
                     ? 'bg-white text-teal-700 shadow-sm'

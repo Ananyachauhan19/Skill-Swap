@@ -1223,6 +1223,113 @@ const NotificationSection = ({ userId }) => {
                         Mark as Read
                       </button>
                     </div>
+                  ) : n.type?.includes('interview') ? (
+                    // Interview-related notifications with detailed information
+                    <div className="p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            n.type === 'interview-scheduled' || n.type === 'interview-slots-accepted' 
+                              ? 'bg-green-50' 
+                              : n.type === 'interview-alternate-rejected' 
+                              ? 'bg-red-50' 
+                              : n.type === 'interview-rescheduled' || n.type === 'interview-alternate-suggested'
+                              ? 'bg-yellow-50'
+                              : 'bg-blue-50'
+                          }`}>
+                            <svg className={`w-5 h-5 ${
+                              n.type === 'interview-scheduled' || n.type === 'interview-slots-accepted'
+                                ? 'text-green-600' 
+                                : n.type === 'interview-alternate-rejected' 
+                                ? 'text-red-600' 
+                                : n.type === 'interview-rescheduled' || n.type === 'interview-alternate-suggested'
+                                ? 'text-yellow-600'
+                                : 'text-blue-600'
+                            }`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              {n.type === 'interview-scheduled' || n.type === 'interview-slots-accepted' ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              ) : n.type === 'interview-alternate-rejected' ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              )}
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-gray-900 text-sm">
+                              {n.type === 'interview-scheduled' && '✅ Interview Scheduled'}
+                              {n.type === 'interview-rescheduled' && '🔄 Interview Rescheduled'}
+                              {n.type === 'interview-slots-suggested' && '📅 Time Slots Available'}
+                              {n.type === 'interview-alternate-suggested' && '🔄 Alternate Slots Proposed'}
+                              {n.type === 'interview-alternate-rejected' && '❌ Alternate Slots Declined'}
+                              {n.type === 'interview-slots-accepted' && '✅ Time Slot Confirmed'}
+                              {!n.type.includes('scheduled') && !n.type.includes('slots') && !n.type.includes('alternate') && '📢 Interview Update'}
+                            </h4>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {n.timestamp ? new Date(n.timestamp).toLocaleString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true,
+                              }) : 'Just now'}
+                            </p>
+                            {n.company && n.position && (
+                              <p className="text-xs text-gray-600 mt-1 font-medium">
+                                {n.position} at {n.company}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {!n.read && (
+                          <span className={`flex items-center justify-center w-2 h-2 rounded-full flex-shrink-0 ${
+                            n.type === 'interview-scheduled' || n.type === 'interview-slots-accepted'
+                              ? 'bg-green-600' 
+                              : n.type === 'interview-alternate-rejected' 
+                              ? 'bg-red-600' 
+                              : 'bg-blue-600'
+                          }`}></span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+                        {n.message || 'Your interview has been updated.'}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setShow(false);
+                            navigate('/session-requests?tab=interview&view=received');
+                            handleNotificationRead(n._id, idx);
+                            // Scroll to specific interview if requestId is available
+                            if (n.requestId) {
+                              setTimeout(() => {
+                                const element = document.getElementById(`interview-${n.requestId}`);
+                                if (element) {
+                                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  element.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2');
+                                  setTimeout(() => {
+                                    element.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2');
+                                  }, 3000);
+                                }
+                              }, 500);
+                            }
+                          }}
+                          className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          View Interview Details
+                        </button>
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          ✓
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="p-4">
                       <div className="flex items-start justify-between mb-3">

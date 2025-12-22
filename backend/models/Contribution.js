@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const ContributionSchema = new mongoose.Schema({
 	userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
 	// Date key in format YYYY-MM-DD (UTC). Keep as string for easy range queries and to avoid TZ drift.
-	dateKey: { type: String, required: true },
+	dateKey: { type: String, required: true, index: true },
 	count: { type: Number, default: 0, min: 0 },
 	// Optional breakdown of sources for debugging/insights (not required by UI)
 	breakdown: {
@@ -53,7 +53,9 @@ const ContributionSchema = new mongoose.Schema({
 	},
 }, { timestamps: true });
 
-ContributionSchema.index({ userId: 1, dateKey: 1 }, { unique: true });
+// Compound index for efficient range queries on userId + dateKey
+// Setting unique: true prevents duplicate entries for same user/date
+ContributionSchema.index({ userId: 1, dateKey: 1 }, { unique: true, background: true });
 
 module.exports = mongoose.model('Contribution', ContributionSchema);
 

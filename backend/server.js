@@ -172,8 +172,18 @@ app.use((err, req, res, next) => {
 });
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log('MongoDB Connected');
+    
+    // Ensure indexes are created for optimal performance
+    try {
+      const Contribution = require('./models/Contribution');
+      await Contribution.createIndexes();
+      console.log('[DB] Contribution indexes created/verified');
+    } catch (indexErr) {
+      console.error('[DB] Index creation warning:', indexErr.message);
+    }
+    
     server.listen(process.env.PORT, () =>
       console.log(`Server running on port ${process.env.PORT}`)
     );

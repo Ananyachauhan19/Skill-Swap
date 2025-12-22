@@ -978,19 +978,56 @@ exports.suggestInterviewerSlots = async (req, res) => {
     await reqDoc.save();
 
     // Notify requester that slots were suggested
-    const populated = await reqDoc.populate('requester', 'username firstName lastName');
+    const populated = await reqDoc.populate('requester', 'username firstName lastName email');
+    await populated.populate('assignedInterviewer', 'username firstName lastName');
+    
     const io = req.app.get('io');
+    const interviewerName = `${populated.assignedInterviewer.firstName || ''} ${populated.assignedInterviewer.lastName || ''}`.trim() || populated.assignedInterviewer.username;
+    
     if (populated.requester) {
+      // Create notification
       const notification = await Notification.create({
         userId: populated.requester._id,
         type: 'interview-slots-suggested',
-        message: 'Your interviewer has suggested new time slots for your mock interview.',
+        message: `${interviewerName} has suggested time slots for your mock interview at ${populated.company}.`,
         requestId: populated._id,
+        requesterId: populated.assignedInterviewer._id,
+        requesterName: interviewerName,
         company: populated.company,
         position: populated.position,
         timestamp: Date.now(),
       });
-      if (io) io.to(populated.requester._id.toString()).emit('notification', notification);
+      
+      if (io) {
+        io.to(populated.requester._id.toString()).emit('notification', notification);
+        // Emit toaster event
+        io.to(populated.requester._id.toString()).emit('interview-time-update', {
+          type: 'slots-suggested',
+          requestId: populated._id,
+          company: populated.company,
+          position: populated.position,
+          slots: normalizedSlots,
+          message: `${interviewerName} has suggested ${normalizedSlots.length} time slot${normalizedSlots.length > 1 ? 's' : ''} for your interview.`,
+        });
+      }
+      
+      // Send email to candidate
+      try {
+        if (populated.requester.email) {
+          const slotsText = normalizedSlots.map((s, i) => `Option ${i + 1}: ${new Date(s.start).toLocaleString()}`).join('<br/>');
+          const tpl = T.interviewSlotsProposed({
+            requesterName: populated.requester.firstName || populated.requester.username,
+            interviewerName,
+            company: populated.company,
+            position: populated.position,
+            slots: slotsText
+          });
+          await sendMail({ to: populated.requester.email, subject: tpl.subject, html: tpl.html });
+          console.log(`[Interview] Time slots email sent to candidate: ${populated.requester.email}`);
+        }
+      } catch (e) {
+        console.error('Failed to send slots suggestion email', e);
+      }
     }
 
     res.json({ message: 'Time slots suggested', request: reqDoc });
@@ -1093,19 +1130,58 @@ exports.requesterSuggestAlternateSlots = async (req, res) => {
     await reqDoc.save();
 
     // Notify interviewer about alternate proposal
-    const populated = await reqDoc.populate('assignedInterviewer', 'username firstName lastName');
+    const populated = await reqDoc.populate('assignedInterviewer', 'username firstName lastName email');
+    await populated.populate('requester', 'username firstName lastName');
+    
     const io = req.app.get('io');
+    const candidateName = `${populated.requester.firstName || ''} ${populated.requester.lastName || ''}`.trim() || populated.requester.username;
+    
     if (populated.assignedInterviewer) {
+      // Create notification
       const notification = await Notification.create({
         userId: populated.assignedInterviewer._id,
         type: 'interview-alternate-suggested',
-        message: 'The candidate has suggested alternate time slots for your mock interview.',
+        message: `${candidateName} has suggested alternate time slots for the mock interview at ${populated.company}.`,
         requestId: populated._id,
+        requesterId: populated.requester._id,
+        requesterName: candidateName,
         company: populated.company,
         position: populated.position,
         timestamp: Date.now(),
       });
-      if (io) io.to(populated.assignedInterviewer._id.toString()).emit('notification', notification);
+      
+      if (io) {
+        io.to(populated.assignedInterviewer._id.toString()).emit('notification', notification);
+        // Emit toaster event
+        io.to(populated.assignedInterviewer._id.toString()).emit('interview-time-update', {
+          type: 'alternate-slots-suggested',
+          requestId: populated._id,
+          company: populated.company,
+          position: populated.position,
+          slots: normalizedSlots,
+          reason: reason.trim(),
+          message: `${candidateName} has suggested ${normalizedSlots.length} alternate time slot${normalizedSlots.length > 1 ? 's' : ''}.`,
+        });
+      }
+      
+      // Send email to interviewer
+      try {
+        if (populated.assignedInterviewer.email) {
+          const slotsText = normalizedSlots.map((s, i) => `Option ${i + 1}: ${new Date(s.start).toLocaleString()}`).join('<br/>');
+          const tpl = T.interviewAlternateSlotsProposed({
+            interviewerName: populated.assignedInterviewer.firstName || populated.assignedInterviewer.username,
+            candidateName,
+            company: populated.company,
+            position: populated.position,
+            slots: slotsText,
+            reason: reason.trim()
+          });
+          await sendMail({ to: populated.assignedInterviewer.email, subject: tpl.subject, html: tpl.html });
+          console.log(`[Interview] Alternate slots email sent to interviewer: ${populated.assignedInterviewer.email}`);
+        }
+      } catch (e) {
+        console.error('Failed to send alternate slots email', e);
+      }
     }
 
     res.json({ message: 'Alternate slots submitted', request: reqDoc });
@@ -1182,19 +1258,48 @@ exports.interviewerRejectAlternateSlots = async (req, res) => {
     reqDoc.negotiationStatus = 'awaiting_requester';
     await reqDoc.save();
 
-    const populated = await reqDoc.populate('requester', 'username firstName lastName');
+    const populated = await reqDoc.populate('requester', 'username firstName lastName email');
+    await populated.populate('assignedInterviewer', 'username firstName lastName');
+
     const io = req.app.get('io');
+    const requesterName = populated.requester?.firstName || populated.requester?.username || 'Candidate';
+    const interviewerName = populated.assignedInterviewer?.firstName || populated.assignedInterviewer?.username || 'Interviewer';
     if (populated.requester) {
       const notification = await Notification.create({
         userId: populated.requester._id,
         type: 'interview-alternate-rejected',
-        message: 'Your alternate time slots were rejected. Please choose from the interviewer’s original suggestions.',
+        message: `${interviewerName} is unable to accommodate your alternate time slots for `${populated.company}. Please choose from the original suggestions.',
         requestId: populated._id,
         company: populated.company,
         position: populated.position,
         timestamp: Date.now(),
       });
-      if (io) io.to(populated.requester._id.toString()).emit('notification', notification);
+      if (io) {
+        io.to(populated.requester._id.toString()).emit('notification', notification);
+        io.to(populated.requester._id.toString()).emit('interview-time-update', {
+          type: 'alternate-rejected',
+          requestId: populated._id,
+          company: populated.company,
+          position: populated.position,
+          message: `Please choose from ${interviewerName}'s original time slots.`,
+        });
+      }
+
+      // Send email to candidate
+      try {
+        if (populated.requester.email) {
+          const tpl = T.interviewAlternateRejected({
+            requesterName,
+            interviewerName,
+            company: populated.company,
+            position: populated.position,
+          });
+          await sendMail({ to: populated.requester.email, subject: tpl.subject, html: tpl.html });
+          console.log(`[Interview] Alternate rejection email sent to candidate: ${populated.requester.email}`);
+        }
+      } catch (e) {
+        console.error('Failed to send alternate rejection email', e);
+      }
     }
 
     res.json({ message: 'Alternate slots rejected', request: reqDoc });
@@ -1403,62 +1508,119 @@ exports.scheduleInterview = async (req, res) => {
     reqDoc.status = 'scheduled';
     await reqDoc.save();
 
-    await reqDoc.populate('requester', 'username firstName lastName');
-    await reqDoc.populate('assignedInterviewer', 'username firstName lastName');
+    await reqDoc.populate('requester', 'username firstName lastName email');
+    await reqDoc.populate('assignedInterviewer', 'username firstName lastName email');
 
-    // Notify requester (user)
+    // Notify requester (candidate) with socket event
     const io = req.app.get('io');
+    const notificationType = wasScheduled ? 'interview-rescheduled' : 'interview-scheduled';
+    const notificationMessage = wasScheduled 
+      ? `Your interview for ${reqDoc.position} at ${reqDoc.company} has been rescheduled to ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`
+      : `Your interview for ${reqDoc.position} at ${reqDoc.company} has been scheduled for ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`;
+    
     const notification = await Notification.create({
       userId: reqDoc.requester._id,
-      type: 'interview-scheduled',
-      message: `${wasScheduled ? 'Your interview has been rescheduled for' : 'Your interview has been scheduled for'} ${reqDoc.scheduledAt ? reqDoc.scheduledAt.toString() : 'TBD'}`,
+      type: notificationType,
+      message: notificationMessage,
       requestId: reqDoc._id,
-      requesterId: reqDoc.assignedInterviewer,
-      requesterName: `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`,
+      requesterId: reqDoc.assignedInterviewer._id,
+      requesterName: `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`.trim() || reqDoc.assignedInterviewer.username,
       company: reqDoc.company,
       position: reqDoc.position,
       timestamp: Date.now(),
     });
 
-    if (io) io.to(reqDoc.requester._id.toString()).emit('notification', notification);
-
-    // Also send email to requester
-    try {
-      const requester = await User.findById(reqDoc.requester);
-      if (requester?.email) {
-        const tpl = wasScheduled
-          ? T.interviewRescheduled({
-              requesterName: requester.firstName || requester.username,
-              company: reqDoc.company,
-              position: reqDoc.position,
-              scheduledAt: reqDoc.scheduledAt ? reqDoc.scheduledAt.toLocaleString() : 'TBD'
-            })
-          : T.interviewScheduled({
-              requesterName: requester.firstName || requester.username,
-              company: reqDoc.company,
-              position: reqDoc.position,
-              scheduledAt: reqDoc.scheduledAt ? reqDoc.scheduledAt.toLocaleString() : 'TBD'
-            });
-        await sendMail({ to: requester.email, subject: tpl.subject, html: tpl.html });
-      }
-    } catch (e) {
-      console.error('Failed to send interview schedule email', e);
+    if (io) {
+      io.to(reqDoc.requester._id.toString()).emit('notification', notification);
+      // Emit toast event for real-time popup
+      io.to(reqDoc.requester._id.toString()).emit('interview-time-update', {
+        type: wasScheduled ? 'reschedule' : 'schedule',
+        requestId: reqDoc._id,
+        company: reqDoc.company,
+        position: reqDoc.position,
+        scheduledAt: reqDoc.scheduledAt,
+        message: notificationMessage,
+      });
     }
 
-    // Also notify the assigned interviewer (confirmation)
+    // Send email to candidate (requester)
     try {
+      if (reqDoc.requester?.email) {
+        const tpl = wasScheduled
+          ? T.interviewRescheduled({
+              requesterName: reqDoc.requester.firstName || reqDoc.requester.username,
+              company: reqDoc.company,
+              position: reqDoc.position,
+              scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
+              interviewerName: `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`.trim() || reqDoc.assignedInterviewer.username
+            })
+          : T.interviewScheduled({
+              requesterName: reqDoc.requester.firstName || reqDoc.requester.username,
+              company: reqDoc.company,
+              position: reqDoc.position,
+              scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
+              interviewerName: `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`.trim() || reqDoc.assignedInterviewer.username
+            });
+        await sendMail({ to: reqDoc.requester.email, subject: tpl.subject, html: tpl.html });
+        console.log(`[Interview] ${wasScheduled ? 'Reschedule' : 'Schedule'} email sent to candidate: ${reqDoc.requester.email}`);
+      }
+    } catch (e) {
+      console.error('Failed to send interview schedule email to candidate', e);
+    }
+
+    // Notify and email the interviewer (confirmation)
+    try {
+      const interviewerMessage = wasScheduled
+        ? `You have rescheduled the interview for ${reqDoc.position} at ${reqDoc.company} to ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`
+        : `You have scheduled the interview for ${reqDoc.position} at ${reqDoc.company} for ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`;
+      
       const notifInterviewer = await Notification.create({
         userId: reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer,
-        type: 'interview-scheduled-confirmation',
-        message: `You scheduled the interview for ${reqDoc.scheduledAt ? reqDoc.scheduledAt.toString() : 'TBD'}`,
+        type: wasScheduled ? 'interview-rescheduled-confirmation' : 'interview-scheduled-confirmation',
+        message: interviewerMessage,
         requestId: reqDoc._id,
+        requesterId: reqDoc.requester._id,
+        requesterName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username,
         company: reqDoc.company,
         position: reqDoc.position,
         timestamp: Date.now(),
       });
-      if (io && reqDoc.assignedInterviewer) io.to((reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer).toString()).emit('notification', notifInterviewer);
+      
+      if (io && reqDoc.assignedInterviewer) {
+        io.to((reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer).toString()).emit('notification', notifInterviewer);
+        // Emit toast event for interviewer
+        io.to((reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer).toString()).emit('interview-time-update', {
+          type: wasScheduled ? 'reschedule-confirmation' : 'schedule-confirmation',
+          requestId: reqDoc._id,
+          company: reqDoc.company,
+          position: reqDoc.position,
+          scheduledAt: reqDoc.scheduledAt,
+          message: interviewerMessage,
+        });
+      }
+      
+      // Send email to interviewer
+      if (reqDoc.assignedInterviewer?.email) {
+        const interviewerEmailTpl = wasScheduled
+          ? T.interviewRescheduledInterviewer({
+              interviewerName: reqDoc.assignedInterviewer.firstName || reqDoc.assignedInterviewer.username,
+              company: reqDoc.company,
+              position: reqDoc.position,
+              scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
+              candidateName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username
+            })
+          : T.interviewScheduledInterviewer({
+              interviewerName: reqDoc.assignedInterviewer.firstName || reqDoc.assignedInterviewer.username,
+              company: reqDoc.company,
+              position: reqDoc.position,
+              scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
+              candidateName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username
+            });
+        await sendMail({ to: reqDoc.assignedInterviewer.email, subject: interviewerEmailTpl.subject, html: interviewerEmailTpl.html });
+        console.log(`[Interview] ${wasScheduled ? 'Reschedule' : 'Schedule'} confirmation email sent to interviewer: ${reqDoc.assignedInterviewer.email}`);
+      }
     } catch (e) {
-      console.error('[DEBUG] failed to create interviewer confirmation notification', e);
+      console.error('[Interview] Failed to send interviewer confirmation notification/email', e);
     }
 
     res.json({ message: 'Interview scheduled', request: reqDoc });

@@ -360,18 +360,18 @@ const SideBarPublic = ({ username, setNotFound }) => {
         </div>
 
         {/* Sidebar - Web Version */}
-        <aside className="hidden sm:flex sm:w-64 min-h-screen bg-blue-50 px-6 pt-8 border-r border-blue-200">
+        <aside className="hidden sm:flex sm:w-56 min-h-screen bg-blue-50 px-4 pt-6 border-r border-blue-200">
           <div className="w-full">
-            <div className="mb-8">
-              <div className="flex flex-col gap-3">
+            <div className="mb-5">
+              <div className="flex flex-col gap-2">
                 {profile?.linkedin && (
                   <a
                     href={`https://linkedin.com/in/${profile.linkedin}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm"
+                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-xs"
                   >
-                    <FaLinkedin className="text-xl text-dark-blue" />
+                    <FaLinkedin className="text-lg text-dark-blue" />
                     LinkedIn
                   </a>
                 )}
@@ -380,9 +380,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     href={`https://github.com/${profile.github}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm"
+                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-xs"
                   >
-                    <FaGithub className="text-xl text-dark-blue" />
+                    <FaGithub className="text-lg text-dark-blue" />
                     GitHub
                   </a>
                 )}
@@ -391,9 +391,9 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     href={`https://twitter.com/${profile.twitter}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm"
+                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-xs"
                   >
-                    <FaTwitter className="text-xl text-dark-blue" />
+                    <FaTwitter className="text-lg text-dark-blue" />
                     Twitter
                   </a>
                 )}
@@ -406,17 +406,17 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-sm"
+                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-xs"
                   >
-                    <FaGlobe className="text-xl text-dark-blue" />
+                    <FaGlobe className="text-lg text-dark-blue" />
                     Website
                   </a>
                 )}
               </div>
             </div>
 
-            <div className="mb-8">
-              <div className="font-semibold text-dark-blue mb-3 text-lg">
+            <div className="mb-5">
+              <div className="font-semibold text-dark-blue mb-2 text-base">
                 Education
               </div>
               {loading ? (
@@ -424,7 +424,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
               ) : error ? (
                 <span className="text-red-500 text-sm">{error}</span>
               ) : profile?.education && profile.education.length > 0 ? (
-                <ul className="flex flex-col gap-4">
+                <ul className="flex flex-col gap-2">
                   {profile.education.map((edu, i) => (
                     <li
                       key={i}
@@ -443,8 +443,8 @@ const SideBarPublic = ({ username, setNotFound }) => {
               )}
             </div>
 
-            <div className="mb-8">
-              <div className="font-semibold text-dark-blue mb-3 text-lg">
+            <div className="mb-5">
+              <div className="font-semibold text-dark-blue mb-2 text-base">
                 Experience
               </div>
               {loading ? (
@@ -452,7 +452,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
               ) : error ? (
                 <span className="text-red-500 text-sm">{error}</span>
               ) : profile?.experience && profile.experience.length > 0 ? (
-                <ul className="flex flex-col gap-3">
+                <ul className="flex flex-col gap-2">
                   {profile.experience.map((exp, i) => (
                     <li key={i} className="text-xs text-gray-600">
                       <span className="font-medium">{exp.title}</span>
@@ -467,8 +467,8 @@ const SideBarPublic = ({ username, setNotFound }) => {
               )}
             </div>
 
-            <div className="mb-8">
-              <div className="font-semibold text-dark-blue mb-3 text-lg">
+            <div className="mb-5">
+              <div className="font-semibold text-dark-blue mb-2 text-base">
                 Skills
               </div>
               {loading ? (
@@ -476,7 +476,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
               ) : error ? (
                 <span className="text-red-500 text-sm">{error}</span>
               ) : profile?.skills && profile.skills.length > 0 ? (
-                <ul className="flex flex-col gap-3">
+                <ul className="flex flex-col gap-2">
                   {profile.skills.map((skill, i) => (
                     <li key={i} className="text-xs text-gray-600">
                       {skill}
@@ -488,8 +488,8 @@ const SideBarPublic = ({ username, setNotFound }) => {
               )}
             </div>
 
-            <div className="mb-8">
-              <div className="font-semibold text-dark-blue mb-3 text-lg">
+            <div className="mb-5">
+              <div className="font-semibold text-dark-blue mb-2 text-base">
                 What I Can Teach
               </div>
               {loading ? (
@@ -501,7 +501,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   {profile.skillsToTeach.map((s, i) => (
                     <li
                       key={i}
-                      className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1"
+                      className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px] font-medium border border-blue-200 flex items-center gap-1"
                     >
                       {s.class ? `${s.class} • ` : ""}
                       {s.subject}{" "}
@@ -522,7 +522,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-h-screen pt-8 pb-24 px-4 sm:px-8">
+        <main className="flex-1 min-h-screen pt-8 pb-6 px-4 sm:px-8">
           <div className="max-w-5xl mx-auto">
             {/* Profile Section */}
             <div className="flex flex-col sm:flex-row items-center sm:items-start mb-8">

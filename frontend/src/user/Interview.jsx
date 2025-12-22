@@ -1300,7 +1300,7 @@ function ScheduledInterviewSection() {
       
       <div className="flex gap-2 mt-auto">
         <button
-          onClick={() => navigate('/session-requests')}
+          onClick={() => navigate('/session-requests?tab=interview&view=received')}
           className="flex-1 py-2.5 bg-[rgb(30,58,138)] text-white rounded-lg font-semibold hover:bg-[rgb(37,70,165)] transition-all text-sm shadow-sm"
         >
           View Details →

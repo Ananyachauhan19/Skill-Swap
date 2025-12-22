@@ -26,17 +26,20 @@ exports.getByUserId = async (req, res) => {
     const startKey = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate())).toISOString().slice(0, 10);
     const endKey = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate())).toISOString().slice(0, 10);
 
-    // Fetch contributions from database
+    // Fetch contributions from database - optimized with projection and lean
     const docs = await Contribution.find({
       userId,
       dateKey: { $gte: startKey, $lte: endKey }
-    }).select('dateKey count breakdown').lean();
+    })
+    .select('dateKey count -_id')
+    .sort({ dateKey: 1 })
+    .lean()
+    .exec();
 
-    // Build items array with date and count
+    // Build items array with date and count (no breakdown for performance)
     const items = docs.map(doc => ({
       date: doc.dateKey,
-      count: doc.count || 0,
-      breakdown: doc.breakdown || {}
+      count: doc.count || 0
     }));
 
     // Calculate total contributions

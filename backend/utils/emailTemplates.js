@@ -57,7 +57,7 @@ exports.interviewAssigned = ({ interviewerName, company, position, requesterName
   `)
 });
 
-exports.interviewScheduled = ({ requesterName, company, position, scheduledAt }) => ({
+exports.interviewScheduled = ({ requesterName, company, position, scheduledAt, interviewerName }) => ({
   subject: 'Interview Schedule Confirmation',
   html: baseLayout('Interview Scheduled', `
     <p>Dear ${requesterName},</p>
@@ -66,13 +66,36 @@ exports.interviewScheduled = ({ requesterName, company, position, scheduledAt })
       <li>Company: <b>${company}</b></li>
       <li>Role: <b>${position}</b></li>
       <li>Date & Time: <b>${scheduledAt}</b></li>
+      ${interviewerName ? `<li>Interviewer: <b>${interviewerName}</b></li>` : ''}
     </ul>
     <p>Kindly ensure your availability. If you need to reschedule, please contact the interviewer through the platform.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Interview Details</a>
+    </p>
     <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
-exports.interviewRescheduled = ({ requesterName, company, position, scheduledAt }) => ({
+exports.interviewScheduledInterviewer = ({ interviewerName, company, position, scheduledAt, candidateName }) => ({
+  subject: 'Interview Schedule Confirmation',
+  html: baseLayout('Interview Scheduled Successfully', `
+    <p>Dear ${interviewerName},</p>
+    <p>You have successfully scheduled the interview. Here are the details:</p>
+    <ul>
+      <li>Company: <b>${company}</b></li>
+      <li>Role: <b>${position}</b></li>
+      <li>Date & Time: <b>${scheduledAt}</b></li>
+      <li>Candidate: <b>${candidateName}</b></li>
+    </ul>
+    <p>The candidate has been notified and will be prepared for the session at the scheduled time.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Interview Details</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Thank you,<br/>Skill‑Swap Team</p>
+  `)
+});
+
+exports.interviewRescheduled = ({ requesterName, company, position, scheduledAt, interviewerName }) => ({
   subject: 'Interview Rescheduled',
   html: baseLayout('Interview Rescheduled', `
     <p>Dear ${requesterName},</p>
@@ -81,8 +104,94 @@ exports.interviewRescheduled = ({ requesterName, company, position, scheduledAt 
       <li>Company: <b>${company}</b></li>
       <li>Role: <b>${position}</b></li>
       <li>Updated Date & Time: <b>${scheduledAt}</b></li>
+      ${interviewerName ? `<li>Interviewer: <b>${interviewerName}</b></li>` : ''}
     </ul>
     <p>Please ensure your availability at the updated time.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Updated Interview Details</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+  `)
+});
+
+exports.interviewRescheduledInterviewer = ({ interviewerName, company, position, scheduledAt, candidateName }) => ({
+  subject: 'Interview Rescheduled Confirmation',
+  html: baseLayout('Interview Rescheduled Successfully', `
+    <p>Dear ${interviewerName},</p>
+    <p>You have successfully rescheduled the interview. Here are the updated details:</p>
+    <ul>
+      <li>Company: <b>${company}</b></li>
+      <li>Role: <b>${position}</b></li>
+      <li>Updated Date & Time: <b>${scheduledAt}</b></li>
+      <li>Candidate: <b>${candidateName}</b></li>
+    </ul>
+    <p>The candidate has been notified about the time change.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Interview Details</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Thank you,<br/>Skill‑Swap Team</p>
+  `)
+});
+
+exports.interviewSlotsProposed = ({ requesterName, interviewerName, company, position, slots }) => ({
+  subject: 'Interview Time Slots Proposed',
+  html: baseLayout('Time Slots Available for Your Interview', `
+    <p>Dear ${requesterName},</p>
+    <p><b>${interviewerName}</b> has suggested time slots for your mock interview:</p>
+    <ul>
+      <li>Company: <b>${company}</b></li>
+      <li>Role: <b>${position}</b></li>
+    </ul>
+    <p style="margin:16px 0;"><b>Available Time Slots:</b></p>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;border-left:4px solid #2563eb;">
+      ${slots}
+    </div>
+    <p style="margin-top:16px;">Please review and select a time that works best for you.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Choose Time Slot</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+  `)
+});
+
+exports.interviewAlternateSlotsProposed = ({ interviewerName, candidateName, company, position, slots, reason }) => ({
+  subject: 'Alternate Interview Time Slots Suggested',
+  html: baseLayout('Candidate Suggested Alternate Time Slots', `
+    <p>Dear ${interviewerName},</p>
+    <p><b>${candidateName}</b> has suggested alternate time slots for the mock interview:</p>
+    <ul>
+      <li>Company: <b>${company}</b></li>
+      <li>Role: <b>${position}</b></li>
+    </ul>
+    <p style="margin:16px 0;"><b>Reason for alternate request:</b></p>
+    <div style="background:#fff3cd;padding:12px;border-radius:6px;border-left:4px solid #ffc107;">
+      ${reason}
+    </div>
+    <p style="margin:16px 0;"><b>Alternate Time Slots:</b></p>
+    <div style="background:#f8fafc;padding:12px;border-radius:6px;border-left:4px solid #2563eb;">
+      ${slots}
+    </div>
+    <p style="margin-top:16px;">Please review and accept one of the alternate slots or ask the candidate to choose from your original suggestions.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Review Alternate Slots</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Thank you,<br/>Skill‑Swap Team</p>
+  `)
+});
+
+exports.interviewAlternateRejected = ({ requesterName, interviewerName, company, position }) => ({
+  subject: 'Alternate Time Slots Not Available',
+  html: baseLayout('Please Choose from Original Time Slots', `
+    <p>Dear ${requesterName},</p>
+    <p><b>${interviewerName}</b> is unable to accommodate the alternate time slots you suggested.</p>
+    <ul>
+      <li>Company: <b>${company}</b></li>
+      <li>Role: <b>${position}</b></li>
+    </ul>
+    <p style="margin:16px 0;">Please choose from the original time slots suggested by the interviewer to proceed with scheduling your interview.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Original Time Slots</a>
+    </p>
     <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });

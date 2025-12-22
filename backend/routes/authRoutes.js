@@ -255,11 +255,16 @@ router.get('/stats/public', async (req, res) => {
     const expertUsers = await User.countDocuments({
       skillsToTeach: { $exists: true, $ne: [], $not: { $size: 0 } }
     });
+    
+    // Count approved expert interviewers
+    const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+    const expertInterviewers = await ApprovedInterviewer.countDocuments();
 
     res.json({
       totalUsers,
       totalSessions,
-      expertUsers
+      expertUsers,
+      expertInterviewers
     });
   } catch (error) {
     console.error('Error fetching public stats:', error);

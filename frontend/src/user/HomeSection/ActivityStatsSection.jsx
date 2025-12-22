@@ -9,7 +9,8 @@ const ActivityStatsSection = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalSessions: 0,
-    expertUsers: 0
+    expertUsers: 0,
+    expertInterviewers: 0
   });
   const [loading, setLoading] = useState(true);
   const { ref, inView } = useInView({
@@ -30,7 +31,8 @@ const ActivityStatsSection = () => {
         setStats({
           totalUsers: 0,
           totalSessions: 0,
-          expertUsers: 0
+          expertUsers: 0,
+          expertInterviewers: 0
         });
       } finally {
         setLoading(false);
@@ -61,6 +63,15 @@ const ActivityStatsSection = () => {
     },
     {
       id: 3,
+      label: 'Expert Interviewers',
+      value: stats.expertInterviewers,
+      icon: <FaUsers className="text-white" />,
+      color: 'indigo',
+      description: 'Practice with professionals',
+      backgroundImage: '/assets/activesession/availableexpert.webp'
+    },
+    {
+      id: 4,
       label: 'Sessions Completed',
       value: stats.totalSessions,
       icon: <FaLayerGroup className="text-white" />,
@@ -123,13 +134,13 @@ const ActivityStatsSection = () => {
             variants={containerVariants}
             initial="hidden"
             animate={inView ? "visible" : "hidden"}
-            className="grid grid-cols-3 gap-2 sm:grid-cols-2 sm:gap-6"
+            className="grid grid-cols-2 gap-3 sm:gap-6"
           >
-            {statCards.map((card, index) => (
+            {statCards.map((card) => (
               <motion.div
                 key={card.id}
                 variants={itemVariants}
-                className={`relative p-2 sm:p-6 rounded-lg sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 min-h-[120px] sm:min-h-[180px] ${index === 2 ? 'sm:col-span-2 sm:w-2/3 sm:mx-auto' : ''}`}
+                className="relative p-2 sm:p-6 rounded-lg sm:rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 min-h-[120px] sm:min-h-[180px]"
                 style={{
                   backgroundImage: card.backgroundImage ? `url(${card.backgroundImage})` : 'none',
                   backgroundSize: 'cover',

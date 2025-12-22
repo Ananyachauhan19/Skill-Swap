@@ -115,39 +115,34 @@ async function recomputeContributionsForDate(targetDate) {
 
 // GET /api/contributions/:userId?rangeDays=365 -> { items: [{date, count}], rangeDays }
 router.get('/:userId', async (req, res) => {
+	const startTime = Date.now();
 	try {
 		const { userId } = req.params;
 		const rangeDays = Math.min(parseInt(req.query.rangeDays || '365', 10) || 365, 366);
 
-		// Build range of date keys (UTC) ending today
+		// Build date range for optimized query
 		const todayUTC = new Date();
-		const items = [];
-		const dateKeys = [];
-		for (let i = rangeDays - 1; i >= 0; i--) {
-			const d = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate()));
-			d.setUTCDate(d.getUTCDate() - i);
-			dateKeys.push(toDateKeyUTC(d));
-		}
-
-		let docs = await Contribution.find({ userId, dateKey: { $in: dateKeys } }).lean();
-		let totalExisting = docs.reduce((sum, d) => sum + (d.count || 0), 0);
+		const endDate = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate()));
+		const startDate = new Date(endDate);
+		startDate.setUTCDate(startDate.getUTCDate() - rangeDays + 1);
 		
-		if (!docs.length || totalExisting === 0) {
-			try {
-				for (let i = 0; i < rangeDays; i++) {
-					const d = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate()));
-					d.setUTCDate(d.getUTCDate() - i);
-					// eslint-disable-next-line no-await-in-loop
-					await recomputeContributionsForDate(d);
-				}
-				// Re-query after backfill
-				docs = await Contribution.find({ userId, dateKey: { $in: dateKeys } }).lean();
-				totalExisting = docs.reduce((sum, d) => sum + (d.count || 0), 0);
-				console.log('[Contributions] Auto-backfill complete for user', userId, 'total=', totalExisting);
-			} catch (e) {
-				console.error('Error during auto-backfill of contributions:', e);
-			}
-		}
+		const startKey = toDateKeyUTC(startDate);
+		const endKey = toDateKeyUTC(endDate);
+
+		// OPTIMIZED: Use range query instead of $in for much faster performance
+		const queryStart = Date.now();
+		let docs = await Contribution.find({ 
+			userId, 
+			dateKey: { $gte: startKey, $lte: endKey } 
+		})
+		.select('dateKey count breakdown -_id')
+		.sort({ dateKey: 1 })
+		.lean()
+		.exec();
+		console.log(`[Contributions API] Query took ${Date.now() - queryStart}ms for ${docs.length} docs`);
+
+		// Skip expensive backfill - return empty data if none exists
+		// Backfill should be handled by background job, not user request
 		const map = new Map(docs.map(d => [d.dateKey, d.count]));
 
 		let activeDays = 0;
@@ -177,16 +172,21 @@ router.get('/:userId', async (req, res) => {
 			videosUploaded += (b.videosUploaded || 0);
 		}
 
-		dateKeys.forEach(k => {
-			items.push({ date: k, count: map.get(k) || 0 });
-		});
+		// Build items array with all dates in range
+		const items = [];
+		for (let i = rangeDays - 1; i >= 0; i--) {
+			const d = new Date(Date.UTC(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth(), todayUTC.getUTCDate()));
+			d.setUTCDate(d.getUTCDate() - i);
+			const dateKey = toDateKeyUTC(d);
+			items.push({ date: dateKey, count: map.get(dateKey) || 0 });
+		}
 
 		res.json({
 			items,
 			rangeDays,
 			stats: {
 				activeDays,
-				totalDays: dateKeys.length,
+				totalDays: items.length,
 				oneOnOneSessions,
 				oneOnOneAsTutor: totalOneOnOneAsTutor,
 				oneOnOneAsLearner: totalOneOnOneAsLearner,
@@ -197,6 +197,9 @@ router.get('/:userId', async (req, res) => {
 				videosUploaded,
 			},
 		});
+		
+		const totalTime = Date.now() - startTime;
+		console.log(`[Contributions API] Total response time: ${totalTime}ms for userId ${userId}`);
 	} catch (err) {
 		console.error('Error fetching contributions:', err);
 		res.status(500).json({ message: 'Failed to fetch contributions' });

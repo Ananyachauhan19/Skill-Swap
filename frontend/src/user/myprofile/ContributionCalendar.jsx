@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import api from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import socket from '../../socket';
@@ -67,17 +67,17 @@ const buildContributionMap = (currentDate, items) => {
   return map;
 };
 
-// Color by contribution count with professional teal gradient
+// Color by contribution count with white base and blue gradient for visibility
 const getContributionColor = (count) => {
-  if (count <= 0) return 'bg-slate-100 hover:bg-slate-200';
-  if (count === 1) return 'bg-teal-100 hover:bg-teal-200';
-  if (count === 2) return 'bg-teal-200 hover:bg-teal-300';
-  if (count === 3) return 'bg-teal-300 hover:bg-teal-400';
-  if (count === 4) return 'bg-teal-400 hover:bg-teal-500';
-  if (count === 5) return 'bg-teal-500 hover:bg-teal-600';
-  if (count === 6) return 'bg-teal-600 hover:bg-teal-700';
-  if (count >= 10) return 'bg-teal-700 hover:bg-teal-800';
-  return 'bg-teal-700 hover:bg-teal-800'; // 7-9
+  if (count <= 0) return 'bg-white hover:bg-blue-50 border-gray-300 shadow-sm';
+  if (count === 1) return 'bg-blue-100 hover:bg-blue-200 border-blue-200 shadow-sm';
+  if (count === 2) return 'bg-blue-200 hover:bg-blue-300 border-blue-300 shadow';
+  if (count === 3) return 'bg-blue-300 hover:bg-blue-400 border-blue-400 shadow';
+  if (count === 4) return 'bg-blue-400 hover:bg-blue-500 border-blue-500 shadow-md';
+  if (count === 5) return 'bg-blue-500 hover:bg-blue-600 border-blue-600 shadow-md';
+  if (count === 6) return 'bg-blue-600 hover:bg-blue-700 border-blue-700 shadow-md';
+  if (count >= 10) return 'bg-blue-900 hover:bg-blue-800 border-blue-900 shadow-lg';
+  return 'bg-blue-700 hover:bg-blue-800 border-blue-800 shadow-md'; // 7-9
 };
 
 // Get intensity label
@@ -91,8 +91,6 @@ const getIntensityLabel = (count) => {
 
 const ContributionCalendar = ({ userId: propUserId }) => {
   const [contributions, setContributions] = useState({});
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [months, setMonths] = useState(generateMonths(new Date()));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hoveredDay, setHoveredDay] = useState(null);
@@ -111,22 +109,13 @@ const ContributionCalendar = ({ userId: propUserId }) => {
   });
   const { user } = useAuth();
   const effectiveUserId = propUserId || (user && user._id);
+  
+  // Memoize current date and months to prevent unnecessary recalculations
+  const currentDate = useMemo(() => new Date(), []);
+  const months = useMemo(() => generateMonths(currentDate), [currentDate]);
 
-  // Set current date + calendar update
-  useEffect(() => {
-    const updateDate = () => {
-      const newDate = new Date();
-      setCurrentDate(newDate);
-      setMonths(generateMonths(newDate));
-    };
-
-    updateDate();
-    const interval = setInterval(updateDate, 24 * 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Calculate streaks
-  const calculateStreaks = (contribMap) => {
+  // Memoize streak calculation function
+  const calculateStreaks = useCallback((contribMap) => {
     const dates = Object.keys(contribMap).sort();
     let currentStreak = 0;
     let maxStreak = 0;
@@ -146,16 +135,23 @@ const ContributionCalendar = ({ userId: propUserId }) => {
     }
 
     return { currentStreak, maxStreak };
-  };
+  }, []);
 
-  // Fetch contribution history
+  // Fetch contribution history with abort controller for cleanup
   useEffect(() => {
+    if (!effectiveUserId) return;
+    
+    const controller = new AbortController();
+    let isMounted = true;
+
     const run = async () => {
-      if (!effectiveUserId) return;
       setLoading(true);
       setError(null);
       try {
         const { items, stats } = await fetchContributions(effectiveUserId, 365);
+        
+        if (!isMounted) return;
+        
         const contribMap = buildContributionMap(currentDate, items);
         setContributions(contribMap);
         
@@ -177,62 +173,100 @@ const ContributionCalendar = ({ userId: propUserId }) => {
           videosUploaded: stats?.videosUploaded || 0,
         });
       } catch (e) {
+        if (!isMounted || e.name === 'AbortError') return;
         console.error('Failed to fetch contributions', e);
         setError('Failed to load contributions');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+    
     run();
-  }, [currentDate, effectiveUserId]);
+    
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [effectiveUserId, currentDate, calculateStreaks]);
 
-  // Live updates: listen for backend contribution-updated events and refetch
+  // Live updates: listen for backend contribution-updated events
   useEffect(() => {
     if (!effectiveUserId) return;
+    
+    let timeoutId;
     const handler = async () => {
-      try {
-        const { items, stats } = await fetchContributions(effectiveUserId, 365);
-        const contribMap = buildContributionMap(new Date(), items);
-        setContributions(contribMap);
-        
-        // Update statistics
-        const total = Object.values(contribMap).reduce((sum, count) => sum + count, 0);
-        const streaks = calculateStreaks(contribMap);
-        const activeDays = Object.values(contribMap).filter((c) => c > 0).length;
-        const totalDays = Object.keys(contribMap).length;
-        setContributionStats({
-          total,
-          ...streaks,
-          activeDays,
-          totalDays,
-          oneOnOneSessions: stats?.oneOnOneSessions || 0,
-          interviewSessions: stats?.interviewSessions || 0,
-          skillMateConnections: stats?.skillMateConnections || 0,
-          dailyLogins: stats?.dailyLogins || 0,
-          questionsPosted: stats?.questionsPosted || 0,
-          videosUploaded: stats?.videosUploaded || 0,
-        });
-      } catch {
-        // non-blocking
-      }
+      // Debounce rapid updates
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        try {
+          const { items, stats } = await fetchContributions(effectiveUserId, 365);
+          const contribMap = buildContributionMap(currentDate, items);
+          setContributions(contribMap);
+          
+          // Update statistics
+          const total = Object.values(contribMap).reduce((sum, count) => sum + count, 0);
+          const streaks = calculateStreaks(contribMap);
+          const activeDays = Object.values(contribMap).filter((c) => c > 0).length;
+          const totalDays = Object.keys(contribMap).length;
+          setContributionStats({
+            total,
+            ...streaks,
+            activeDays,
+            totalDays,
+            oneOnOneSessions: stats?.oneOnOneSessions || 0,
+            interviewSessions: stats?.interviewSessions || 0,
+            skillMateConnections: stats?.skillMateConnections || 0,
+            dailyLogins: stats?.dailyLogins || 0,
+            questionsPosted: stats?.questionsPosted || 0,
+            videosUploaded: stats?.videosUploaded || 0,
+          });
+        } catch {
+          // non-blocking
+        }
+      }, 300); // 300ms debounce
     };
+    
     socket.on('contribution-updated', handler);
-    return () => socket.off('contribution-updated', handler);
-  }, [effectiveUserId]);
+    return () => {
+      clearTimeout(timeoutId);
+      socket.off('contribution-updated', handler);
+    };
+  }, [effectiveUserId, currentDate, calculateStreaks]);
 
   return (
     <>
       {loading ? (
-        <p className="text-slate-500 text-sm">Loading contribution calendar...</p>
+        <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-100 p-4 sm:p-5 animate-pulse">
+          <div className="h-6 bg-blue-200 rounded w-48 mb-4"></div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2 mb-4">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="bg-blue-100 rounded-lg p-2 h-16"></div>
+            ))}
+          </div>
+          <div className="flex gap-2 overflow-hidden">
+            {[...Array(12)].map((_, i) => (
+              <div key={i} className="min-w-[50px] space-y-1">
+                <div className="h-3 bg-blue-100 rounded mb-2"></div>
+                {[...Array(7)].map((_, j) => (
+                  <div key={j} className="flex gap-1">
+                    {[...Array(5)].map((_, k) => (
+                      <div key={k} className="w-3 h-3 bg-blue-100 rounded-sm"></div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
       ) : error ? (
-        <p className="text-rose-600 text-sm">{error}</p>
+        <p className="text-red-600 text-sm">{error}</p>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 sm:p-6">
+        <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl border border-blue-100 p-4 sm:p-5">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <h3 className="text-lg font-bold text-black">Contribution Activity</h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+            <h3 className="text-base sm:text-lg font-bold text-blue-900">Contribution Activity</h3>
             <select
-              className="bg-white border border-slate-300 text-slate-700 text-sm px-3 py-1.5 rounded-md hover:border-teal-500 transition focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="bg-white border border-gray-300 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg hover:border-blue-500 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={`${currentDate.getFullYear() - 1}-${currentDate.getFullYear()}`}
               onChange={(e) => e.preventDefault()}
             >
@@ -240,78 +274,76 @@ const ContributionCalendar = ({ userId: propUserId }) => {
             </select>
           </div>
 
-          {/* Compact Statistics Grid - Responsive */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-              <p className="text-xs text-slate-600 mb-1">Active Days</p>
-              <p className="text-xl font-bold text-black">
-                {contributionStats.activeDays}
-              </p>
-              <p className="text-[10px] text-slate-500 mt-1">of {contributionStats.totalDays}</p>
+          {/* Compact Statistics Grid - Unified Light Blue Theme */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-1.5 mb-3">
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5">Active Days</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.activeDays}</p>
+              <p className="text-[9px] text-blue-600">of {contributionStats.totalDays}</p>
             </div>
-            <div className="bg-teal-50 rounded-lg p-3 border border-teal-200">
-              <p className="text-xs text-teal-700 mb-1">Current Streak</p>
-              <p className="text-xl font-bold text-black">{contributionStats.currentStreak}</p>
-              <p className="text-[10px] text-teal-600 mt-1">days</p>
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5">Current Streak</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.currentStreak}</p>
+              <p className="text-[9px] text-blue-600">days</p>
             </div>
-            <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-              <p className="text-xs text-purple-700 mb-1">Best Streak</p>
-              <p className="text-xl font-bold text-black">{contributionStats.maxStreak}</p>
-              <p className="text-[10px] text-purple-600 mt-1">days</p>
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5">Best Streak</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.maxStreak}</p>
+              <p className="text-[9px] text-blue-600">days</p>
             </div>
-            <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-              <p className="text-xs text-emerald-700 mb-1">1:1 Sessions</p>
-              <p className="text-xl font-bold text-black">{contributionStats.oneOnOneSessions}</p>
-              <p className="text-[10px] text-emerald-600 mt-1">completed</p>
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5">1:1 Sessions</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.oneOnOneSessions}</p>
+              <p className="text-[9px] text-blue-600">completed</p>
             </div>
-            <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-              <p className="text-xs text-amber-700 mb-1">Interviews</p>
-              <p className="text-xl font-bold text-black">{contributionStats.interviewSessions}</p>
-              <p className="text-[10px] text-amber-600 mt-1">completed</p>
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5">Interviews</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.interviewSessions}</p>
+              <p className="text-[9px] text-blue-600">completed</p>
             </div>
-            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-              <p className="text-xs text-blue-700 mb-1">SkillMates</p>
-              <p className="text-xl font-bold text-black">{contributionStats.skillMateConnections}</p>
-              <p className="text-[10px] text-blue-600 mt-1">connections</p>
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5">SkillMates</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.skillMateConnections}</p>
+              <p className="text-[9px] text-blue-600">connections</p>
             </div>
-            <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-              <p className="text-xs text-indigo-700 mb-1">Daily Logins</p>
-              <p className="text-xl font-bold text-black">{contributionStats.dailyLogins}</p>
-              <p className="text-[10px] text-indigo-600 mt-1">days</p>
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5">Daily Logins</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.dailyLogins}</p>
+              <p className="text-[9px] text-blue-600">days</p>
             </div>
-            <div className="bg-rose-50 rounded-lg p-3 border border-rose-200">
-              <p className="text-xs text-rose-700 mb-1">Questions</p>
-              <p className="text-xl font-bold text-black">{contributionStats.questionsPosted}</p>
-              <p className="text-[10px] text-rose-600 mt-1">posted</p>
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5">Questions</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.questionsPosted}</p>
+              <p className="text-[9px] text-blue-600">posted</p>
             </div>
-            <div className="bg-cyan-50 rounded-lg p-3 border border-cyan-200">
-              <p className="text-xs text-cyan-700 mb-1">Videos</p>
-              <p className="text-xl font-bold text-black">{contributionStats.videosUploaded}</p>
-              <p className="text-[10px] text-cyan-600 mt-1">uploaded</p>
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5">Videos</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.videosUploaded}</p>
+              <p className="text-[9px] text-blue-600">uploaded</p>
             </div>
-            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-              <p className="text-xs text-slate-600 mb-1">Total</p>
-              <p className="text-xl font-bold text-black">{contributionStats.total}</p>
-              <p className="text-[10px] text-slate-500 mt-1">contributions</p>
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-100 hover:border-blue-300 transition-colors">
+              <p className="text-[10px] text-blue-700 mb-0.5 font-medium">Total</p>
+              <p className="text-base sm:text-lg font-bold text-blue-900">{contributionStats.total}</p>
+              <p className="text-[9px] text-blue-600">contributions</p>
             </div>
           </div>
 
           {/* Activity Legend */}
-          <div className="flex items-center gap-2 mb-4 text-xs text-slate-600">
+          <div className="flex items-center justify-center gap-2 mb-3 text-xs font-medium text-blue-700">
             <span>Less</span>
-            <div className="flex gap-1">
-              <div className="w-3 h-3 bg-slate-100 rounded-sm border border-slate-200"></div>
-              <div className="w-3 h-3 bg-teal-200 rounded-sm"></div>
-              <div className="w-3 h-3 bg-teal-400 rounded-sm"></div>
-              <div className="w-3 h-3 bg-teal-600 rounded-sm"></div>
-              <div className="w-3 h-3 bg-teal-700 rounded-sm"></div>
+            <div className="flex gap-1.5">
+              <div className="w-3 h-3 bg-white rounded border border-gray-300 shadow-sm"></div>
+              <div className="w-3 h-3 bg-blue-200 rounded border border-blue-200 shadow-sm"></div>
+              <div className="w-3 h-3 bg-blue-400 rounded border border-blue-400 shadow"></div>
+              <div className="w-3 h-3 bg-blue-600 rounded border border-blue-600 shadow-md"></div>
+              <div className="w-3 h-3 bg-blue-900 rounded border border-blue-900 shadow-md"></div>
             </div>
             <span>More</span>
           </div>
 
-          {/* Calendar Grid */}
-          <div className="overflow-x-auto hide-scrollbar pb-2">
-            <div className="flex gap-2 sm:gap-3 md:gap-4 min-w-max">
+          {/* Calendar Grid - Compact & Professional */}
+          <div className="overflow-x-auto hide-scrollbar">
+            <div className="flex gap-1 sm:gap-1.5 py-1" style={{maxWidth: '100%'}}>
               {months.map((month, monthIdx) => {
                 const { name, year, days, monthIndex } = month;
 
@@ -330,19 +362,19 @@ const ContributionCalendar = ({ userId: propUserId }) => {
                   grid[dayIndex][weekIndex] = day;
                 }
 
-                const boxClass = "w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm";
+                const boxClass = "w-2.5 h-2.5 rounded transition-all duration-200";
 
                 return (
-                  <div key={monthIdx} className="min-w-[50px] sm:min-w-[60px]">
+                  <div key={monthIdx} className="flex-shrink-0">
                     {/* Month label */}
-                    <div className="text-[10px] text-slate-700 font-medium text-center mb-2">
-                      {name} {year}
+                    <div className="text-[9px] text-blue-700 font-semibold text-center mb-1.5">
+                      {name}
                     </div>
 
                     {/* Week rows */}
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-0.5">
                       {grid.map((week, rowIdx) => (
-                        <div key={rowIdx} className="flex gap-1">
+                        <div key={rowIdx} className="flex gap-0.5">
                           {week.map((day, colIdx) => {
                             if (day === null) {
                               return (
@@ -363,7 +395,7 @@ const ContributionCalendar = ({ userId: propUserId }) => {
                                 key={colIdx}
                                 className={`${boxClass} ${getContributionColor(
                                   count
-                                )} hover:ring-2 hover:ring-teal-500 hover:ring-offset-1 transition-all duration-200 cursor-pointer relative group border border-slate-200/50`}
+                                )} hover:scale-110 hover:z-10 cursor-pointer relative group`}
                                 title={`${name} ${day}, ${year}\n${count} contribution${count !== 1 ? 's' : ''}\n${getIntensityLabel(count)}`}
                                 onMouseEnter={() => setHoveredDay({ date: dateStr, count, label: `${name} ${day}, ${year}` })}
                                 onMouseLeave={() => setHoveredDay(null)}
@@ -381,12 +413,12 @@ const ContributionCalendar = ({ userId: propUserId }) => {
 
           {/* Hover Tooltip */}
           {hoveredDay && (
-            <div className="mt-4 p-3 bg-teal-50 rounded-lg border border-teal-200">
-              <p className="text-sm font-semibold text-black">{hoveredDay.label}</p>
-              <p className="text-xs text-slate-700 mt-1">
-                <span className="font-bold text-lg text-teal-700">{hoveredDay.count}</span> contribution{hoveredDay.count !== 1 ? 's' : ''}
+            <div className="mt-3 p-2.5 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-xs font-semibold text-blue-900">{hoveredDay.label}</p>
+              <p className="text-[10px] text-blue-700 mt-0.5">
+                <span className="font-bold text-sm text-blue-700">{hoveredDay.count}</span> contribution{hoveredDay.count !== 1 ? 's' : ''}
               </p>
-              <p className="text-xs text-slate-600 mt-1">{getIntensityLabel(hoveredDay.count)}</p>
+              <p className="text-[10px] text-blue-600 mt-0.5">{getIntensityLabel(hoveredDay.count)}</p>
             </div>
           )}
         </div>
@@ -395,4 +427,4 @@ const ContributionCalendar = ({ userId: propUserId }) => {
   );
 };
 
-export default ContributionCalendar;
+export default React.memo(ContributionCalendar);
