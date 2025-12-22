@@ -681,6 +681,28 @@ const CreateSessionNew = () => {
                       <p className="text-lg font-bold text-black">{selectedSession.topic}</p>
                     </div>
                   </div>
+
+                  {selectedSession.sessionType === 'expert' && (
+                    <div className="pt-3 border-t border-gray-100">
+                      <label className="text-[10px] text-[#475569] font-semibold uppercase tracking-wider mb-1 block">SkillMate</label>
+                      <p className="text-base font-bold text-black">
+                        {(() => {
+                          const invited = selectedSession.invitedSkillMate;
+                          const invitedId = invited?._id || invited;
+                          const fromStored = (selectedSession.invitedSkillMateName || '').toString().trim();
+                          const fromPopulated = invited && typeof invited === 'object'
+                            ? (`${invited.firstName || ''} ${invited.lastName || ''}`.trim() || invited.username || '')
+                            : '';
+                          const fromList = (Array.isArray(skillMates) ? skillMates : [])
+                            .find(m => String(m._id) === String(invitedId));
+                          const fromListName = fromList
+                            ? (`${fromList.firstName || ''} ${fromList.lastName || ''}`.trim() || fromList.username || '')
+                            : '';
+                          return fromStored || fromPopulated || fromListName || 'SkillMate';
+                        })()}
+                      </p>
+                    </div>
+                  )}
                   
                   <div className="pt-3 border-t border-gray-100">
                     <label className="text-[10px] text-[#475569] font-semibold uppercase tracking-wider mb-1 block">Topic</label>

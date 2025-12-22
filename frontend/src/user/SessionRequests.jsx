@@ -49,6 +49,15 @@ const SessionRequests = () => {
         setRequestType('expert');
         setActiveTab('received');
       }
+
+      if (tab === 'interview') {
+        setRequestType('interview');
+        const view = (params.get('view') || '').toLowerCase();
+        if (view === 'sent' || view === 'received') {
+          setActiveTab(view);
+        }
+      }
+
       const early = params.get('interviewEarly');
       if (early === '1') {
         addToast({
@@ -511,7 +520,12 @@ const SessionRequests = () => {
       navigate(`/interview-call/${request._id}`);
     } catch (e) {
       console.error('Failed to join interview', e);
-      alert('Failed to join interview');
+      addToast({
+        title: 'Join failed',
+        message: 'Unable to open the interview call. Please try again.',
+        variant: 'error',
+        timeout: 4000,
+      });
     }
   };
 
@@ -562,7 +576,15 @@ const SessionRequests = () => {
     const [loadingSchedule, setLoadingSchedule] = useState(false);
 
     const submitSchedule = async () => {
-      if (!date || !time) return alert('Select date and time');
+      if (!date || !time) {
+        addToast({
+          title: 'Missing time',
+          message: 'Please select both a date and a time.',
+          variant: 'warning',
+          timeout: 3500,
+        });
+        return;
+      }
       const dt = new Date(`${date}T${time}`);
       setLoadingSchedule(true);
       try {
@@ -574,11 +596,24 @@ const SessionRequests = () => {
         });
         const j = await res.json();
         if (!res.ok) throw new Error(j.message || 'Failed to schedule');
-        alert('Interview scheduled');
+        const requestId = j?.request?._id || j?.requestId || request?._id;
+        addToast({
+          title: 'Schedule saved',
+          message: requestId
+            ? `Interview time saved successfully. (Request ID: ${requestId})`
+            : 'Interview time saved successfully.',
+          variant: 'success',
+          timeout: 4500,
+        });
         onScheduled && onScheduled();
       } catch (err) {
         console.error(err);
-        alert(err.message || 'Error scheduling');
+        addToast({
+          title: 'Scheduling failed',
+          message: err?.message || 'Unable to schedule the interview. Please try again.',
+          variant: 'error',
+          timeout: 4500,
+        });
       } finally {
         setLoadingSchedule(false);
       }

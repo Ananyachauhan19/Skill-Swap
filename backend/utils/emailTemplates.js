@@ -27,6 +27,21 @@ exports.passwordReset = ({ resetLink, fallbackLink }) => ({
   `)
 });
 
+exports.interviewRequestConfirmation = ({ requesterName, company, position }) => ({
+  subject: 'Interview Request Submitted Successfully',
+  html: baseLayout('Interview Request Received', `
+    <p>Dear ${requesterName},</p>
+    <p>Your mock interview request has been submitted successfully! We're connecting you with the right expert.</p>
+    <ul>
+      <li>Company: <b>${company}</b></li>
+      <li>Role: <b>${position}</b></li>
+    </ul>
+    <p>You will receive a notification once an expert accepts your request and schedules the interview.</p>
+    <p>You can view your request status anytime by logging into your dashboard.</p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+  `)
+});
+
 exports.interviewAssigned = ({ interviewerName, company, position, requesterName }) => ({
   subject: 'Interview Request Assigned',
   html: baseLayout('Interview Request Assigned', `
@@ -53,6 +68,36 @@ exports.interviewScheduled = ({ requesterName, company, position, scheduledAt })
       <li>Date & Time: <b>${scheduledAt}</b></li>
     </ul>
     <p>Kindly ensure your availability. If you need to reschedule, please contact the interviewer through the platform.</p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+  `)
+});
+
+exports.interviewRescheduled = ({ requesterName, company, position, scheduledAt }) => ({
+  subject: 'Interview Rescheduled',
+  html: baseLayout('Interview Rescheduled', `
+    <p>Dear ${requesterName},</p>
+    <p>Your interview has been rescheduled. Please find the updated details below:</p>
+    <ul>
+      <li>Company: <b>${company}</b></li>
+      <li>Role: <b>${position}</b></li>
+      <li>Updated Date & Time: <b>${scheduledAt}</b></li>
+    </ul>
+    <p>Please ensure your availability at the updated time.</p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+  `)
+});
+
+exports.interviewRejected = ({ requesterName, company, position, reason }) => ({
+  subject: 'Interview Request Update',
+  html: baseLayout('Interview Request Declined', `
+    <p>Dear ${requesterName},</p>
+    <p>Your mock interview request has been declined.</p>
+    <ul>
+      <li>Company: <b>${company}</b></li>
+      <li>Role: <b>${position}</b></li>
+      ${reason ? `<li>Reason: <b>${reason}</b></li>` : ''}
+    </ul>
+    <p>You can submit a new request or choose a different interviewer.</p>
     <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });

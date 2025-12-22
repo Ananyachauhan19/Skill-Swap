@@ -58,6 +58,7 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
     }
     
     let invitedSkillMate = undefined;
+    let invitedSkillMateName = '';
     if (normalizedSessionType === 'expert') {
       if (!skillMateId) {
         return res.status(400).json({ message: 'SkillMate is required for expert sessions' });
@@ -68,6 +69,10 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
         return res.status(403).json({ message: 'Expert sessions can be created only for your SkillMates' });
       }
       invitedSkillMate = skillMateId;
+
+      // Snapshot the invited SkillMate display name at creation time.
+      const mate = await User.findById(invitedSkillMate).select('firstName lastName username');
+      invitedSkillMateName = `${mate?.firstName || ''} ${mate?.lastName || ''}`.trim() || mate?.username || 'SkillMate';
     }
 
     const session = await Session.create({
@@ -80,6 +85,7 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
       creator: req.user._id,
       sessionType: normalizedSessionType,
       invitedSkillMate,
+      invitedSkillMateName,
     });
     
     // Track session creation contribution
@@ -193,6 +199,7 @@ router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.r
     }
     
     let invitedSkillMate = undefined;
+    let invitedSkillMateName = '';
     if (normalizedSessionType === 'expert') {
       if (!skillMateId) {
         return res.status(400).json({ message: 'SkillMate is required for expert sessions' });
@@ -203,6 +210,10 @@ router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.r
         return res.status(403).json({ message: 'Expert sessions can be created only for your SkillMates' });
       }
       invitedSkillMate = skillMateId;
+
+      // Snapshot the invited SkillMate display name at creation time.
+      const mate = await User.findById(invitedSkillMate).select('firstName lastName username');
+      invitedSkillMateName = `${mate?.firstName || ''} ${mate?.lastName || ''}`.trim() || mate?.username || 'SkillMate';
     }
 
     const session = await Session.create({
@@ -215,6 +226,7 @@ router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.r
       creator: req.user._id,
       sessionType: normalizedSessionType,
       invitedSkillMate,
+      invitedSkillMateName,
     });
     
     // Track session creation contribution

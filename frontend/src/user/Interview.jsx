@@ -7,6 +7,7 @@ import { FaTimes, FaCheckCircle, FaUserTie, FaCalendarAlt, FaComment, FaClock, F
 import { BACKEND_URL } from "../config.js";
 import { useAuth } from "../context/AuthContext";
 import socketClient from '../socket.js';
+import { useToast } from "../components/ToastContext";
 import { COMPANIES, POSITIONS } from "../constants/interviewData";
 import StatsSection from "./interviewSection/StatsSection";
 import PastInterviewsPreview from "./interviewSection/PastInterviewsPreview";
@@ -560,6 +561,8 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
   const [matchedInterviewers, setMatchedInterviewers] = useState([]);
   const [selectedInterviewer, setSelectedInterviewer] = useState('');
   const { user } = useAuth() || {};
+  const { addToast } = useToast();
+  const navigate = useNavigate();
 
   // Pre-select interviewer when provided
   useEffect(() => {
@@ -660,7 +663,15 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
   };
 
   const handleSubmit = async () => {
-    if (!company || !position) return alert('Please provide company and position');
+    if (!company || !position) {
+      addToast({
+        title: 'Missing details',
+        message: 'Please enter both the company name and the role.',
+        variant: 'warning',
+        timeout: 3500,
+      });
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`${BACKEND_URL}/api/interview/create`, {
@@ -672,14 +683,37 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
       let json = null;
       try { json = await res.json(); } catch (_) { /* non-json response */ }
       if (!res.ok) throw new Error((json && json.message) || (await res.text()) || 'Failed to request');
-      alert('Interview request submitted successfully!');
+
+      // Success - show immediate feedback to user
+      const requestId = json?.request?._id || json?.requestId || json?._id;
+      addToast({
+        title: 'Request Sent Successfully',
+        message: requestId
+          ? `Your mock interview request for ${company} — ${position} was submitted successfully. (Request ID: ${requestId})`
+          : `Your mock interview request for ${company} — ${position} was submitted successfully.`,
+        variant: 'success',
+        timeout: 5000,
+        actions: [
+          {
+            label: 'View Requests',
+            variant: 'primary',
+            onClick: () => navigate('/session-requests?tab=interview&view=sent'),
+          },
+        ],
+      });
+
       setCompany(''); setPosition(''); setMessage('');
       setMatchedInterviewers([]);
       setSelectedInterviewer('');
       onClose();
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Error submitting request');
+      addToast({
+        title: 'Request failed',
+        message: err?.message || 'Unable to submit your interview request. Please try again.',
+        variant: 'error',
+        timeout: 4500,
+      });
     } finally {
       setLoading(false);
     }
@@ -1047,6 +1081,7 @@ function ScheduledInterviewSection() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [selectedInterview, setSelectedInterview] = useState(null);
   const [interviewerDirectory, setInterviewerDirectory] = useState(new Map());
+  const [showAllModal, setShowAllModal] = useState(false);
   const { user } = useAuth() || {};
   const navigate = useNavigate();
 
@@ -1150,171 +1185,201 @@ function ScheduledInterviewSection() {
     return String(requesterId) === uid || String(assignedId) === uid;
   });
 
-<<<<<<< HEAD
   // If there are no scheduled interviews, do not render this section.
   // (Matches the Past Interviews components which return null when empty.)
   if (!user || visible.length === 0) return null;
 
-||||||| 90a69228
-=======
-  // If there are no scheduled interviews for this user, hide the
-  // entire scheduled section from the UI.
-  if (visible.length === 0) {
-    return null;
-  }
+  const displayedInterviews = visible.slice(0, 3);
+  const hasMore = visible.length > 3;
 
->>>>>>> 469fa669ecb0087857403bc20b033d2246c0ec8b
+  const InterviewCard = ({ s }) => (
+    <div className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all h-full flex flex-col">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-gray-500 font-medium mb-2">Requested for:</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-bold text-gray-900 truncate">{s.company || s.subject || '—'}</span>
+            <span className="text-gray-300">•</span>
+            <span className="text-sm font-semibold text-gray-700 truncate">{s.position || s.topic || '—'}</span>
+          </div>
+        </div>
+        <span className="px-3 py-1 bg-[rgb(30,58,138)] text-white text-xs font-semibold rounded-md whitespace-nowrap ml-3">
+          {(s.status || 'Scheduled').charAt(0).toUpperCase() + (s.status || 'Scheduled').slice(1)}
+        </span>
+      </div>
+      
+      <div className="flex-1 space-y-3 mb-4">
+        {/* Interviewer Details */}
+        <div className="p-3 bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-lg border border-gray-200">
+          <div className="flex items-start gap-2.5">
+            <FaUserTie className="text-[rgb(30,58,138)] text-sm mt-0.5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-gray-900 text-sm mb-2 truncate">
+                {(() => {
+                  try {
+                    const other = s.assignedInterviewer;
+                    if (!other) return 'TBD';
+                    const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
+                    return name;
+                  } catch (e) {
+                    return 'TBD';
+                  }
+                })()}
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {(() => {
+                  const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+                  const dir = assignedId ? interviewerDirectory.get(String(assignedId)) : null;
+                  const interviewerCompany = s.interviewerApp?.company || dir?.company || '—';
+                  const interviewerPosition = s.interviewerApp?.position || dir?.position || '—';
+                  return (
+                    <>
+                      <div>
+                        <div className="text-gray-500 text-[10px] font-medium mb-0.5">Company</div>
+                        <div className="text-gray-900 font-semibold text-xs truncate">{interviewerCompany}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500 text-[10px] font-medium mb-0.5">Position</div>
+                        <div className="text-gray-900 font-semibold text-xs truncate">{interviewerPosition}</div>
+                      </div>
+                    </>
+                  );
+                })()}
+                {s.interviewerStats && (
+                  <>
+                    <div>
+                      <div className="text-gray-500 text-[10px] font-medium mb-0.5">Total Interviews</div>
+                      <div className="text-gray-900 font-semibold text-xs">{s.interviewerStats.conductedInterviews || 0}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500 text-[10px] font-medium mb-0.5">Overall Rating</div>
+                      <div className="flex items-center gap-1 text-gray-900 font-semibold text-xs">
+                        <FaStar className="text-yellow-500 text-[10px]" />
+                        {(s.interviewerStats.averageRating || 0).toFixed(1)}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Schedule info */}
+        <div className="flex items-center gap-2 px-1">
+          <FaCalendarAlt className="text-[rgb(30,58,138)] text-sm flex-shrink-0" />
+          <span className="font-semibold text-xs text-gray-900">
+            {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString('en-US', {
+              dateStyle: 'medium',
+              timeStyle: 'short'
+            }) : 'Date TBD'}
+          </span>
+        </div>
+        {s.message && (
+          <div className="flex items-start gap-2 p-2.5 bg-blue-50 rounded-lg border border-blue-200">
+            <FaComment className="text-[rgb(30,58,138)] text-xs flex-shrink-0 mt-0.5" />
+            <span className="text-[11px] text-gray-700 line-clamp-2 leading-relaxed">{s.message}</span>
+          </div>
+        )}
+      </div>
+      
+      <div className="flex gap-2 mt-auto">
+        <button
+          onClick={() => navigate('/session-requests')}
+          className="flex-1 py-2.5 bg-[rgb(30,58,138)] text-white rounded-lg font-semibold hover:bg-[rgb(37,70,165)] transition-all text-sm shadow-sm"
+        >
+          View Details →
+        </button>
+        
+        {s.status === 'completed' && !s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
+          <button
+            onClick={() => {
+              setSelectedInterview(s);
+              setShowRatingModal(true);
+            }}
+            className="py-2.5 px-4 bg-yellow-500 text-white rounded-lg font-semibold hover:bg-yellow-600 transition-all text-sm flex items-center gap-1.5 shadow-sm"
+          >
+            <FaStar className="text-xs" /> Rate
+          </button>
+        )}
+        {s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
+          <div className="py-2.5 px-4 bg-green-50 border border-green-300 text-green-700 rounded-lg font-semibold text-sm flex items-center gap-1.5">
+            <FaStar className="text-yellow-500 text-xs" /> {s.rating}/5
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <section className="w-full bg-home-bg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         <div className="mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 text-center mb-2">
             Your Scheduled Interviews
           </h2>
           <p className="text-center text-gray-600 text-sm">Upcoming sessions and completed interviews</p>
         </div>
-<<<<<<< HEAD
-||||||| 90a69228
-
-      {visible.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FaCalendarAlt className="text-blue-600 text-2xl" />
-          </div>
-          <p className="text-gray-900 text-lg font-semibold">No scheduled interviews yet</p>
-          <p className="text-gray-600 text-sm mt-2">Book your first mock interview to get started!</p>
-        </div>
-      ) : (
-=======
-
->>>>>>> 469fa669ecb0087857403bc20b033d2246c0ec8b
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {visible.map((s, idx) => (
-            <div
-              key={s._id}
-              className="bg-white border border-gray-200 rounded-xl p-6"
-            >
-
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  
-                  <div className="mt-1">
-                    <p className="text-sm text-gray-700 flex items-center gap-2">
-                      <span className="text-gray-500 font-medium">Requested for:</span>
-                    </p>
-                    <p className="text-sm text-gray-800 flex items-center gap-2">
-                      <span className="font-medium">{s.company || s.subject || '—'}</span>
-                      <span>•</span>
-                      <span>{s.position || s.topic || '—'}</span>
-                    </p>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-medium rounded-md whitespace-nowrap ml-2">
-                  {(s.status || 'Scheduled').charAt(0).toUpperCase() + (s.status || 'Scheduled').slice(1)}
-                </span>
-              </div>
-              
-              <div className="space-y-3 text-sm text-gray-700 mb-5">
-                {/* Interviewer Details with headings */}
-                <div className="p-3 bg-white rounded-lg border border-gray-200">
-                  <div className="flex items-start gap-3">
-                    <FaUserTie className="text-blue-600 text-sm mt-0.5" />
-                    <div className="flex-1">
-                      <div className="font-semibold text-gray-900">
-                        {(() => {
-                          try {
-                            const other = s.assignedInterviewer; // Always show interviewer details
-                            if (!other) return 'TBD';
-                            const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
-                            return name;
-                          } catch (e) {
-                            return 'TBD';
-                          }
-                        })()}
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                        {/* Interviewer's fixed company/position from their application */}
-                        {(() => {
-                          const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
-                          const dir = assignedId ? interviewerDirectory.get(String(assignedId)) : null;
-                          const interviewerCompany = s.interviewerApp?.company || dir?.company || '—';
-                          const interviewerPosition = s.interviewerApp?.position || dir?.position || '—';
-                          return (
-                            <>
-                              <div>
-                                <div className="text-gray-500">Company</div>
-                                <div className="text-gray-800 font-medium">{interviewerCompany}</div>
-                              </div>
-                              <div>
-                                <div className="text-gray-500">Position</div>
-                                <div className="text-gray-800 font-medium">{interviewerPosition}</div>
-                              </div>
-                            </>
-                          );
-                        })()}
-                        {s.interviewerStats && (
-                          <>
-                            <div>
-                              <div className="text-gray-500">Total Interviews</div>
-                              <div className="text-gray-800 font-medium">{s.interviewerStats.conductedInterviews || 0}</div>
-                            </div>
-                            <div>
-                              <div className="text-gray-500">Overall Rating</div>
-                              <div className="flex items-center gap-1 text-gray-800 font-medium">
-                                <FaStar className="text-yellow-500" />
-                                {(s.interviewerStats.averageRating || 0).toFixed(1)}
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Schedule info */}
-                <div className="flex items-center gap-2">
-                  <FaCalendarAlt className="text-blue-600 text-sm" />
-                  <span className="font-medium">
-                    {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString('en-US', {
-                      dateStyle: 'medium',
-                      timeStyle: 'short'
-                    }) : 'Date TBD'}
-                  </span>
-                </div>
-                {s.message && (
-                  <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <FaComment className="text-blue-600 text-sm flex-shrink-0 mt-0.5" />
-                    <span className="text-xs text-gray-700 line-clamp-2">{s.message}</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex gap-2">
-                <button
-                  onClick={() => navigate('/session-requests')}
-                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
-                >
-                  View Details →
-                </button>
-                
-                {s.status === 'completed' && !s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
-                  <button
-                    onClick={() => handleRateClick(s)}
-                    className="py-2.5 px-4 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors text-sm flex items-center gap-2"
-                  >
-                    <FaStar /> Rate
-                  </button>
-                )}
-                {s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
-                  <div className="py-2.5 px-4 bg-green-50 border border-green-200 text-green-700 rounded-lg font-medium text-sm flex items-center gap-2">
-                    <FaStar className="text-yellow-500" /> {s.rating}/5
-                  </div>
-                )}
-              </div>
-            </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {displayedInterviews.map((s) => (
+            <InterviewCard key={s._id} s={s} />
           ))}
         </div>
+
+        {hasMore && (
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={() => setShowAllModal(true)}
+              className="px-8 py-3 bg-[rgb(30,58,138)] text-white font-bold rounded-lg hover:bg-[rgb(37,70,165)] transition-all flex items-center gap-2 text-sm shadow-lg"
+            >
+              View More ({visible.length - 3} more)
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* All Interviews Modal */}
+        {showAllModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowAllModal(false)}>
+            <div className="bg-white rounded-xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 bg-[rgb(30,58,138)] text-white p-5 sm:p-6 rounded-t-xl flex items-center justify-between z-10">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold">All Scheduled Interviews</h3>
+                  <p className="text-blue-100 text-sm mt-1">{visible.length} upcoming and completed sessions</p>
+                </div>
+                <button 
+                  onClick={() => setShowAllModal(false)} 
+                  className="text-white hover:bg-[rgb(37,70,165)] p-2 rounded-lg transition-colors"
+                >
+                  <FaTimes size={22} />
+                </button>
+              </div>
+              
+              <div className="p-5 sm:p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {visible.map((s) => (
+                    <InterviewCard key={s._id} s={s} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showRatingModal && selectedInterview && (
+          <InterviewSessionRatingModal
+            isOpen={showRatingModal}
+            onClose={() => {
+              setShowRatingModal(false);
+              setSelectedInterview(null);
+            }}
+            interview={selectedInterview}
+            onRatingSubmitted={handleRatingSubmitted}
+          />
+        )}
       </div>
     </section>
   );
@@ -1399,17 +1464,16 @@ const Interview = () => {
             </div>
 
             {/* Right Illustration */}
-            {/* Right Illustration */}
-<div className="flex-1 relative hidden lg:block">
-  <div className="relative w-full max-w-[360px] mx-auto scale-80">
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
-    <img
-      src="/assets/interview-illustration.webp"
-      alt="Mock Interview"
-      className="relative w-full h-auto object-contain drop-shadow-2xl"
-    />
-  </div>
-</div>
+            <div className="flex-1 relative hidden lg:block">
+              <div className="relative w-full max-w-[450px] mx-auto scale-[1.25]">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
+                <img
+                  src="/assets/interview-illustration.webp"
+                  alt="Mock Interview"
+                  className="relative w-full h-auto object-contain drop-shadow-2xl"
+                />
+              </div>
+            </div>
 
           </div>
         </div>

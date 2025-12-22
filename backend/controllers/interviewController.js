@@ -97,22 +97,49 @@ exports.submitRequest = async (req, res) => {
       if (io && admin._id) io.to(admin._id.toString()).emit('notification', notification);
     }
 
-    // Email interviewer if pre-assigned
+    // Send confirmation notification and email to candidate (requester)
+    try {
+      const candidateNotification = await Notification.create({
+        userId: requester,
+        type: 'interview-request-submitted',
+        message: `Your mock interview request for ${company} — ${position} has been submitted successfully.`,
+        requestId: reqDoc._id,
+        company,
+        position,
+        timestamp: Date.now(),
+      });
+      if (io) io.to(requester.toString()).emit('notification', candidateNotification);
+
+      // Send email confirmation to candidate
+      if (req.user.email) {
+        const tpl = T.interviewRequestConfirmation({
+          requesterName: req.user.firstName || req.user.username,
+          company,
+          position
+        });
+        await sendMail({ to: req.user.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send candidate confirmation notification/email', e);
+    }
+
+    // Email and notify interviewer if pre-assigned
     if (reqDoc.assignedInterviewer) {
       try {
         const interviewer = await User.findById(reqDoc.assignedInterviewer);
-        if (interviewer?.email) {
-          const tpl = T.interviewAssigned({
-            interviewerName: interviewer.firstName || interviewer.username,
-            company,
-            position,
-            requesterName: `${req.user.firstName} ${req.user.lastName}`
-          });
-          await sendMail({ to: interviewer.email, subject: tpl.subject, html: tpl.html });
-        }
+        if (interviewer) {
+          // Send email to expert
+          if (interviewer.email) {
+            const tpl = T.interviewAssigned({
+              interviewerName: interviewer.firstName || interviewer.username,
+              company,
+              position,
+              requesterName: `${req.user.firstName} ${req.user.lastName}`
+            });
+            await sendMail({ to: interviewer.email, subject: tpl.subject, html: tpl.html });
+          }
 
-        // Also send an in-app notification so the interviewer sees a toast
-        try {
+          // Send in-app notification so the expert sees a toast
           const notification = await Notification.create({
             userId: interviewer._id,
             type: 'interview-assigned',
@@ -125,11 +152,9 @@ exports.submitRequest = async (req, res) => {
             timestamp: Date.now(),
           });
           if (io && interviewer._id) io.to(interviewer._id.toString()).emit('notification', notification);
-        } catch (notifyErr) {
-          console.error('Failed to create/emit interviewer assignment notification', notifyErr);
         }
       } catch (e) {
-        console.error('Failed to send interviewer assignment email', e);
+        console.error('Failed to send interviewer assignment email/notification', e);
       }
     }
     res.status(201).json({ message: 'Interview request submitted', request: reqDoc });
@@ -770,6 +795,22 @@ exports.approveAssignedInterview = async (req, res) => {
       if (io) io.to(reqDoc.requester._id.toString()).emit('notification', notification);
     } catch (e) { console.error('[approveAssignedInterview] notify requester failed', e); }
 
+    // Also send an email to the requester (candidate)
+    try {
+      const requester = await User.findById(reqDoc.requester);
+      if (requester?.email) {
+        const tpl = T.interviewScheduled({
+          requesterName: requester.firstName || requester.username,
+          company: reqDoc.company,
+          position: reqDoc.position,
+          scheduledAt: reqDoc.scheduledAt ? reqDoc.scheduledAt.toLocaleString() : 'TBD'
+        });
+        await sendMail({ to: requester.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send interview approval email', e);
+    }
+
     // Also notify interviewer
     try {
       const notifInterviewer = await Notification.create({
@@ -866,6 +907,22 @@ exports.rejectAssignedInterview = async (req, res) => {
       if (io) io.to(reqDoc.requester._id.toString()).emit('notification', notification);
     } catch (e) { console.error('[rejectAssignedInterview] notify requester failed', e); }
 
+    // Also send an email to the requester (candidate)
+    try {
+      const requester = await User.findById(reqDoc.requester);
+      if (requester?.email) {
+        const tpl = T.interviewRejected({
+          requesterName: requester.firstName || requester.username,
+          company: reqDoc.company,
+          position: reqDoc.position,
+          reason: reason || ''
+        });
+        await sendMail({ to: requester.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send interview rejection email', e);
+    }
+
     return res.json({ message: 'Interview request rejected', request: reqDoc });
   } catch (err) {
     console.error('rejectAssignedInterview error', err);
@@ -890,6 +947,9 @@ exports.scheduleInterview = async (req, res) => {
     const reqDoc = await InterviewRequest.findById(requestId);
     if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
 
+    const wasScheduled = reqDoc.status === 'scheduled' && !!reqDoc.scheduledAt;
+    const previousScheduledAt = reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt) : null;
+
     // Only assigned interviewer can schedule
     if (!reqDoc.assignedInterviewer || reqDoc.assignedInterviewer.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to schedule this interview' });
@@ -907,7 +967,7 @@ exports.scheduleInterview = async (req, res) => {
     const notification = await Notification.create({
       userId: reqDoc.requester._id,
       type: 'interview-scheduled',
-      message: `Your interview has been scheduled for ${reqDoc.scheduledAt ? reqDoc.scheduledAt.toString() : 'TBD'}`,
+      message: `${wasScheduled ? 'Your interview has been rescheduled for' : 'Your interview has been scheduled for'} ${reqDoc.scheduledAt ? reqDoc.scheduledAt.toString() : 'TBD'}`,
       requestId: reqDoc._id,
       requesterId: reqDoc.assignedInterviewer,
       requesterName: `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`,
@@ -922,12 +982,19 @@ exports.scheduleInterview = async (req, res) => {
     try {
       const requester = await User.findById(reqDoc.requester);
       if (requester?.email) {
-        const tpl = T.interviewScheduled({
-          requesterName: requester.firstName || requester.username,
-          company: reqDoc.company,
-          position: reqDoc.position,
-          scheduledAt: reqDoc.scheduledAt ? reqDoc.scheduledAt.toLocaleString() : 'TBD'
-        });
+        const tpl = wasScheduled
+          ? T.interviewRescheduled({
+              requesterName: requester.firstName || requester.username,
+              company: reqDoc.company,
+              position: reqDoc.position,
+              scheduledAt: reqDoc.scheduledAt ? reqDoc.scheduledAt.toLocaleString() : 'TBD'
+            })
+          : T.interviewScheduled({
+              requesterName: requester.firstName || requester.username,
+              company: reqDoc.company,
+              position: reqDoc.position,
+              scheduledAt: reqDoc.scheduledAt ? reqDoc.scheduledAt.toLocaleString() : 'TBD'
+            });
         await sendMail({ to: requester.email, subject: tpl.subject, html: tpl.html });
       }
     } catch (e) {

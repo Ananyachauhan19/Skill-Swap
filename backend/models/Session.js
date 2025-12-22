@@ -11,6 +11,7 @@ const SessionSchema = new mongoose.Schema({
   description: { type: String, required: true },
   sessionType: { type: String, enum: ['normal', 'expert'], default: 'normal' },
   invitedSkillMate: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  invitedSkillMateName: { type: String, default: '' },
   reminderSent: { type: Boolean, default: false },
   reminderSentAt: { type: Date, default: null },
 }, { timestamps: true });

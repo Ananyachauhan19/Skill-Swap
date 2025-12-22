@@ -167,7 +167,7 @@ const OneOnOne = () => {
 
             {/* Right Illustration */}
 <div className="flex-1 relative hidden lg:block">
-  <div className="relative w-full max-w-[480px] mx-auto scale-110">
+  <div className="relative w-full max-w-[480px] mx-auto scale-[1.32]">
     <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
     <img
       src="/assets/expert-connect-illustration.webp"

@@ -11,6 +11,22 @@ const ToastSocketBridge = () => {
   const { addToast } = useToast();
   const navigate = useNavigate();
 
+  const sanitizeToastText = (text) => {
+    if (typeof text !== 'string') return text;
+    // Strip any localhost/loopback URLs that may have been stored in older notifications.
+    // We intentionally remove them rather than replacing to avoid leaking dev URLs in UI.
+    return text
+      .replace(/https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/[^\s]*)?/gi, '')
+      .replace(/\blocalhost(\:\d+)?(\/[^\s]*)?/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  };
+
+  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'skillswaphubb@gmail.com').toLowerCase();
+  const isAdminUser = !!(user && user.email && user.email.toLowerCase() === adminEmail);
+  const interviewRequestsReceivedPath = isAdminUser ? '/admin/interview-requests' : '/session-requests?tab=interview&view=received';
+  const interviewRequestsSentPath = isAdminUser ? '/admin/interview-requests' : '/session-requests?tab=interview&view=sent';
+
   useEffect(() => {
     if (!user || !user._id) return;
 
@@ -236,20 +252,41 @@ const ToastSocketBridge = () => {
       }
 
       // Interview notifications
+      if (n.type === 'interview-request-submitted') {
+        const company = n.company || 'the company';
+        const position = n.position || 'the role';
+        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
+        addToast({
+          title: 'Request Sent Successfully',
+          message: `Your mock interview request for ${company} — ${position} has been submitted successfully.${rid}`,
+          variant: 'success',
+          timeout: 5000,
+          actions: [
+            {
+              label: 'View Requests',
+              variant: 'primary',
+              onClick: () => navigate(interviewRequestsSentPath),
+            },
+          ],
+        });
+        return;
+      }
+
       if (n.type === 'interview-assigned') {
         const requester = n.requesterName || 'A candidate';
         const company = n.company || 'a company';
         const position = n.position || 'a role';
+        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
-          title: 'Interview Assigned',
-          message: `${requester} requested an interview at ${company} for ${position}.`,
+          title: 'New Interview Request',
+          message: `${requester} requested a mock interview for ${company} — ${position}.${rid}`,
           variant: 'info',
           timeout: 0,
           actions: [
             {
               label: 'Check Details',
               variant: 'primary',
-              onClick: () => navigate('/interview-requests'),
+              onClick: () => navigate(interviewRequestsReceivedPath),
             },
           ],
         });
@@ -258,16 +295,19 @@ const ToastSocketBridge = () => {
 
       if (n.type === 'interview-requested') {
         const requester = n.requesterName || 'A user';
+        const company = n.company || 'a company';
+        const position = n.position || 'a role';
+        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'New Interview Request',
-          message: `${requester} requested an interview session.`,
+          message: `${requester} requested a mock interview for ${company} — ${position}.${rid}`,
           variant: 'info',
           timeout: 0,
           actions: [
             {
               label: 'Check Details',
               variant: 'primary',
-              onClick: () => navigate('/interview-requests'),
+              onClick: () => navigate(interviewRequestsReceivedPath),
             },
           ],
         });
@@ -275,16 +315,19 @@ const ToastSocketBridge = () => {
       }
 
       if (n.type === 'interview-approved') {
+        const company = n.company || 'the company';
+        const position = n.position || 'the role';
+        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'Interview Approved',
-          message: "Your interview request was approved. You'll be notified when the interviewer starts the session.",
+          message: `Good news — your mock interview for ${company} — ${position} was approved.${rid}`,
           variant: 'success',
           timeout: 0,
           actions: [
             {
               label: 'Check Details',
               variant: 'primary',
-              onClick: () => navigate('/interview-requests'),
+              onClick: () => navigate(interviewRequestsSentPath),
             },
           ],
         });
@@ -292,16 +335,19 @@ const ToastSocketBridge = () => {
       }
 
       if (n.type === 'interview-approved-confirmation') {
+        const company = n.company || 'the company';
+        const position = n.position || 'the role';
+        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'Interview Confirmed',
-          message: n.message || 'You approved the interview. Participants can now join when started.',
+          message: sanitizeToastText(n.message) || `You approved the mock interview for ${company} — ${position}.${rid}`,
           variant: 'success',
           timeout: 0,
           actions: [
             {
               label: 'Check Details',
               variant: 'primary',
-              onClick: () => navigate('/interview-requests'),
+              onClick: () => navigate(interviewRequestsReceivedPath),
             },
           ],
         });
@@ -309,9 +355,12 @@ const ToastSocketBridge = () => {
       }
 
       if (n.type === 'interview-rejected') {
+        const company = n.company || 'the company';
+        const position = n.position || 'the role';
+        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'Interview Denied',
-          message: 'Your interview request was denied. You may request again if needed.',
+          message: n.message || `Your mock interview request for ${company} — ${position} was declined.${rid}`,
           variant: 'error',
           timeout: 0,
           actions: [
@@ -322,16 +371,19 @@ const ToastSocketBridge = () => {
       }
 
       if (n.type === 'interview-scheduled') {
+        const company = n.company || 'the company';
+        const position = n.position || 'the role';
+        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'Interview Scheduled',
-          message: n.message || 'Your interview has been scheduled.',
+          message: sanitizeToastText(n.message) || `Your mock interview session for ${company} — ${position} has been scheduled. Check the details and join the session.${rid}`,
           variant: 'success',
           timeout: 0,
           actions: [
             {
               label: 'View Details',
               variant: 'primary',
-              onClick: () => navigate('/interview-requests'),
+              onClick: () => navigate('/session-requests?tab=interview&view=sent'),
             },
           ],
         });
@@ -341,7 +393,7 @@ const ToastSocketBridge = () => {
       if (n.type === 'interview-scheduled-confirmation') {
         addToast({
           title: 'Schedule Saved',
-          message: n.message || 'Interview time saved successfully.',
+          message: sanitizeToastText(n.message) || 'Interview time saved successfully.',
           variant: 'success',
           timeout: 4000,
           actions: [{ label: 'OK', variant: 'primary' }],
@@ -371,16 +423,12 @@ const ToastSocketBridge = () => {
               label: 'Join Now',
               variant: 'primary',
               onClick: () => {
-                try {
-                  if (n.interviewId || n.sessionId) {
-                    const interviewId = n.interviewId || n.sessionId;
-                    const role = (user && n.interviewer && user._id === n.interviewer._id) ? 'interviewer' : 'interviewee';
-                    localStorage.setItem('pendingJoinInterview', JSON.stringify({ interviewId, role, ts: Date.now() }));
-                  }
-                } catch {
-                  // ignore write errors
+                const interviewId = n.interviewId || n.sessionId;
+                if (interviewId) {
+                  navigate(`/interview-call/${interviewId}`);
+                } else {
+                  navigate(interviewRequestsPath);
                 }
-                navigate('/interview-requests', { state: { openFromToast: true } });
               },
             },
           ],
