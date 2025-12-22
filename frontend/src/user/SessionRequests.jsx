@@ -950,9 +950,15 @@ const SessionRequests = () => {
             >
               <FaUser className="text-xs" />
               <span className="font-medium">Interview Requests</span>
-              {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length > 0 && (
+              {(interviewRequests?.received || []).filter((req) => {
+                const status = (req.status || '').toLowerCase();
+                return status === 'pending' || status === 'scheduled';
+              }).length > 0 && (
                 <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                  {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length}
+                  {(interviewRequests?.received || []).filter((req) => {
+                    const status = (req.status || '').toLowerCase();
+                    return status === 'pending' || status === 'scheduled';
+                  }).length}
                 </span>
               )}
             </button>
@@ -1058,9 +1064,15 @@ const SessionRequests = () => {
                 >
                   <FaUser className={`text-xs ${requestType === 'interview' ? 'text-amber-600' : 'text-slate-500'}`} />
                   <span className="font-medium">Interview Requests</span>
-                  {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length > 0 && (
+                  {(interviewRequests?.received || []).filter((req) => {
+                    const status = (req.status || '').toLowerCase();
+                    return status === 'pending' || status === 'scheduled';
+                  }).length > 0 && (
                     <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                      {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length}
+                      {(interviewRequests?.received || []).filter((req) => {
+                        const status = (req.status || '').toLowerCase();
+                        return status === 'pending' || status === 'scheduled';
+                      }).length}
                     </span>
                   )}
                 </button>
