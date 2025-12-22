@@ -223,9 +223,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
-        className="bg-white rounded-xl p-3 sm:p-4 w-[95vw] sm:w-[90vw] max-w-[1000px] h-[90vh] sm:h-[85vh] md:h-[650px] flex flex-col"
+        className="bg-white rounded-xl p-3 sm:p-4 w-[95vw] sm:w-[90vw] max-w-[1000px] max-h-[90vh] md:h-[650px] flex flex-col overflow-hidden"
       >
-        <div className="flex flex-col md:flex-row w-full h-full">
+        <div className="flex flex-col md:flex-row w-full h-full min-h-0">
           {/* Left Panel */}
           <div
             ref={leftPanelRef}
@@ -268,8 +268,8 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
           </div>
 
           {/* Right Panel */}
-          <div className="w-full md:w-1/2 p-2 sm:p-4 bg-white flex items-center justify-center">
-            <div className="w-full max-w-[360px] sm:max-w-[420px] bg-white rounded-lg p-2 sm:p-3 flex flex-col gap-2">
+          <div className="w-full md:w-1/2 p-2 sm:p-4 bg-white flex flex-1 min-h-0 items-start md:items-center justify-center overflow-y-auto">
+            <div className="relative w-full max-w-[360px] sm:max-w-[420px] bg-white rounded-lg p-2 sm:p-3 flex flex-col gap-2 mx-auto">
               {isModal && (
                 <button
                   onClick={onClose}

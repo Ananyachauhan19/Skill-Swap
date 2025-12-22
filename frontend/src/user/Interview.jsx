@@ -1150,6 +1150,10 @@ function ScheduledInterviewSection() {
     return String(requesterId) === uid || String(assignedId) === uid;
   });
 
+  // If there are no scheduled interviews, do not render this section.
+  // (Matches the Past Interviews components which return null when empty.)
+  if (!user || visible.length === 0) return null;
+
   return (
     <section className="w-full bg-home-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -1159,16 +1163,6 @@ function ScheduledInterviewSection() {
           </h2>
           <p className="text-center text-gray-600 text-sm">Upcoming sessions and completed interviews</p>
         </div>
-
-      {visible.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FaCalendarAlt className="text-blue-600 text-2xl" />
-          </div>
-          <p className="text-gray-900 text-lg font-semibold">No scheduled interviews yet</p>
-          <p className="text-gray-600 text-sm mt-2">Book your first mock interview to get started!</p>
-        </div>
-      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {visible.map((s, idx) => (
             <div
@@ -1296,7 +1290,6 @@ function ScheduledInterviewSection() {
             </div>
           ))}
         </div>
-        )}
       </div>
     </section>
   );

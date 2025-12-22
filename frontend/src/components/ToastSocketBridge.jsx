@@ -236,6 +236,26 @@ const ToastSocketBridge = () => {
       }
 
       // Interview notifications
+      if (n.type === 'interview-assigned') {
+        const requester = n.requesterName || 'A candidate';
+        const company = n.company || 'a company';
+        const position = n.position || 'a role';
+        addToast({
+          title: 'Interview Assigned',
+          message: `${requester} requested an interview at ${company} for ${position}.`,
+          variant: 'info',
+          timeout: 0,
+          actions: [
+            {
+              label: 'Check Details',
+              variant: 'primary',
+              onClick: () => navigate('/interview-requests'),
+            },
+          ],
+        });
+        return;
+      }
+
       if (n.type === 'interview-requested') {
         const requester = n.requesterName || 'A user';
         addToast({
@@ -271,6 +291,23 @@ const ToastSocketBridge = () => {
         return;
       }
 
+      if (n.type === 'interview-approved-confirmation') {
+        addToast({
+          title: 'Interview Confirmed',
+          message: n.message || 'You approved the interview. Participants can now join when started.',
+          variant: 'success',
+          timeout: 0,
+          actions: [
+            {
+              label: 'Check Details',
+              variant: 'primary',
+              onClick: () => navigate('/interview-requests'),
+            },
+          ],
+        });
+        return;
+      }
+
       if (n.type === 'interview-rejected') {
         addToast({
           title: 'Interview Denied',
@@ -280,6 +317,45 @@ const ToastSocketBridge = () => {
           actions: [
             { label: 'Okay', variant: 'primary' },
           ],
+        });
+        return;
+      }
+
+      if (n.type === 'interview-scheduled') {
+        addToast({
+          title: 'Interview Scheduled',
+          message: n.message || 'Your interview has been scheduled.',
+          variant: 'success',
+          timeout: 0,
+          actions: [
+            {
+              label: 'View Details',
+              variant: 'primary',
+              onClick: () => navigate('/interview-requests'),
+            },
+          ],
+        });
+        return;
+      }
+
+      if (n.type === 'interview-scheduled-confirmation') {
+        addToast({
+          title: 'Schedule Saved',
+          message: n.message || 'Interview time saved successfully.',
+          variant: 'success',
+          timeout: 4000,
+          actions: [{ label: 'OK', variant: 'primary' }],
+        });
+        return;
+      }
+
+      if (n.type === 'interview-rated') {
+        addToast({
+          title: 'Interview Rated',
+          message: n.message || 'Thanks for your feedback!',
+          variant: 'success',
+          timeout: 4000,
+          actions: [{ label: 'OK', variant: 'primary' }],
         });
         return;
       }
