@@ -22,6 +22,15 @@ const InterviewCallPage = () => {
           // Determine if current user is interviewer or student
           const isInterviewer = String(interview.assignedInterviewer?._id || interview.assignedInterviewer) === String(user?._id);
           setUserRole(isInterviewer ? 'interviewer' : 'student');
+
+          if (interview.scheduledAt) {
+            const scheduledTime = new Date(interview.scheduledAt).getTime();
+            const joinOpenTime = scheduledTime - 15 * 60 * 1000;
+            if (Date.now() < joinOpenTime) {
+              navigate('/session-requests?interviewEarly=1');
+              return;
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to fetch interview details:', error);
