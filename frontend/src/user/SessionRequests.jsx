@@ -925,9 +925,9 @@ const SessionRequests = () => {
             >
               <FaVideo className="text-xs" />
               <span className="font-medium">Session Requests</span>
-              {requests.received.filter((req) => req.status === 'pending').length > 0 && (
+              {([...requests.received, ...requests.sent].filter((req) => req.status === 'pending').length) > 0 && (
                 <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                  {requests.received.filter((req) => req.status === 'pending').length}
+                  {[...requests.received, ...requests.sent].filter((req) => req.status === 'pending').length}
                 </span>
               )}
             </button>
@@ -945,9 +945,9 @@ const SessionRequests = () => {
             >
               <FaUserFriends className="text-xs" />
               <span className="font-medium">Expert Session Requests</span>
-              {expertSessionRequests.received.filter((req) => req.status === 'pending').length > 0 && (
+              {([...expertSessionRequests.received, ...expertSessionRequests.sent].filter((req) => req.status === 'pending').length) > 0 && (
                 <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                  {expertSessionRequests.received.filter((req) => req.status === 'pending').length}
+                  {[...expertSessionRequests.received, ...expertSessionRequests.sent].filter((req) => req.status === 'pending').length}
                 </span>
               )}
             </button>
@@ -965,9 +965,9 @@ const SessionRequests = () => {
             >
               <FaHandshake className="text-xs" />
               <span className="font-medium">SkillMate Requests</span>
-              {skillMateRequests.received.filter((req) => req.status === 'pending').length > 0 && (
+              {([...skillMateRequests.received, ...skillMateRequests.sent].filter((req) => req.status === 'pending').length) > 0 && (
                 <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                  {skillMateRequests.received.filter((req) => req.status === 'pending').length}
+                  {[...skillMateRequests.received, ...skillMateRequests.sent].filter((req) => req.status === 'pending').length}
                 </span>
               )}
             </button>
@@ -985,9 +985,15 @@ const SessionRequests = () => {
             >
               <FaUser className="text-xs" />
               <span className="font-medium">Interview Requests</span>
-              {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length > 0 && (
+              {([...(interviewRequests?.received || []), ...(interviewRequests?.sent || [])].filter((req) => {
+                const status = (req.status || '').toLowerCase();
+                return status === 'pending' || status === 'scheduled';
+              })).length > 0 && (
                 <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                  {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length}
+                  {[...(interviewRequests?.received || []), ...(interviewRequests?.sent || [])].filter((req) => {
+                    const status = (req.status || '').toLowerCase();
+                    return status === 'pending' || status === 'scheduled';
+                  }).length}
                 </span>
               )}
             </button>
@@ -1030,9 +1036,9 @@ const SessionRequests = () => {
                 >
                   <FaVideo className={`text-xs ${requestType === 'session' ? 'text-teal-600' : 'text-slate-500'}`} />
                   <span className="font-medium">Session Requests</span>
-                  {requests.received.filter((req) => req.status === 'pending').length > 0 && (
+                  {([...requests.received, ...requests.sent].filter((req) => req.status === 'pending').length) > 0 && (
                     <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                      {requests.received.filter((req) => req.status === 'pending').length}
+                      {[...requests.received, ...requests.sent].filter((req) => req.status === 'pending').length}
                     </span>
                   )}
                 </button>
@@ -1051,9 +1057,9 @@ const SessionRequests = () => {
                 >
                   <FaUserFriends className={`text-xs ${requestType === 'expert' ? 'text-indigo-600' : 'text-slate-500'}`} />
                   <span className="font-medium">Expert Session Requests</span>
-                  {expertSessionRequests.received.filter((req) => req.status === 'pending').length > 0 && (
+                  {([...expertSessionRequests.received, ...expertSessionRequests.sent].filter((req) => req.status === 'pending').length) > 0 && (
                     <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                      {expertSessionRequests.received.filter((req) => req.status === 'pending').length}
+                      {[...expertSessionRequests.received, ...expertSessionRequests.sent].filter((req) => req.status === 'pending').length}
                     </span>
                   )}
                 </button>
@@ -1072,9 +1078,9 @@ const SessionRequests = () => {
                 >
                   <FaHandshake className={`text-xs ${requestType === 'skillmate' ? 'text-purple-600' : 'text-slate-500'}`} />
                   <span className="font-medium">SkillMate Requests</span>
-                  {skillMateRequests.received.filter((req) => req.status === 'pending').length > 0 && (
+                  {([...skillMateRequests.received, ...skillMateRequests.sent].filter((req) => req.status === 'pending').length) > 0 && (
                     <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                      {skillMateRequests.received.filter((req) => req.status === 'pending').length}
+                      {[...skillMateRequests.received, ...skillMateRequests.sent].filter((req) => req.status === 'pending').length}
                     </span>
                   )}
                 </button>
@@ -1093,9 +1099,15 @@ const SessionRequests = () => {
                 >
                   <FaUser className={`text-xs ${requestType === 'interview' ? 'text-amber-600' : 'text-slate-500'}`} />
                   <span className="font-medium">Interview Requests</span>
-                  {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length > 0 && (
+                  {([...(interviewRequests?.received || []), ...(interviewRequests?.sent || [])].filter((req) => {
+                    const status = (req.status || '').toLowerCase();
+                    return status === 'pending' || status === 'scheduled';
+                  })).length > 0 && (
                     <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
-                      {(interviewRequests?.received || []).filter((req) => req.status === 'pending').length}
+                      {[...(interviewRequests?.received || []), ...(interviewRequests?.sent || [])].filter((req) => {
+                        const status = (req.status || '').toLowerCase();
+                        return status === 'pending' || status === 'scheduled';
+                      }).length}
                     </span>
                   )}
                 </button>

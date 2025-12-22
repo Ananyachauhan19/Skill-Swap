@@ -339,6 +339,12 @@ const Navbar = () => {
   const [goldenCoins, setGoldenCoins] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
   const [activeVideoCall, setActiveVideoCall] = useState(null);
+  const [pendingRequestCounts, setPendingRequestCounts] = useState({
+    session: 0,
+    expert: 0,
+    skillmate: 0,
+    interview: 0,
+  });
   const menuRef = useRef();
   const coinsRef = useRef();
   const searchRef = useRef();
@@ -368,6 +374,106 @@ const Navbar = () => {
     }
   };
 
+  // Fetch pending request counts for Requests tab badge
+  const fetchPendingRequestCounts = async () => {
+    try {
+      const userCookie = Cookies.get('user');
+      if (!userCookie) {
+        setPendingRequestCounts({ session: 0, expert: 0, skillmate: 0, interview: 0 });
+        return;
+      }
+
+      const now = new Date();
+      const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+
+      const [sessionRes, expertRes, skillmateReceivedRes, skillmateSentRes, interviewRes] = await Promise.allSettled([
+        fetch(`${BACKEND_URL}/api/session-requests/all`, { credentials: 'include' }),
+        fetch(`${BACKEND_URL}/api/session-requests/expert`, { credentials: 'include' }),
+        fetch(`${BACKEND_URL}/api/skillmates/requests/received`, { credentials: 'include' }),
+        fetch(`${BACKEND_URL}/api/skillmates/requests/sent`, { credentials: 'include' }),
+        fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' }),
+      ]);
+
+      let sessionPending = 0;
+      if (sessionRes.status === 'fulfilled' && sessionRes.value.ok) {
+        const data = await sessionRes.value.json();
+        const received = Array.isArray(data.received) ? data.received : [];
+        const sent = Array.isArray(data.sent) ? data.sent : [];
+        const all = [...received, ...sent];
+        // Match SessionRequests.jsx: only last 2 days are visible
+        sessionPending = all.filter((r) => {
+          const status = (r.status || '').toLowerCase();
+          if (status !== 'pending') return false;
+          const createdAt = new Date(r.createdAt || r.requestedAt);
+          return !createdAt || isNaN(createdAt.getTime()) || createdAt >= twoDaysAgo;
+        }).length;
+      }
+
+      let expertPending = 0;
+      if (expertRes.status === 'fulfilled' && expertRes.value.ok) {
+        const data = await expertRes.value.json();
+        const received = Array.isArray(data.received) ? data.received : [];
+        const sent = Array.isArray(data.sent) ? data.sent : [];
+        const all = [...received, ...sent];
+        // Match expertSessionRequests filter: last 2 days only
+        expertPending = all.filter((r) => {
+          const status = (r.status || '').toLowerCase();
+          if (status !== 'pending') return false;
+          const createdAt = new Date(r.createdAt || r.requestedAt);
+          return !createdAt || isNaN(createdAt.getTime()) || createdAt >= twoDaysAgo;
+        }).length;
+      }
+
+      let skillmatePending = 0;
+      if (
+        skillmateReceivedRes.status === 'fulfilled' &&
+        skillmateReceivedRes.value.ok &&
+        skillmateSentRes.status === 'fulfilled' &&
+        skillmateSentRes.value.ok
+      ) {
+        const receivedData = await skillmateReceivedRes.value.json();
+        const sentData = await skillmateSentRes.value.json();
+        const receivedList = Array.isArray(receivedData) ? receivedData : [];
+        const sentList = Array.isArray(sentData) ? sentData : [];
+        const all = [...receivedList, ...sentList];
+        skillmatePending = all.filter((r) => (r.status || '').toLowerCase() === 'pending').length;
+      }
+
+      let interviewPending = 0;
+      if (interviewRes.status === 'fulfilled' && interviewRes.value.ok) {
+        const data = await interviewRes.value.json();
+        const received = Array.isArray(data.received) ? data.received : [];
+        const sent = Array.isArray(data.sent) ? data.sent : [];
+        const all = [...received, ...sent];
+
+        // First apply the same visibility filter as SessionRequests.jsx:
+        // - keep all 'scheduled' interviews regardless of age
+        // - for others, only keep last 2 days
+        const visible = all.filter((req) => {
+          const status = (req.status || '').toLowerCase();
+          if (status === 'scheduled') return true;
+          const createdAt = new Date(req.createdAt || req.requestedAt);
+          return !createdAt || isNaN(createdAt.getTime()) || createdAt >= twoDaysAgo;
+        });
+
+        // From the visible list, count items still pending to complete
+        interviewPending = visible.filter((r) => {
+          const status = (r.status || '').toLowerCase();
+          return status === 'pending' || status === 'scheduled';
+        }).length;
+      }
+
+      setPendingRequestCounts({
+        session: sessionPending,
+        expert: expertPending,
+        skillmate: skillmatePending,
+        interview: interviewPending,
+      });
+    } catch (error) {
+      console.error('[Navbar] Failed to fetch pending request counts:', error);
+    }
+  };
+
   // Verify login via backend (useful after OAuth redirects)
   const verifyLogin = async () => {
     try {
@@ -382,6 +488,7 @@ const Navbar = () => {
           } catch {}
           socket.emit('register', userObj._id);
           await fetchCoins();
+          await fetchPendingRequestCounts();
         }
       }
     } catch {}
@@ -406,6 +513,7 @@ const Navbar = () => {
       socket.emit('register', user._id);
       // Fetch coins on mount if logged in
       fetchCoins();
+      fetchPendingRequestCounts();
     } else {
       // Attempt to verify session from backend (handles OAuth callback flows)
       verifyLogin();
@@ -451,6 +559,7 @@ const Navbar = () => {
         if (newLoginState) {
           // Fetch coins on login
           fetchCoins();
+          fetchPendingRequestCounts();
           // Re-register socket on login
           const user = userCookie ? JSON.parse(userCookie) : null;
           if (user && user._id) {
@@ -576,6 +685,11 @@ const Navbar = () => {
 
   useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins);
 
+  // Recompute pending request counts when notifications change (debounced via length)
+  useEffect(() => {
+    fetchPendingRequestCounts();
+  }, [notifications.length]);
+
   // Live suggestions: fetch users from backend on query change (debounced)
   useEffect(() => {
     let timeout;
@@ -642,6 +756,12 @@ const Navbar = () => {
 
   const handleMobileMenu = () => setMenuOpen((open) => !open);
 
+  const totalPendingRequests =
+    pendingRequestCounts.session +
+    pendingRequestCounts.expert +
+    pendingRequestCounts.skillmate +
+    pendingRequestCounts.interview;
+
   return (
     <>
       <nav className="fixed top-0 left-0 w-full h-[64px] sm:h-[72px] bg-[#F5F9FF] text-blue-900 px-3 sm:px-4 shadow-md border-b border-gray-200/50 z-50 backdrop-blur-sm">
@@ -678,7 +798,14 @@ const Navbar = () => {
                 } touch-manipulation`}
                 onClick={() => navigate(path)}
               >
-                {label}
+                <span className="flex items-center gap-1">
+                  <span>{label}</span>
+                  {path === '/session-requests' && totalPendingRequests > 0 && (
+                    <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500 text-white">
+                      {totalPendingRequests}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </div>

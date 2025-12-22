@@ -122,6 +122,7 @@ function BrowseInterviewersSection({ onBookSession }) {
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAllModal, setShowAllModal] = useState(false);
+  const [modalSearchText, setModalSearchText] = useState('');
   const navigate = useNavigate();
 
   // Load all interviewers on mount
@@ -162,6 +163,30 @@ function BrowseInterviewersSection({ onBookSession }) {
       }
     })();
   }, [searchText, searchMode, user?._id]);
+
+  // Fuse.js instance for searching interviewers in the "All Expert Interviewers" modal
+  const modalFuse = useMemo(() => {
+    if (!allInterviewers || allInterviewers.length === 0) return null;
+    return new Fuse(allInterviewers, {
+      includeScore: false,
+      threshold: 0.35,
+      keys: [
+        'user.firstName',
+        'user.lastName',
+        'user.username',
+        'application.company',
+        'application.position',
+        'application.qualification',
+      ],
+    });
+  }, [allInterviewers]);
+
+  const modalFilteredInterviewers = useMemo(() => {
+    const query = modalSearchText.trim();
+    if (!query || !modalFuse) return allInterviewers;
+    const results = modalFuse.search(query);
+    return results.map(r => r.item);
+  }, [modalSearchText, modalFuse, allInterviewers]);
 
   return (
     <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-5 lg:p-8 border border-slate-200/50 shadow-sm">
@@ -246,9 +271,20 @@ function BrowseInterviewersSection({ onBookSession }) {
                   </button>
                 </div>
                 
-                <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                <div className="p-6 overflow-y-auto space-y-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                  {/* Modal search bar for interviewer name / company / position */}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={modalSearchText}
+                      onChange={e => setModalSearchText(e.target.value)}
+                      placeholder="Search interviewer by name, company, or position..."
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none hover:border-slate-400 transition-colors text-sm"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {allInterviewers.map((m) => (
+                    {modalFilteredInterviewers.map((m) => (
                       <InterviewerCard key={m.application?._id || m.user?._id} interviewer={m} onBookSession={onBookSession} navigate={navigate} onModalAction={() => setShowAllModal(false)} />
                     ))}
                   </div>
@@ -721,32 +757,11 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
 
   useEffect(() => {
     const fetchMatched = async () => {
-      // If there's a preselected interviewer, keep it in the list regardless of company/position
+      // If there's a preselected interviewer (coming from an interviewer card),
+      // show only that interviewer in the list instead of generic recommendations.
       if (preSelectedInterviewer) {
-        if (!company && !position) {
-          setMatchedInterviewers([preSelectedInterviewer]);
-          return;
-        }
-        try {
-          const q = new URLSearchParams({ company: company || '', position: position || '' }).toString();
-          const res = await fetch(`${BACKEND_URL}/api/interview/interviewers?${q}`, { credentials: 'include' });
-          if (!res.ok) {
-            setMatchedInterviewers([preSelectedInterviewer]);
-            return;
-          }
-          const data = await res.json();
-          // Always include the preselected interviewer
-          const preselectedId = String(preSelectedInterviewer.user?._id || '');
-          const hasPreselected = (data || []).some(m => String(m.user?._id || '') === preselectedId);
-          if (!hasPreselected) {
-            setMatchedInterviewers([preSelectedInterviewer, ...(data || [])]);
-          } else {
-            setMatchedInterviewers(data || []);
-          }
-        } catch (e) {
-          console.error('Failed to fetch interviewers', e);
-          setMatchedInterviewers([preSelectedInterviewer]);
-        }
+        setMatchedInterviewers([preSelectedInterviewer]);
+        return;
       } else {
         // Normal behavior when no preselected interviewer
         if (!company && !position) { setMatchedInterviewers([]); return; }
@@ -878,7 +893,7 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
               {matchedInterviewers && matchedInterviewers.length > 0 && (
                 <div className="bg-blue-900/5 p-4 rounded-lg border border-blue-900/10">
                   <h4 className="text-sm font-semibold text-slate-900 mb-3">
-                    Recommended Interviewers
+                    {preSelectedInterviewer ? 'Selected Interviewer' : 'Recommended Interviewers'}
                   </h4>
                   <div className="space-y-2">
                     {matchedInterviewers.filter(m => m.user && m.user._id).map((m) => (
@@ -1189,6 +1204,7 @@ function ScheduledInterviewSection() {
   // (Matches the Past Interviews components which return null when empty.)
   if (!user || visible.length === 0) return null;
 
+<<<<<<< HEAD
   const displayedInterviews = visible.slice(0, 3);
   const hasMore = visible.length > 3;
 
@@ -1311,6 +1327,18 @@ function ScheduledInterviewSection() {
     </div>
   );
 
+||||||| 3fffff45
+||||||| 90a69228
+=======
+  // If there are no scheduled interviews for this user, hide the
+  // entire scheduled section from the UI.
+  if (visible.length === 0) {
+    return null;
+  }
+
+>>>>>>> 469fa669ecb0087857403bc20b033d2246c0ec8b
+=======
+>>>>>>> 67e0fcb4e1da054fd78aecb548654b54a89e3986
   return (
     <section className="w-full bg-home-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
@@ -1320,10 +1348,279 @@ function ScheduledInterviewSection() {
           </h2>
           <p className="text-center text-gray-600 text-sm">Upcoming sessions and completed interviews</p>
         </div>
+<<<<<<< HEAD
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {displayedInterviews.map((s) => (
             <InterviewCard key={s._id} s={s} />
+||||||| 3fffff45
+<<<<<<< HEAD
+||||||| 90a69228
+
+      {visible.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FaCalendarAlt className="text-blue-600 text-2xl" />
+          </div>
+          <p className="text-gray-900 text-lg font-semibold">No scheduled interviews yet</p>
+          <p className="text-gray-600 text-sm mt-2">Book your first mock interview to get started!</p>
+        </div>
+      ) : (
+=======
+
+>>>>>>> 469fa669ecb0087857403bc20b033d2246c0ec8b
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {visible.map((s, idx) => (
+            <div
+              key={s._id}
+              className="bg-white border border-gray-200 rounded-xl p-6"
+            >
+
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  
+                  <div className="mt-1">
+                    <p className="text-sm text-gray-700 flex items-center gap-2">
+                      <span className="text-gray-500 font-medium">Requested for:</span>
+                    </p>
+                    <p className="text-sm text-gray-800 flex items-center gap-2">
+                      <span className="font-medium">{s.company || s.subject || '—'}</span>
+                      <span>•</span>
+                      <span>{s.position || s.topic || '—'}</span>
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-medium rounded-md whitespace-nowrap ml-2">
+                  {(s.status || 'Scheduled').charAt(0).toUpperCase() + (s.status || 'Scheduled').slice(1)}
+                </span>
+              </div>
+              
+              <div className="space-y-3 text-sm text-gray-700 mb-5">
+                {/* Interviewer Details with headings */}
+                <div className="p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-start gap-3">
+                    <FaUserTie className="text-blue-600 text-sm mt-0.5" />
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900">
+                        {(() => {
+                          try {
+                            const other = s.assignedInterviewer; // Always show interviewer details
+                            if (!other) return 'TBD';
+                            const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
+                            return name;
+                          } catch (e) {
+                            return 'TBD';
+                          }
+                        })()}
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                        {/* Interviewer's fixed company/position from their application */}
+                        {(() => {
+                          const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+                          const dir = assignedId ? interviewerDirectory.get(String(assignedId)) : null;
+                          const interviewerCompany = s.interviewerApp?.company || dir?.company || '—';
+                          const interviewerPosition = s.interviewerApp?.position || dir?.position || '—';
+                          return (
+                            <>
+                              <div>
+                                <div className="text-gray-500">Company</div>
+                                <div className="text-gray-800 font-medium">{interviewerCompany}</div>
+                              </div>
+                              <div>
+                                <div className="text-gray-500">Position</div>
+                                <div className="text-gray-800 font-medium">{interviewerPosition}</div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                        {s.interviewerStats && (
+                          <>
+                            <div>
+                              <div className="text-gray-500">Total Interviews</div>
+                              <div className="text-gray-800 font-medium">{s.interviewerStats.conductedInterviews || 0}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">Overall Rating</div>
+                              <div className="flex items-center gap-1 text-gray-800 font-medium">
+                                <FaStar className="text-yellow-500" />
+                                {(s.interviewerStats.averageRating || 0).toFixed(1)}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Schedule info */}
+                <div className="flex items-center gap-2">
+                  <FaCalendarAlt className="text-blue-600 text-sm" />
+                  <span className="font-medium">
+                    {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString('en-US', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                    }) : 'Date TBD'}
+                  </span>
+                </div>
+                {s.message && (
+                  <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <FaComment className="text-blue-600 text-sm flex-shrink-0 mt-0.5" />
+                    <span className="text-xs text-gray-700 line-clamp-2">{s.message}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate('/session-requests')}
+                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+                >
+                  View Details →
+                </button>
+                
+                {s.status === 'completed' && !s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
+                  <button
+                    onClick={() => handleRateClick(s)}
+                    className="py-2.5 px-4 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors text-sm flex items-center gap-2"
+                  >
+                    <FaStar /> Rate
+                  </button>
+                )}
+                {s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
+                  <div className="py-2.5 px-4 bg-green-50 border border-green-200 text-green-700 rounded-lg font-medium text-sm flex items-center gap-2">
+                    <FaStar className="text-yellow-500" /> {s.rating}/5
+                  </div>
+                )}
+              </div>
+            </div>
+=======
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {visible.map((s, idx) => (
+            <div
+              key={s._id}
+              className="bg-white border border-gray-200 rounded-xl p-6"
+            >
+
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  
+                  <div className="mt-1">
+                    <p className="text-sm text-gray-700 flex items-center gap-2">
+                      <span className="text-gray-500 font-medium">Requested for:</span>
+                    </p>
+                    <p className="text-sm text-gray-800 flex items-center gap-2">
+                      <span className="font-medium">{s.company || s.subject || '—'}</span>
+                      <span>•</span>
+                      <span>{s.position || s.topic || '—'}</span>
+                    </p>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 bg-blue-600 text-white text-xs font-medium rounded-md whitespace-nowrap ml-2">
+                  {(s.status || 'Scheduled').charAt(0).toUpperCase() + (s.status || 'Scheduled').slice(1)}
+                </span>
+              </div>
+              
+              <div className="space-y-3 text-sm text-gray-700 mb-5">
+                {/* Interviewer Details with headings */}
+                <div className="p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-start gap-3">
+                    <FaUserTie className="text-blue-600 text-sm mt-0.5" />
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900">
+                        {(() => {
+                          try {
+                            const other = s.assignedInterviewer; // Always show interviewer details
+                            if (!other) return 'TBD';
+                            const name = other.username || `${other.firstName || ''} ${other.lastName || ''}`.trim() || other.firstName || 'TBD';
+                            return name;
+                          } catch (e) {
+                            return 'TBD';
+                          }
+                        })()}
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                        {/* Interviewer's fixed company/position from their application */}
+                        {(() => {
+                          const assignedId = s.assignedInterviewer?._id || s.assignedInterviewer;
+                          const dir = assignedId ? interviewerDirectory.get(String(assignedId)) : null;
+                          const interviewerCompany = s.interviewerApp?.company || dir?.company || '—';
+                          const interviewerPosition = s.interviewerApp?.position || dir?.position || '—';
+                          return (
+                            <>
+                              <div>
+                                <div className="text-gray-500">Company</div>
+                                <div className="text-gray-800 font-medium">{interviewerCompany}</div>
+                              </div>
+                              <div>
+                                <div className="text-gray-500">Position</div>
+                                <div className="text-gray-800 font-medium">{interviewerPosition}</div>
+                              </div>
+                            </>
+                          );
+                        })()}
+                        {s.interviewerStats && (
+                          <>
+                            <div>
+                              <div className="text-gray-500">Total Interviews</div>
+                              <div className="text-gray-800 font-medium">{s.interviewerStats.conductedInterviews || 0}</div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">Overall Rating</div>
+                              <div className="flex items-center gap-1 text-gray-800 font-medium">
+                                <FaStar className="text-yellow-500" />
+                                {(s.interviewerStats.averageRating || 0).toFixed(1)}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Schedule info */}
+                <div className="flex items-center gap-2">
+                  <FaCalendarAlt className="text-blue-600 text-sm" />
+                  <span className="font-medium">
+                    {s.scheduledAt ? new Date(s.scheduledAt).toLocaleString('en-US', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                    }) : 'Date TBD'}
+                  </span>
+                </div>
+                {s.message && (
+                  <div className="flex items-start gap-2 mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <FaComment className="text-blue-600 text-sm flex-shrink-0 mt-0.5" />
+                    <span className="text-xs text-gray-700 line-clamp-2">{s.message}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => navigate('/session-requests')}
+                  className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm"
+                >
+                  View Details →
+                </button>
+                
+                {s.status === 'completed' && !s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
+                  <button
+                    onClick={() => handleRateClick(s)}
+                    className="py-2.5 px-4 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors text-sm flex items-center gap-2"
+                  >
+                    <FaStar /> Rate
+                  </button>
+                )}
+                {s.rating && String(s.requester?._id || s.requester) === String(user._id) && (
+                  <div className="py-2.5 px-4 bg-green-50 border border-green-200 text-green-700 rounded-lg font-medium text-sm flex items-center gap-2">
+                    <FaStar className="text-yellow-500" /> {s.rating}/5
+                  </div>
+                )}
+              </div>
+            </div>
+>>>>>>> 67e0fcb4e1da054fd78aecb548654b54a89e3986
           ))}
         </div>
 
