@@ -169,7 +169,7 @@ function BrowseInterviewersSection({ onBookSession }) {
           Browse Expert Interviewers
         </h2>
         <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-          Discover and connect with approved industry experts for your mock interview sessions
+          Discover and connect with approved experts for your mock interview sessions
         </p>
       </div>
 
@@ -989,7 +989,7 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
                   <ul className="space-y-2 text-sm text-slate-600">
                     <li className="flex items-start gap-2">
                       <span className="text-blue-900 mt-1">✓</span>
-                      <span>Share your industry experience and help others succeed</span>
+                      <span>Share your experience and help others succeed</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-blue-900 mt-1">✓</span>
@@ -1347,12 +1347,12 @@ const Interview = () => {
               <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-slate-900 leading-tight tracking-tight px-1 sm:px-2 lg:px-0">
                 Master Your Interviews with
                 <span className="block text-blue-900 mt-1 sm:mt-1.5 lg:mt-2">
-                  Industry Experts
+                  Experts
                 </span>
               </h1>
               
               <p className="text-xs sm:text-sm lg:text-base xl:text-lg text-slate-500 max-w-2xl mx-auto lg:mx-0 px-2 sm:px-4 lg:px-0 leading-relaxed">
-                Practice with industry experts, get real feedback, and land your dream job with confidence.
+                Practice with experts, get real feedback, and land your dream job with confidence.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-3 lg:gap-4 pt-2 sm:pt-3 lg:pt-4 px-2 sm:px-4 lg:px-0">

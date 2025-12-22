@@ -494,23 +494,39 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
       cleanup();
       setCallStartTime(null);
       setElapsedSeconds(0);
+      let allowRating = false;
 
-      // Show rating modal for students only - compulsory, cannot close without submitting
-      // Interview will be marked as completed when rating is submitted
+      // For students, only show the feedback modal after the interview
+      // has actually been marked completed on the backend. This prevents
+      // navigating to feedback when the scheduled interview was never
+      // properly completed (e.g. other side did not join).
       if (userRole === 'student') {
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/interview/requests/${sessionId}`, {
+            credentials: 'include',
+          });
+          if (res.ok) {
+            const interview = await res.json();
+            const status = (interview.status || '').toLowerCase();
+            if (status === 'completed') {
+              allowRating = true;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to verify interview completion before rating:', e);
+        }
+      }
+
+      if (userRole === 'student' && allowRating) {
         setShowRatingModal(true);
       } else {
-        // Interviewer can exit immediately
+        // Either interviewer, or interview not completed yet for student
         onEnd && onEnd();
       }
     } catch (error) {
       console.error('Error ending call:', error);
-      // Still show rating modal even on error
-      if (userRole === 'student') {
-        setShowRatingModal(true);
-      } else {
-        onEnd && onEnd();
-      }
+      // On error, just end the call; do not force rating
+      onEnd && onEnd();
     }
   };
 

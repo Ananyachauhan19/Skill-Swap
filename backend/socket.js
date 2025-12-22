@@ -1348,22 +1348,16 @@ module.exports = (io) => {
           console.log(`[Interview] Marked as completed: ${sessionId}`);
         }
 
-        // Award contribution credits for both requester and interviewer
+        // Award contribution credits for the interviewer only.
+        // The requester (student) already gets credit via rating and
+        // other flows; INTERVIEW_COMPLETED is used to represent
+        // hosted interviews for the expert.
         try {
           const requesterId = interview.requester && (interview.requester._id || interview.requester);
           const interviewerId = interview.assignedInterviewer && (interview.assignedInterviewer._id || interview.assignedInterviewer);
           const when = new Date();
 
           const tasks = [];
-          if (requesterId) {
-            tasks.push(trackActivity({
-              userId: requesterId,
-              activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
-              activityId: interview._id.toString(),
-              when,
-              io,
-            }));
-          }
           if (interviewerId) {
             tasks.push(trackActivity({
               userId: interviewerId,
@@ -1376,7 +1370,7 @@ module.exports = (io) => {
 
           if (tasks.length) {
             await Promise.all(tasks);
-            console.log('[Interview] Contribution credits tracked for interview', interview._id.toString());
+            console.log('[Interview] Contribution credits tracked for interviewer on interview', interview._id.toString());
           }
         } catch (err) {
           console.error('[Interview] Failed to track interview completion contributions:', err);

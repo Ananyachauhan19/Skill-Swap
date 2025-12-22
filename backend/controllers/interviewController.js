@@ -1117,10 +1117,10 @@ exports.rateInterviewer = async (req, res) => {
     });
     // Contribution:
     //  - SESSION_RATED for the requester (student)
-    //  - INTERVIEW_COMPLETED for both requester and interviewer
+    //  - INTERVIEW_COMPLETED for the interviewer only (hosted interview)
     // These use ContributionEvent for idempotency, so if the socket
-    // end-call handler has already recorded INTERVIEW_COMPLETED, these
-    // calls will safely no-op on duplicates.
+    // end-call handler has already recorded INTERVIEW_COMPLETED for
+    // the interviewer, these calls will safely no-op on duplicates.
     try {
       const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
       const io = req.app.get('io');
@@ -1130,12 +1130,6 @@ exports.rateInterviewer = async (req, res) => {
         trackActivity({
           userId,
           activityType: ACTIVITY_TYPES.SESSION_RATED,
-          activityId: request._id.toString(),
-          io,
-        }),
-        trackActivity({
-          userId,
-          activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
           activityId: request._id.toString(),
           io,
         }),
