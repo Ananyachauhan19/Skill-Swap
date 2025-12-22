@@ -121,6 +121,7 @@ function BrowseInterviewersSection({ onBookSession }) {
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(false);
   const [showAllModal, setShowAllModal] = useState(false);
+  const [modalSearchText, setModalSearchText] = useState('');
   const navigate = useNavigate();
 
   // Load all interviewers on mount
@@ -161,6 +162,30 @@ function BrowseInterviewersSection({ onBookSession }) {
       }
     })();
   }, [searchText, searchMode, user?._id]);
+
+  // Fuse.js instance for searching interviewers in the "All Expert Interviewers" modal
+  const modalFuse = useMemo(() => {
+    if (!allInterviewers || allInterviewers.length === 0) return null;
+    return new Fuse(allInterviewers, {
+      includeScore: false,
+      threshold: 0.35,
+      keys: [
+        'user.firstName',
+        'user.lastName',
+        'user.username',
+        'application.company',
+        'application.position',
+        'application.qualification',
+      ],
+    });
+  }, [allInterviewers]);
+
+  const modalFilteredInterviewers = useMemo(() => {
+    const query = modalSearchText.trim();
+    if (!query || !modalFuse) return allInterviewers;
+    const results = modalFuse.search(query);
+    return results.map(r => r.item);
+  }, [modalSearchText, modalFuse, allInterviewers]);
 
   return (
     <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-5 lg:p-8 border border-slate-200/50 shadow-sm">
@@ -245,9 +270,20 @@ function BrowseInterviewersSection({ onBookSession }) {
                   </button>
                 </div>
                 
-                <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                <div className="p-6 overflow-y-auto space-y-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                  {/* Modal search bar for interviewer name / company / position */}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={modalSearchText}
+                      onChange={e => setModalSearchText(e.target.value)}
+                      placeholder="Search interviewer by name, company, or position..."
+                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none hover:border-slate-400 transition-colors text-sm"
+                    />
+                  </div>
+
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-                    {allInterviewers.map((m) => (
+                    {modalFilteredInterviewers.map((m) => (
                       <InterviewerCard key={m.application?._id || m.user?._id} interviewer={m} onBookSession={onBookSession} navigate={navigate} onModalAction={() => setShowAllModal(false)} />
                     ))}
                   </div>
@@ -687,32 +723,11 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
 
   useEffect(() => {
     const fetchMatched = async () => {
-      // If there's a preselected interviewer, keep it in the list regardless of company/position
+      // If there's a preselected interviewer (coming from an interviewer card),
+      // show only that interviewer in the list instead of generic recommendations.
       if (preSelectedInterviewer) {
-        if (!company && !position) {
-          setMatchedInterviewers([preSelectedInterviewer]);
-          return;
-        }
-        try {
-          const q = new URLSearchParams({ company: company || '', position: position || '' }).toString();
-          const res = await fetch(`${BACKEND_URL}/api/interview/interviewers?${q}`, { credentials: 'include' });
-          if (!res.ok) {
-            setMatchedInterviewers([preSelectedInterviewer]);
-            return;
-          }
-          const data = await res.json();
-          // Always include the preselected interviewer
-          const preselectedId = String(preSelectedInterviewer.user?._id || '');
-          const hasPreselected = (data || []).some(m => String(m.user?._id || '') === preselectedId);
-          if (!hasPreselected) {
-            setMatchedInterviewers([preSelectedInterviewer, ...(data || [])]);
-          } else {
-            setMatchedInterviewers(data || []);
-          }
-        } catch (e) {
-          console.error('Failed to fetch interviewers', e);
-          setMatchedInterviewers([preSelectedInterviewer]);
-        }
+        setMatchedInterviewers([preSelectedInterviewer]);
+        return;
       } else {
         // Normal behavior when no preselected interviewer
         if (!company && !position) { setMatchedInterviewers([]); return; }
@@ -844,7 +859,7 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
               {matchedInterviewers && matchedInterviewers.length > 0 && (
                 <div className="bg-blue-900/5 p-4 rounded-lg border border-blue-900/10">
                   <h4 className="text-sm font-semibold text-slate-900 mb-3">
-                    Recommended Interviewers
+                    {preSelectedInterviewer ? 'Selected Interviewer' : 'Recommended Interviewers'}
                   </h4>
                   <div className="space-y-2">
                     {matchedInterviewers.filter(m => m.user && m.user._id).map((m) => (
