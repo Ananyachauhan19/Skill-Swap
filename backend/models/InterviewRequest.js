@@ -12,6 +12,30 @@ const interviewRequestSchema = new mongoose.Schema({
   },
   assignedInterviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   scheduledAt: { type: Date, default: null },
+  // Negotiation fields for time-slot suggestions
+  negotiationStatus: {
+    type: String,
+    enum: ['none', 'awaiting_requester', 'awaiting_interviewer', 'finalized'],
+    default: 'none',
+  },
+  interviewerSuggestedSlots: [
+    {
+      start: { type: Date, required: true },
+      end: { type: Date, required: true },
+    },
+  ],
+  requesterAlternateSlots: [
+    {
+      start: { type: Date, required: true },
+      end: { type: Date, required: true },
+    },
+  ],
+  requesterAlternateReason: { type: String, default: '' },
+  interviewerSuggestedAt: { type: Date, default: null },
+  requesterSuggestedAt: { type: Date, default: null },
+  negotiationDeadline: { type: Date, default: null },
+  alternateSlotsRejected: { type: Boolean, default: false },
+  autoScheduled: { type: Boolean, default: false },
   // Rating fields
   rating: { type: Number, min: 1, max: 5, default: null },
   feedback: { type: String, default: '' },

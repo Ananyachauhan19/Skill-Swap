@@ -39,6 +39,7 @@ const SessionRequests = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingContext, setRatingContext] = useState(null); // { sessionId, expertName, sessionType }
+  const [negotiationModalState, setNegotiationModalState] = useState({ open: false, request: null });
 
   // Deep-link support: /session-requests?tab=expert
   useEffect(() => {
@@ -846,14 +847,14 @@ const SessionRequests = () => {
           </div>
 
           <div className="flex gap-2">
-            {isPending && isAssignedInterviewer && isReceived && (
-              <ScheduleInterviewInline
-                request={request}
-                onScheduled={() => {
-                  fetchInterviewRequests();
-                  fetchSessionRequests();
-                }}
-              />
+            {request.status === 'scheduled' ? null : (
+              <button
+                onClick={() => setNegotiationModalState({ open: true, request })}
+                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200"
+              >
+                <FaClock size={10} />
+                {isAssignedInterviewer ? 'Suggest / Manage Time' : 'Choose Interview Time'}
+              </button>
             )}
             {request.status === 'scheduled' && (
               <button
@@ -866,6 +867,410 @@ const SessionRequests = () => {
               </button>
             )}
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const InterviewTimeNegotiationModal = () => {
+    const { open, request } = negotiationModalState;
+    const [role, setRole] = useState('');
+    const [interviewerSlots, setInterviewerSlots] = useState([]);
+    const [alternateSlots, setAlternateSlots] = useState([]);
+    const [reason, setReason] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
+
+    useEffect(() => {
+      if (!open || !request || !user) return;
+      const isInterviewer = request.assignedInterviewer && (String(request.assignedInterviewer._id || request.assignedInterviewer) === String(user._id));
+      setRole(isInterviewer ? 'interviewer' : 'requester');
+      setInterviewerSlots(request.interviewerSuggestedSlots || []);
+      setAlternateSlots(request.requesterAlternateSlots || []);
+      setReason(request.requesterAlternateReason || '');
+      setErrorMsg('');
+    }, [open, request, user]);
+
+    if (!open || !request) return null;
+
+    const close = () => {
+      setNegotiationModalState({ open: false, request: null });
+    };
+
+    const addSlot = (target, setter) => {
+      setter((prev) => {
+        if (prev.length >= 2) return prev;
+        return [...prev, { start: '', end: '' }];
+      });
+    };
+
+    const updateSlot = (setter, index, field, value) => {
+      setter((prev) =>
+        prev.map((s, i) => (i === index ? { ...s, [field]: value } : s))
+      );
+    };
+
+    const submitInterviewerSlots = async () => {
+      try {
+        setLoading(true);
+        setErrorMsg('');
+        const payloadSlots = interviewerSlots
+          .filter((s) => s.start)
+          .slice(0, 2)
+          .map((s) => ({ start: s.start, end: s.end || s.start }));
+        if (payloadSlots.length === 0) {
+          setErrorMsg('Add at least one time slot');
+          setLoading(false);
+          return;
+        }
+        const res = await fetch(`${BACKEND_URL}/api/interview/suggest-slots`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: request._id, slots: payloadSlots }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to suggest slots');
+        close();
+        fetchInterviewRequests();
+      } catch (err) {
+        setErrorMsg(err.message || 'Failed to suggest slots');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const requesterAcceptSlot = async (slotIndex) => {
+      try {
+        setLoading(true);
+        setErrorMsg('');
+        const res = await fetch(`${BACKEND_URL}/api/interview/requester/accept-slot`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: request._id, slotIndex }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to accept slot');
+        close();
+        fetchInterviewRequests();
+        fetchSessionRequests();
+      } catch (err) {
+        setErrorMsg(err.message || 'Failed to accept slot');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const requesterSubmitAlternates = async () => {
+      try {
+        setLoading(true);
+        setErrorMsg('');
+        const payloadSlots = alternateSlots
+          .filter((s) => s.start)
+          .slice(0, 2)
+          .map((s) => ({ start: s.start, end: s.end || s.start }));
+        if (payloadSlots.length === 0) {
+          setErrorMsg('Add at least one alternate slot');
+          setLoading(false);
+          return;
+        }
+        if (!reason.trim()) {
+          setErrorMsg('Please provide a reason for unavailability');
+          setLoading(false);
+          return;
+        }
+        const res = await fetch(`${BACKEND_URL}/api/interview/requester/alternate-slots`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: request._id, slots: payloadSlots, reason }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to submit alternate slots');
+        close();
+        fetchInterviewRequests();
+      } catch (err) {
+        setErrorMsg(err.message || 'Failed to submit alternate slots');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const interviewerAcceptAlternate = async (slotIndex) => {
+      try {
+        setLoading(true);
+        setErrorMsg('');
+        const res = await fetch(`${BACKEND_URL}/api/interview/interviewer/accept-alternate`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: request._id, slotIndex }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to accept alternate slot');
+        close();
+        fetchInterviewRequests();
+        fetchSessionRequests();
+      } catch (err) {
+        setErrorMsg(err.message || 'Failed to accept alternate slot');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const interviewerRejectAlternate = async () => {
+      try {
+        setLoading(true);
+        setErrorMsg('');
+        const res = await fetch(`${BACKEND_URL}/api/interview/interviewer/reject-alternate`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: request._id }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed to reject alternate slots');
+        close();
+        fetchInterviewRequests();
+      } catch (err) {
+        setErrorMsg(err.message || 'Failed to reject alternate slots');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const formatSlot = (slot) => {
+      try {
+        const start = slot.start ? new Date(slot.start) : null;
+        const end = slot.end ? new Date(slot.end) : null;
+        if (!start) return '';
+        if (!end || end.getTime() === start.getTime()) {
+          return start.toLocaleString();
+        }
+        return `${start.toLocaleString()} - ${end.toLocaleTimeString()}`;
+      } catch {
+        return '';
+      }
+    };
+
+    const canSuggestAlternates =
+      role === 'requester' &&
+      request.negotiationStatus === 'awaiting_requester' &&
+      (!request.requesterAlternateSlots || request.requesterAlternateSlots.length === 0);
+
+    const canAcceptFromOriginal =
+      role === 'requester' &&
+      request.negotiationStatus === 'awaiting_requester' &&
+      request.interviewerSuggestedSlots &&
+      request.interviewerSuggestedSlots.length > 0;
+
+    const canInterviewerAcceptAlternates =
+      role === 'interviewer' &&
+      request.negotiationStatus === 'awaiting_interviewer' &&
+      request.requesterAlternateSlots &&
+      request.requesterAlternateSlots.length > 0;
+
+    const canInterviewerSuggest =
+      role === 'interviewer' &&
+      (!request.interviewerSuggestedSlots || request.interviewerSuggestedSlots.length === 0) &&
+      (request.status === 'pending' || request.status === 'assigned');
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="bg-white rounded-xl shadow-xl max-w-xl w-full mx-4 p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">
+                {role === 'interviewer' ? 'Manage Interview Time' : 'Choose Interview Time'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Negotiation is one-time only. You can suggest up to 2 time slots.
+              </p>
+            </div>
+            <button onClick={close} className="text-slate-400 hover:text-slate-600">
+              <FaTimes size={14} />
+            </button>
+          </div>
+
+          {errorMsg && (
+            <div className="mb-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2">
+              {errorMsg}
+            </div>
+          )}
+
+          {/* Interviewer view: suggest or respond to alternates */}
+          {role === 'interviewer' && (
+            <div className="space-y-4 text-xs">
+              {request.interviewerSuggestedSlots && request.interviewerSuggestedSlots.length > 0 && !canInterviewerSuggest && (
+                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                  <p className="font-semibold text-slate-800 mb-2">Your suggested slots</p>
+                  <div className="space-y-2">
+                    {request.interviewerSuggestedSlots.map((slot, idx) => (
+                      <div key={idx} className="text-slate-700">
+                        {formatSlot(slot)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {canInterviewerSuggest && (
+                <div className="border border-amber-100 rounded-lg p-3 bg-amber-50/40">
+                  <p className="font-semibold text-amber-800 mb-2">Suggest up to 2 time slots</p>
+                  {interviewerSlots.map((slot, idx) => (
+                    <div key={idx} className="mb-2">
+                      <DateTimePicker
+                        date={slot.start ? slot.start.split('T')[0] : ''}
+                        time={slot.start ? slot.start.split('T')[1]?.slice(0,5) : ''}
+                        onChange={(d, t) =>
+                          updateSlot(setInterviewerSlots, idx, 'start', d && t ? `${d}T${t}` : '')
+                        }
+                        className="w-full"
+                      />
+                    </div>
+                  ))}
+                  {interviewerSlots.length < 2 && (
+                    <button
+                      type="button"
+                      onClick={() => addSlot('interviewer', setInterviewerSlots)}
+                      className="text-amber-700 text-xs font-medium mt-1"
+                    >
+                      + Add slot
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={submitInterviewerSlots}
+                    disabled={loading}
+                    className="mt-3 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50"
+                  >
+                    {loading ? 'Saving...' : 'Send to candidate'}
+                  </button>
+                </div>
+              )}
+
+              {request.requesterAlternateSlots && request.requesterAlternateSlots.length > 0 && (
+                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                  <p className="font-semibold text-slate-800 mb-1">Candidate’s alternate slots</p>
+                  {request.requesterAlternateReason && (
+                    <p className="text-slate-600 mb-2">Reason: {request.requesterAlternateReason}</p>
+                  )}
+                  <div className="space-y-2">
+                    {request.requesterAlternateSlots.map((slot, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <span className="text-slate-700">{formatSlot(slot)}</span>
+                        {canInterviewerAcceptAlternates && (
+                          <button
+                            type="button"
+                            onClick={() => interviewerAcceptAlternate(idx)}
+                            className="ml-2 bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded text-[11px] font-medium"
+                          >
+                            Accept
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {canInterviewerAcceptAlternates && (
+                    <button
+                      type="button"
+                      onClick={interviewerRejectAlternate}
+                      className="mt-3 text-rose-600 text-xs font-medium"
+                    >
+                      Reject both alternate slots
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Requester view */}
+          {role === 'requester' && (
+            <div className="space-y-4 text-xs">
+              {(!request.interviewerSuggestedSlots || request.interviewerSuggestedSlots.length === 0) && (
+                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50 text-slate-600">
+                  No time suggested yet by the interviewer.
+                </div>
+              )}
+
+              {request.interviewerSuggestedSlots && request.interviewerSuggestedSlots.length > 0 && (
+                <div className="border border-amber-100 rounded-lg p-3 bg-amber-50/40">
+                  <p className="font-semibold text-amber-800 mb-2">Interviewer’s suggested slots</p>
+                  <div className="space-y-2">
+                    {request.interviewerSuggestedSlots.map((slot, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <span className="text-slate-700">{formatSlot(slot)}</span>
+                        {canAcceptFromOriginal && (
+                          <button
+                            type="button"
+                            onClick={() => requesterAcceptSlot(idx)}
+                            className="ml-2 bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded text-[11px] font-medium"
+                          >
+                            Accept
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {request.alternateSlotsRejected && (
+                    <p className="mt-2 text-[11px] text-rose-600">
+                      Your alternate slots were rejected. You can only pick from these options now.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {canSuggestAlternates && (
+                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                  <p className="font-semibold text-slate-800 mb-2">Suggest up to 2 alternate slots</p>
+                  {alternateSlots.map((slot, idx) => (
+                    <div key={idx} className="mb-2">
+                      <DateTimePicker
+                        date={slot.start ? slot.start.split('T')[0] : ''}
+                        time={slot.start ? slot.start.split('T')[1]?.slice(0,5) : ''}
+                        onChange={(d, t) =>
+                          updateSlot(setAlternateSlots, idx, 'start', d && t ? `${d}T${t}` : '')
+                        }
+                        className="w-full"
+                      />
+                    </div>
+                  ))}
+                  {alternateSlots.length < 2 && (
+                    <button
+                      type="button"
+                      onClick={() => addSlot('alternate', setAlternateSlots)}
+                      className="text-slate-700 text-xs font-medium mt-1"
+                    >
+                      + Add alternate slot
+                    </button>
+                  )}
+                  <textarea
+                    rows={2}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Reason for unavailability (required)"
+                    className="mt-3 w-full border border-slate-200 rounded px-2 py-1 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={requesterSubmitAlternates}
+                    disabled={loading}
+                    className="mt-3 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50"
+                  >
+                    {loading ? 'Sending...' : 'Send alternates to interviewer'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="mt-4 text-[11px] text-slate-400">
+            {role === 'interviewer'
+              ? 'If requester do not select any slot within 12 hours of your suggestion, the first suggested slot will be auto-scheduled.'
+              : 'If you do not select any slot within 12 hours of the interviewer’s suggestion, the first suggested slot will be auto-scheduled.'}
+          </p>
         </div>
       </div>
     );
@@ -1405,6 +1810,7 @@ const SessionRequests = () => {
         </div>
       </div>
       </div>
+      <InterviewTimeNegotiationModal />
     </div>
   );
 };

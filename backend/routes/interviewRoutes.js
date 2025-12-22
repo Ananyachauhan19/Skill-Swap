@@ -46,6 +46,13 @@ router.post('/assign', requireAuth, ctrl.assignInterviewer);
 // Interviewer schedules assigned interview
 router.post('/schedule', requireAuth, ctrl.scheduleInterview);
 
+// Time negotiation: interviewer suggests slots, requester responds
+router.post('/suggest-slots', requireAuth, ctrl.suggestInterviewerSlots);
+router.post('/requester/accept-slot', requireAuth, ctrl.requesterAcceptInterviewerSlot);
+router.post('/requester/alternate-slots', requireAuth, ctrl.requesterSuggestAlternateSlots);
+router.post('/interviewer/accept-alternate', requireAuth, ctrl.interviewerAcceptAlternateSlot);
+router.post('/interviewer/reject-alternate', requireAuth, ctrl.interviewerRejectAlternateSlots);
+
 // Assigned interviewer approves or rejects the interview
 router.post('/approve', requireAuth, ctrl.approveAssignedInterview);
 router.post('/reject', requireAuth, ctrl.rejectAssignedInterview);

@@ -34,12 +34,179 @@ exports.getRequestById = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
     
+    // Auto-schedule fallback check (lazy execution)
+    await maybeAutoScheduleInterview(request, req.app);
     return res.json(request);
   } catch (err) {
     console.error('Error fetching interview request:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
+// Helper: finalize schedule and broadcast notifications + snapshots
+async function finalizeInterviewSchedule(reqDoc, app, scheduledAt, { autoScheduled = false } = {}) {
+  const io = app && app.get ? app.get('io') : null;
+
+  reqDoc.scheduledAt = scheduledAt ? new Date(scheduledAt) : null;
+  reqDoc.status = 'scheduled';
+  reqDoc.negotiationStatus = 'finalized';
+  reqDoc.autoScheduled = !!autoScheduled;
+  await reqDoc.save();
+
+  await reqDoc.populate([
+    { path: 'requester', select: 'username firstName lastName email' },
+    { path: 'assignedInterviewer', select: 'username firstName lastName username' },
+  ]);
+
+  const populated = reqDoc;
+
+  const requesterId = populated.requester && (populated.requester._id || populated.requester);
+  const interviewerObj = populated.assignedInterviewer || {};
+  const interviewerId = interviewerObj._id || interviewerObj;
+
+  const whenStr = populated.scheduledAt ? populated.scheduledAt.toString() : 'TBD';
+  const typeForRequester = autoScheduled ? 'interview-auto-scheduled' : 'interview-scheduled';
+  const msgForRequester = autoScheduled
+    ? `Your interview has been automatically scheduled for ${whenStr}`
+    : `Your interview has been scheduled for ${whenStr}`;
+
+  // Notify requester
+  try {
+    if (requesterId) {
+      const notification = await Notification.create({
+        userId: requesterId,
+        type: typeForRequester,
+        message: msgForRequester,
+        requestId: populated._id,
+        requesterId: interviewerId,
+        requesterName: `${interviewerObj.firstName || ''} ${interviewerObj.lastName || ''}`.trim() || interviewerObj.username || '',
+        company: populated.company,
+        position: populated.position,
+        timestamp: Date.now(),
+      });
+      if (io) io.to(requesterId.toString()).emit('notification', notification);
+    }
+  } catch (e) {
+    console.error('[Interview] failed to notify requester about schedule', e);
+  }
+
+  // Email requester (use same template for both manual and auto schedule)
+  try {
+    const requesterDoc = await User.findById(requesterId);
+    if (requesterDoc?.email) {
+      const tpl = T.interviewScheduled({
+        requesterName: requesterDoc.firstName || requesterDoc.username,
+        company: populated.company,
+        position: populated.position,
+        scheduledAt: populated.scheduledAt ? populated.scheduledAt.toLocaleString() : 'TBD'
+      });
+      await sendMail({ to: requesterDoc.email, subject: tpl.subject, html: tpl.html });
+    }
+  } catch (e) {
+    console.error('[Interview] failed to send schedule email to requester', e);
+  }
+
+  // Notify interviewer (confirmation or auto info)
+  try {
+    if (interviewerId) {
+      const typeForInterviewer = autoScheduled
+        ? 'interview-auto-scheduled-confirmation'
+        : 'interview-scheduled-confirmation';
+      const msgForInterviewer = autoScheduled
+        ? `Interview was automatically scheduled for ${whenStr}`
+        : `You scheduled the interview for ${whenStr}`;
+      const notifInterviewer = await Notification.create({
+        userId: interviewerId,
+        type: typeForInterviewer,
+        message: msgForInterviewer,
+        requestId: populated._id,
+        company: populated.company,
+        position: populated.position,
+        timestamp: Date.now(),
+      });
+      if (io) io.to(interviewerId.toString()).emit('notification', notifInterviewer);
+    }
+  } catch (e) {
+    console.error('[Interview] failed to notify interviewer about schedule', e);
+  }
+
+  // Update ApprovedInterviewer upcoming count
+  try {
+    if (interviewerId) {
+      await ApprovedInterviewer.findOneAndUpdate(
+        { user: interviewerId },
+        {
+          $inc: { 'aggregates.upcomingInterviews': 1 },
+          $push: {
+            upcomingSessions: {
+              requestId: populated._id,
+              requester: requesterId,
+              requesterName: `${populated.requester.firstName || ''} ${populated.requester.lastName || ''}`.trim() || populated.requester.username || '',
+              company: populated.company || '',
+              position: populated.position || '',
+              scheduledAt: populated.scheduledAt,
+              status: 'scheduled'
+            }
+          }
+        },
+        { upsert: true }
+      );
+    }
+  } catch (e) {
+    console.error('[ApprovedInterviewer] failed to increment upcomingInterviews', e);
+  }
+
+  // Update Requester snapshot (upcoming)
+  try {
+    if (requesterId && interviewerId) {
+      await UserInterviewSnapshot.findOneAndUpdate(
+        { user: requesterId },
+        {
+          $inc: { 'aggregates.upcomingInterviews': 1 },
+          $push: {
+            upcomingSessions: {
+              requestId: populated._id,
+              interviewer: interviewerId,
+              interviewerName: `${interviewerObj.firstName || ''} ${interviewerObj.lastName || ''}`.trim() || interviewerObj.username || '',
+              company: populated.company || '',
+              position: populated.position || '',
+              scheduledAt: populated.scheduledAt,
+              status: 'scheduled'
+            }
+          }
+        },
+        { upsert: true }
+      );
+    }
+  } catch (e) {
+    console.error('[UserInterviewSnapshot] failed to add upcoming session', e);
+  }
+}
+
+// Helper: auto-schedule first interviewer slot after negotiationDeadline
+async function maybeAutoScheduleInterview(reqDoc, app) {
+  try {
+    if (!reqDoc) return;
+    if (reqDoc.status === 'scheduled' || reqDoc.status === 'completed' || reqDoc.status === 'cancelled' || reqDoc.status === 'rejected') {
+      return;
+    }
+    if (!reqDoc.negotiationDeadline || !reqDoc.interviewerSuggestedSlots || reqDoc.interviewerSuggestedSlots.length === 0) {
+      return;
+    }
+    const now = new Date();
+    if (now < reqDoc.negotiationDeadline) return;
+
+    // Already auto-scheduled or finalized
+    if (reqDoc.negotiationStatus === 'finalized' || reqDoc.autoScheduled) return;
+
+    const firstSlot = reqDoc.interviewerSuggestedSlots[0];
+    if (!firstSlot || !firstSlot.start) return;
+
+    await finalizeInterviewSchedule(reqDoc, app, firstSlot.start, { autoScheduled: true });
+  } catch (e) {
+    console.error('maybeAutoScheduleInterview error', e);
+  }
+}
 
 // Multer memory storage for uploading resume directly to Supabase
 // Accept only PDF up to 2MB
@@ -688,6 +855,11 @@ exports.getUserRequests = async (req, res) => {
       $or: [{ requester: req.user._id }, { assignedInterviewer: req.user._id }]
     }).populate('requester', 'username firstName lastName').populate('assignedInterviewer', 'username firstName lastName').sort({ createdAt: -1 });
 
+    // Apply auto-schedule fallback lazily for all relevant docs
+    for (const d of docs) {
+      await maybeAutoScheduleInterview(d, req.app);
+    }
+
     const sent = docs.filter(d => d.requester && d.requester._id.toString() === req.user._id.toString());
     const received = docs.filter(d => d.assignedInterviewer && d.assignedInterviewer._id.toString() === req.user._id.toString());
 
@@ -757,6 +929,278 @@ exports.assignInterviewer = async (req, res) => {
   } catch (err) {
     console.error('assignInterviewer error', err);
     res.status(500).json({ message: 'Failed to assign interviewer' });
+  }
+};
+
+// Interviewer suggests 1–2 time slots (only once)
+exports.suggestInterviewerSlots = async (req, res) => {
+  try {
+    const { requestId, slots } = req.body;
+    if (!Array.isArray(slots) || slots.length === 0 || slots.length > 2) {
+      return res.status(400).json({ message: 'Provide 1 or 2 time slots' });
+    }
+
+    const reqDoc = await InterviewRequest.findById(requestId);
+    if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
+
+    // Only assigned interviewer can suggest
+    if (!reqDoc.assignedInterviewer || reqDoc.assignedInterviewer.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to suggest slots for this interview' });
+    }
+
+    // Can suggest only once and only while pending/assigned
+    if (reqDoc.interviewerSuggestedSlots && reqDoc.interviewerSuggestedSlots.length > 0) {
+      return res.status(400).json({ message: 'Time slots already suggested for this request' });
+    }
+    if (!['pending', 'assigned'].includes(reqDoc.status)) {
+      return res.status(400).json({ message: 'Cannot suggest slots for this interview in its current state' });
+    }
+
+    const now = new Date();
+    const normalizedSlots = slots.map((s) => {
+      const start = new Date(s.start);
+      return {
+        start,
+        end: start,
+      };
+    });
+
+    if (normalizedSlots.some((s) => isNaN(s.start) || s.start < now)) {
+      return res.status(400).json({ message: 'Cannot select a time before the current time' });
+    }
+
+    reqDoc.interviewerSuggestedSlots = normalizedSlots;
+    reqDoc.interviewerSuggestedAt = now;
+    reqDoc.negotiationStatus = 'awaiting_requester';
+    // 12-hour auto-schedule deadline from first suggestion
+    reqDoc.negotiationDeadline = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+    reqDoc.alternateSlotsRejected = false;
+    await reqDoc.save();
+
+    // Notify requester that slots were suggested
+    const populated = await reqDoc.populate('requester', 'username firstName lastName');
+    const io = req.app.get('io');
+    if (populated.requester) {
+      const notification = await Notification.create({
+        userId: populated.requester._id,
+        type: 'interview-slots-suggested',
+        message: 'Your interviewer has suggested new time slots for your mock interview.',
+        requestId: populated._id,
+        company: populated.company,
+        position: populated.position,
+        timestamp: Date.now(),
+      });
+      if (io) io.to(populated.requester._id.toString()).emit('notification', notification);
+    }
+
+    res.json({ message: 'Time slots suggested', request: reqDoc });
+  } catch (err) {
+    console.error('suggestInterviewerSlots error', err);
+    res.status(500).json({ message: 'Failed to suggest time slots' });
+  }
+};
+
+// Requester accepts one of the interviewer-suggested slots
+exports.requesterAcceptInterviewerSlot = async (req, res) => {
+  try {
+    const { requestId, slotIndex } = req.body;
+
+    const reqDoc = await InterviewRequest.findById(requestId);
+    if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
+
+    if (!reqDoc.requester || reqDoc.requester.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to accept slots for this interview' });
+    }
+
+    if (reqDoc.status === 'scheduled' || reqDoc.status === 'completed' || reqDoc.status === 'cancelled' || reqDoc.status === 'rejected') {
+      return res.status(400).json({ message: 'Interview already finalized' });
+    }
+
+    if (!reqDoc.interviewerSuggestedSlots || reqDoc.interviewerSuggestedSlots.length === 0) {
+      return res.status(400).json({ message: 'No interviewer slots available to accept' });
+    }
+
+    if (reqDoc.negotiationStatus !== 'awaiting_requester') {
+      return res.status(400).json({ message: 'Not awaiting requester choice at this time' });
+    }
+
+    if (typeof slotIndex !== 'number' || slotIndex < 0 || slotIndex >= reqDoc.interviewerSuggestedSlots.length) {
+      return res.status(400).json({ message: 'Invalid slot index' });
+    }
+
+    const chosen = reqDoc.interviewerSuggestedSlots[slotIndex];
+    await finalizeInterviewSchedule(reqDoc, req.app, chosen.start, { autoScheduled: false });
+
+    res.json({ message: 'Interview scheduled', request: reqDoc });
+  } catch (err) {
+    console.error('requesterAcceptInterviewerSlot error', err);
+    res.status(500).json({ message: 'Failed to accept time slot' });
+  }
+};
+
+// Requester suggests 1–2 alternate slots (only once)
+exports.requesterSuggestAlternateSlots = async (req, res) => {
+  try {
+    const { requestId, slots, reason } = req.body;
+
+    const reqDoc = await InterviewRequest.findById(requestId);
+    if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
+
+    if (!reqDoc.requester || reqDoc.requester.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to suggest alternate slots for this interview' });
+    }
+
+    if (reqDoc.status === 'scheduled' || reqDoc.status === 'completed' || reqDoc.status === 'cancelled' || reqDoc.status === 'rejected') {
+      return res.status(400).json({ message: 'Interview already finalized' });
+    }
+
+    if (!reqDoc.interviewerSuggestedSlots || reqDoc.interviewerSuggestedSlots.length === 0) {
+      return res.status(400).json({ message: 'Interviewer has not suggested any slots yet' });
+    }
+
+    if (reqDoc.negotiationStatus !== 'awaiting_requester') {
+      return res.status(400).json({ message: 'Alternate slots can only be suggested when awaiting requester response' });
+    }
+
+    if (reqDoc.requesterAlternateSlots && reqDoc.requesterAlternateSlots.length > 0) {
+      return res.status(400).json({ message: 'Alternate slots already suggested' });
+    }
+
+    if (!Array.isArray(slots) || slots.length === 0 || slots.length > 2) {
+      return res.status(400).json({ message: 'Provide 1 or 2 alternate time slots' });
+    }
+
+    if (!reason || typeof reason !== 'string' || !reason.trim()) {
+      return res.status(400).json({ message: 'Reason for unavailability is required' });
+    }
+
+    const now = new Date();
+    const normalizedSlots = slots.map((s) => {
+      const start = new Date(s.start);
+      return {
+        start,
+        end: start,
+      };
+    });
+    if (normalizedSlots.some((s) => isNaN(s.start) || s.start < now)) {
+      return res.status(400).json({ message: 'Cannot select a time before the current time' });
+    }
+
+    reqDoc.requesterAlternateSlots = normalizedSlots;
+    reqDoc.requesterAlternateReason = reason.trim();
+    reqDoc.requesterSuggestedAt = new Date();
+    reqDoc.negotiationStatus = 'awaiting_interviewer';
+    await reqDoc.save();
+
+    // Notify interviewer about alternate proposal
+    const populated = await reqDoc.populate('assignedInterviewer', 'username firstName lastName');
+    const io = req.app.get('io');
+    if (populated.assignedInterviewer) {
+      const notification = await Notification.create({
+        userId: populated.assignedInterviewer._id,
+        type: 'interview-alternate-suggested',
+        message: 'The candidate has suggested alternate time slots for your mock interview.',
+        requestId: populated._id,
+        company: populated.company,
+        position: populated.position,
+        timestamp: Date.now(),
+      });
+      if (io) io.to(populated.assignedInterviewer._id.toString()).emit('notification', notification);
+    }
+
+    res.json({ message: 'Alternate slots submitted', request: reqDoc });
+  } catch (err) {
+    console.error('requesterSuggestAlternateSlots error', err);
+    res.status(500).json({ message: 'Failed to submit alternate slots' });
+  }
+};
+
+// Interviewer accepts one of the requester’s alternate slots
+exports.interviewerAcceptAlternateSlot = async (req, res) => {
+  try {
+    const { requestId, slotIndex } = req.body;
+
+    const reqDoc = await InterviewRequest.findById(requestId);
+    if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
+
+    if (!reqDoc.assignedInterviewer || reqDoc.assignedInterviewer.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to accept alternate slots for this interview' });
+    }
+
+    if (reqDoc.status === 'scheduled' || reqDoc.status === 'completed' || reqDoc.status === 'cancelled' || reqDoc.status === 'rejected') {
+      return res.status(400).json({ message: 'Interview already finalized' });
+    }
+
+    if (!reqDoc.requesterAlternateSlots || reqDoc.requesterAlternateSlots.length === 0) {
+      return res.status(400).json({ message: 'No alternate slots to accept' });
+    }
+
+    if (reqDoc.negotiationStatus !== 'awaiting_interviewer') {
+      return res.status(400).json({ message: 'Not awaiting interviewer response to alternates' });
+    }
+
+    if (typeof slotIndex !== 'number' || slotIndex < 0 || slotIndex >= reqDoc.requesterAlternateSlots.length) {
+      return res.status(400).json({ message: 'Invalid slot index' });
+    }
+
+    const chosen = reqDoc.requesterAlternateSlots[slotIndex];
+    await finalizeInterviewSchedule(reqDoc, req.app, chosen.start, { autoScheduled: false });
+
+    res.json({ message: 'Interview scheduled', request: reqDoc });
+  } catch (err) {
+    console.error('interviewerAcceptAlternateSlot error', err);
+    res.status(500).json({ message: 'Failed to accept alternate slot' });
+  }
+};
+
+// Interviewer rejects both requester alternate slots; requester must choose from original only
+exports.interviewerRejectAlternateSlots = async (req, res) => {
+  try {
+    const { requestId } = req.body;
+
+    const reqDoc = await InterviewRequest.findById(requestId);
+    if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
+
+    if (!reqDoc.assignedInterviewer || reqDoc.assignedInterviewer.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to reject alternate slots for this interview' });
+    }
+
+    if (reqDoc.status === 'scheduled' || reqDoc.status === 'completed' || reqDoc.status === 'cancelled' || reqDoc.status === 'rejected') {
+      return res.status(400).json({ message: 'Interview already finalized' });
+    }
+
+    if (!reqDoc.requesterAlternateSlots || reqDoc.requesterAlternateSlots.length === 0) {
+      return res.status(400).json({ message: 'No alternate slots to reject' });
+    }
+
+    if (reqDoc.negotiationStatus !== 'awaiting_interviewer') {
+      return res.status(400).json({ message: 'Not awaiting interviewer response to alternates' });
+    }
+
+    // Mark alternates as rejected and move back to awaiting requester to choose from original slots only
+    reqDoc.alternateSlotsRejected = true;
+    reqDoc.negotiationStatus = 'awaiting_requester';
+    await reqDoc.save();
+
+    const populated = await reqDoc.populate('requester', 'username firstName lastName');
+    const io = req.app.get('io');
+    if (populated.requester) {
+      const notification = await Notification.create({
+        userId: populated.requester._id,
+        type: 'interview-alternate-rejected',
+        message: 'Your alternate time slots were rejected. Please choose from the interviewer’s original suggestions.',
+        requestId: populated._id,
+        company: populated.company,
+        position: populated.position,
+        timestamp: Date.now(),
+      });
+      if (io) io.to(populated.requester._id.toString()).emit('notification', notification);
+    }
+
+    res.json({ message: 'Alternate slots rejected', request: reqDoc });
+  } catch (err) {
+    console.error('interviewerRejectAlternateSlots error', err);
+    res.status(500).json({ message: 'Failed to reject alternate slots' });
   }
 };
 
@@ -1018,61 +1462,6 @@ exports.scheduleInterview = async (req, res) => {
     }
 
     res.json({ message: 'Interview scheduled', request: reqDoc });
-    // No contribution on schedule to avoid multi-counting
-    // Update ApprovedInterviewer upcoming count
-    try {
-      if (reqDoc.assignedInterviewer) {
-        const assignedId = reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer;
-        await ApprovedInterviewer.findOneAndUpdate(
-          { user: assignedId },
-          {
-            $inc: { 'aggregates.upcomingInterviews': 1 },
-            $push: {
-              upcomingSessions: {
-                requestId: reqDoc._id,
-                requester: reqDoc.requester._id || reqDoc.requester,
-                requesterName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username || '',
-                company: reqDoc.company || '',
-                position: reqDoc.position || '',
-                scheduledAt: reqDoc.scheduledAt,
-                status: 'scheduled'
-              }
-            }
-          },
-          { upsert: true }
-        );
-      }
-    } catch (e) {
-      console.error('[ApprovedInterviewer] failed to increment upcomingInterviews', e);
-    }
-
-    // Update Requester snapshot (upcoming)
-    try {
-      if (reqDoc.requester) {
-        const requesterId = reqDoc.requester._id || reqDoc.requester;
-        const interviewerObj = reqDoc.assignedInterviewer || {};
-        await UserInterviewSnapshot.findOneAndUpdate(
-          { user: requesterId },
-          {
-            $inc: { 'aggregates.upcomingInterviews': 1 },
-            $push: {
-              upcomingSessions: {
-                requestId: reqDoc._id,
-                interviewer: interviewerObj._id || interviewerObj,
-                interviewerName: `${interviewerObj.firstName || ''} ${interviewerObj.lastName || ''}`.trim() || interviewerObj.username || '',
-                company: reqDoc.company || '',
-                position: reqDoc.position || '',
-                scheduledAt: reqDoc.scheduledAt,
-                status: 'scheduled'
-              }
-            }
-          },
-          { upsert: true }
-        );
-      }
-    } catch (e) {
-      console.error('[UserInterviewSnapshot] failed to add upcoming session', e);
-    }
   } catch (err) {
     console.error('scheduleInterview error', err);
     res.status(500).json({ message: 'Failed to schedule interview' });
