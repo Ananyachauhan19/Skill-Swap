@@ -110,6 +110,24 @@ exports.submitRequest = async (req, res) => {
           });
           await sendMail({ to: interviewer.email, subject: tpl.subject, html: tpl.html });
         }
+
+        // Also send an in-app notification so the interviewer sees a toast
+        try {
+          const notification = await Notification.create({
+            userId: interviewer._id,
+            type: 'interview-assigned',
+            message: `You have been assigned an interview request at ${company} for ${position}`,
+            requestId: reqDoc._id,
+            requesterId: requester,
+            requesterName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
+            company,
+            position,
+            timestamp: Date.now(),
+          });
+          if (io && interviewer._id) io.to(interviewer._id.toString()).emit('notification', notification);
+        } catch (notifyErr) {
+          console.error('Failed to create/emit interviewer assignment notification', notifyErr);
+        }
       } catch (e) {
         console.error('Failed to send interviewer assignment email', e);
       }
