@@ -129,7 +129,7 @@ const ToastContainer = () => {
   if (!user) return null;
 
   return (
-    <div className="fixed top-20 right-4 z-[9999] max-w-md w-full pointer-events-none">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] max-w-md w-full px-4 pointer-events-none">
       <div className="pointer-events-auto">
         <AnimatePresence>
           {toasts.map((toast) => (
