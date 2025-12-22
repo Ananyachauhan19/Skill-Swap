@@ -452,15 +452,15 @@ const UserInfoSection = ({
             <div className="mt-2">
               <div className="font-semibold text-blue-900 mb-1">What I Can Teach:</div>
               <ul className="flex flex-wrap gap-2">
-                {(profile.skillsToTeach || []).length > 0 ? (
-                  profile.skillsToTeach.map((s, i) => (
+                {(() => {
+                  const teachSkills = (profile.skillsToTeach || []).filter(s => s.class);
+                  if (teachSkills.length === 0) return <div className="text-gray-400">Not added yet</div>;
+                  return teachSkills.map((s, i) => (
                     <li key={i} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200 flex items-center gap-1">
                       {s.class ? `${s.class} • ` : ''}{s.subject} {s.topic ? `> ${s.topic}` : ''}
                     </li>
-                  ))
-                ) : (
-                  <div className="text-gray-400">Not added yet</div>
-                )}
+                  ));
+                })()}
               </ul>
             </div>
             {/* Experience */}
@@ -470,10 +470,20 @@ const UserInfoSection = ({
                 {profile.experience && profile.experience.length > 0 ? (
                   profile.experience.map((exp, i) => (
                     <li key={i}>
-                      {exp.position ? <span className="font-semibold">{exp.position}</span> : null}
-                      {exp.company ? ` at ${exp.company}` : ''}
-                      {exp.duration ? ` (${exp.duration})` : ''}
-                      {exp.description ? `: ${exp.description}` : ''}
+                      {exp.position && exp.company && exp.duration && exp.description ? (
+                        // Nicely formatted interviewer-style experience line
+                        <span>
+                          <span className="font-semibold">{exp.position}</span>
+                          {` at ${exp.company} for ${exp.duration}. ${exp.description}`}
+                        </span>
+                      ) : (
+                        <span>
+                          {exp.position ? <span className="font-semibold">{exp.position}</span> : null}
+                          {exp.company ? ` at ${exp.company}` : ''}
+                          {exp.duration ? ` (${exp.duration})` : ''}
+                          {exp.description ? `: ${exp.description}` : ''}
+                        </span>
+                      )}
                     </li>
                   ))
                 ) : (

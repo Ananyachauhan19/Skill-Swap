@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from "react";
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from "date-fns";
+import { BACKEND_URL } from "../../config.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const VideoCard = ({
   video,
@@ -28,21 +30,43 @@ const VideoCard = ({
     uploadDate,
     userId: videoUserId,
     skillmates,
-    views,
-    likes = 0,
-    dislikes = 0,
+    views: initialViews = 0,
+    likes,
+    dislikes,
+    likeCount: initialLikeCount,
+    dislikeCount: initialDislikeCount,
     isLive,
     scheduledTime,
     videoUrl,
   } = video;
 
   const videoRef = useRef(null);
+  const { user, isAuthenticated } = useAuth() || {};
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(null);
+  const [viewCount, setViewCount] = useState(initialViews || 0);
+  const [hasRecordedView, setHasRecordedView] = useState(false);
   const [userLiked, setUserLiked] = useState(false);
   const [userDisliked, setUserDisliked] = useState(false);
-  const [likeCount, setLikeCount] = useState(likes);
-  const [dislikeCount, setDislikeCount] = useState(dislikes);
+  const [likeCount, setLikeCount] = useState(
+    typeof initialLikeCount === "number"
+      ? initialLikeCount
+      : Array.isArray(likes)
+        ? likes.length
+        : typeof likes === "number"
+          ? likes
+          : 0
+  );
+  const [dislikeCount, setDislikeCount] = useState(
+    typeof initialDislikeCount === "number"
+      ? initialDislikeCount
+      : Array.isArray(dislikes)
+        ? dislikes.length
+        : typeof dislikes === "number"
+          ? dislikes
+          : 0
+  );
 
   useEffect(() => {
     if (videoRef.current && videoUrl) {
@@ -59,6 +83,46 @@ const VideoCard = ({
     }
   }, [videoUrl]);
 
+  // Reset counts when the underlying video changes
+  useEffect(() => {
+    setViewCount(initialViews || 0);
+    setLikeCount(
+      typeof initialLikeCount === "number"
+        ? initialLikeCount
+        : Array.isArray(likes)
+          ? likes.length
+          : typeof likes === "number"
+            ? likes
+            : 0
+    );
+    setDislikeCount(
+      typeof initialDislikeCount === "number"
+        ? initialDislikeCount
+        : Array.isArray(dislikes)
+          ? dislikes.length
+          : typeof dislikes === "number"
+            ? dislikes
+            : 0
+    );
+    setHasRecordedView(false);
+  }, [id, initialViews, initialLikeCount, initialDislikeCount, likes, dislikes]);
+
+  // Initialize like/dislike flags based on current user
+  useEffect(() => {
+    if (!user) {
+      setUserLiked(false);
+      setUserDisliked(false);
+      return;
+    }
+
+    if (Array.isArray(likes)) {
+      setUserLiked(likes.some((uid) => uid === user._id));
+    }
+    if (Array.isArray(dislikes)) {
+      setUserDisliked(dislikes.some((uid) => uid === user._id));
+    }
+  }, [user, likes, dislikes]);
+
   const formatDuration = (d) => {
     if (!d && d !== 0) return "";
     const min = Math.floor(d / 60);
@@ -66,31 +130,97 @@ const VideoCard = ({
     return `${min}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const toggleLike = () => {
-    if (userLiked) {
-      setLikeCount(likeCount - 1);
-      setUserLiked(false);
-    } else {
-      setLikeCount(likeCount + 1);
-      if (userDisliked) {
-        setDislikeCount(dislikeCount - 1);
-        setUserDisliked(false);
+  const ensureAuthenticated = () => {
+    if (!isAuthenticated) {
+      alert("Please log in to interact with videos.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleLike = async () => {
+    if (!ensureAuthenticated()) return;
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}/like`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to toggle like");
       }
-      setUserLiked(true);
+
+      setLikeCount(data.likes ?? 0);
+      setDislikeCount(data.dislikes ?? 0);
+      setUserLiked(!!data.userHasLiked);
+      setUserDisliked(!!data.userHasDisliked);
+    } catch (error) {
+      console.error("Error toggling like:", error);
     }
   };
 
-  const toggleDislike = () => {
-    if (userDisliked) {
-      setDislikeCount(dislikeCount - 1);
-      setUserDisliked(false);
-    } else {
-      setDislikeCount(dislikeCount + 1);
-      if (userLiked) {
-        setLikeCount(likeCount - 1);
-        setUserLiked(false);
+  const handleDislike = async () => {
+    if (!ensureAuthenticated()) return;
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/videos/${id}/dislike`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to toggle dislike");
       }
-      setUserDisliked(true);
+
+      setLikeCount(data.likes ?? 0);
+      setDislikeCount(data.dislikes ?? 0);
+      setUserLiked(!!data.userHasLiked);
+      setUserDisliked(!!data.userHasDisliked);
+    } catch (error) {
+      console.error("Error toggling dislike:", error);
+    }
+  };
+
+  const handleTimeUpdate = async () => {
+    if (!videoRef.current || !duration || hasRecordedView) return;
+
+    const currentTime = videoRef.current.currentTime || 0;
+    const progress = duration > 0 ? currentTime / duration : 0;
+
+    if (progress >= 2 / 3 && !hasRecordedView) {
+      setHasRecordedView(true);
+
+      if (!isAuthenticated) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/videos/${id}/view`, {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to record view");
+        }
+
+        if (typeof data.views === "number") {
+          setViewCount(data.views);
+        }
+      } catch (error) {
+        console.error("Error recording view:", error);
+      }
     }
   };
 
@@ -115,10 +245,10 @@ const VideoCard = ({
               controls
               onPlay={() => {
                 setIsPlaying(true);
-                logWatchHistory();
               }}
               onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}
+              onTimeUpdate={handleTimeUpdate}
             />
             {!isPlaying && (
               <div
@@ -191,7 +321,7 @@ const VideoCard = ({
                   <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                   <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                 </svg>
-                <span className="font-medium">{(views || 0).toLocaleString()}</span> views
+                <span className="font-medium">{(viewCount || 0).toLocaleString()}</span> views
               </span>
               <span className="text-gray-400">•</span>
               <span className="flex items-center gap-1">
@@ -398,7 +528,7 @@ const VideoCard = ({
         {/* Engagement Section */}
         <div className="flex items-center gap-6 mt-4 pt-4 border-t border-gray-100">
           <button
-            onClick={toggleLike}
+            onClick={handleLike}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
               userLiked 
                 ? "bg-blue-600 text-white shadow-md" 
@@ -417,7 +547,7 @@ const VideoCard = ({
             <span>{likeCount.toLocaleString()}</span>
           </button>
           <button
-            onClick={toggleDislike}
+            onClick={handleDislike}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
               userDisliked 
                 ? "bg-red-600 text-white shadow-md" 

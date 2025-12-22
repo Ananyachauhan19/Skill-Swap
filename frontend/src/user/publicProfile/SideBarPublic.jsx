@@ -455,10 +455,19 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 <ul className="flex flex-col gap-2">
                   {profile.experience.map((exp, i) => (
                     <li key={i} className="text-xs text-gray-600">
-                      <span className="font-medium">{exp.title}</span>
-                      {exp.company ? ` at ${exp.company}` : ""}
-                      {exp.duration ? ` (${exp.duration})` : ""}
-                      {exp.description ? `: ${exp.description}` : ""}
+                      {exp.position && exp.company && exp.duration && exp.description ? (
+                        <span>
+                          <span className="font-medium">{exp.position}</span>
+                          {` at ${exp.company} for ${exp.duration}. ${exp.description}`}
+                        </span>
+                      ) : (
+                        <span>
+                          {exp.position && <span className="font-medium">{exp.position}</span>}
+                          {exp.company ? ` at ${exp.company}` : ""}
+                          {exp.duration ? ` (${exp.duration})` : ""}
+                          {exp.description ? `: ${exp.description}` : ""}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>

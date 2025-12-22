@@ -35,6 +35,11 @@ const videoSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // Users for whom a view has already been counted (to ensure 1 view per user)
+  viewedBy: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    default: []
+  },
   likes: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     default: []

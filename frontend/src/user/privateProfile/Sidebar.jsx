@@ -91,7 +91,26 @@ const fetchUserProfile = async () => {
       email: userData.email || '',
       skillsToTeach: userData.skillsToTeach || [],
       skillsToLearn: userData.skillsToLearn || [],
-      socialLinks: userData.socialLinks || [],
+      // Build social links list from profile fields so it stays
+      // in sync with what the user edits in My Profile.
+      socialLinks: [
+        userData.linkedin && {
+          platform: 'LinkedIn',
+          url: `https://linkedin.com/in/${userData.linkedin}`,
+        },
+        userData.github && {
+          platform: 'GitHub',
+          url: `https://github.com/${userData.github}`,
+        },
+        userData.twitter && {
+          platform: 'Twitter',
+          url: `https://twitter.com/${userData.twitter}`,
+        },
+        userData.website && {
+          platform: 'Website',
+          url: userData.website.startsWith('http') ? userData.website : `https://${userData.website}`,
+        },
+      ].filter(Boolean),
       isTutor: userData.isTutor || false,
       tutorActivationAt: null,
     };
@@ -424,17 +443,21 @@ const Sidebar = () => {
               
               <div>
                 <h3 className="font-semibold text-blue-900 mb-2">What I Can Teach:</h3>
-                {(user?.skillsToTeach || []).length > 0 ? (
-                  <ul className="flex flex-wrap gap-2">
-                    {user.skillsToTeach.map((s, i) => (
-                      <li key={i} className="bg-blue-100 text-blue-900 px-3 py-1 rounded-full text-xs font-medium">
-                        {s.class ? `${s.class} • ` : ''}{s.subject} {s.topic === 'ALL' ? ' > ALL Topics' : s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-600 text-sm">Not added yet</p>
-                )}
+                {(() => {
+                  const teachSkills = (user?.skillsToTeach || []).filter(s => s.class);
+                  if (teachSkills.length === 0) {
+                    return <p className="text-gray-600 text-sm">Not added yet</p>;
+                  }
+                  return (
+                    <ul className="flex flex-wrap gap-2">
+                      {teachSkills.map((s, i) => (
+                        <li key={i} className="bg-blue-100 text-blue-900 px-3 py-1 rounded-full text-xs font-medium">
+                          {s.class ? `${s.class} • ` : ''}{s.subject} {s.topic === 'ALL' ? ' > ALL Topics' : s.topic ? `> ${s.topic}` : ''} {s.subtopic ? `> ${s.subtopic}` : ''}
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
               </div>
               
               <div>
@@ -464,10 +487,19 @@ const Sidebar = () => {
                   <ul className="space-y-2">
                     {user.experience.map((exp, i) => (
                       <li key={i} className="text-sm text-gray-600">
-                        <div className="font-medium">{exp.position}</div>
-                        {exp.company && <div>at {exp.company}</div>}
-                        {exp.duration && <div>{exp.duration}</div>}
-                        {exp.description && <div className="mt-1">{exp.description}</div>}
+                        {exp.position && exp.company && exp.duration && exp.description ? (
+                          <div>
+                            <span className="font-medium">{exp.position}</span>
+                            {` at ${exp.company} for ${exp.duration}. ${exp.description}`}
+                          </div>
+                        ) : (
+                          <div>
+                            {exp.position && <div className="font-medium">{exp.position}</div>}
+                            {exp.company && <div>at {exp.company}</div>}
+                            {exp.duration && <div>{exp.duration}</div>}
+                            {exp.description && <div className="mt-1">{exp.description}</div>}
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>

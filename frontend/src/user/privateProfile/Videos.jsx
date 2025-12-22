@@ -535,8 +535,10 @@ const Videos = () => {
                             ...video, 
                             id: video._id,
                             thumbnail: video.thumbnailUrl,
-                            likes: video.likes?.length || 0,
-                            dislikes: video.dislikes?.length || 0,
+                            likes: Array.isArray(video.likes) ? video.likes : [],
+                            dislikes: Array.isArray(video.dislikes) ? video.dislikes : [],
+                            likeCount: Array.isArray(video.likes) ? video.likes.length : 0,
+                            dislikeCount: Array.isArray(video.dislikes) ? video.dislikes.length : 0,
                             uploadDate: getRelativeTime(video.uploadDate || video.createdAt),
                             userId: typeof video.userId === 'object' 
                               ? (video.userId?.username || video.userId?.firstName || 'Unknown')

@@ -215,15 +215,18 @@ router.get('/user/:userId', async (req, res) => {
 });
 
 // @route   GET /api/videos/:id
-// @desc    Get a single video by ID
+// @desc    Get a single video by ID (no implicit view increment)
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const mongoose = require('mongoose');
+
     // Validate ObjectId to avoid cast errors when a userId is mistakenly passed
-    if (!require('mongoose').Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid video ID' });
     }
+
     const video = await Video.findById(id)
       .populate('userId', 'firstName lastName username');
 
@@ -231,14 +234,183 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Video not found' });
     }
 
-    // Increment views
-    video.views += 1;
-    await video.save();
-
+    // View counting is now handled explicitly via POST /:id/view
     res.status(200).json({ video });
   } catch (error) {
     console.error('Fetch video error:', error);
     res.status(500).json({ message: 'Failed to fetch video', error: error.message });
+  }
+});
+
+// @route   POST /api/videos/:id/view
+// @desc    Record a view for the current user (counted once per user)
+// @access  Private
+router.post('/:id/view', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const mongoose = require('mongoose');
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid video ID' });
+    }
+
+    const userId = req.user._id;
+    const video = await Video.findById(id);
+
+    if (!video) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+
+    // Ensure viewedBy exists
+    if (!Array.isArray(video.viewedBy)) {
+      video.viewedBy = [];
+    }
+
+    const alreadyViewed = video.viewedBy.some(
+      (vId) => vId.toString() === userId.toString()
+    );
+
+    if (!alreadyViewed) {
+      video.views += 1;
+      video.viewedBy.push(userId);
+      await video.save();
+    }
+
+    return res.status(200).json({
+      views: video.views,
+      alreadyCounted: alreadyViewed,
+    });
+  } catch (error) {
+    console.error('Record view error:', error);
+    res.status(500).json({ message: 'Failed to record view', error: error.message });
+  }
+});
+
+// @route   POST /api/videos/:id/like
+// @desc    Toggle like for current user (mutually exclusive with dislike)
+// @access  Private
+router.post('/:id/like', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const mongoose = require('mongoose');
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid video ID' });
+    }
+
+    const userId = req.user._id.toString();
+    const video = await Video.findById(id);
+
+    if (!video) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+
+    if (!Array.isArray(video.likes)) video.likes = [];
+    if (!Array.isArray(video.dislikes)) video.dislikes = [];
+
+    let userHasLiked = false;
+    let userHasDisliked = false;
+
+    // Toggle like
+    const likeIndex = video.likes.findIndex(
+      (vId) => vId.toString() === userId
+    );
+
+    if (likeIndex >= 0) {
+      // Remove existing like (user unlikes)
+      video.likes.splice(likeIndex, 1);
+      userHasLiked = false;
+    } else {
+      video.likes.push(userId);
+      userHasLiked = true;
+
+      // Remove dislike if present to enforce mutual exclusivity
+      const dislikeIndex = video.dislikes.findIndex(
+        (vId) => vId.toString() === userId
+      );
+      if (dislikeIndex >= 0) {
+        video.dislikes.splice(dislikeIndex, 1);
+      }
+    }
+
+    // Determine dislike state after potential removal
+    userHasDisliked = video.dislikes.some((vId) => vId.toString() === userId);
+
+    await video.save();
+
+    return res.status(200).json({
+      likes: video.likes.length,
+      dislikes: video.dislikes.length,
+      userHasLiked,
+      userHasDisliked,
+    });
+  } catch (error) {
+    console.error('Toggle like error:', error);
+    res.status(500).json({ message: 'Failed to toggle like', error: error.message });
+  }
+});
+
+// @route   POST /api/videos/:id/dislike
+// @desc    Toggle dislike for current user (mutually exclusive with like)
+// @access  Private
+router.post('/:id/dislike', requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const mongoose = require('mongoose');
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: 'Invalid video ID' });
+    }
+
+    const userId = req.user._id.toString();
+    const video = await Video.findById(id);
+
+    if (!video) {
+      return res.status(404).json({ message: 'Video not found' });
+    }
+
+    if (!Array.isArray(video.likes)) video.likes = [];
+    if (!Array.isArray(video.dislikes)) video.dislikes = [];
+
+    let userHasLiked = false;
+    let userHasDisliked = false;
+
+    // Toggle dislike
+    const dislikeIndex = video.dislikes.findIndex(
+      (vId) => vId.toString() === userId
+    );
+
+    if (dislikeIndex >= 0) {
+      // Remove existing dislike (user removes dislike)
+      video.dislikes.splice(dislikeIndex, 1);
+      userHasDisliked = false;
+    } else {
+      video.dislikes.push(userId);
+      userHasDisliked = true;
+
+      // Remove like if present to enforce mutual exclusivity
+      const likeIndex = video.likes.findIndex(
+        (vId) => vId.toString() === userId
+      );
+      if (likeIndex >= 0) {
+        video.likes.splice(likeIndex, 1);
+      }
+    }
+
+    // Determine like state after potential removal
+    userHasLiked = video.likes.some((vId) => vId.toString() === userId);
+
+    await video.save();
+
+    return res.status(200).json({
+      likes: video.likes.length,
+      dislikes: video.dislikes.length,
+      userHasLiked,
+      userHasDisliked,
+    });
+  } catch (error) {
+    console.error('Toggle dislike error:', error);
+    res.status(500).json({ message: 'Failed to toggle dislike', error: error.message });
   }
 });
 
