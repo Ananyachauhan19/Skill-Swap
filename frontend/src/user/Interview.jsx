@@ -169,7 +169,7 @@ function BrowseInterviewersSection({ onBookSession }) {
           Browse Expert Interviewers
         </h2>
         <p className="text-slate-500 text-xs sm:text-sm leading-relaxed">
-          Discover and connect with approved industry experts for your mock interview sessions
+          Discover and connect with approved experts for your mock interview sessions
         </p>
       </div>
 
@@ -989,7 +989,7 @@ function RegisterInterviewerModal({ isOpen, onClose }) {
                   <ul className="space-y-2 text-sm text-slate-600">
                     <li className="flex items-start gap-2">
                       <span className="text-blue-900 mt-1">✓</span>
-                      <span>Share your industry experience and help others succeed</span>
+                      <span>Share your experience and help others succeed</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-blue-900 mt-1">✓</span>
@@ -1150,10 +1150,20 @@ function ScheduledInterviewSection() {
     return String(requesterId) === uid || String(assignedId) === uid;
   });
 
+<<<<<<< HEAD
   // If there are no scheduled interviews, do not render this section.
   // (Matches the Past Interviews components which return null when empty.)
   if (!user || visible.length === 0) return null;
 
+||||||| 90a69228
+=======
+  // If there are no scheduled interviews for this user, hide the
+  // entire scheduled section from the UI.
+  if (visible.length === 0) {
+    return null;
+  }
+
+>>>>>>> 469fa669ecb0087857403bc20b033d2246c0ec8b
   return (
     <section className="w-full bg-home-bg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -1163,6 +1173,21 @@ function ScheduledInterviewSection() {
           </h2>
           <p className="text-center text-gray-600 text-sm">Upcoming sessions and completed interviews</p>
         </div>
+<<<<<<< HEAD
+||||||| 90a69228
+
+      {visible.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <FaCalendarAlt className="text-blue-600 text-2xl" />
+          </div>
+          <p className="text-gray-900 text-lg font-semibold">No scheduled interviews yet</p>
+          <p className="text-gray-600 text-sm mt-2">Book your first mock interview to get started!</p>
+        </div>
+      ) : (
+=======
+
+>>>>>>> 469fa669ecb0087857403bc20b033d2246c0ec8b
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {visible.map((s, idx) => (
             <div
@@ -1344,12 +1369,12 @@ const Interview = () => {
               <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl font-bold text-slate-900 leading-tight tracking-tight px-1 sm:px-2 lg:px-0">
                 Master Your Interviews with
                 <span className="block text-blue-900 mt-1 sm:mt-1.5 lg:mt-2">
-                  Industry Experts
+                  Experts
                 </span>
               </h1>
               
               <p className="text-xs sm:text-sm lg:text-base xl:text-lg text-slate-500 max-w-2xl mx-auto lg:mx-0 px-2 sm:px-4 lg:px-0 leading-relaxed">
-                Practice with industry experts, get real feedback, and land your dream job with confidence.
+                Practice with experts, get real feedback, and land your dream job with confidence.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-2 sm:gap-3 lg:gap-4 pt-2 sm:pt-3 lg:pt-4 px-2 sm:px-4 lg:px-0">

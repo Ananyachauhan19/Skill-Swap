@@ -16,6 +16,9 @@ module.exports = (io) => {
   const onlineUsers = new Map();
   // Store active session timers
   const sessionTimers = new Map();
+  // Track which interview participants have actually joined a given interview call
+  // Key: sessionId (InterviewRequest._id), Value: { studentJoined: boolean, interviewerJoined: boolean }
+  const interviewConnectionState = new Map();
 
   // Helper function to send notifications
   const sendNotification = async (io, userId, type, message, sessionId, requestId, requesterId, requesterName, subject, topic, company, position, messageId) => {
@@ -944,11 +947,29 @@ module.exports = (io) => {
     }
 
     // Join interview session room for video calling (interview calls only)
-    // sessionId MUST be InterviewRequest._id so both requester and interviewer join the same room.
     socket.on('join-interview-session', async ({ sessionId, userRole, username }) => {
       try {
         if (!sessionId) return;
         console.log('[INTERVIEW] User joining interview session:', { sessionId, userRole, username, socketId: socket.id });
+
+        try {
+          const interview = await InterviewRequest.findById(sessionId).select('scheduledAt status');
+          if (interview && interview.scheduledAt && String(interview.status).toLowerCase() === 'scheduled') {
+            const scheduledTime = new Date(interview.scheduledAt).getTime();
+            const joinOpenTime = scheduledTime - 15 * 60 * 1000;
+            if (Date.now() < joinOpenTime) {
+              console.log('[INTERVIEW] Early join blocked for session', sessionId);
+              socket.emit('interview-join-blocked', {
+                sessionId,
+                reason: 'early',
+                message: 'You can join your interview 15 minutes before the scheduled time.',
+              });
+              return;
+            }
+          }
+        } catch (err) {
+          console.error('[INTERVIEW] Failed to enforce join window for interview', sessionId, err);
+        }
 
         const existingUsers = sessionRooms.get(sessionId);
         const wasAlreadyOccupied = existingUsers && existingUsers.size > 0;
@@ -956,6 +977,16 @@ module.exports = (io) => {
         socket.join(sessionId);
         if (!sessionRooms.has(sessionId)) sessionRooms.set(sessionId, new Set());
         sessionRooms.get(sessionId).add(socket.id);
+
+        // Remember that this role has joined at least once so we can
+        // require both sides to have connected before marking completed.
+        if (!interviewConnectionState.has(sessionId)) {
+          interviewConnectionState.set(sessionId, { studentJoined: false, interviewerJoined: false });
+        }
+        const state = interviewConnectionState.get(sessionId) || { studentJoined: false, interviewerJoined: false };
+        if (userRole === 'student') state.studentJoined = true;
+        if (userRole === 'interviewer') state.interviewerJoined = true;
+        interviewConnectionState.set(sessionId, state);
 
         const size = sessionRooms.get(sessionId).size;
         console.log('[INTERVIEW] Room size after join:', size);
@@ -969,7 +1000,6 @@ module.exports = (io) => {
 
         // Forward any pre-attached image on the InterviewRequest
         try {
-          const InterviewRequest = require('./models/InterviewRequest');
           const req = await InterviewRequest.findById(sessionId).select('questionImageUrl');
           if (req && req.questionImageUrl) {
             io.to(sessionId).emit('shared-image', { imageUrl: req.questionImageUrl });
@@ -1127,6 +1157,8 @@ module.exports = (io) => {
         if (sessionRooms.get(sessionId).size === 0) {
           sessionRooms.delete(sessionId);
           stopSessionTimer(sessionId);
+          // Clean up any interview connection state once the room is empty
+          interviewConnectionState.delete(sessionId);
         }
       }
       socket.to(sessionId).emit('user-left', { sessionId });
@@ -1302,6 +1334,12 @@ module.exports = (io) => {
           .populate('assignedInterviewer', '_id');
 
         if (!interview) return; // nothing to do
+        const joinState = interviewConnectionState.get(sessionId);
+        const bothJoined = !!(joinState && joinState.studentJoined && joinState.interviewerJoined);
+        if (!bothJoined) {
+          console.log(`[Interview] end-call received for ${sessionId} but both participants never joined; leaving status as ${interview.status}`);
+          return;
+        }
 
         // Mark interview as completed if not already
         if (interview.status !== 'completed') {
@@ -1310,22 +1348,16 @@ module.exports = (io) => {
           console.log(`[Interview] Marked as completed: ${sessionId}`);
         }
 
-        // Award contribution credits for both requester and interviewer
+        // Award contribution credits for the interviewer only.
+        // The requester (student) already gets credit via rating and
+        // other flows; INTERVIEW_COMPLETED is used to represent
+        // hosted interviews for the expert.
         try {
           const requesterId = interview.requester && (interview.requester._id || interview.requester);
           const interviewerId = interview.assignedInterviewer && (interview.assignedInterviewer._id || interview.assignedInterviewer);
           const when = new Date();
 
           const tasks = [];
-          if (requesterId) {
-            tasks.push(trackActivity({
-              userId: requesterId,
-              activityType: ACTIVITY_TYPES.INTERVIEW_COMPLETED,
-              activityId: interview._id.toString(),
-              when,
-              io,
-            }));
-          }
           if (interviewerId) {
             tasks.push(trackActivity({
               userId: interviewerId,
@@ -1338,7 +1370,7 @@ module.exports = (io) => {
 
           if (tasks.length) {
             await Promise.all(tasks);
-            console.log('[Interview] Contribution credits tracked for interview', interview._id.toString());
+            console.log('[Interview] Contribution credits tracked for interviewer on interview', interview._id.toString());
           }
         } catch (err) {
           console.error('[Interview] Failed to track interview completion contributions:', err);

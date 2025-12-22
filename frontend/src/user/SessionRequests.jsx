@@ -43,15 +43,30 @@ const SessionRequests = () => {
   // Deep-link support: /session-requests?tab=expert
   useEffect(() => {
     try {
-      const tab = new URLSearchParams(location.search).get('tab');
+      const params = new URLSearchParams(location.search);
+      const tab = params.get('tab');
       if (tab === 'expert') {
         setRequestType('expert');
         setActiveTab('received');
       }
+      const early = params.get('interviewEarly');
+      if (early === '1') {
+        addToast({
+          title: 'Interview join not yet available',
+          message: 'You can join your interview 15 minutes before the scheduled time.',
+          variant: 'info',
+          timeout: 5000,
+        });
+
+        // Clean the URL so the message doesn't re-trigger on refresh
+        params.delete('interviewEarly');
+        const search = params.toString();
+        navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true });
+      }
     } catch {
       // ignore
     }
-  }, [location.search]);
+  }, [location.search, location.pathname, addToast, navigate]);
 
   useEffect(() => {
     const savedActiveSession = localStorage.getItem('activeSession');
@@ -171,11 +186,9 @@ const SessionRequests = () => {
         setReadyToStartSession(null);
         localStorage.removeItem('activeSession');
       }
-        // Fallback: if no session-completed comes shortly, still open rating page
         if (sessionId) {
           setTimeout(() => {
             try {
-              // If a rating redirect hasn't been triggered already, enforce it
               const pending = localStorage.getItem('pendingRatingSessionId');
               if (!pending) {
                 localStorage.setItem('pendingRatingSessionId', String(sessionId));
@@ -291,12 +304,19 @@ const SessionRequests = () => {
       if (response.ok) {
         const data = await response.json();
         
-        // Filter to show only requests from the last 2 days
+        // Filter to show only requests from the last 2 days,
+        // but ALWAYS keep scheduled interviews until they are completed/cancelled.
         const twoDaysAgo = new Date();
         twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
         
         const filterRecent = (requests) => {
-          return requests.filter(req => {
+          return (requests || []).filter((req) => {
+            const status = (req.status || '').toLowerCase();
+
+            // Keep scheduled interviews visible regardless of how old the request is,
+            // as long as they are not yet marked completed/cancelled/etc.
+            if (status === 'scheduled') return true;
+
             const requestDate = new Date(req.createdAt || req.requestedAt);
             return requestDate >= twoDaysAgo;
           });
@@ -731,6 +751,17 @@ const SessionRequests = () => {
       request.assignedInterviewer &&
       String(user._id) === String(request.assignedInterviewer._id || request.assignedInterviewer);
 
+    let canJoinInterview = false;
+    if (request.status === 'scheduled' && request.scheduledAt) {
+      try {
+        const scheduledTime = new Date(request.scheduledAt).getTime();
+        const joinOpenTime = scheduledTime - 15 * 60 * 1000; // 15 minutes before
+        canJoinInterview = Date.now() >= joinOpenTime;
+      } catch {
+        canJoinInterview = false;
+      }
+    }
+
     return (
       <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-300">
         <div className="flex items-start justify-between mb-3">
@@ -792,9 +823,11 @@ const SessionRequests = () => {
             {request.status === 'scheduled' && (
               <button
                 onClick={() => handleJoinInterview(request)}
+                disabled={!canJoinInterview}
                 className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200"
               >
-                <FaVideo size={10} /> Join Interview
+                <FaVideo size={10} />
+                {canJoinInterview ? 'Join Interview' : 'Join available 15 min before'}
               </button>
             )}
           </div>
