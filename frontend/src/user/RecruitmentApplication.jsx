@@ -580,11 +580,11 @@ const RecruitmentApplication = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                    <FiUpload className="w-4 h-4" /> Proof of Experience (PDF) *
+                    <FiUpload className="w-4 h-4" /> Proof of Employement (PDF) *
                   </label>
                   <input
                     type="file"
-                    name="proofOfExperience"
+                    name="proofOfEmployement"
                     accept=".pdf"
                     onChange={handleFileChange}
                     required
