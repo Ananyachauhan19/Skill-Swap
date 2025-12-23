@@ -36,13 +36,13 @@ const BioLink = ({ bio = "", links = [] }) => {
   const showViewAll = links.length > 2;
 
   return (
-    <div className="relative w-full max-w-md min-h-[140px] bg-white rounded-lg shadow p-4 border border-blue-100">
+    <div className="relative w-full max-w-md min-h-[120px] sm:min-h-[140px] bg-white rounded-lg shadow p-3 sm:p-4 border border-blue-100">
       {/* Bio section */}
-      <div className="mb-8 text-gray-800 text-sm">
+      <div className="mb-6 sm:mb-8 text-gray-800 text-xs sm:text-sm leading-relaxed">
         {shortBio}
         {showReadMore && (
           <button
-            className="ml-2 text-blue-600 underline text-xs hover:text-blue-800"
+            className="ml-2 text-blue-600 underline text-xs hover:text-blue-800 font-medium"
             onClick={() => setShowBioPopup(true)}
           >
             Read more
@@ -50,7 +50,7 @@ const BioLink = ({ bio = "", links = [] }) => {
         )}
       </div>
       {/* Links section */}
-      <div className="flex flex-wrap gap-2 items-center mb-1">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center mb-1">
         {visibleLinks.map((l, i) => (
           <a
             key={i}
@@ -75,16 +75,16 @@ const BioLink = ({ bio = "", links = [] }) => {
       {showBioPopup && (
         <div
           ref={bioPopupRef}
-          className="absolute left-1/2 top-10 -translate-x-1/2 z-50 bg-white border border-blue-200 shadow-lg rounded-lg p-4 w-96 text-gray-800 text-sm"
+          className="fixed sm:absolute left-4 right-4 sm:left-1/2 top-20 sm:top-10 sm:-translate-x-1/2 z-50 bg-white border border-blue-200 shadow-xl rounded-lg p-4 sm:w-96 text-gray-800 text-sm max-h-[70vh] overflow-y-auto"
         >
-          <div className="mb-2">{bio}</div>
+          <div className="mb-2 leading-relaxed">{bio}</div>
         </div>
       )}
       {/* Links Popup */}
       {showLinksPopup && (
         <div
           ref={linksPopupRef}
-          className="absolute left-1/2 top-20 -translate-x-1/2 z-50 bg-white border border-blue-200 shadow-lg rounded-lg p-4 w-96"
+          className="fixed sm:absolute left-4 right-4 sm:left-1/2 top-24 sm:top-20 sm:-translate-x-1/2 z-50 bg-white border border-blue-200 shadow-xl rounded-lg p-4 sm:w-96 max-h-[60vh] overflow-y-auto"
         >
           <div className="mb-2 font-semibold text-gray-700">All Links</div>
           <div className="flex flex-col gap-2">

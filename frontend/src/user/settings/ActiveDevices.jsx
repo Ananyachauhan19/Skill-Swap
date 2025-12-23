@@ -45,26 +45,28 @@ const ActiveDevices = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 sm:pt-20">
-      <div className="max-w-lg w-full p-6 bg-white rounded-xl shadow border border-blue-100 mt-8 mx-auto">
-        <h2 className="text-xl font-bold mb-4 text-center">Active Devices / Login Activity</h2>
-        {error && <div className="text-red-600 text-sm mb-2 text-center">{error}</div>}
-        <ul className="flex flex-col gap-4 mb-6">
+    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 sm:pt-20 px-3 sm:px-4">
+      <div className="max-w-lg w-full p-4 sm:p-6 bg-white rounded-lg sm:rounded-xl shadow border border-blue-100 mt-6 sm:mt-8 mx-auto">
+        <h2 className="text-lg sm:text-xl font-bold mb-4 text-center">Active Devices / Login Activity</h2>
+        {error && <div className="text-red-600 text-xs sm:text-sm mb-2 text-center">{error}</div>}
+        <ul className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
           {loading ? (
-            <li className="text-center text-gray-500">Loading...</li>
+            <li className="text-center text-gray-500 text-sm">Loading...</li>
           ) : devices.length === 0 ? (
-            <li className="text-center text-gray-500">No active devices.</li>
+            <li className="text-center text-gray-500 text-sm">No active devices.</li>
           ) : (
             devices.map((d) => (
-              <li key={d.id} className={`flex flex-col sm:flex-row items-center justify-between gap-2 p-3 rounded-lg border ${d.current ? 'border-blue-400 bg-blue-50' : 'border-blue-100 bg-gray-50'}`}>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="font-semibold text-blue-900">{d.device}</span>
+              <li key={d.id} className={`flex flex-col gap-2 p-3 rounded-lg border ${
+                d.current ? 'border-blue-400 bg-blue-50' : 'border-blue-100 bg-gray-50'
+              }`}>
+                <div className="flex flex-col gap-1">
+                  <span className="font-semibold text-blue-900 text-sm sm:text-base">{d.device}</span>
                   <span className="text-xs text-gray-500">{d.location}</span>
                   <span className="text-xs text-gray-500">Last active: {d.lastActive ? new Date(d.lastActive).toLocaleString() : 'Unknown'}</span>
                   {d.current && <span className="text-xs text-green-600 font-semibold">Current Device</span>}
                 </div>
                 {!d.current && (
-                  <button className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 text-xs" onClick={() => handleLogoutDevice(d.id)}>
+                  <button className="bg-red-500 text-white px-3 py-1.5 rounded hover:bg-red-600 text-xs sm:text-sm font-medium w-full sm:w-auto" onClick={() => handleLogoutDevice(d.id)}>
                     Logout
                   </button>
                 )}
@@ -72,7 +74,7 @@ const ActiveDevices = () => {
             ))
           )}
         </ul>
-        <button className="bg-red-600 text-white py-2 rounded hover:bg-red-700 transition w-full font-semibold" onClick={handleLogoutAll} disabled={loading || devices.length === 0}>
+        <button className="bg-red-600 text-white py-2 sm:py-2.5 rounded hover:bg-red-700 transition w-full font-semibold text-sm sm:text-base" onClick={handleLogoutAll} disabled={loading || devices.length === 0}>
           Logout from All Devices
         </button>
       </div>

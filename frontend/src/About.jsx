@@ -231,7 +231,7 @@ const About = () => {
               transition={{ duration: 0.7, delay: 0.6 }}
               className="text-lg sm:text-xl md:text-2xl font-medium max-w-4xl mx-auto opacity-95 mb-6 sm:mb-10 px-4"
             >
-              Teach What You Know, Learn What You Don't – And Earn While You Do!
+              Teach What You Know, Learn What You Don't – Earn While You Do!
             </motion.p>
             
             <motion.div 
@@ -589,7 +589,7 @@ const About = () => {
                           At the end of the day, our motto says it all:
                         </p>
                         <p className="text-3xl font-bold mb-6">
-                          Teach What You Know, Learn What You Don't – And Earn While You Do!
+                          Teach What You Know, Learn What You Don't – Earn While You Do!
                         </p>
                         <p className="text-xl opacity-95">
                           This is not just a tagline, it's the foundation of our movement. Every user who joins SkillSwap Hub becomes a part of a knowledge revolution that will shape the future of learning.
@@ -802,7 +802,7 @@ const About = () => {
             viewport={{ once: true }}
             className="text-xl md:text-2xl mb-10 opacity-95"
           >
-            Teach What You Know, Learn What You Don't – And Earn While You Do! <br />
+            Teach What You Know, Learn What You Don't – Earn While You Do! <br />
             Be part of a movement that's shaping the future of learning.
           </motion.p>
           <motion.div 

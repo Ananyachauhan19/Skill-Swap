@@ -9,7 +9,8 @@ import {
   FaFileAlt,
   FaUsers,
   FaTimes,
-  FaEllipsisH
+  FaEllipsisH,
+  FaFlag
 } from "react-icons/fa";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from '../../context/AuthContext.jsx';
@@ -238,6 +239,7 @@ const Sidebar = () => {
     { path: "archived", icon: FaArchive, label: "Archive", title: "View Archived Items" },
     { path: "saved", icon: FaRegSave, label: "Saved", title: "View Saved Items" },
     { path: "history", icon: FaHistory, label: "History", title: "View History" },
+    { path: "report", icon: FaFlag, label: "Report", title: "Report an Issue", route: "/report" },
     { path: "account", icon: FaUserCircle, label: "Account", title: "Go to Account Settings", route: "/accountSettings" },
   ];
 

@@ -124,7 +124,11 @@ const HeroSection = ({ exploreRef }) => {
             </span>
             <br />
             <span>
-              And <span className="text-black">Earn</span> While You Do!
+              <span className="text-black">Earn</span> While You
+            </span>
+            <br />
+            <span>
+              <span >Do!</span>
             </span>
           </motion.h1>
           <motion.p

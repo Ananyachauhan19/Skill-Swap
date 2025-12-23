@@ -56,15 +56,15 @@ const ChangePassword = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 sm:pt-20">
-      <div className="max-w-lg w-full p-6 bg-white rounded-xl shadow border border-blue-100 mt-8 mx-auto">
-        <h2 className="text-xl font-bold mb-4 text-center">Change Password</h2>
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 sm:pt-20 px-3 sm:px-4">
+      <div className="max-w-lg w-full p-4 sm:p-6 bg-white rounded-lg sm:rounded-xl shadow border border-blue-100 mt-6 sm:mt-8 mx-auto">
+        <h2 className="text-lg sm:text-xl font-bold mb-4 text-center">Change Password</h2>
+        <form className="flex flex-col gap-3 sm:gap-4" onSubmit={handleSubmit}>
           <div className="relative">
             <input
               type={showCurrent ? "text" : "password"}
               placeholder="Current Password"
-              className="border p-2 rounded w-full pr-10"
+              className="border p-2 sm:p-2.5 rounded w-full pr-10 text-sm sm:text-base"
               value={current}
               onChange={e => setCurrent(e.target.value)}
               required
@@ -72,7 +72,7 @@ const ChangePassword = () => {
             <button
               type="button"
               onClick={() => setShowCurrent((v) => !v)}
-              className="absolute inset-y-0 right-2 flex items-center text-gray-500 hover:text-gray-700"
+              className="absolute inset-y-0 right-2 flex items-center text-gray-500 hover:text-gray-700 min-w-[36px] justify-center"
               aria-label={showCurrent ? "Hide current password" : "Show current password"}
             >
               {showCurrent ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -83,7 +83,7 @@ const ChangePassword = () => {
               <input
                 type={showNew ? "text" : "password"}
                 placeholder="New Password"
-                className="border p-2 rounded w-full pr-10"
+                className="border p-2 sm:p-2.5 rounded w-full pr-10 text-sm sm:text-base"
                 value={newPass}
                 onChange={e => setNewPass(e.target.value)}
                 required
@@ -91,7 +91,7 @@ const ChangePassword = () => {
               <button
                 type="button"
                 onClick={() => setShowNew((v) => !v)}
-                className="absolute inset-y-0 right-2 flex items-center text-gray-500 hover:text-gray-700"
+                className="absolute inset-y-0 right-2 flex items-center text-gray-500 hover:text-gray-700 min-w-[36px] justify-center"
                 aria-label={showNew ? "Hide new password" : "Show new password"}
               >
                 {showNew ? <EyeOff size={18} /> : <Eye size={18} />}

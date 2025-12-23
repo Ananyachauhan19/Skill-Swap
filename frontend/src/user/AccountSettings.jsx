@@ -71,6 +71,7 @@ const sections = [
 
 const AccountSettings = () => {
   const [activeSection, setActiveSection] = useState(sections[0].title);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -108,9 +109,45 @@ const AccountSettings = () => {
   };
 
   return (
-    <div className="min-h-screen pt-16 sm:pt-20 px-4 pb-4 bg-gradient-to-b from-[#f0f6ff] to-white font-sans">
-      <div className="flex flex-1 mt-[3%] gap-6">
-        <aside className="sticky top-[3%] w-64 h-fit bg-blue-50/90 backdrop-blur-sm p-6 shadow-lg">
+    <div className="min-h-screen pt-16 sm:pt-20 px-3 sm:px-4 lg:px-6 pb-4 bg-gradient-to-b from-[#f0f6ff] to-white font-sans">
+      {/* Mobile Header with Menu Toggle */}
+      <div className="lg:hidden fixed top-16 left-0 right-0 z-30 bg-white shadow-md p-3 flex items-center justify-between">
+        <h1 className="text-lg font-bold text-blue-900">Account Settings</h1>
+        <button
+          onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+          className="p-2 rounded-lg bg-blue-50 text-blue-900 hover:bg-blue-100"
+          aria-label="Toggle menu"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div className="flex flex-1 mt-[3%] lg:mt-[3%] gap-4 lg:gap-6 pt-14 lg:pt-0">
+        {/* Sidebar Overlay for Mobile */}
+        {showMobileSidebar && (
+          <div
+            className="fixed inset-0 bg-transparent z-40 lg:hidden"
+            onClick={() => setShowMobileSidebar(false)}
+          />
+        )}
+
+        {/* Sidebar */}
+        <aside className={`fixed lg:sticky top-16 lg:top-[3%] w-64 sm:w-72 lg:w-64 h-[calc(100vh-4rem)] lg:h-fit bg-blue-50/90 backdrop-blur-sm p-4 sm:p-6 shadow-lg z-50 lg:z-auto transition-transform duration-300 ${
+          showMobileSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}>
           <div className="flex items-center gap-3 pb-4 mb-4 border-b border-gray-200">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -138,15 +175,18 @@ const AccountSettings = () => {
             {sections.map((section) => (
               <button
                 key={section.title}
-                onClick={() => setActiveSection(section.title)}
-                className={`flex items-center gap-3 p-3 rounded-lg text-gray-600 font-medium text-sm transition-all duration-300 w-full text-left ${
+                onClick={() => {
+                  setActiveSection(section.title);
+                  setShowMobileSidebar(false);
+                }}
+                className={`flex items-center gap-3 p-2.5 sm:p-3 rounded-lg text-gray-600 font-medium text-xs sm:text-sm transition-all duration-300 w-full text-left ${
                   activeSection === section.title
                     ? "bg-white text-blue-900 font-semibold shadow-md"
                     : "hover:bg-blue-100 hover:translate-x-1"
                 }`}
               >
-                <span className="text-blue-900 text-lg">{section.icon}</span>
-                <span>{section.title}</span>
+                <span className="text-blue-900 text-base sm:text-lg">{section.icon}</span>
+                <span className="line-clamp-2">{section.title}</span>
               </button>
             ))}
           </nav>
@@ -166,20 +206,20 @@ const AccountSettings = () => {
           </div>
         </aside>
 
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8">
           <div className="max-w-4xl mx-auto">
             {sections
               .filter((s) => s.title === activeSection)
               .map((section) => (
                 <div
                   key={section.title}
-                  className="bg-white rounded-xl p-6 shadow-md border border-gray-100 animate-fade-in"
+                  className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 shadow-md border border-gray-100 animate-fade-in"
                 >
-                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-900 to-blue-600 text-white rounded-t-lg -m-6 mb-4">
-                    <span className="text-lg">{section.icon}</span>
-                    <h2 className="text-lg font-bold">{section.title}</h2>
+                  <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-gradient-to-r from-blue-900 to-blue-600 text-white rounded-t-lg -m-4 sm:-m-6 mb-4">
+                    <span className="text-base sm:text-lg">{section.icon}</span>
+                    <h2 className="text-base sm:text-lg font-bold line-clamp-2">{section.title}</h2>
                   </div>
-                  <div className="grid gap-3">
+                  <div className="grid gap-2 sm:gap-3">
                     {section.items.map((item) => {
                       if (
                         section.title === "Platform Preferences" &&
@@ -239,12 +279,12 @@ const AccountSettings = () => {
                         <button
                           key={item}
                           onClick={() => handleAction(section.title, item)}
-                          className="flex items-center justify-between p-3 rounded-lg bg-gray-100 text-gray-600 font-medium border border-gray-200 hover:bg-blue-50 hover:text-blue-900 hover:border-blue-300 hover:translate-x-1"
+                          className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg bg-gray-100 text-gray-600 text-xs sm:text-sm font-medium border border-gray-200 hover:bg-blue-50 hover:text-blue-900 hover:border-blue-300 hover:translate-x-1 transition-all"
                         >
-                          <span>{item}</span>
+                          <span className="line-clamp-2 text-left">{item}</span>
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 text-blue-900"
+                            className="h-4 w-4 sm:h-5 sm:w-5 text-blue-900 flex-shrink-0 ml-2"
                             viewBox="0 0 20 20"
                             fill="currentColor"
                           >

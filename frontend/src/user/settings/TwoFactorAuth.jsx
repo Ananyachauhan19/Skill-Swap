@@ -66,43 +66,43 @@ const TwoFactorAuth = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 sm:pt-20">
-      <div className="max-w-lg w-full p-6 bg-white rounded-xl shadow border border-blue-100 mt-8 mx-auto">
-        <h2 className="text-xl font-bold mb-4 text-center">Two-Factor Authentication (2FA)</h2>
+    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 sm:pt-20 px-3 sm:px-4">
+      <div className="max-w-lg w-full p-4 sm:p-6 bg-white rounded-lg sm:rounded-xl shadow border border-blue-100 mt-6 sm:mt-8 mx-auto">
+        <h2 className="text-lg sm:text-xl font-bold mb-4 text-center">Two-Factor Authentication (2FA)</h2>
         {step === "status" && (
           <>
-            <p className="mb-4 text-gray-700 text-center">
+            <p className="mb-4 text-gray-700 text-sm sm:text-base text-center">
               2FA is <span className={enabled ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>{enabled ? "Enabled" : "Disabled"}</span> on your account.
             </p>
             {enabled ? (
-              <button className="bg-red-600 text-white py-2 rounded hover:bg-red-700 transition w-full" onClick={handleDisable} disabled={loading}>
+              <button className="bg-red-600 text-white py-2 sm:py-2.5 rounded hover:bg-red-700 transition w-full text-sm sm:text-base font-medium" onClick={handleDisable} disabled={loading}>
                 {loading ? 'Disabling...' : 'Disable 2FA'}
               </button>
             ) : (
-              <button className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition w-full" onClick={handleEnable} disabled={loading}>
+              <button className="bg-blue-600 text-white py-2 sm:py-2.5 rounded hover:bg-blue-700 transition w-full text-sm sm:text-base font-medium" onClick={handleEnable} disabled={loading}>
                 {loading ? 'Enabling...' : 'Enable 2FA'}
               </button>
             )}
-            {message && <p className="text-green-600 text-sm mt-2 text-center">{message}</p>}
-            {error && <p className="text-red-600 text-sm mt-2 text-center">{error}</p>}
+            {message && <p className="text-green-600 text-xs sm:text-sm mt-2 text-center">{message}</p>}
+            {error && <p className="text-red-600 text-xs sm:text-sm mt-2 text-center">{error}</p>}
           </>
         )}
         {step === "setup" && (
-          <form className="flex flex-col gap-4" onSubmit={handleVerify}>
-            <p className="text-gray-700 text-center">Enter the 6-digit code sent to your email or phone.</p>
+          <form className="flex flex-col gap-3 sm:gap-4" onSubmit={handleVerify}>
+            <p className="text-gray-700 text-sm sm:text-base text-center">Enter the 6-digit code sent to your email or phone.</p>
             <input
               type="text"
               placeholder="Enter 2FA Code"
-              className="border p-2 rounded"
+              className="border p-2 sm:p-2.5 rounded text-sm sm:text-base"
               value={code}
               onChange={e => setCode(e.target.value)}
               maxLength={6}
               required
             />
-            <button type="submit" className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition" disabled={loading}>
+            <button type="submit" className="bg-blue-600 text-white py-2 sm:py-2.5 rounded hover:bg-blue-700 transition text-sm sm:text-base font-medium" disabled={loading}>
               {loading ? 'Verifying...' : 'Verify & Enable'}
             </button>
-            {error && <p className="text-red-600 text-sm mt-2 text-center">{error}</p>}
+            {error && <p className="text-red-600 text-xs sm:text-sm mt-2 text-center">{error}</p>}
           </form>
         )}
       </div>

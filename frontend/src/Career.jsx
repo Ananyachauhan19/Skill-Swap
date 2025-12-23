@@ -3,7 +3,7 @@ import React from "react";
 const Career = () => (
   <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-6 sm:pb-10 text-gray-800">
     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 text-center lg:text-left">Careers at SkillSwap Hub</h1>
-    <p className="mb-4">At SkillSwap Hub, we believe that learning never stops. We’re building the world’s first peer-to-peer micro-tutoring and skill-exchange ecosystem where anyone can <b>Teach what you know, Learn what you don’t – and Earn while you do!</b></p>
+    <p className="mb-4">At SkillSwap Hub, we believe that learning never stops. We're building the world's first peer-to-peer micro-tutoring and skill-exchange ecosystem where anyone can <b>Teach what you know, Learn what you don't – Earn while you do!</b></p>
     <p className="mb-4">Joining SkillSwap Hub means becoming part of a revolutionary mission:</p>
     <ul className="list-disc pl-6 mb-4">
       <li>To democratize education.</li>
@@ -106,7 +106,7 @@ const Career = () => (
 
     <h2 className="text-xl font-semibold mt-8 mb-2">Final Word</h2>
     <p className="mb-4">At SkillSwap Hub, you don’t just build a career — you build the future of learning.<br />So if you’re ready to be part of a global movement that empowers millions to teach, learn, and earn, then SkillSwap Hub is the place for you.</p>
-    <p className="font-semibold mt-6">Teach what you know, Learn what you don’t – and Earn while you do! 🌍</p>
+    <p className="font-semibold mt-6">Teach what you know, Learn what you don't – Earn while you do! 🌍</p>
   </div>
 );
 

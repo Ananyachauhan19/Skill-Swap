@@ -13,6 +13,7 @@ import {
   FaCode,
   FaChalkboardTeacher,
   FaChevronDown,
+  FaArrowLeft,
 } from "react-icons/fa";
 import { useNavigate, useParams } from "react-router-dom";
 import ContributionCalendar from "../myprofile/ContributionCalendar";
@@ -295,7 +296,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const toggleMobileMenu = () => setShowMobileMenu((prev) => !prev);
 
   const mobileNavItems = [
-    { icon: FaUser, label: "Profile", action: () => setActiveTab("home") },
+    { icon: FaUser, label: "Profile", action: () => { window.scrollTo({ top: 0, behavior: 'smooth' }); } },
     { icon: FaGraduationCap, label: "Education", path: "#education" },
     { icon: FaBriefcase, label: "Experience", path: "#experience" },
     { icon: FaCode, label: "Skills", path: "#skills" },
@@ -318,47 +319,6 @@ const SideBarPublic = ({ username, setNotFound }) => {
   return (
     <ProfileContext.Provider value={{ searchQuery, setSearchQuery, profileUserId: profile?._id }}>
       <div className="flex flex-col sm:flex-row min-h-screen w-full bg-gradient-to-br from-blue-50 to-cream-100 font-sans">
-        {/* Scrollable Menu Button */}
-        <div className="sm:hidden px-4 py-2 relative">
-          <button
-            onClick={toggleMobileMenu}
-            className="text-dark-blue"
-            aria-label="Open menu"
-          >
-            <FaBars className="text-2xl" />
-          </button>
-
-          {/* Dropdown appears OVER page content */}
-          {showMobileMenu && (
-            <div className="absolute top-full left-0 mt-2 w-screen bg-blue-100 z-50 shadow-md">
-              <div className="p-4 max-w-md mx-auto rounded-md">
-                <ul className="space-y-3">
-                  {mobileNavItems.map((item, index) => (
-                    <li key={index}>
-                      <a
-                        href={item.path || "#"}
-                        className="flex items-center gap-3 p-2 rounded-md text-dark-blue hover:bg-blue-200"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toggleMobileMenu();
-                          if (item.action) {
-                            item.action();
-                          } else if (item.path && item.path !== "#") {
-                            window.location.hash = item.path;
-                          }
-                        }}
-                      >
-                        <item.icon className="text-lg" />
-                        <span className="text-sm">{item.label}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Sidebar - Web Version */}
         <aside className="hidden sm:flex sm:w-56 min-h-screen bg-blue-50 px-4 pt-6 border-r border-blue-200">
           <div className="w-full">
@@ -717,55 +677,170 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
             {/* Social Section (Mobile) */}
             <div className="sm:hidden mb-8">
-              <div className="flex flex-col items-center w-full max-w-sm">
-                <div className="flex flex-col gap-3 w-full">
-                  {profile?.linkedin && (
-                    <a
-                      href={`https://linkedin.com/in/${profile.linkedin}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue"
-                    >
-                      <FaLinkedin className="text-xl" />
-                      LinkedIn
-                    </a>
+              <div className="flex flex-col gap-6 w-full">
+                {/* Social Links */}
+                {(profile?.linkedin || profile?.github || profile?.twitter || profile?.website) && (
+                  <div className="flex flex-col gap-3">
+                    {profile?.linkedin && (
+                      <a
+                        href={`https://linkedin.com/in/${profile.linkedin}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
+                      >
+                        <FaLinkedin className="text-xl text-blue-600" />
+                        <span className="text-sm font-medium">LinkedIn</span>
+                      </a>
+                    )}
+                    {profile?.github && (
+                      <a
+                        href={`https://github.com/${profile.github}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
+                      >
+                        <FaGithub className="text-xl" />
+                        <span className="text-sm font-medium">GitHub</span>
+                      </a>
+                    )}
+                    {profile?.twitter && (
+                      <a
+                        href={`https://twitter.com/${profile.twitter}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
+                      >
+                        <FaTwitter className="text-xl text-blue-400" />
+                        <span className="text-sm font-medium">Twitter</span>
+                      </a>
+                    )}
+                    {profile?.website && (
+                      <a
+                        href={
+                          profile.website.startsWith("http")
+                            ? profile.website
+                            : `https://${profile.website}`
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
+                      >
+                        <FaGlobe className="text-xl text-green-600" />
+                        <span className="text-sm font-medium">Website</span>
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* Education Section - Mobile */}
+                <div id="education" className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaGraduationCap className="text-xl text-blue-600" />
+                    <h3 className="font-semibold text-dark-blue text-base">Education</h3>
+                  </div>
+                  {loading ? (
+                    <span className="text-gray-600 text-sm">Loading...</span>
+                  ) : error ? (
+                    <span className="text-red-500 text-sm">{error}</span>
+                  ) : profile?.education && profile.education.length > 0 ? (
+                    <ul className="flex flex-col gap-3">
+                      {profile.education.map((edu, i) => (
+                        <li key={i} className="text-sm text-gray-700 bg-blue-50 p-3 rounded-md">
+                          {edu.course && <div className="font-medium">{edu.course}</div>}
+                          {edu.branch && <div className="text-gray-600">{edu.branch}</div>}
+                          {edu.college && <div className="text-gray-600">{edu.college}</div>}
+                          {edu.city && <div className="text-gray-500 text-xs">{edu.city}</div>}
+                          {edu.passingYear && <div className="text-gray-500 text-xs">{edu.passingYear}</div>}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="text-sm text-gray-500">Not added yet</span>
                   )}
-                  {profile?.github && (
-                    <a
-                      href={`https://github.com/${profile.github}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue"
-                    >
-                      <FaGithub className="text-xl" />
-                      GitHub
-                    </a>
+                </div>
+
+                {/* Experience Section - Mobile */}
+                <div id="experience" className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaBriefcase className="text-xl text-blue-600" />
+                    <h3 className="font-semibold text-dark-blue text-base">Experience</h3>
+                  </div>
+                  {loading ? (
+                    <span className="text-gray-600 text-sm">Loading...</span>
+                  ) : error ? (
+                    <span className="text-red-500 text-sm">{error}</span>
+                  ) : profile?.experience && profile.experience.length > 0 ? (
+                    <ul className="flex flex-col gap-3">
+                      {profile.experience.map((exp, i) => (
+                        <li key={i} className="text-sm text-gray-700 bg-blue-50 p-3 rounded-md">
+                          {exp.position && <div className="font-medium">{exp.position}</div>}
+                          {exp.company && <div className="text-gray-600">{exp.company}</div>}
+                          {exp.duration && <div className="text-gray-500 text-xs">{exp.duration}</div>}
+                          {exp.description && <div className="text-gray-600 text-xs mt-1">{exp.description}</div>}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className="text-sm text-gray-500">Not added yet</span>
                   )}
-                  {profile?.twitter && (
-                    <a
-                      href={`https://twitter.com/${profile.twitter}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue"
-                    >
-                      <FaTwitter className="text-xl" />
-                      Twitter
-                    </a>
+                </div>
+
+                {/* Skills Section - Mobile */}
+                <div id="skills" className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaCode className="text-xl text-blue-600" />
+                    <h3 className="font-semibold text-dark-blue text-base">Skills</h3>
+                  </div>
+                  {loading ? (
+                    <span className="text-gray-600 text-sm">Loading...</span>
+                  ) : error ? (
+                    <span className="text-red-500 text-sm">{error}</span>
+                  ) : profile?.skills && profile.skills.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {profile.skills.map((skill, i) => (
+                        <span
+                          key={i}
+                          className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-500">Not added yet</span>
                   )}
-                  {profile?.website && (
-                    <a
-                      href={
-                        profile.website.startsWith("http")
-                          ? profile.website
-                          : `https://${profile.website}`
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue"
-                    >
-                      <FaGlobe className="text-xl" />
-                      Website
-                    </a>
+                </div>
+
+                {/* What I Can Teach Section - Mobile */}
+                <div id="teach" className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaChalkboardTeacher className="text-xl text-blue-600" />
+                    <h3 className="font-semibold text-dark-blue text-base">What I Can Teach</h3>
+                  </div>
+                  {loading ? (
+                    <span className="text-gray-600 text-sm">Loading...</span>
+                  ) : error ? (
+                    <span className="text-red-500 text-sm">{error}</span>
+                  ) : profile?.skillsToTeach && profile.skillsToTeach.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {profile.skillsToTeach.map((s, i) => (
+                        <span
+                          key={i}
+                          className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium border border-green-200"
+                        >
+                          {s.class ? `${s.class} • ` : ""}
+                          {s.subject}{" "}
+                          {s.topic === "ALL"
+                            ? " > ALL"
+                            : s.topic
+                            ? `> ${s.topic}`
+                            : ""}{" "}
+                          {s.subtopic ? `> ${s.subtopic}` : ""}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-500">Not added yet</span>
                   )}
                 </div>
               </div>
@@ -775,31 +850,42 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
             {/* Tab Navigation */}
             <div className="px-2 sm:px-0 pt-4 sm:pt-6">
-              <div className="flex flex-wrap gap-2 sm:gap-4 border-b border-blue-200 mb-6">
+              <div className="flex items-center gap-2 sm:gap-4 border-b border-blue-200 mb-6">
+                {/* Back Button - Mobile Only */}
                 <button
-                  onClick={() => setActiveTab('home')}
-                  className={`pb-2 px-3 text-sm font-medium ${
-                    activeTab === 'home' ? activeTabStyle : normalTabStyle
-                  }`}
+                  onClick={() => navigate(-1)}
+                  className="sm:hidden flex items-center gap-1 pb-2 px-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+                  aria-label="Go back"
                 >
-                  Home
+                  <FaArrowLeft className="text-sm" />
                 </button>
-                <button
-                  onClick={() => setActiveTab('live')}
-                  className={`pb-2 px-3 text-sm font-medium ${
-                    activeTab === 'live' ? activeTabStyle : normalTabStyle
-                  }`}
-                >
-                  Live
-                </button>
-                <button
-                  onClick={() => setActiveTab('videos')}
-                  className={`pb-2 px-3 text-sm font-medium ${
-                    activeTab === 'videos' ? activeTabStyle : normalTabStyle
-                  }`}
-                >
-                  Videos
-                </button>
+                
+                <div className="flex flex-wrap gap-2 sm:gap-4">
+                  <button
+                    onClick={() => setActiveTab('home')}
+                    className={`pb-2 px-3 text-sm font-medium ${
+                      activeTab === 'home' ? activeTabStyle : normalTabStyle
+                    }`}
+                  >
+                    Home
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('live')}
+                    className={`pb-2 px-3 text-sm font-medium ${
+                      activeTab === 'live' ? activeTabStyle : normalTabStyle
+                    }`}
+                  >
+                    Live
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('videos')}
+                    className={`pb-2 px-3 text-sm font-medium ${
+                      activeTab === 'videos' ? activeTabStyle : normalTabStyle
+                    }`}
+                  >
+                    Videos
+                  </button>
+                </div>
               </div>
             </div>
 

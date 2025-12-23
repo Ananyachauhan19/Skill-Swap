@@ -232,9 +232,9 @@ const VideoCard = ({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 bg-white p-5 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 w-full border border-gray-100">
+    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 bg-white p-3 sm:p-5 rounded-lg sm:rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 w-full border border-gray-100">
       {/* Video/Thumbnail */}
-      <div className="relative w-full sm:w-[360px] aspect-video shrink-0 rounded-xl overflow-hidden bg-gray-900">
+      <div className="relative w-full sm:w-[320px] lg:w-[360px] aspect-video shrink-0 rounded-lg sm:rounded-xl overflow-hidden bg-gray-900">
         {videoUrl ? (
           <>
             <video
@@ -304,18 +304,18 @@ const VideoCard = ({
 
       {/* Details */}
       <div className="flex flex-col justify-between w-full">
-        <div className="flex justify-between items-start gap-3">
-          <div className="flex flex-col gap-2 flex-1">
-            <h3 className="text-xl font-bold text-gray-900 line-clamp-2 leading-tight">
+        <div className="flex justify-between items-start gap-2 sm:gap-3">
+          <div className="flex flex-col gap-1.5 sm:gap-2 flex-1">
+            <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 line-clamp-2 leading-tight">
               {title}
             </h3>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-blue-700 bg-blue-50 px-2.5 py-1 rounded-full">
+              <span className="text-xs sm:text-sm font-medium text-blue-700 bg-blue-50 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
                 @{videoUserId}
               </span>
             </div>
-            <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{description}</p>
-            <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed">{description}</p>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-gray-500 mt-1">
               <span className="flex items-center gap-1">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
@@ -357,16 +357,16 @@ const VideoCard = ({
           {/* Menu */}
           <div className="relative">
             <button
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors group"
+              className="p-2 sm:p-2.5 rounded-full hover:bg-gray-100 transition-colors group min-w-[36px] min-h-[36px] flex items-center justify-center"
               onClick={() => setOpenMenu((prev) => !prev)}
               aria-label="More options"
             >
               <svg
-                width="20"
-                height="20"
+                width="18"
+                height="18"
                 fill="currentColor"
                 viewBox="0 0 24 24"
-                className="text-gray-600 group-hover:text-gray-900"
+                className="text-gray-600 group-hover:text-gray-900 sm:w-5 sm:h-5"
               >
                 <circle cx="5" cy="12" r="2" />
                 <circle cx="12" cy="12" r="2" />

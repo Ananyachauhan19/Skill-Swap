@@ -15,7 +15,9 @@ import {
   FaRegSave,
   FaHistory,
   FaUserCircle,
-  FaTimes
+  FaTimes,
+  FaFlag,
+  FaArrowLeft
 } from "react-icons/fa";
 
 const Panel = () => {
@@ -40,6 +42,7 @@ const Panel = () => {
     { path: "archived", icon: FaArchive, label: "Archive", title: "View Archived Items", route: "/profile/archived" },
     { path: "saved", icon: FaRegSave, label: "Saved", title: "View Saved Items", route: "/profile/saved" },
     { path: "history", icon: FaHistory, label: "History", title: "View History", route: "/profile/history" },
+    { path: "report", icon: FaFlag, label: "Report", title: "Report an Issue", route: "/report" },
     { path: "account", icon: FaUserCircle, label: "Account", title: "Account Settings", route: "/accountSettings" },
   ];
 
@@ -48,6 +51,15 @@ const Panel = () => {
       {/* Sticky Top Navigation */}
         <div className="flex items-center justify-between gap-4 border-b mb-6 px-4 py-3 rounded-lg bg-[#f0f6fa] sticky top-[8.5%] z-30 shadow-sm">
         <div className="flex items-center gap-2 sm:gap-4 overflow-hidden">
+          {/* Back Button - Mobile Only */}
+          <button
+            onClick={() => navigate(-1)}
+            className="sm:hidden flex items-center gap-1 pb-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+            aria-label="Go back"
+          >
+            <FaArrowLeft className="text-sm" />
+          </button>
+          
           <NavLink to="your-home" className={({ isActive }) => `pb-2 text-sm sm:text-base ${isActive ? activeTab : normalTab}`}>
             Home
           </NavLink>
