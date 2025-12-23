@@ -28,6 +28,15 @@ const MobileMenu = ({
   setSearchQuery,
   handleSearch,
   isActive,
+  user,
+  isAvailable,
+  handleToggleAvailability,
+  isToggling,
+  searchRef,
+  suggestions,
+  showSuggestions,
+  setShowSuggestions,
+  searchLoading,
 }) => (
   <div
     className={`fixed top-0 right-0 h-full w-full sm:w-[85vw] sm:max-w-[360px] z-50 transition-transform duration-300 ease-in-out ${
@@ -40,7 +49,7 @@ const MobileMenu = ({
       ref={menuRef}
     >
       {/* Header with Logo and Close Button */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-4 border-b-2 border-blue-200 bg-gradient-to-r from-blue-50 to-white flex-shrink-0 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-2">
           <img
             src="/assets/skillswap-logo.webp"
@@ -62,21 +71,48 @@ const MobileMenu = ({
         </button>
       </div>
 
+      {/* SkillCoin Balance */}
+      {isLoggedIn && (
+        <div className="px-4 py-3 border-b border-blue-100 flex-shrink-0 bg-gradient-to-r from-blue-50/50 to-transparent">
+          <h3 className="text-xs font-bold text-blue-900 mb-3 uppercase tracking-wide">SkillCoin Balance</h3>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 shadow-md flex items-center justify-center flex-shrink-0 border-2 border-yellow-200">
+                  <span className="text-xs font-bold text-yellow-900">G</span>
+                </div>
+                <span className="text-sm font-bold text-gray-800">Golden Coins</span>
+              </div>
+              <span className="text-lg font-bold text-yellow-700">{goldenCoins}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-300 shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-600 shadow-md flex items-center justify-center flex-shrink-0 border-2 border-gray-300">
+                  <span className="text-xs font-bold text-gray-800">S</span>
+                </div>
+                <span className="text-sm font-bold text-gray-800">Silver Coins</span>
+              </div>
+              <span className="text-lg font-bold text-gray-700">{silverCoins}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search - Only show when logged in */}
       {isLoggedIn && (
         <div className="px-4 py-3 border-b border-gray-200 bg-white/80 flex-shrink-0">
           <form onSubmit={handleSearch}>
-            <div className="relative">
+            <div className="relative" ref={searchRef}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search SkillMate..."
-                className="w-full pl-10 pr-3 py-2 text-sm rounded-full border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-blue-800 placeholder-blue-400 font-nunito"
+                className="w-full pl-10 pr-3 py-2.5 text-sm rounded-full border-2 border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-blue-800 placeholder-blue-400 font-nunito shadow-sm"
               />
               <button
                 type="submit"
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-800 hover:text-blue-900"
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-800 hover:text-blue-900 transition"
                 aria-label="Search"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -88,6 +124,62 @@ const MobileMenu = ({
                   />
                 </svg>
               </button>
+              
+              {/* Search Suggestions Dropdown */}
+              {(showSuggestions || searchLoading) && (
+                <div className="absolute top-full mt-2 left-0 right-0 bg-white border-2 border-blue-300 rounded-xl shadow-2xl overflow-hidden z-[9999] max-h-80 overflow-y-auto">
+                  {searchLoading && (
+                    <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                      Searching...
+                    </div>
+                  )}
+                  {!searchLoading && suggestions.length === 0 && searchQuery.trim().length >= 2 && (
+                    <div className="px-4 py-3 text-sm text-gray-500">
+                      No users found
+                    </div>
+                  )}
+                  {!searchLoading && suggestions.length > 0 && (
+                    <>
+                      <div className="px-4 py-2 bg-blue-50 border-b border-blue-200 sticky top-0">
+                        <p className="text-xs font-semibold text-blue-900">
+                          Found {suggestions.length} user{suggestions.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      {suggestions.map((u) => (
+                        <button
+                          key={u._id}
+                          type="button"
+                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-blue-50 text-left transition-colors border-b border-gray-100 last:border-0 touch-manipulation"
+                          onClick={() => {
+                            setShowSuggestions(false);
+                            setSearchQuery('');
+                            setMenuOpen(false);
+                            navigate(`/profile/${encodeURIComponent(u.username)}`);
+                          }}
+                        >
+                          {u.profilePic ? (
+                            <img src={u.profilePic} alt={u.username} className="w-12 h-12 rounded-full object-cover border-2 border-blue-300 shadow-sm flex-shrink-0" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white flex items-center justify-center text-base font-bold shadow-sm flex-shrink-0">
+                              {(u.firstName?.[0] || u.username?.[0] || 'U').toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-gray-900 truncate">
+                              {`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">@{u.username}</div>
+                            {u.role && (
+                              <div className="text-xs text-blue-600 mt-0.5">{u.role}</div>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </form>
         </div>
@@ -113,66 +205,89 @@ const MobileMenu = ({
         ))}
       </nav>
 
-      {/* Coins Section */}
-      {isLoggedIn && (
-        <div className="px-4 py-3 border-t border-blue-100 flex-shrink-0">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-md flex items-center justify-center flex-shrink-0">
-                <span className="text-[10px] font-bold text-blue-900">G</span>
+      {/* Availability Toggle for Teachers/Tutors */}
+      {isLoggedIn && user && (user.role === 'teacher' || user.role === 'both') && (
+        <div className="px-4 py-3 border-b border-blue-100 flex-shrink-0 bg-gradient-to-r from-blue-50/50 to-transparent">
+          <h3 className="text-xs font-bold text-blue-900 mb-3 uppercase tracking-wide">Session Availability</h3>
+          <div className="flex items-center justify-between p-3 rounded-xl bg-white border-2 border-blue-100 shadow-sm hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full shadow-inner ${
+                isAvailable ? 'bg-blue-600 animate-pulse shadow-blue-300' : 'bg-gray-400 shadow-gray-300'
+              }`}></div>
+              <div>
+                <span className="text-sm font-bold text-blue-900 block">
+                  {isAvailable ? 'Available for Sessions' : 'Currently Unavailable'}
+                </span>
+                <span className="text-xs text-gray-600">
+                  {isAvailable ? 'Students can book you' : 'Not accepting bookings'}
+                </span>
               </div>
-              <span className="text-sm font-semibold text-blue-800">Golden: {goldenCoins}</span>
             </div>
-            <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-md flex items-center justify-center flex-shrink-0">
-                <span className="text-[10px] font-bold text-blue-900">S</span>
-              </div>
-              <span className="text-sm font-semibold text-blue-800">Silver: {silverCoins}</span>
-            </div>
+            <button
+              onClick={handleToggleAvailability}
+              disabled={isToggling}
+              className={`relative inline-flex items-center h-7 w-12 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                isAvailable ? 'bg-blue-600' : 'bg-gray-300'
+              } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <span className="sr-only">Toggle availability</span>
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+                  isAvailable ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
           </div>
         </div>
       )}
 
       {/* Notifications */}
-      <div className="px-4 py-3 border-t border-blue-100 max-h-64 overflow-y-auto flex-shrink-0">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2">Notifications</h3>
+      <div className="px-4 py-3 border-b border-blue-100 max-h-72 overflow-y-auto flex-shrink-0 bg-gradient-to-r from-blue-50/50 to-transparent">
+        <h3 className="text-xs font-bold text-blue-900 mb-3 uppercase tracking-wide flex items-center gap-2">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+          </svg>
+          Notifications
+        </h3>
         <Notifications notifications={notifications} setNotifications={setNotifications} iconSize="w-6 h-6" />
       </div>
 
-      {/* Profile Dropdown or Login Button */}
-      <div className="px-4 py-4 mt-auto border-t border-blue-100 flex-shrink-0">
+      {/* Profile Section */}
+      <div className="px-4 py-4 mt-auto border-t-2 border-blue-200 flex-shrink-0 bg-gradient-to-r from-blue-50 to-white sticky bottom-0 shadow-lg">
         {isLoggedIn ? (
-          <>
+          <div className="space-y-3">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="w-full flex items-center justify-center gap-2 bg-blue-100 text-blue-800 px-4 py-2.5 rounded-full font-medium text-sm shadow-sm hover:bg-blue-200 hover:text-blue-900 transition hover:scale-[1.02] touch-manipulation"
+              className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 rounded-xl font-semibold text-sm shadow-lg hover:shadow-xl hover:from-blue-700 hover:to-blue-800 transition-all hover:scale-[1.02] touch-manipulation"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
               </svg>
-              Profile
+              My Profile
             </button>
             {showProfileMenu && (
-              <div className="mt-2">
-                <ProfileDropdown
-                  show={showProfileMenu}
-                  onClose={() => {
-                    setShowProfileMenu(false);
-                    setMenuOpen(false);
-                  }}
-                  navigate={navigate}
-                  menuRef={menuRef}
-                />
+              <div className="mt-2 rounded-xl overflow-hidden border-2 border-blue-200 shadow-xl relative">
+                <div className="[&>div]:relative [&>div]:right-auto [&>div]:mt-0 [&>div]:w-full [&>div]:shadow-none">
+                  <ProfileDropdown
+                    show={showProfileMenu}
+                    onClose={() => {
+                      setShowProfileMenu(false);
+                      setMenuOpen(false);
+                    }}
+                    navigate={navigate}
+                    menuRef={menuRef}
+                  />
+                </div>
               </div>
             )}
-          </>
+          </div>
         ) : (
           <button
             onClick={() => {
               handleLoginClick();
               setMenuOpen(false);
             }}
-            className="w-full bg-blue-800 text-white px-5 py-2.5 rounded-full font-medium text-sm shadow-sm hover:bg-blue-900 transition hover:scale-[1.02] touch-manipulation"
+            className="w-full bg-gradient-to-r from-blue-700 to-blue-800 text-white px-5 py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-xl hover:from-blue-800 hover:to-blue-900 transition-all hover:scale-[1.02] touch-manipulation"
           >
             Login
           </button>

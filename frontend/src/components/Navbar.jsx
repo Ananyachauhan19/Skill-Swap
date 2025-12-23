@@ -934,7 +934,7 @@ const Navbar = () => {
           </div>
 
           {/* Right Side: Icons and Search */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 overflow-visible">
             {/* Search - only show when logged in and on large screens */}
             {isLoggedIn && <form onSubmit={handleSearch} className="hidden lg:flex items-center" ref={searchRef}>
               <div className="relative">
@@ -1019,10 +1019,10 @@ const Navbar = () => {
 
             {isLoggedIn ? (
               <>
-                {/* SkillCoin */}
-                <div className="relative flex-shrink-0">
+                {/* SkillCoin - Hidden on mobile */}
+                <div className="hidden md:flex relative flex-shrink-0">
                   <button
-                    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md border border-blue-700 hover:scale-105 transition duration-300 touch-manipulation"
+                    className="w-9 h-9 min-w-[36px] min-h-[36px] lg:w-10 lg:h-10 rounded-full bg-blue-800 text-white flex items-center justify-center shadow-md border border-blue-700 hover:scale-105 transition duration-300 touch-manipulation"
                     onClick={() => setShowCoinsDropdown((prev) => !prev)}
                     title="SkillCoin"
                     ref={coinsRef}
@@ -1088,42 +1088,21 @@ const Navbar = () => {
                   )}
                 </div>
 
-                {/* Availability Toggle for Teachers/Tutors */}
-                {user && (user.role === 'teacher' || user.role === 'both') && (
-                  <div className="relative flex-shrink-0">
-                    <button
-                      onClick={handleToggleAvailability}
-                      disabled={isToggling}
-                      title={isAvailable ? 'Available for Sessions (Click to turn off)' : 'Unavailable (Click to turn on)'}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 transition-all duration-300 ${
-                        isAvailable 
-                          ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100' 
-                          : 'bg-gray-50 border-gray-400 text-gray-600 hover:bg-gray-100'
-                      } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
-                    >
-                      <div className={`w-2.5 h-2.5 rounded-full ${
-                        isAvailable ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
-                      }`}></div>
-                      <span className="text-xs font-medium hidden sm:inline">
-                        {isAvailable ? 'Available' : 'Unavailable'}
-                      </span>
-                    </button>
-                  </div>
-                )}
+                {/* Notifications - Hidden on mobile */}
+                <div className="hidden md:block">
+                  <Notifications
+                    notifications={notifications}
+                    setNotifications={setNotifications}
+                    iconSize="w-5 h-5"
+                    className="relative flex items-center justify-center"
+                    dropdownClassName="absolute right-0 mt-2 w-64 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50"
+                  />
+                </div>
 
-                {/* Notifications - Fixed circular container */}
-                <Notifications
-                  notifications={notifications}
-                  setNotifications={setNotifications}
-                  iconSize="w-5 h-5"
-                  className="relative flex items-center justify-center"
-                  dropdownClassName="absolute right-0 mt-2 w-64 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50"
-                />
-
-                {/* Profile */}
-                <div className="relative flex-shrink-0">
+                {/* Profile - Hidden on mobile */}
+                <div className="hidden md:flex relative flex-shrink-0">
                   <button
-                    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation"
+                    className="w-9 h-9 min-w-[36px] min-h-[36px] lg:w-10 lg:h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation"
                     onClick={() => setShowProfileMenu((v) => !v)}
                     title="Profile"
                     ref={menuRef}
@@ -1142,6 +1121,32 @@ const Navbar = () => {
                     />
                   )}
                 </div>
+
+                {/* Modern Toggle Switch for Availability (Teachers/Tutors) - Hidden on mobile */}
+                {user && (user.role === 'teacher' || user.role === 'both') && (
+                  <div className="hidden md:flex relative flex-shrink-0 ml-3">
+                    <button
+                      onClick={handleToggleAvailability}
+                      disabled={isToggling}
+                      title={isAvailable ? 'Available for Sessions (Click to turn off)' : 'Unavailable (Click to turn on)'}
+                      className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                        isAvailable ? 'bg-blue-600' : 'bg-gray-300'
+                      } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+                    >
+                      <span className="sr-only">Toggle availability</span>
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+                          isAvailable ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                    <span className={`absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-medium whitespace-nowrap ${
+                      isAvailable ? 'text-blue-600' : 'text-gray-500'
+                    }`}>
+                      {isAvailable ? 'Available' : 'Unavailable'}
+                    </span>
+                  </div>
+                )}
               </>
             ) : (
               <button
@@ -1155,7 +1160,7 @@ const Navbar = () => {
 
             {/* Hamburger (only visible on mobile) */}
             <button
-              className="md:hidden w-9 h-9 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation flex-shrink-0"
+              className="md:hidden w-9 h-9 min-w-[36px] min-h-[36px] rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation flex-shrink-0 ml-2"
               onClick={handleMobileMenu}
               aria-label="Toggle mobile menu"
             >
@@ -1192,6 +1197,15 @@ const Navbar = () => {
           setSearchQuery={setSearchQuery}
           handleSearch={handleSearch}
           isActive={isActive}
+          user={user}
+          isAvailable={isAvailable}
+          handleToggleAvailability={handleToggleAvailability}
+          isToggling={isToggling}
+          searchRef={searchRef}
+          suggestions={suggestions}
+          showSuggestions={showSuggestions}
+          setShowSuggestions={setShowSuggestions}
+          searchLoading={searchLoading}
         />
       )}
 
