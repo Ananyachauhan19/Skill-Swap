@@ -768,6 +768,46 @@ const Navbar = () => {
 
   useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins);
 
+  // Listen for request count updates from SessionRequests page (dual approach)
+  useEffect(() => {
+    // 1. CustomEvent listener - for same-page instant updates
+    const handleRequestCountChanged = (event) => {
+      console.log('[Navbar] 🎯 Received CustomEvent requestCountChanged:', event.detail);
+      if (event.detail) {
+        setPendingRequestCounts({
+          session: event.detail.session || 0,
+          expert: event.detail.expert || 0,
+          skillmate: event.detail.skillmate || 0,
+          interview: event.detail.interview || 0,
+        });
+        console.log('[Navbar] ✅ Updated counts via CustomEvent to:', event.detail);
+      }
+    };
+
+    // 2. Socket.IO listener - for cross-page real-time updates
+    const handleSocketCountUpdate = (data) => {
+      console.log('[Navbar] 📡 Received socket request-count-update:', data);
+      if (data && data.counts) {
+        setPendingRequestCounts({
+          session: data.counts.session || 0,
+          expert: data.counts.expert || 0,
+          skillmate: data.counts.skillmate || 0,
+          interview: data.counts.interview || 0,
+        });
+        console.log('[Navbar] ✅ Updated counts via Socket to:', data.counts);
+      }
+    };
+
+    window.addEventListener('requestCountChanged', handleRequestCountChanged);
+    socket.on('request-count-update', handleSocketCountUpdate);
+    console.log('[Navbar] 👂 Listening for request count updates (CustomEvent + Socket)');
+
+    return () => {
+      window.removeEventListener('requestCountChanged', handleRequestCountChanged);
+      socket.off('request-count-update', handleSocketCountUpdate);
+    };
+  }, []);
+
   // Recompute pending request counts when notifications change (debounced via length)
   useEffect(() => {
     fetchPendingRequestCounts();

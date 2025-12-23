@@ -84,7 +84,12 @@ async function finalizeInterviewSchedule(reqDoc, app, scheduledAt, { autoSchedul
         position: populated.position,
         timestamp: Date.now(),
       });
-      if (io) io.to(requesterId.toString()).emit('notification', notification);
+      if (io) {
+        io.to(requesterId.toString()).emit('notification', notification);
+        // Emit events to update request counts
+        io.to(requesterId.toString()).emit('interview-request-received');
+        if (interviewerId) io.to(interviewerId.toString()).emit('interview-request-sent');
+      }
     }
   } catch (e) {
     console.error('[Interview] failed to notify requester about schedule', e);
@@ -1642,6 +1647,14 @@ exports.scheduleInterview = async (req, res) => {
       }
     } catch (e) {
       console.error('[Interview] Failed to send interviewer confirmation notification/email', e);
+    }
+
+    // Emit socket events to update request counts on all devices
+    if (io) {
+      io.to(reqDoc.requester._id.toString()).emit('request-count-updated');
+      if (reqDoc.assignedInterviewer) {
+        io.to((reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer).toString()).emit('request-count-updated');
+      }
     }
 
     res.json({ message: 'Interview scheduled', request: reqDoc });

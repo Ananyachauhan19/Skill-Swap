@@ -721,12 +721,9 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
       if (!res.ok) throw new Error((json && json.message) || (await res.text()) || 'Failed to request');
 
       // Success - show immediate feedback to user
-      const requestId = json?.request?._id || json?.requestId || json?._id;
       addToast({
         title: 'Request Sent Successfully',
-        message: requestId
-          ? `Your mock interview request for ${company} — ${position} was submitted successfully. (Request ID: ${requestId})`
-          : `Your mock interview request for ${company} — ${position} was submitted successfully.`,
+        message: `Your mock interview request for ${company} — ${position} was submitted successfully.`,
         variant: 'success',
         timeout: 5000,
         actions: [
