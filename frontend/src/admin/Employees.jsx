@@ -26,7 +26,7 @@ const Employees = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [tutorOptions, setTutorOptions] = useState({ subjects: [], classes: [] });
+  const [tutorOptions, setTutorOptions] = useState({ subjects: [], classes: [], classSubjectMap: {} });
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -62,6 +62,22 @@ const Employees = () => {
     });
     setEditingEmployee(null);
   };
+
+  // Filter subjects based on selected classes
+  const filteredSubjects = useMemo(() => {
+    if (form.allowedClasses.length === 0) {
+      return tutorOptions.subjects;
+    }
+    const subjectSet = new Set();
+    form.allowedClasses.forEach(cls => {
+      const subjects = tutorOptions.classSubjectMap[cls] || [];
+      console.log(`Subjects for class "${cls}":`, subjects.length, subjects.slice(0, 3));
+      subjects.forEach(subj => subjectSet.add(subj));
+    });
+    const result = Array.from(subjectSet).sort((a, b) => a.localeCompare(b));
+    console.log('Filtered subjects result:', result.length, result.slice(0, 5));
+    return result;
+  }, [form.allowedClasses, tutorOptions.subjects, tutorOptions.classSubjectMap]);
 
   const openCreate = () => {
     resetForm();
@@ -121,9 +137,16 @@ const Employees = () => {
           withCredentials: true,
         });
         const data = res.data || {};
+        console.log('Tutor options received:', {
+          classes: data.classes?.length,
+          subjects: data.subjects?.length,
+          classSubjectMapKeys: Object.keys(data.classSubjectMap || {}).length
+        });
+        console.log('Sample classSubjectMap:', Object.keys(data.classSubjectMap || {}).slice(0, 5));
         setTutorOptions({
           subjects: Array.isArray(data.subjects) ? data.subjects : [],
           classes: Array.isArray(data.classes) ? data.classes : [],
+          classSubjectMap: data.classSubjectMap || {},
         });
       } catch (e) {
         console.error('Failed to load tutor approval options', e);
@@ -151,6 +174,16 @@ const Employees = () => {
       };
     });
   };
+
+  // Clear invalid subjects when classes change
+  useEffect(() => {
+    if (form.allowedClasses.length > 0 && form.allowedSubjects.length > 0) {
+      const validSubjects = form.allowedSubjects.filter(subj => filteredSubjects.includes(subj));
+      if (validSubjects.length !== form.allowedSubjects.length) {
+        setForm(prev => ({ ...prev, allowedSubjects: validSubjects }));
+      }
+    }
+  }, [form.allowedClasses, form.allowedSubjects, filteredSubjects]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -622,12 +655,21 @@ const Employees = () => {
                         <div className="space-y-1">
                           <label className="text-[11px] font-medium text-gray-700 mb-1 block">
                             Subjects ({form.allowedSubjects.length} selected)
+                            {form.allowedClasses.length > 0 && (
+                              <span className="text-gray-500 font-normal ml-1">
+                                (filtered by selected classes)
+                              </span>
+                            )}
                           </label>
                           <div className="border border-gray-300 rounded-lg px-2 py-2 bg-white max-h-40 overflow-y-auto space-y-1">
-                            {tutorOptions.subjects.length === 0 ? (
-                              <div className="text-[11px] text-gray-400 italic py-1">Loading subjects...</div>
+                            {form.allowedClasses.length === 0 ? (
+                              <div className="text-[11px] text-amber-600 italic py-1 px-1 bg-amber-50 rounded border border-amber-200">
+                                Please select at least one class first to see relevant subjects
+                              </div>
+                            ) : filteredSubjects.length === 0 ? (
+                              <div className="text-[11px] text-gray-400 italic py-1">No subjects found for selected classes</div>
                             ) : (
-                              tutorOptions.subjects.map((subj) => (
+                              filteredSubjects.map((subj) => (
                                 <label
                                   key={subj}
                                   className="flex items-center gap-2 text-xs text-gray-700 hover:bg-gray-50 px-1 py-0.5 rounded cursor-pointer"
