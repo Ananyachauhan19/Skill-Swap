@@ -1088,8 +1088,8 @@ const Navbar = () => {
                   )}
                 </div>
 
-                {/* Notifications - Hidden on mobile */}
-                <div className="hidden md:block">
+                {/* Notifications - Now visible on mobile */}
+                <div className="flex flex-shrink-0">
                   <Notifications
                     notifications={notifications}
                     setNotifications={setNotifications}
@@ -1099,8 +1099,8 @@ const Navbar = () => {
                   />
                 </div>
 
-                {/* Profile - Hidden on mobile */}
-                <div className="hidden md:flex relative flex-shrink-0">
+                {/* Profile - Now visible on mobile */}
+                <div className="flex relative flex-shrink-0">
                   <button
                     className="w-9 h-9 min-w-[36px] min-h-[36px] lg:w-10 lg:h-10 rounded-full bg-blue-100 text-blue-900 flex items-center justify-center border border-blue-300 shadow-md hover:bg-blue-200 hover:scale-105 transition-all duration-300 touch-manipulation"
                     onClick={() => setShowProfileMenu((v) => !v)}
@@ -1122,7 +1122,7 @@ const Navbar = () => {
                   )}
                 </div>
 
-                {/* Modern Toggle Switch for Availability (Teachers/Tutors) - Hidden on mobile */}
+                {/* Modern Toggle Switch for Availability (Teachers/Tutors) - Hidden on mobile, kept in menu */}
                 {user && (user.role === 'teacher' || user.role === 'both') && (
                   <div className="hidden md:flex relative flex-shrink-0 ml-3">
                     <button
@@ -1164,7 +1164,7 @@ const Navbar = () => {
               onClick={handleMobileMenu}
               aria-label="Toggle mobile menu"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

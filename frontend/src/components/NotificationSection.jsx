@@ -468,13 +468,13 @@ const NotificationSection = ({ userId }) => {
   return (
  <div className="relative font-sans">
   <button
-    className="w-9 h-9 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white border border-blue-300 hover:from-blue-600 hover:to-blue-700 hover:shadow-lg hover:scale-105 transform transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 flex-shrink-0"
+    className="w-9 h-9 min-w-[36px] min-h-[36px] lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center border border-blue-300 shadow-md hover:from-blue-600 hover:to-blue-700 hover:shadow-lg hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 flex-shrink-0"
     onClick={() => setShow((v) => !v)}
     title="Notifications"
     aria-label="Notifications"
   >
     <svg
-      className="w-4 h-4 lg:w-5 lg:h-5 mx-auto"
+      className="w-4 h-4 lg:w-5 lg:h-5"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"

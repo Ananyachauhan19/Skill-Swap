@@ -36,7 +36,7 @@ const SessionRequests = () => {
   const [activeSession, setActiveSession] = useState(null);
   const [cancelledMessage, setCancelledMessage] = useState('');
   const [interviewBanner, setInterviewBanner] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(typeof window !== 'undefined' && window.innerWidth >= 768);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingContext, setRatingContext] = useState(null); // { sessionId, expertName, sessionType }
   const [negotiationModalState, setNegotiationModalState] = useState({ open: false, request: null });
@@ -1600,12 +1600,10 @@ const SessionRequests = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-20">
-      <div className="flex relative">
+      <div className="flex relative bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 min-h-screen">
         {/* Sidebar - Sticky positioning (scrolls up when footer appears) */}
         <div
-          className={`${
-            sidebarOpen ? 'w-60' : 'w-0'
-          } bg-white text-slate-800 transition-all duration-300 sticky top-20 self-start z-40 overflow-hidden shadow-sm border-r border-slate-200 hidden md:block`}
+          className="w-60 bg-white text-slate-800 transition-all duration-300 sticky top-20 self-start z-40 overflow-hidden shadow-sm border-r border-slate-200 hidden md:block"
           style={{ 
             height: 'calc(100vh - 80px)',
             maxHeight: 'calc(100vh - 80px)'
@@ -1716,7 +1714,7 @@ const SessionRequests = () => {
         {sidebarOpen && (
           <>
             <div
-              className="fixed inset-0 bg-black bg-opacity-40 md:hidden z-30 backdrop-blur-sm"
+              className="fixed inset-0 bg-transparent md:hidden z-30"
               onClick={() => setSidebarOpen(false)}
             ></div>
             <div
@@ -1833,23 +1831,23 @@ const SessionRequests = () => {
         )}
 
         {/* Main Content - Scrollable */}
-        <div className="flex-1 transition-all duration-300">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 pb-16">
+        <div className="flex-1 transition-all duration-300 min-h-screen">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-3 sm:py-4 pb-16">
           {/* Mobile Menu Button */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="md:hidden mb-4 p-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg flex items-center gap-2 transition-all text-sm"
+            className="md:hidden mb-3 sm:mb-4 p-2 sm:p-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg flex items-center gap-2 transition-all text-xs sm:text-sm shadow-md"
           >
             <FaBars size={14} />
             <span className="font-medium">Menu</span>
           </button>
 
           {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-xl font-bold text-slate-800 mb-1">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-800 mb-1">
               Manage Your Requests
             </h1>
-            <p className="text-slate-500 text-sm">
+            <p className="text-slate-500 text-xs sm:text-sm">
               View and manage all your session, skill mate, and interview requests
             </p>
           </div>          {/* Error Message */}
@@ -1950,22 +1948,22 @@ const SessionRequests = () => {
           />
 
           {/* Tabs */}
-          <div className="mb-6">
-            <div className="inline-flex gap-1 bg-slate-100 p-1 rounded-lg">
+          <div className="mb-4 sm:mb-6">
+            <div className="inline-flex gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-lg w-full sm:w-auto">
               <button
                 onClick={() => {
                   setActiveTab('received');
                   navigate(`/session-requests?tab=${requestType}&view=received`, { replace: true });
                 }}
-                className={`px-4 py-2 font-medium transition-all rounded-lg text-sm ${
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 font-medium transition-all rounded-lg text-xs sm:text-sm ${
                   activeTab === 'received'
                     ? 'bg-white text-teal-700 shadow-sm'
                     : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                   <span>Received</span>
-                  <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">
+                  <span className="px-1 sm:px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-slate-200 text-slate-600">
                     {requestType === 'session'
                       ? requests.received.length
                       : requestType === 'expert'
@@ -1981,15 +1979,15 @@ const SessionRequests = () => {
                   setActiveTab('sent');
                   navigate(`/session-requests?tab=${requestType}&view=sent`, { replace: true });
                 }}
-                className={`px-4 py-2 font-medium transition-all rounded-lg text-sm ${
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 font-medium transition-all rounded-lg text-xs sm:text-sm ${
                   activeTab === 'sent'
                     ? 'bg-white text-teal-700 shadow-sm'
                     : 'text-slate-600 hover:text-slate-800'
                 }`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                   <span>Sent</span>
-                  <span className="px-1.5 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-600">
+                  <span className="px-1 sm:px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-slate-200 text-slate-600">
                     {requestType === 'session'
                       ? requests.sent.length
                       : requestType === 'expert'
