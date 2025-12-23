@@ -138,9 +138,16 @@ router.get('/admin/tutor/approval-options', requireAuth, requireAdmin, async (_r
     const text = await resp.text();
 
     const rows = await csv({ trim: true }).fromString(text);
+    
+    // Debug: Log first row to see CSV structure
+    if (rows.length > 0) {
+      console.log('CSV First Row Keys:', Object.keys(rows[0]));
+      console.log('CSV First Row Sample:', rows[0]);
+    }
 
     const classSet = new Set();
     const subjectSet = new Set();
+    const classToSubjects = {}; // Map class to array of subjects
 
     rows.forEach((r) => {
       const classOrCourse = (r['Class/Course'] || r.course || r.Course || '').trim();
@@ -148,12 +155,31 @@ router.get('/admin/tutor/approval-options', requireAuth, requireAdmin, async (_r
 
       if (classOrCourse) classSet.add(classOrCourse);
       if (subject) subjectSet.add(subject);
+      
+      // Build class-to-subjects mapping
+      if (classOrCourse && subject) {
+        if (!classToSubjects[classOrCourse]) {
+          classToSubjects[classOrCourse] = new Set();
+        }
+        classToSubjects[classOrCourse].add(subject);
+      }
     });
 
     const classes = Array.from(classSet).sort((a, b) => a.localeCompare(b));
     const subjects = Array.from(subjectSet).sort((a, b) => a.localeCompare(b));
+    
+    // Convert Sets to sorted arrays in the mapping
+    const classSubjectMap = {};
+    Object.keys(classToSubjects).forEach(cls => {
+      classSubjectMap[cls] = Array.from(classToSubjects[cls]).sort((a, b) => a.localeCompare(b));
+    });
+    
+    // Debug: Log the mapping
+    console.log('Classes found:', classes.length);
+    console.log('Subjects found:', subjects.length);
+    console.log('Class-Subject mapping sample:', Object.keys(classSubjectMap).slice(0, 3));
 
-    return res.json({ classes, subjects });
+    return res.json({ classes, subjects, classSubjectMap });
   } catch (err) {
     console.error('Failed to load tutor approval options from sheet:', err.message);
     return res.status(500).json({ message: 'Failed to load tutor approval options' });
