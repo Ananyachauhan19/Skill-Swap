@@ -96,7 +96,7 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
                 {((user.firstName && user.firstName[0]) || (user.username && user.username[0]) || 'U').toUpperCase()}
               </div>
             )}
-            <div className="ml-3">
+            <div className="ml-3 flex-1">
               <h3 className="text-sm font-semibold text-gray-900">
                 {`${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || user.name || 'User'}
               </h3>

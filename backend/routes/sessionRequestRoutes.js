@@ -88,9 +88,14 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
     const requesterId = req.user._id;
 
     // Check if tutor exists (include email for SMTP)
-    const tutor = await User.findById(tutorId).select('firstName lastName profilePic email username');
+    const tutor = await User.findById(tutorId).select('firstName lastName profilePic email username isAvailableForSessions role');
     if (!tutor) {
       return handleErrors(res, 404, 'Tutor not found');
+    }
+
+    // Check if tutor is available for sessions
+    if (tutor.isAvailableForSessions === false) {
+      return handleErrors(res, 400, 'This tutor is currently not available for session requests');
     }
 
     // Check for existing pending request

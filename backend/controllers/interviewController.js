@@ -1289,7 +1289,7 @@ exports.interviewerRejectAlternateSlots = async (req, res) => {
       const notification = await Notification.create({
         userId: populated.requester._id,
         type: 'interview-alternate-rejected',
-        message: `${interviewerName} is unable to accommodate your alternate time slots for `${populated.company}. Please choose from the original suggestions.',
+        message: `${interviewerName} is unable to accommodate your alternate time slots for ${populated.company}. Please choose from the original suggestions.`,
         requestId: populated._id,
         company: populated.company,
         position: populated.position,

@@ -46,6 +46,51 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
 
+// Toggle availability for session requests (teachers/tutors only)
+router.post('/toggle-availability', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Only teachers, tutors, or 'both' can toggle availability
+    if (user.role !== 'teacher' && user.role !== 'both') {
+      return res.status(403).json({ message: 'Only teachers can toggle availability' });
+    }
+
+    // Toggle the availability
+    user.isAvailableForSessions = !user.isAvailableForSessions;
+    await user.save();
+
+    // Broadcast availability change via Socket.IO
+    const io = req.app.get('io');
+    if (io && user.socketId) {
+      // Emit to the user's socket to confirm
+      io.to(user.socketId).emit('availability-updated', {
+        isAvailableForSessions: user.isAvailableForSessions
+      });
+    }
+    // Broadcast to all clients that this tutor's availability changed
+    if (io) {
+      io.emit('tutor-availability-changed', {
+        tutorId: user._id.toString(),
+        isAvailableForSessions: user.isAvailableForSessions
+      });
+    }
+
+    console.log(`[Availability] User ${user._id} toggled to: ${user.isAvailableForSessions}`);
+
+    res.json({
+      message: `You are now ${user.isAvailableForSessions ? 'available' : 'unavailable'} for session requests`,
+      isAvailableForSessions: user.isAvailableForSessions
+    });
+  } catch (error) {
+    console.error('Error toggling availability:', error);
+    res.status(500).json({ message: 'Failed to toggle availability' });
+  }
+});
+
 // Logout route
 router.post('/logout', (req, res) => {
   console.info('[DEBUG] Logout initiated for session:', req.sessionID, 'user:', req.user?._id);

@@ -91,7 +91,8 @@ module.exports = (io) => {
             profilePic: user.profilePic,
             rating: user.rating || 4.5,
             status: 'Available',
-            role: user.role // Added role to track teacher or learner
+            role: user.role, // Added role to track teacher or learner
+            isAvailableForSessions: user.isAvailableForSessions ?? true // Track availability status
           });
           console.log(`[Socket Register] Registered socket ${socket.id} for user ${userId}`, {
             userId: user._id,
@@ -99,7 +100,8 @@ module.exports = (io) => {
             firstName: user.firstName,
             lastName: user.lastName,
             role: user.role,
-            skillsToTeach: user.skillsToTeach
+            skillsToTeach: user.skillsToTeach,
+            isAvailableForSessions: user.isAvailableForSessions
           });
         } else {
           console.log(`[Socket Register] No user found for userId: ${userId}`);
@@ -830,15 +832,29 @@ module.exports = (io) => {
         for (const [socketId, userData] of onlineUsers.entries()) {
           if (socketId === socket.id) continue;
 
+          // Check availability status - skip if unavailable
+          const isAvailable = userData.isAvailableForSessions ?? true;
+          if (!isAvailable) {
+            console.log(`[Find Tutors] Skipping ${userData.firstName} ${userData.lastName} - unavailable for sessions`);
+            continue;
+          }
+
           // DO NOT restrict by role; show any user who has skills to teach
           let userSkills = Array.isArray(userData.skillsToTeach) ? userData.skillsToTeach : [];
 
           // If skills are missing in memory, fetch once from DB
           if (!userSkills.length) {
-            const dbUser = await User.findById(userData.userId).select('skillsToTeach');
+            const dbUser = await User.findById(userData.userId).select('skillsToTeach isAvailableForSessions');
             userSkills = dbUser?.skillsToTeach || [];
             userData.skillsToTeach = userSkills; // cache for next time
+            userData.isAvailableForSessions = dbUser?.isAvailableForSessions ?? true; // cache availability
             onlineUsers.set(socketId, userData);
+            
+            // Re-check availability after fetching from DB
+            if (userData.isAvailableForSessions === false) {
+              console.log(`[Find Tutors] Skipping ${userData.firstName} ${userData.lastName} - unavailable (from DB)`);
+              continue;
+            }
           }
 
           // Match: searchCriteria.subject (class) -> skill.class, searchCriteria.topic (subject) -> skill.subject, searchCriteria.subtopic (topic) -> skill.topic

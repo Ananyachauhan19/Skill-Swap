@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import { useModal } from '../context/ModalContext';
+import { useAuth } from '../context/AuthContext';
 import MobileMenu from './MobileMenu';
 import ProfileDropdown from './ProfileDropdown';
 import Notifications from './Navbar/Notifications';
@@ -328,6 +329,7 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall, set
 
 const Navbar = () => {
   const { openLogin } = useModal();
+  const { user: authUser, updateUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(!!Cookies.get('user'));
@@ -338,6 +340,9 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState([]);
   const [goldenCoins, setGoldenCoins] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
+  const [user, setUser] = useState(null);
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [isToggling, setIsToggling] = useState(false);
   const [activeVideoCall, setActiveVideoCall] = useState(null);
   const [pendingRequestCounts, setPendingRequestCounts] = useState({
     session: 0,
@@ -351,6 +356,43 @@ const Navbar = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Sync user from cookie and set availability
+  useEffect(() => {
+    const userCookie = Cookies.get('user');
+    if (userCookie) {
+      try {
+        const parsedUser = JSON.parse(userCookie);
+        setUser(parsedUser);
+        setIsAvailable(parsedUser.isAvailableForSessions ?? true);
+      } catch (e) {
+        console.error('Failed to parse user cookie:', e);
+      }
+    }
+  }, []);
+
+  // Listen for availability updates via Socket.IO
+  useEffect(() => {
+    if (!user) return;
+
+    const handleAvailabilityUpdate = (data) => {
+      console.log('[Navbar Availability] Received update:', data);
+      setIsAvailable(data.isAvailableForSessions);
+      // Update cookie
+      const updatedUser = { ...user, isAvailableForSessions: data.isAvailableForSessions };
+      setUser(updatedUser);
+      Cookies.set('user', JSON.stringify(updatedUser));
+      if (authUser && updateUser) {
+        updateUser(updatedUser);
+      }
+    };
+
+    socket.on('availability-updated', handleAvailabilityUpdate);
+
+    return () => {
+      socket.off('availability-updated', handleAvailabilityUpdate);
+    };
+  }, [user, authUser, updateUser]);
 
   // Fetch coins from backend
   const fetchCoins = async () => {
@@ -371,6 +413,47 @@ const Navbar = () => {
       }
     } catch (error) {
       console.error('[Navbar] Failed to fetch coins:', error);
+    }
+  };
+
+  // Handle availability toggle
+  const handleToggleAvailability = async () => {
+    if (isToggling) return;
+    
+    // Optimistically update UI immediately
+    const newAvailability = !isAvailable;
+    setIsAvailable(newAvailability);
+    setIsToggling(true);
+    
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/toggle-availability`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Confirm the update from server
+        setIsAvailable(data.isAvailableForSessions);
+        const updatedUser = { ...user, isAvailableForSessions: data.isAvailableForSessions };
+        setUser(updatedUser);
+        Cookies.set('user', JSON.stringify(updatedUser));
+        if (authUser && updateUser) {
+          updateUser(updatedUser);
+        }
+      } else {
+        // Revert on error
+        setIsAvailable(!newAvailability);
+        const errorData = await response.json();
+        console.error('Failed to toggle availability:', errorData.message);
+      }
+    } catch (error) {
+      // Revert on error
+      setIsAvailable(!newAvailability);
+      console.error('Error toggling availability:', error);
+    } finally {
+      setIsToggling(false);
     }
   };
 
@@ -964,6 +1047,29 @@ const Navbar = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Availability Toggle for Teachers/Tutors */}
+                {user && (user.role === 'teacher' || user.role === 'both') && (
+                  <div className="relative flex-shrink-0">
+                    <button
+                      onClick={handleToggleAvailability}
+                      disabled={isToggling}
+                      title={isAvailable ? 'Available for Sessions (Click to turn off)' : 'Unavailable (Click to turn on)'}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border-2 transition-all duration-300 ${
+                        isAvailable 
+                          ? 'bg-green-50 border-green-500 text-green-700 hover:bg-green-100' 
+                          : 'bg-gray-50 border-gray-400 text-gray-600 hover:bg-gray-100'
+                      } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}`}
+                    >
+                      <div className={`w-2.5 h-2.5 rounded-full ${
+                        isAvailable ? 'bg-green-500 animate-pulse' : 'bg-gray-400'
+                      }`}></div>
+                      <span className="text-xs font-medium hidden sm:inline">
+                        {isAvailable ? 'Available' : 'Unavailable'}
+                      </span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Notifications - Fixed circular container */}
                 <Notifications
