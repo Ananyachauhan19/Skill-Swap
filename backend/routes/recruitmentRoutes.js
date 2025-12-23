@@ -11,7 +11,7 @@ const bcrypt = require('bcryptjs');
 // Configure multer for file uploads (memory storage)
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit per file
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') {
       cb(null, true);
@@ -26,21 +26,17 @@ const RECRUITMENT_PDF_BUCKET = process.env.SUPABASE_RECRUITMENT_PDFS_BUCKET || '
 
 // Submit recruitment application (authenticated users only)
 router.post('/submit', requireAuth, upload.fields([
-  { name: 'degreeCertificate', maxCount: 1 },
+  { name: 'degreeCertificates', maxCount: 10 },
   { name: 'proofOfExperience', maxCount: 1 }
 ]), async (req, res) => {
   try {
-    const { age, currentRole, institutionName, yearsOfExperience, selectedClasses, selectedSubjects, phone: phoneFromBody } = req.body;
+    const { age, currentRole, institutionName, yearsOfExperience, selectedClasses, selectedSubjects, phone: phoneFromBody, degrees: degreesRaw } = req.body;
     
     // Validation
     const phone = req.user.phone || phoneFromBody;
 
     if (!age || !currentRole || !institutionName || !yearsOfExperience || !selectedClasses || !selectedSubjects || !phone) {
       return res.status(400).json({ message: 'All fields are required' });
-    }
-
-    if (!req.files?.degreeCertificate || !req.files?.proofOfExperience) {
-      return res.status(400).json({ message: 'Both degree certificate and proof of experience PDFs are required' });
     }
 
     // Check if user already has a pending application
@@ -56,29 +52,52 @@ router.post('/submit', requireAuth, upload.fields([
     // Parse arrays if they come as JSON strings
     const classesArray = typeof selectedClasses === 'string' ? JSON.parse(selectedClasses) : selectedClasses;
     const subjectsArray = typeof selectedSubjects === 'string' ? JSON.parse(selectedSubjects) : selectedSubjects;
+    const degreesArray = typeof degreesRaw === 'string' ? JSON.parse(degreesRaw) : (degreesRaw || []);
 
-    // Upload PDFs to Supabase Storage
-    const degreeCertBuffer = req.files.degreeCertificate[0].buffer;
-    const proofBuffer = req.files.proofOfExperience[0].buffer;
-
-    const timestamp = Date.now();
-    const degreePath = `degrees/${req.user.id}-${timestamp}.pdf`;
-    const proofPath = `proofs/${req.user.id}-${timestamp}.pdf`;
-
-    const { error: degreeErr } = await supabase.storage
-      .from(RECRUITMENT_PDF_BUCKET)
-      .upload(degreePath, degreeCertBuffer, {
-        contentType: 'application/pdf',
-        upsert: false,
-      });
-    if (degreeErr) {
-      console.error('Supabase upload error (degree certificate):', degreeErr.message);
-      throw new Error('Failed to upload degree certificate PDF');
+    if (!Array.isArray(degreesArray) || degreesArray.length === 0) {
+      return res.status(400).json({ message: 'Please select at least one degree' });
     }
 
+    if (!req.files?.degreeCertificates || !req.files?.proofOfExperience) {
+      return res.status(400).json({ message: 'Degree certificates and proof of experience PDF are required' });
+    }
+
+    const degreeFiles = req.files.degreeCertificates || [];
+    if (degreeFiles.length !== degreesArray.length) {
+      return res.status(400).json({ message: 'Number of uploaded degree PDFs must match the number of selected degrees' });
+    }
+
+    // Upload PDFs to Supabase Storage
+    const proofFile = req.files.proofOfExperience[0];
+    const timestamp = Date.now();
+
+    // Upload each degree certificate
+    const degreeUrls = [];
+    for (let i = 0; i < degreeFiles.length; i++) {
+      const file = degreeFiles[i];
+      const degreePath = `degrees/${req.user.id}-${timestamp}-${i}.pdf`;
+      const { error: degreeErr } = await supabase.storage
+        .from(RECRUITMENT_PDF_BUCKET)
+        .upload(degreePath, file.buffer, {
+          contentType: 'application/pdf',
+          upsert: false,
+        });
+      if (degreeErr) {
+        console.error('Supabase upload error (degree certificate):', degreeErr.message);
+        throw new Error('Failed to upload degree certificate PDF');
+      }
+
+      const { data: degreePub } = supabase.storage
+        .from(RECRUITMENT_PDF_BUCKET)
+        .getPublicUrl(degreePath);
+      degreeUrls.push(degreePub.publicUrl);
+    }
+
+    // Upload proof of experience
+    const proofPath = `proofs/${req.user.id}-${timestamp}.pdf`;
     const { error: proofErr } = await supabase.storage
       .from(RECRUITMENT_PDF_BUCKET)
-      .upload(proofPath, proofBuffer, {
+      .upload(proofPath, proofFile.buffer, {
         contentType: 'application/pdf',
         upsert: false,
       });
@@ -87,9 +106,6 @@ router.post('/submit', requireAuth, upload.fields([
       throw new Error('Failed to upload proof of experience PDF');
     }
 
-    const { data: degreePub } = supabase.storage
-      .from(RECRUITMENT_PDF_BUCKET)
-      .getPublicUrl(degreePath);
     const { data: proofPub } = supabase.storage
       .from(RECRUITMENT_PDF_BUCKET)
       .getPublicUrl(proofPath);
@@ -106,7 +122,11 @@ router.post('/submit', requireAuth, upload.fields([
       currentRole,
       institutionName,
       yearsOfExperience: parseFloat(yearsOfExperience),
-      degreeCertificateUrl: degreePub.publicUrl,
+      degreeCertificateUrl: degreeUrls[0] || '',
+      degrees: degreesArray.map((name, idx) => ({
+        name,
+        certificateUrl: degreeUrls[idx] || degreeUrls[0] || '',
+      })),
       proofOfExperienceUrl: proofPub.publicUrl,
       selectedClasses: classesArray,
       selectedSubjects: subjectsArray,

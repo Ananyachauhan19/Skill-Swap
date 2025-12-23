@@ -21,6 +21,8 @@ const RecruitmentApplication = () => {
   const [classSubjectMap, setClassSubjectMap] = useState({});
   const [classDropdownOpen, setClassDropdownOpen] = useState(false);
   const [subjectDropdownOpen, setSubjectDropdownOpen] = useState(false);
+  const [degreeOptions, setDegreeOptions] = useState([]);
+  const [degreeDropdownOpen, setDegreeDropdownOpen] = useState(false);
 
   const [form, setForm] = useState({
     age: '',
@@ -30,7 +32,8 @@ const RecruitmentApplication = () => {
     yearsOfExperience: '',
     selectedClasses: [],
     selectedSubjects: [],
-    degreeCertificate: null,
+    selectedDegrees: [],
+    degreeCertificates: {}, // map degree name -> File
     proofOfExperience: null,
   });
 
@@ -48,6 +51,7 @@ const RecruitmentApplication = () => {
 
         const classes = Array.isArray(data.classes) ? data.classes : [];
         const subjectsByClass = data.subjectsByClass || {};
+        const degrees = Array.isArray(data.degrees) ? data.degrees : [];
 
         // Build a flat, sorted subject list from subjectsByClass
         const subjectSet = new Set();
@@ -60,6 +64,7 @@ const RecruitmentApplication = () => {
         setClassOptions(classes);
         setSubjectOptions(Array.from(subjectSet).sort());
         setClassSubjectMap(subjectsByClass);
+        setDegreeOptions(degrees);
       } catch (err) {
         console.error('Failed to load class/subject options from CSV skills API:', err);
       }
@@ -119,8 +124,8 @@ const RecruitmentApplication = () => {
 
   const handleFileChange = (e) => {
     const { name, files } = e.target;
-    if (files && files[0]) {
-      setForm(prev => ({ ...prev, [name]: files[0] }));
+    if (name === 'proofOfExperience' && files && files[0]) {
+      setForm(prev => ({ ...prev, proofOfExperience: files[0] }));
     }
   };
 
@@ -142,6 +147,33 @@ const RecruitmentApplication = () => {
     }));
   };
 
+  const handleDegreeToggle = (degree) => {
+    setForm(prev => {
+      const exists = prev.selectedDegrees.includes(degree);
+      const selectedDegrees = exists
+        ? prev.selectedDegrees.filter(d => d !== degree)
+        : [...prev.selectedDegrees, degree];
+      // When a degree is unselected, also remove its file reference
+      const degreeCertificates = { ...prev.degreeCertificates };
+      if (!exists) {
+        return { ...prev, selectedDegrees, degreeCertificates };
+      }
+      delete degreeCertificates[degree];
+      return { ...prev, selectedDegrees, degreeCertificates };
+    });
+  };
+
+  const handleDegreeFileChange = (degree, file) => {
+    if (!file) return;
+    setForm(prev => ({
+      ...prev,
+      degreeCertificates: {
+        ...prev.degreeCertificates,
+        [degree]: file,
+      },
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -158,8 +190,12 @@ const RecruitmentApplication = () => {
       if (form.selectedSubjects.length === 0) {
         throw new Error('Please select at least one subject');
       }
-      if (!form.degreeCertificate) {
-        throw new Error('Please upload your degree certificate');
+      if (form.selectedDegrees.length === 0) {
+        throw new Error('Please select at least one degree');
+      }
+      const missingDegreeFiles = form.selectedDegrees.filter(d => !form.degreeCertificates[d]);
+      if (missingDegreeFiles.length > 0) {
+        throw new Error('Please upload a PDF for each selected degree');
       }
       if (!form.proofOfExperience) {
         throw new Error('Please upload proof of experience');
@@ -170,10 +206,16 @@ const RecruitmentApplication = () => {
       formData.append('currentRole', form.currentRole);
       formData.append('institutionName', form.institutionName);
       formData.append('yearsOfExperience', form.yearsOfExperience);
-  formData.append('phone', form.phone);
+      formData.append('phone', form.phone);
       formData.append('selectedClasses', JSON.stringify(form.selectedClasses));
       formData.append('selectedSubjects', JSON.stringify(form.selectedSubjects));
-      formData.append('degreeCertificate', form.degreeCertificate);
+      formData.append('degrees', JSON.stringify(form.selectedDegrees));
+      form.selectedDegrees.forEach((degree) => {
+        const file = form.degreeCertificates[degree];
+        if (file) {
+          formData.append('degreeCertificates', file);
+        }
+      });
       formData.append('proofOfExperience', form.proofOfExperience);
 
       await axios.post(`${BACKEND_URL}/api/recruitment/submit`, formData, {
@@ -459,45 +501,103 @@ const RecruitmentApplication = () => {
                 )}
               </div>
             </div>
+            {/* Degrees Selection */}
+            <div>
+              <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                Select Degrees * ({form.selectedDegrees.length} selected)
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setDegreeDropdownOpen((open) => !open)}
+                  className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <span className="truncate">
+                    {degreeOptions.length === 0
+                      ? 'Loading degrees...'
+                      : form.selectedDegrees.length === 0
+                        ? 'Select degrees'
+                        : form.selectedDegrees.slice(0, 2).join(', ') +
+                          (form.selectedDegrees.length > 2
+                            ? ` +${form.selectedDegrees.length - 2} more`
+                            : '')}
+                  </span>
+                  <span className="ml-2 text-gray-400 text-xs">{degreeDropdownOpen ? '▲' : '▼'}</span>
+                </button>
 
-            {/* File Uploads */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiUpload className="w-4 h-4" /> Degree Certificate (PDF) *
-                </label>
-                <input
-                  type="file"
-                  name="degreeCertificate"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-semibold hover:file:bg-blue-100"
-                />
-                {form.degreeCertificate && (
-                  <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
-                    <FiCheck className="w-3 h-3" /> {form.degreeCertificate.name}
-                  </p>
+                {degreeDropdownOpen && (
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {degreeOptions.length === 0 ? (
+                      <div className="px-4 py-2 text-sm text-gray-500">No degrees configured</div>
+                    ) : (
+                      degreeOptions.map((deg) => (
+                        <label
+                          key={deg}
+                          className="flex items-center gap-2 px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={form.selectedDegrees.includes(deg)}
+                            onChange={() => handleDegreeToggle(deg)}
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-gray-700">{deg}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
+            </div>
 
-              <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiUpload className="w-4 h-4" /> Proof of Experience (PDF) *
-                </label>
-                <input
-                  type="file"
-                  name="proofOfExperience"
-                  accept=".pdf"
-                  onChange={handleFileChange}
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-semibold hover:file:bg-blue-100"
-                />
-                {form.proofOfExperience && (
-                  <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
-                    <FiCheck className="w-3 h-3" /> {form.proofOfExperience.name}
-                  </p>
-                )}
+            {/* File Uploads */}
+            <div className="space-y-6">
+              {/* Per-degree certificate uploads */}
+              {form.selectedDegrees.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {form.selectedDegrees.map((deg) => (
+                    <div key={deg}>
+                      <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                        <FiUpload className="w-4 h-4" /> {deg} Certificate (PDF) *
+                      </label>
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => handleDegreeFileChange(deg, e.target.files && e.target.files[0])}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-semibold hover:file:bg-blue-100"
+                      />
+                      {form.degreeCertificates[deg] && (
+                        <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                          <FiCheck className="w-3 h-3" /> {form.degreeCertificates[deg].name}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Proof of experience */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+                    <FiUpload className="w-4 h-4" /> Proof of Experience (PDF) *
+                  </label>
+                  <input
+                    type="file"
+                    name="proofOfExperience"
+                    accept=".pdf"
+                    onChange={handleFileChange}
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-semibold hover:file:bg-blue-100"
+                  />
+                  {form.proofOfExperience && (
+                    <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                      <FiCheck className="w-3 h-3" /> {form.proofOfExperience.name}
+                    </p>
+                  )}
+                </div>
+
+                <div />
               </div>
             </div>
 
