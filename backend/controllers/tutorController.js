@@ -134,6 +134,8 @@ exports.apply = async (req, res) => {
       application.status = 'pending';
       application.approvedAt = undefined;
       application.rejectionReason = undefined;
+      // Bump submittedAt so re-registrations appear as latest pending applications
+      application.submittedAt = new Date();
       await application.save();
     } else {
       application = await TutorApplication.create({

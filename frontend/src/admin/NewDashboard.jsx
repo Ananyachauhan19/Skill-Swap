@@ -7,7 +7,7 @@ import {
 } from 'react-icons/fi';
 import { BACKEND_URL } from '../config';
 
-const StatCard = ({ title, value, icon: Icon, change, color, link }) => (
+const StatCard = ({ title, value, icon: Icon, change, color, link, subtitle }) => (
   <Link
     to={link}
     className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 group"
@@ -28,6 +28,9 @@ const StatCard = ({ title, value, icon: Icon, change, color, link }) => (
     <div className="mb-1">
       <p className="text-3xl font-bold text-gray-900">{value}</p>
     </div>
+    {subtitle && (
+      <p className="text-xs text-gray-500 mb-1">{subtitle}</p>
+    )}
     <div className="flex items-center justify-between">
       <p className="text-sm text-gray-600">{title}</p>
       <FiArrowRight size={16} className="text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
@@ -40,6 +43,8 @@ const NewDashboard = () => {
     totalUsers: 0,
     activeUsers: 0,
     pendingApplications: 0,
+    pendingTutorApplications: 0,
+    pendingInterviewerApplications: 0,
     totalInterviews: 0,
     pendingInterviews: 0,
     completedInterviews: 0,
@@ -70,7 +75,12 @@ const NewDashboard = () => {
         setStats({
           totalUsers: statsData.totalUsers || 0,
           activeUsers: statsData.activeUsers || 0,
-          pendingApplications: statsData.pendingExperts || 0, // Pending interviewer applications
+          // keep aggregated pendingApplications for backward compatibility (sum of both types if available)
+          pendingApplications:
+            (statsData.pendingTutorApplications || 0) +
+            (statsData.pendingExperts || statsData.pendingInterviewerApplications || 0),
+          pendingTutorApplications: statsData.pendingTutorApplications || 0,
+          pendingInterviewerApplications: statsData.pendingExperts || statsData.pendingInterviewerApplications || 0,
           totalInterviews: statsData.totalInterviewRequests || 0,
           pendingInterviews: statsData.pendingInterviewRequests || 0,
           completedInterviews: (statsData.totalInterviewRequests || 0) - (statsData.pendingInterviewRequests || 0) - (statsData.assignedInterviewRequests || 0),
@@ -112,6 +122,9 @@ const NewDashboard = () => {
     {
       title: 'Pending Applications',
       value: loading ? '...' : stats.pendingApplications,
+        subtitle: loading
+          ? ''
+          : `Tutor: ${stats.pendingTutorApplications} • Interviewer: ${stats.pendingInterviewerApplications}`,
       icon: FiUserPlus,
       color: 'bg-yellow-500',
       link: '/admin/applications'

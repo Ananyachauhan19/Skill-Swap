@@ -118,7 +118,6 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
               count={typeof skillMateCount === 'number' ? skillMateCount : undefined}
             />
             <MenuItem icon={InterviewIcon} label="Your Interviews" onClick={() => go('/your-interviews')} />
-            <MenuItem icon={ScheduleIcon} label="Schedule Sessions" onClick={() => go('/createSession')} />
             <MenuItem icon={LearningIcon} label="Learning History" onClick={() => go('/learning-history')} />
             <MenuItem icon={TeachingIcon} label="Teaching History" onClick={() => go('/teaching-history')} />
             <MenuItem icon={CoinIcon} label="Coin History" onClick={() => go('/coins-history')} />

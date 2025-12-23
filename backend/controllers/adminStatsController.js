@@ -2,6 +2,7 @@ const User = require('../models/User');
 const Session = require('../models/Session');
 const InterviewRequest = require('../models/InterviewRequest');
 const InterviewerApplication = require('../models/InterviewerApplication');
+const TutorApplication = require('../models/TutorApplication');
 const Package = require('../models/Package');
 const HelpMessage = require('../models/HelpMessage');
 
@@ -33,6 +34,8 @@ exports.getStats = async (req, res) => {
       totalExperts,
       approvedExperts,
       pendingExperts,
+      totalTutorApplications,
+      pendingTutorApplications,
       totalPackages,
       pendingHelpRequests,
     ] = await Promise.all([
@@ -49,6 +52,8 @@ exports.getStats = async (req, res) => {
       InterviewerApplication.countDocuments(),
       InterviewerApplication.countDocuments({ status: 'approved' }),
       InterviewerApplication.countDocuments({ status: 'pending' }),
+      TutorApplication.countDocuments(),
+      TutorApplication.countDocuments({ status: 'pending' }),
       Package.countDocuments({ isActive: true }),
       HelpMessage.countDocuments({ status: 'pending' }),
     ]);
@@ -62,9 +67,11 @@ exports.getStats = async (req, res) => {
         activeUsers,
         pendingUsers,
         expertUsers, // users with teaching role
-        totalExperts, // total applications
+        totalExperts, // total interviewer applications
         approvedExperts,
-        pendingExperts,
+        pendingExperts, // pending interviewer applications
+        totalTutorApplications,
+        pendingTutorApplications,
         totalSessions,
         activeSessions,
         pendingSessions,

@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BACKEND_URL } from '../config.js';
-import SearchBar from './oneononeSection/serachBar';
-import TutorCard from './oneononeSection/TutorCard';
-import Testimonial from "./Testimonial";
 import TopPerformersSection from "./HomeSection/TopPerformersSection";
-import Blog from '../user/company/Blog'; 
 import { useNavigate, useLocation } from 'react-router-dom';
 import StartSkillSwapSearchForm from './oneononeSection/StartSkillSwapSearchForm';
 
@@ -156,12 +152,7 @@ const OneOnOne = () => {
                 >
                   Create a Session
                 </button>
-                <button
-                  onClick={() => navigate('/startskillswap')}
-                  className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 bg-white text-blue-900 border-2 border-blue-900 rounded-xl font-semibold text-sm sm:text-base hover:bg-blue-50 transition-all"
-                >
-                  Find Expert Session
-                </button>
+                
               </div>
             </div>
 
