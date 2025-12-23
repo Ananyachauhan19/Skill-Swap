@@ -157,9 +157,13 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
         if (employee && setEmployee) {
           setEmployee(employee);
         }
-
+        // If admin-assigned password is temporary, force employee to reset it first
+        if (employee && employee.mustChangePassword) {
+          navigate('/employee/reset-password');
+        } else {
+          navigate('/employee/dashboard');
+        }
         if (isModal && onClose) onClose();
-        navigate('/employee/dashboard');
       } else {
         // Verify OTP for regular users/admin
         const res = await axios.post(`${BACKEND_URL}/api/auth/verify-otp`, {
@@ -274,9 +278,15 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input type="email" name="email" value={form.email} onChange={handleChange}
-                  className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 text-sm sm:text-base" />
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email or Employee ID</label>
+                <input
+                  type="text"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="Enter your email or employee ID"
+                  className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 text-sm sm:text-base"
+                />
               </div>
 
               <div>

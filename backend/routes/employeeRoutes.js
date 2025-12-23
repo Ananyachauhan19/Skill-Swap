@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Employee = require('../models/Employee');
+const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
 const requireAdmin = require('../middleware/requireAdmin');
 const { requireEmployee } = require('../middleware/requireEmployee');
@@ -32,19 +33,33 @@ router.post('/admin/employees', requireAuth, requireAdmin, async (req, res) => {
       accessPermissions,
       allowedClasses,
       allowedSubjects,
+      phone: phoneFromBody,
     } = req.body;
 
     const passwordHash = await bcrypt.hash(password, 10);
+
+    let phone = phoneFromBody;
+    if (!phone && email) {
+      try {
+        const user = await User.findOne({ email: email.toLowerCase() }).lean();
+        if (user && user.phone) {
+          phone = user.phone;
+        }
+      } catch (e) {
+        console.error('Lookup user phone for employee failed:', e.message);
+      }
+    }
     const employee = await Employee.create({
       name,
       employeeId,
       email,
+      phone,
       passwordHash,
       accessPermissions,
       allowedClasses: Array.isArray(allowedClasses) ? allowedClasses : [],
       allowedSubjects: Array.isArray(allowedSubjects) ? allowedSubjects : [],
-      // Password given by admin is treated as permanent
-      mustChangePassword: false,
+      // Admin-assigned password is treated as temporary; force change on first login
+      mustChangePassword: true,
     });
 
     return res.status(201).json(employee);
@@ -68,10 +83,11 @@ router.get('/admin/employees', requireAuth, requireAdmin, async (_req, res) => {
 // Admin-only: update/disable employee
 router.put('/admin/employees/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
-    const { name, email, accessPermissions, isDisabled, allowedClasses, allowedSubjects } = req.body;
+    const { name, email, accessPermissions, isDisabled, allowedClasses, allowedSubjects, phone } = req.body;
     const update = {};
     if (name !== undefined) update.name = name;
     if (email !== undefined) update.email = email;
+    if (phone !== undefined) update.phone = phone;
     if (accessPermissions !== undefined) update.accessPermissions = accessPermissions;
     if (isDisabled !== undefined) update.isDisabled = isDisabled;
     if (allowedClasses !== undefined) {
@@ -101,8 +117,8 @@ router.post('/admin/employees/:id/reset-password', requireAuth, requireAdmin, as
       req.params.id,
       {
         passwordHash: hash,
-        // Do not force password change; admin-set password is permanent
-        mustChangePassword: false,
+        // Admin-set password should be changed by employee on next login
+        mustChangePassword: true,
       },
       { new: true },
     );
@@ -186,17 +202,21 @@ router.get('/admin/tutor/approval-options', requireAuth, requireAdmin, async (_r
   }
 });
 
-// Employee login (by employeeId or email)
+// Employee login (by employeeId only)
 router.post('/employee/login', async (req, res) => {
   try {
-    const { identifier, password } = req.body; // identifier = employeeId or email
+    const { identifier, password } = req.body; // identifier = employeeId
     if (!identifier || !password) {
-      return res.status(400).json({ message: 'Identifier and password are required' });
+      return res.status(400).json({ message: 'Employee ID and password are required' });
     }
 
-    const query = identifier.includes('@')
-      ? { email: identifier.toLowerCase() }
-      : { employeeId: identifier };
+    // To avoid confusion with user accounts sharing the same email,
+    // employee login is strictly by employeeId, not email.
+    if (identifier.includes('@')) {
+      return res.status(400).json({ message: 'Please use your Employee ID (not email) to login as an employee' });
+    }
+
+    const query = { employeeId: identifier };
     const employee = await Employee.findOne(query);
     if (!employee || employee.isDisabled) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -233,7 +253,18 @@ router.post('/employee/verify-otp', async (req, res) => {
       return res.status(400).json({ message: 'Email and OTP are required' });
     }
 
-    const employee = await Employee.findOne({ email: email.toLowerCase() });
+    // "email" field can be either actual email or employeeId,
+    // because the login form uses a single "Email or Employee ID" input.
+    const rawIdentifier = String(email).trim();
+    const emailLower = rawIdentifier.toLowerCase();
+
+    const employee = await Employee.findOne({
+      $or: [
+        { email: emailLower },
+        { employeeId: rawIdentifier },
+      ],
+    });
+
     if (!employee || !employee.otp || !employee.otpExpires) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
@@ -270,6 +301,7 @@ router.post('/employee/verify-otp', async (req, res) => {
         accessPermissions: employee.accessPermissions,
         allowedClasses: employee.allowedClasses || [],
         allowedSubjects: employee.allowedSubjects || [],
+        mustChangePassword: employee.mustChangePassword,
       },
     });
   } catch (err) {
@@ -286,11 +318,46 @@ router.get('/employee/me', requireEmployee, (req, res) => {
     name: e.name,
     employeeId: e.employeeId,
     email: e.email,
+    phone: e.phone,
     accessPermissions: e.accessPermissions,
     allowedClasses: e.allowedClasses || [],
     allowedSubjects: e.allowedSubjects || [],
     mustChangePassword: e.mustChangePassword,
   });
+});
+
+// Employee: change password (used after first login when mustChangePassword is true,
+// but can also be used later to rotate password)
+router.post('/employee/change-password', requireEmployee, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+    }
+
+    const employee = await Employee.findById(req.employee._id);
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    const valid = await bcrypt.compare(currentPassword, employee.passwordHash || '');
+    if (!valid) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    employee.passwordHash = hash;
+    employee.mustChangePassword = false;
+    await employee.save();
+
+    return res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('Employee change password error:', err);
+    return res.status(500).json({ message: 'Failed to change password' });
+  }
 });
  
 module.exports = router;

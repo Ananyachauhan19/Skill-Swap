@@ -22,6 +22,7 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
       title: 'Management',
       items: [
         { label: 'Applications', icon: FiFileText, path: '/admin/applications' },
+        { label: 'Recruitment', icon: FiFileText, path: '/admin/recruitment' },
         { label: 'Interview Requests', icon: FiCalendar, path: '/admin/interview-requests' },
         { label: 'Users', icon: FiUsers, path: '/admin/users' },
         { label: 'Employees', icon: FiUsers, path: '/admin/employees' },

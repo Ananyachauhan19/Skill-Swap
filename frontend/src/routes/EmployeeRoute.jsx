@@ -28,5 +28,11 @@ export default function EmployeeRoute() {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // If employee is authenticated but must change password,
+  // force them to the reset-password screen and block all other employee routes.
+  if (employee.mustChangePassword && location.pathname !== '/employee/reset-password') {
+    return <Navigate to="/employee/reset-password" replace />;
+  }
+
   return <Outlet />;
 }

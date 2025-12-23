@@ -130,7 +130,17 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
         if (!res.ok) throw new Error((data && data.message) || 'Failed to load applications');
         list = data.applications || data || [];
       }
-      setApplications(list);
+      // Sort so latest applications appear first
+      const sorted = [...list].sort((a, b) => {
+        const ad = a.submittedAt || a.createdAt || a.created_at || a.updatedAt || a.updated_at;
+        const bd = b.submittedAt || b.createdAt || b.created_at || b.updatedAt || b.updated_at;
+        if (!ad && !bd) return 0;
+        if (!ad) return 1;
+        if (!bd) return -1;
+        return new Date(bd).getTime() - new Date(ad).getTime();
+      });
+
+      setApplications(sorted);
       if (list.length && !selectedId) setSelectedId(list[0]._id);
     } catch (e) {
       setApplications([]); setError(e.message || 'Failed to load');

@@ -61,11 +61,25 @@ export default function EmployeeDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-1">Overview</h2>
-        <p className="text-sm text-slate-500">
-          Use this panel to review and approve applications you have access to.
-        </p>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900 mb-1">Overview</h2>
+            <p className="text-sm text-slate-500">
+              Use this panel to review and approve applications you have access to.
+            </p>
+          </div>
+          <div className="flex flex-col sm:items-end gap-1 text-xs">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+              <span className="font-semibold">ID:</span>
+              <span className="font-mono text-[11px]">{employee.employeeId}</span>
+            </div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+              <span className="font-semibold">Email:</span>
+              <span className="text-[11px] truncate max-w-[220px] sm:max-w-[260px]">{employee.email}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* KPI cards for each accessible module */}

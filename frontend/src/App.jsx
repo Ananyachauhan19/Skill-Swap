@@ -79,6 +79,9 @@ import EmployeeRoute from './routes/EmployeeRoute.jsx';
 import EmployeeLayout from './employee/EmployeeLayout.jsx';
 import EmployeeDashboard from './employee/EmployeeDashboard.jsx';
 import EmployeeApplicationsPage from './employee/EmployeeApplicationsPage.jsx';
+import EmployeeResetPassword from './employee/EmployeeResetPassword.jsx';
+import RecruitmentApplication from './user/RecruitmentApplication.jsx';
+import RecruitmentApplications from './admin/RecruitmentApplications.jsx';
 
 // Define full (regular user) routes
 const appRoutes = [
@@ -118,6 +121,7 @@ const appRoutes = [
   { path: '/coins-history', element: <ProtectedRoute><CoinsHistory /></ProtectedRoute> },
   { path: '/help', element: <ProtectedRoute><HelpSupportPage /></ProtectedRoute> },
   { path: '/pro', element: <ProtectedRoute><GoPro /></ProtectedRoute> },
+  { path: '/recruitment-application', element: <ProtectedRoute><RecruitmentApplication /></ProtectedRoute> },
   { path: '/accountSettings', element: <ProtectedRoute><AccountSettings /></ProtectedRoute> },
   { path: '/StartSkillSwap', element: <ProtectedRoute><StartSkillSwap /></ProtectedRoute> },
   { path: '/report', element: <ProtectedRoute><ReportPage /></ProtectedRoute> },
@@ -134,6 +138,7 @@ const appRoutes = [
           { index: true, element: <EmployeeDashboard /> },
           { path: 'dashboard', element: <EmployeeDashboard /> },
           { path: 'applications/:category', element: <EmployeeApplicationsPage /> },
+          { path: 'reset-password', element: <EmployeeResetPassword /> },
         ],
       },
     ],
@@ -179,6 +184,7 @@ const adminOnlyRoutes = [
           { index: true, element: <NewDashboard /> },
           { path: 'dashboard', element: <NewDashboard /> },
           { path: 'applications', element: <Applications /> },
+          { path: 'recruitment', element: <RecruitmentApplications /> },
           { path: 'analytics', element: <Analytics /> },
           { path: 'interview-requests', element: <InterviewRequests /> },
           { path: 'session-requests', element: <AdminSessionRequests /> },

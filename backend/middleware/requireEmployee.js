@@ -41,6 +41,12 @@ const requireEmployeeAccess = (required) => {
     const emp = req.employee;
     if (!emp) return res.status(401).json({ message: 'Employee authentication required' });
 
+    // Block any privileged access until the employee has changed
+    // their temporary/admin-assigned password.
+    if (emp.mustChangePassword) {
+      return res.status(403).json({ message: 'Password change required before accessing this resource' });
+    }
+
     const perms = emp.accessPermissions;
     const hasInterviewer = perms === 'interviewer' || perms === 'both';
     const hasTutor = perms === 'tutor' || perms === 'both';

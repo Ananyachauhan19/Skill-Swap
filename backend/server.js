@@ -40,6 +40,7 @@ const tutorFeedbackRoutes = require('./routes/tutorFeedbackRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const helpRoutes = require('./routes/helpRoutes');
 const packageRoutes = require('./routes/packageRoutes');
+const recruitmentRoutes = require('./routes/recruitmentRoutes');
 const cron = require('node-cron');
 const Session = require('./models/Session');
 const User = require('./models/User');
@@ -147,6 +148,7 @@ app.use('/api/tutors', tutorFeedbackRoutes);
 app.use('/api', reportRoutes);
 app.use('/api/support', helpRoutes);
 app.use('/api', packageRoutes);
+app.use('/api/recruitment', recruitmentRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');
@@ -220,10 +222,6 @@ mongoose.connect(process.env.MONGO_URI)
         if (!dateStr || !timeStr) return null;
 
         // Best-effort parsing based on existing stored strings.
-        // Handles common formats like:
-        // - date: 'YYYY-MM-DD'
-        // - date: 'DD/MM/YYYY'
-        // - time: 'HH:mm' or 'h:mm AM/PM'
         const isoCandidate = `${dateStr} ${timeStr}`;
         let parsed = new Date(isoCandidate);
         if (!Number.isNaN(parsed.getTime())) return parsed;

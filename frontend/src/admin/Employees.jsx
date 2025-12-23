@@ -34,11 +34,13 @@ const Employees = () => {
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
     employeeId: '',
     email: '',
+    phone: '',
     password: '',
     accessPermissions: 'both',
     isDisabled: false,
@@ -53,6 +55,7 @@ const Employees = () => {
       name: '',
       employeeId: '',
       email: '',
+      phone: '',
       password: '',
       accessPermissions: 'both',
       isDisabled: false,
@@ -94,6 +97,7 @@ const Employees = () => {
       name: emp.name || '',
       employeeId: emp.employeeId || '',
       email: emp.email || '',
+      phone: emp.phone || '',
       password: '',
       accessPermissions: emp.accessPermissions || 'both',
       isDisabled: !!emp.isDisabled,
@@ -209,6 +213,7 @@ const Employees = () => {
       const payloadBase = {
         name: form.name,
         email: form.email,
+        phone: form.phone,
         accessPermissions: form.accessPermissions,
       };
 
@@ -270,6 +275,32 @@ const Employees = () => {
       setError(e.response?.data?.message || e.message || 'Failed to delete employee');
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!editingEmployee) return;
+    const newPassword = window.prompt('Enter a new temporary password for this employee (they will be forced to change it on next login):');
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      window.alert('Password must be at least 6 characters long.');
+      return;
+    }
+    setResettingPassword(true);
+    setError('');
+    try {
+      await axios.post(
+        `${BACKEND_URL}/api/admin/employees/${editingEmployee._id}/reset-password`,
+        { password: newPassword },
+        { withCredentials: true },
+      );
+      window.alert('Password reset successfully. The employee will be asked to change it on their next login.');
+      await loadEmployees();
+    } catch (e) {
+      console.error('Failed to reset employee password', e);
+      setError(e.response?.data?.message || e.message || 'Failed to reset employee password');
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -357,6 +388,7 @@ const Employees = () => {
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Employee ID</th>
                 <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">Phone</th>
                 <th className="px-4 py-3">Access</th>
                 <th className="px-5 py-3 w-64">Tutor Scope</th>
                 <th className="px-4 py-3">Status</th>
@@ -399,6 +431,7 @@ const Employees = () => {
                     </td>
                     <td className="px-4 py-4 text-gray-700">{emp.employeeId}</td>
                     <td className="px-4 py-4 text-gray-700">{emp.email}</td>
+                    <td className="px-4 py-4 text-gray-700">{emp.phone || '—'}</td>
                     <td className="px-4 py-4">
                       <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
                         <FiShield className="mr-1.5" size={12} />
@@ -562,6 +595,18 @@ const Employees = () => {
                 </div>
               </div>
 
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-700">Phone (optional)</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g. +91-9876543210"
+                />
+              </div>
+
               {!editingEmployee && (
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-gray-700">Password</label>
@@ -721,22 +766,43 @@ const Employees = () => {
               )}
 
               {editingEmployee && (
-                <div className="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 bg-gray-50">
-                  <div className="text-xs text-gray-700">
-                    <div className="font-medium mb-0.5">Status</div>
-                    <div className="text-gray-500">Toggle to disable or enable this employee.</div>
+                <>
+                  <div className="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 bg-gray-50">
+                    <div className="text-xs text-gray-700">
+                      <div className="font-medium mb-0.5">Status</div>
+                      <div className="text-gray-500">Toggle to disable or enable this employee.</div>
+                    </div>
+                    <label className="inline-flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="isDisabled"
+                        checked={form.isDisabled}
+                        onChange={handleChange}
+                        className="mr-1"
+                      />
+                      {form.isDisabled ? 'Disabled' : 'Active'}
+                    </label>
                   </div>
-                  <label className="inline-flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="isDisabled"
-                      checked={form.isDisabled}
-                      onChange={handleChange}
-                      className="mr-1"
-                    />
-                    {form.isDisabled ? 'Disabled' : 'Active'}
-                  </label>
-                </div>
+
+                  <div className="flex items-center justify-between border border-amber-200 rounded-lg px-3 py-2 bg-amber-50 mt-2">
+                    <div className="text-xs text-amber-800">
+                      <div className="font-medium mb-0.5 flex items-center gap-1">
+                        <FiKey size={12} />
+                        Password
+                      </div>
+                      <div className="text-amber-700">Reset to a temporary password; employee must change it on next login.</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleResetPassword}
+                      disabled={resettingPassword}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-amber-300 text-[11px] font-medium text-amber-900 bg-amber-100 hover:bg-amber-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <FiKey size={12} />
+                      {resettingPassword ? 'Resetting...' : 'Reset password'}
+                    </button>
+                  </div>
+                </>
               )}
 
               <div className="pt-2 flex items-center justify-between gap-3">

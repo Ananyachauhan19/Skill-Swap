@@ -1404,6 +1404,8 @@ const Interview = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [preSelectedInterviewer, setPreSelectedInterviewer] = useState(null);
   const [preFilledData, setPreFilledData] = useState(null);
+  const { user } = useAuth() || {};
+  const [interviewerStatus, setInterviewerStatus] = useState(null);
 
   const handleBookSession = (data) => {
     setPreSelectedInterviewer(data.interviewer);
@@ -1422,6 +1424,37 @@ const Interview = () => {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  // Load current user's interviewer application status
+  useEffect(() => {
+    const loadStatus = async () => {
+      if (!user) {
+        setInterviewerStatus(null);
+        return;
+      }
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/interview/application`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          setInterviewerStatus(null);
+          return;
+        }
+        const app = await res.json();
+        if (!app) {
+          setInterviewerStatus(null);
+          return;
+        }
+        setInterviewerStatus(app.status || null);
+      } catch (e) {
+        console.error('Failed to load interviewer application status', e);
+        setInterviewerStatus(null);
+      }
+    };
+
+    loadStatus();
+  }, [user && user._id]);
 
   return (
     <div className="min-h-screen w-full bg-home-bg">
@@ -1461,12 +1494,33 @@ const Interview = () => {
                 >
                   Book Mock Interview
                 </button>
-                <button
-                  onClick={() => setShowRegisterModal(true)}
-                  className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 bg-white text-blue-900 border-2 border-blue-900 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm lg:text-base hover:bg-blue-50 transition-all"
-                >
-                  Become Interviewer
-                </button>
+                {(() => {
+                  const isApprovedRole =
+                    user && (user.role === 'interviewer' || user.role === 'both' || (Array.isArray(user.roles) && user.roles.includes('interviewer')));
+                  const isPending = interviewerStatus === 'pending';
+                  const isApprovedApp = interviewerStatus === 'approved';
+                  const disabled = isPending || isApprovedApp || isApprovedRole;
+                  const label = disabled
+                    ? (isPending ? 'Interviewer application pending' : 'You are an interviewer')
+                    : 'Become Interviewer';
+
+                  return (
+                    <button
+                      onClick={() => {
+                        if (disabled) return;
+                        setShowRegisterModal(true);
+                      }}
+                      disabled={disabled}
+                      className={`w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 lg:px-8 lg:py-4 border-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm lg:text-base transition-all ${
+                        disabled
+                          ? 'bg-white text-slate-500 border-slate-300 cursor-default'
+                          : 'bg-white text-blue-900 border-blue-900 hover:bg-blue-50'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })()}
               </div>
 
               {/* Stats Section Inline */}
