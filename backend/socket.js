@@ -109,6 +109,20 @@ module.exports = (io) => {
       }
     });
 
+    // Handle request count updates for dynamic navbar badge
+    socket.on('request-count-update', async (data) => {
+      try {
+        const { userId, counts } = data;
+        if (userId && counts) {
+          // Emit the count update back to all tabs/windows of this user
+          io.to(userId.toString()).emit('request-count-update', { counts });
+          console.log(`[Socket] 📊 Broadcasted request count update to user ${userId}:`, counts);
+        }
+      } catch (error) {
+        console.error('[Socket] Error broadcasting request count update:', error);
+      }
+    });
+
     // Handle SkillMate request
     socket.on('send-skillmate-request', async (data) => {
       try {
@@ -340,6 +354,10 @@ module.exports = (io) => {
           skillMate: skillMateRequest
         });
 
+        // Emit socket events to update request counts on all devices
+        io.to(skillMateRequest.requester._id.toString()).emit('request-count-updated');
+        io.to(userId.toString()).emit('request-count-updated');
+
         console.log(`[SkillMate Request] Request approved by ${userId} for requester ${skillMateRequest.requester}`);
 
       } catch (error) {
@@ -404,6 +422,10 @@ module.exports = (io) => {
           message: 'SkillMate request rejected successfully',
           skillMate: skillMateRequest
         });
+
+        // Emit socket events to update request counts on all devices
+        io.to(skillMateRequest.requester._id.toString()).emit('request-count-updated');
+        io.to(userId.toString()).emit('request-count-updated');
 
         console.log(`[SkillMate Request] Request rejected by ${userId} for requester ${skillMateRequest.requester}`);
 

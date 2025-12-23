@@ -1,0 +1,5 @@
+﻿          <p className="mt-4 text-[11px] text-slate-400">
+            {role === 'interviewer'
+              ? 'If requester do not select any slot within 12 hours of your suggestion, the first suggested slot will be auto-scheduled.'
+              : 'If you do not select any slot within 12 hours of the interviewer’s suggestion, the first suggested slot will be auto-scheduled.'}
+          </p>

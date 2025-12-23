@@ -255,10 +255,9 @@ const ToastSocketBridge = () => {
       if (n.type === 'interview-request-submitted') {
         const company = n.company || 'the company';
         const position = n.position || 'the role';
-        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'Request Sent Successfully',
-          message: `Your mock interview request for ${company} — ${position} has been submitted successfully.${rid}`,
+          message: `Your mock interview request for ${company} — ${position} has been submitted successfully.`,
           variant: 'success',
           timeout: 5000,
           actions: [
@@ -276,10 +275,9 @@ const ToastSocketBridge = () => {
         const requester = n.requesterName || 'A candidate';
         const company = n.company || 'a company';
         const position = n.position || 'a role';
-        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'New Interview Request',
-          message: `${requester} requested a mock interview for ${company} — ${position}.${rid}`,
+          message: `${requester} requested a mock interview for ${company} — ${position}.`,
           variant: 'info',
           timeout: 0,
           actions: [
@@ -297,10 +295,9 @@ const ToastSocketBridge = () => {
         const requester = n.requesterName || 'A user';
         const company = n.company || 'a company';
         const position = n.position || 'a role';
-        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'New Interview Request',
-          message: `${requester} requested a mock interview for ${company} — ${position}.${rid}`,
+          message: `${requester} requested a mock interview for ${company} — ${position}.`,
           variant: 'info',
           timeout: 0,
           actions: [
@@ -317,10 +314,9 @@ const ToastSocketBridge = () => {
       if (n.type === 'interview-approved') {
         const company = n.company || 'the company';
         const position = n.position || 'the role';
-        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'Interview Approved',
-          message: `Good news — your mock interview for ${company} — ${position} was approved.${rid}`,
+          message: `Good news — your mock interview for ${company} — ${position} was approved.`,
           variant: 'success',
           timeout: 0,
           actions: [
@@ -337,10 +333,9 @@ const ToastSocketBridge = () => {
       if (n.type === 'interview-approved-confirmation') {
         const company = n.company || 'the company';
         const position = n.position || 'the role';
-        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'Interview Confirmed',
-          message: sanitizeToastText(n.message) || `You approved the mock interview for ${company} — ${position}.${rid}`,
+          message: sanitizeToastText(n.message) || `You approved the mock interview for ${company} — ${position}.`,
           variant: 'success',
           timeout: 0,
           actions: [
@@ -357,10 +352,9 @@ const ToastSocketBridge = () => {
       if (n.type === 'interview-rejected') {
         const company = n.company || 'the company';
         const position = n.position || 'the role';
-        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'Interview Denied',
-          message: n.message || `Your mock interview request for ${company} — ${position} was declined.${rid}`,
+          message: n.message || `Your mock interview request for ${company} — ${position} was declined.`,
           variant: 'error',
           timeout: 0,
           actions: [
@@ -373,10 +367,9 @@ const ToastSocketBridge = () => {
       if (n.type === 'interview-scheduled') {
         const company = n.company || 'the company';
         const position = n.position || 'the role';
-        const rid = n.requestId ? ` (Request ID: ${n.requestId})` : '';
         addToast({
           title: 'Interview Scheduled',
-          message: sanitizeToastText(n.message) || `Your mock interview session for ${company} — ${position} has been scheduled. Check the details and join the session.${rid}`,
+          message: sanitizeToastText(n.message) || `Your mock interview session for ${company} — ${position} has been scheduled. Check the details and join the session.`,
           variant: 'success',
           timeout: 0,
           actions: [

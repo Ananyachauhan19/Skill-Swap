@@ -131,6 +131,9 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
             requesterName: creatorName,
             timestamp: Date.now(),
           });
+          // Emit events to update request counts
+          io.to(String(invitedSkillMate)).emit('expert-session-created');
+          io.to(req.user._id.toString()).emit('expert-session-created');
         }
 
         if (mate?.email) {
@@ -272,6 +275,9 @@ router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.r
             requesterName: creatorName,
             timestamp: Date.now(),
           });
+          // Emit events to update request counts
+          io.to(String(invitedSkillMate)).emit('expert-session-created');
+          io.to(req.user._id.toString()).emit('expert-session-created');
         }
 
         if (mate?.email) {
@@ -965,6 +971,9 @@ router.post('/expert/approve/:sessionId', requireAuth, async (req, res) => {
         requesterName: `${skillMate.firstName || skillMate.username}`,
         timestamp: Date.now(),
       });
+      // Emit events to update request counts
+      io.to(session.creator.toString()).emit('expert-session-accepted');
+      io.to(req.user._id.toString()).emit('expert-session-accepted');
     }
 
     res.json({ message: 'Expert session approved successfully', session });
@@ -1014,6 +1023,9 @@ router.post('/expert/reject/:sessionId', requireAuth, async (req, res) => {
         requesterName: `${skillMate.firstName || skillMate.username}`,
         timestamp: Date.now(),
       });
+      // Emit events to update request counts
+      io.to(session.creator.toString()).emit('expert-session-declined');
+      io.to(req.user._id.toString()).emit('expert-session-declined');
     }
 
     res.json({ message: 'Expert session rejected successfully' });

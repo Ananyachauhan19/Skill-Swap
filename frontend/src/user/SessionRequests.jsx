@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   FaCheck, 
@@ -362,6 +362,74 @@ const SessionRequests = () => {
     };
   }, [user, activeSession, navigate]);
 
+  // Helper function to calculate total pending requests
+  const calculateTotalPendingCount = () => {
+    // Session requests - pending only
+    const sessionPending = [...requests.received, ...requests.sent].filter(
+      (req) => req.status === 'pending'
+    ).length;
+
+    // Expert session requests - pending only
+    const expertPending = [...expertSessionRequests.received, ...expertSessionRequests.sent].filter(
+      (req) => req.status === 'pending'
+    ).length;
+
+    // SkillMate requests - pending only
+    const skillmatePending = [...skillMateRequests.received, ...skillMateRequests.sent].filter(
+      (req) => req.status === 'pending'
+    ).length;
+
+    // Interview requests - pending OR scheduled
+    const interviewPending = [...(interviewRequests?.received || []), ...(interviewRequests?.sent || [])].filter(
+      (req) => {
+        const status = (req.status || '').toLowerCase();
+        return status === 'pending' || status === 'scheduled';
+      }
+    ).length;
+
+    const total = sessionPending + expertPending + skillmatePending + interviewPending;
+    
+    return {
+      total,
+      session: sessionPending,
+      expert: expertPending,
+      skillmate: skillmatePending,
+      interview: interviewPending
+    };
+  };
+
+  // Helper function to notify the navbar about request count changes
+  const notifyRequestCountUpdate = () => {
+    try {
+      const counts = calculateTotalPendingCount();
+      
+      // 1. Dispatch CustomEvent for same-page updates (instant)
+      window.dispatchEvent(new CustomEvent('requestCountChanged', { 
+        detail: counts 
+      }));
+      
+      // 2. Emit socket event for cross-page updates (when user is on different page)
+      if (socket && user?._id) {
+        socket.emit('request-count-update', {
+          userId: user._id,
+          counts: counts
+        });
+        console.log('[SessionRequests] 📡 Emitted socket event & CustomEvent - Total:', counts.total, 'Details:', counts);
+      } else {
+        console.log('[SessionRequests] ✅ Dispatched CustomEvent only - Total:', counts.total, 'Details:', counts);
+      }
+    } catch (error) {
+      console.error('Failed to notify request count update:', error);
+    }
+  };
+
+  // Notify navbar whenever request data changes - THIS TRIGGERS AUTOMATICALLY!
+  useEffect(() => {
+    // Calculate and send counts immediately whenever ANY request data changes
+    notifyRequestCountUpdate();
+    console.log('[SessionRequests] 🔄 Request data changed, updating navbar count...');
+  }, [requests, expertSessionRequests, skillMateRequests, interviewRequests]);
+
   const fetchSessionRequests = async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/session-requests/all`, {
@@ -500,6 +568,7 @@ const SessionRequests = () => {
           }
           addToast({ title: 'Approved', message: 'Request approved successfully.', variant: 'success', timeout: 2500 });
           fetchSessionRequests();
+          notifyRequestCountUpdate();
         } else {
           addToast({ title: 'Error', message: 'Failed to approve request.', variant: 'error', timeout: 3000 });
         }
@@ -507,6 +576,7 @@ const SessionRequests = () => {
         socket.emit('approve-skillmate-request', { requestId });
         addToast({ title: 'Approved', message: 'SkillMate request approved.', variant: 'success', timeout: 2500 });
         fetchSkillMateRequests();
+        notifyRequestCountUpdate();
       } else if (type === 'expert') {
         const response = await fetch(`${BACKEND_URL}/api/sessions/expert/approve/${requestId}`, {
           method: 'POST',
@@ -517,6 +587,7 @@ const SessionRequests = () => {
         if (response.ok) {
           addToast({ title: 'Accepted', message: 'Expert session invitation accepted.', variant: 'success', timeout: 2500 });
           fetchExpertSessionRequests();
+          notifyRequestCountUpdate();
         } else {
           addToast({ title: 'Error', message: 'Failed to accept expert invitation.', variant: 'error', timeout: 3000 });
         }
@@ -539,6 +610,7 @@ const SessionRequests = () => {
         if (response.ok) {
           addToast({ title: 'Rejected', message: 'Request rejected.', variant: 'warning', timeout: 2500 });
           fetchSessionRequests();
+          notifyRequestCountUpdate();
         } else {
           addToast({ title: 'Error', message: 'Failed to reject request.', variant: 'error', timeout: 3000 });
         }
@@ -546,6 +618,7 @@ const SessionRequests = () => {
         socket.emit('reject-skillmate-request', { requestId });
         addToast({ title: 'Rejected', message: 'SkillMate request rejected.', variant: 'warning', timeout: 2500 });
         fetchSkillMateRequests();
+        notifyRequestCountUpdate();
       } else if (type === 'expert') {
         const response = await fetch(`${BACKEND_URL}/api/sessions/expert/reject/${requestId}`, {
           method: 'POST',
@@ -556,6 +629,7 @@ const SessionRequests = () => {
         if (response.ok) {
           addToast({ title: 'Declined', message: 'Expert session invitation declined.', variant: 'warning', timeout: 2500 });
           fetchExpertSessionRequests();
+          notifyRequestCountUpdate();
         } else {
           addToast({ title: 'Error', message: 'Failed to decline expert invitation.', variant: 'error', timeout: 3000 });
         }
@@ -601,6 +675,7 @@ const SessionRequests = () => {
           setActiveSession(null);
           setReadyToStartSession(null);
           localStorage.removeItem('activeSession');
+          notifyRequestCountUpdate(); // Notify navbar
         }
       } catch {
         setError('Failed to cancel session');
@@ -623,6 +698,7 @@ const SessionRequests = () => {
       setRatingContext(null);
       // Refresh lists to reflect new rating in UIs that show it
       fetchSessionRequests();
+      notifyRequestCountUpdate(); // Notify navbar
     } catch (err) {
       alert(err.message || 'Failed to submit rating');
     }
@@ -740,6 +816,7 @@ const SessionRequests = () => {
         // Refresh the interview requests list
         onScheduled && onScheduled();
         fetchInterviewRequests();
+        notifyRequestCountUpdate();
       } catch (err) {
         console.error(err);
         addToast({
@@ -1066,6 +1143,7 @@ const SessionRequests = () => {
         if (!res.ok) throw new Error(data.message || 'Failed to suggest slots');
         close();
         fetchInterviewRequests();
+        notifyRequestCountUpdate();
       } catch (err) {
         setErrorMsg(err.message || 'Failed to suggest slots');
       } finally {
@@ -1088,6 +1166,7 @@ const SessionRequests = () => {
         close();
         fetchInterviewRequests();
         fetchSessionRequests();
+        notifyRequestCountUpdate();
       } catch (err) {
         setErrorMsg(err.message || 'Failed to accept slot');
       } finally {
@@ -1123,6 +1202,7 @@ const SessionRequests = () => {
         if (!res.ok) throw new Error(data.message || 'Failed to submit alternate slots');
         close();
         fetchInterviewRequests();
+        notifyRequestCountUpdate();
       } catch (err) {
         setErrorMsg(err.message || 'Failed to submit alternate slots');
       } finally {
@@ -1145,6 +1225,7 @@ const SessionRequests = () => {
         close();
         fetchInterviewRequests();
         fetchSessionRequests();
+        notifyRequestCountUpdate();
       } catch (err) {
         setErrorMsg(err.message || 'Failed to accept alternate slot');
       } finally {
@@ -1166,6 +1247,7 @@ const SessionRequests = () => {
         if (!res.ok) throw new Error(data.message || 'Failed to reject alternate slots');
         close();
         fetchInterviewRequests();
+        notifyRequestCountUpdate();
       } catch (err) {
         setErrorMsg(err.message || 'Failed to reject alternate slots');
       } finally {
@@ -1210,37 +1292,53 @@ const SessionRequests = () => {
       (request.status === 'pending' || request.status === 'assigned');
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white rounded-xl shadow-xl max-w-xl w-full mx-4 p-6">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">
-                {role === 'interviewer' ? 'Manage Interview Time' : 'Choose Interview Time'}
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Negotiation is one-time only. You can suggest up to 2 time slots.
-              </p>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-blue-900 to-blue-800 text-white px-6 py-5 rounded-t-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-bold tracking-tight">
+                  {role === 'interviewer' ? 'Manage Interview Time' : 'Choose Interview Time'}
+                </h3>
+                <p className="text-sm text-blue-100 mt-1.5 flex items-center gap-2">
+                  <FaClock className="text-blue-200" />
+                  Negotiation is one-time only. You can suggest up to 2 time slots.
+                </p>
+              </div>
+              <button 
+                onClick={close} 
+                className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
+              >
+                <FaTimes size={20} />
+              </button>
             </div>
-            <button onClick={close} className="text-slate-400 hover:text-slate-600">
-              <FaTimes size={14} />
-            </button>
           </div>
 
-          {errorMsg && (
-            <div className="mb-3 text-xs text-red-600 bg-red-50 border border-red-100 rounded px-3 py-2">
-              {errorMsg}
-            </div>
-          )}
+          {/* Content */}
+          <div className="p-6">
+            {errorMsg && (
+              <div className="mb-4 text-sm text-red-700 bg-red-50 border-l-4 border-red-500 rounded-lg px-4 py-3 flex items-start gap-3">
+                <FaTimes className="text-red-500 mt-0.5 flex-shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
 
           {/* Interviewer view: suggest or respond to alternates */}
           {role === 'interviewer' && (
-            <div className="space-y-4 text-xs">
+            <div className="space-y-5">
               {request.interviewerSuggestedSlots && request.interviewerSuggestedSlots.length > 0 && !canInterviewerSuggest && (
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
-                  <p className="font-semibold text-slate-800 mb-2">Your suggested slots</p>
-                  <div className="space-y-2">
+                <div className="border-2 border-blue-100 rounded-xl p-5 bg-gradient-to-br from-blue-50 to-white">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center">
+                      <FaClock className="text-white text-sm" />
+                    </div>
+                    <p className="font-bold text-slate-900">Your Suggested Slots</p>
+                  </div>
+                  <div className="space-y-2.5">
                     {request.interviewerSuggestedSlots.map((slot, idx) => (
-                      <div key={idx} className="text-slate-700">
+                      <div key={idx} className="bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-700 font-medium flex items-center gap-3">
+                        <div className="w-1.5 h-1.5 bg-blue-900 rounded-full"></div>
                         {formatSlot(slot)}
                       </div>
                     ))}
@@ -1249,10 +1347,15 @@ const SessionRequests = () => {
               )}
 
               {canInterviewerSuggest && (
-                <div className="border border-amber-100 rounded-lg p-3 bg-amber-50/40">
-                  <p className="font-semibold text-amber-800 mb-2">Suggest up to 2 time slots</p>
+                <div className="border-2 border-blue-200 rounded-xl p-5 bg-gradient-to-br from-blue-50 to-white">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center">
+                      <FaClock className="text-white text-sm" />
+                    </div>
+                    <p className="font-bold text-slate-900">Suggest up to 2 Time Slots</p>
+                  </div>
                   {interviewerSlots.map((slot, idx) => (
-                    <div key={idx} className="mb-2">
+                    <div key={idx} className="mb-3">
                       <DateTimePicker
                         date={slot.start ? slot.start.split('T')[0] : ''}
                         time={slot.start ? slot.start.split('T')[1]?.slice(0,5) : ''}
@@ -1267,38 +1370,62 @@ const SessionRequests = () => {
                     <button
                       type="button"
                       onClick={() => addSlot('interviewer', setInterviewerSlots)}
-                      className="text-amber-700 text-xs font-medium mt-1"
+                      className="text-blue-900 hover:text-blue-800 text-sm font-semibold flex items-center gap-2 mt-2 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
                     >
-                      + Add slot
+                      <span className="text-lg">+</span>
+                      Add Slot
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={submitInterviewerSlots}
                     disabled={loading}
-                    className="mt-3 bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50"
+                    className="mt-4 w-full bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white px-5 py-3 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
                   >
-                    {loading ? 'Saving...' : 'Send to candidate'}
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <FaCheck />
+                        Send to Candidate
+                      </>
+                    )}
                   </button>
                 </div>
               )}
 
+
               {request.requesterAlternateSlots && request.requesterAlternateSlots.length > 0 && (
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
-                  <p className="font-semibold text-slate-800 mb-1">Candidate’s alternate slots</p>
+                <div className="border-2 border-amber-100 rounded-xl p-5 bg-gradient-to-br from-amber-50 to-white">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-amber-600 rounded-lg flex items-center justify-center">
+                      <FaClock className="text-white text-sm" />
+                    </div>
+                    <p className="font-bold text-slate-900">Candidate's Alternate Slots</p>
+                  </div>
                   {request.requesterAlternateReason && (
-                    <p className="text-slate-600 mb-2">Reason: {request.requesterAlternateReason}</p>
+                    <div className="mb-3 bg-white border-l-4 border-amber-500 rounded-r-lg px-4 py-3">
+                      <p className="text-xs text-slate-500 mb-1 font-semibold">Reason for unavailability:</p>
+                      <p className="text-sm text-slate-700">{request.requesterAlternateReason}</p>
+                    </div>
                   )}
-                  <div className="space-y-2">
+                  <div className="space-y-2.5">
                     {request.requesterAlternateSlots.map((slot, idx) => (
-                      <div key={idx} className="flex items-center justify-between">
-                        <span className="text-slate-700">{formatSlot(slot)}</span>
+                      <div key={idx} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-1.5 bg-amber-600 rounded-full"></div>
+                          <span className="text-sm text-slate-700 font-medium">{formatSlot(slot)}</span>
+                        </div>
                         {canInterviewerAcceptAlternates && (
                           <button
                             type="button"
                             onClick={() => interviewerAcceptAlternate(idx)}
-                            className="ml-2 bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded text-[11px] font-medium"
+                            className="ml-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
                           >
+                            <FaCheck className="text-xs" />
                             Accept
                           </button>
                         )}
@@ -1309,9 +1436,10 @@ const SessionRequests = () => {
                     <button
                       type="button"
                       onClick={interviewerRejectAlternate}
-                      className="mt-3 text-rose-600 text-xs font-medium"
+                      className="mt-4 w-full bg-white hover:bg-rose-50 border-2 border-rose-200 text-rose-700 px-4 py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
                     >
-                      Reject both alternate slots
+                      <FaTimes />
+                      Reject Both Alternate Slots
                     </button>
                   )}
                 </div>
@@ -1321,26 +1449,40 @@ const SessionRequests = () => {
 
           {/* Requester view */}
           {role === 'requester' && (
-            <div className="space-y-4 text-xs">
+            <div className="space-y-5">
               {(!request.interviewerSuggestedSlots || request.interviewerSuggestedSlots.length === 0) && (
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50 text-slate-600">
-                  No time suggested yet by the interviewer.
+                <div className="border-2 border-blue-100 rounded-xl p-8 bg-gradient-to-br from-blue-50 to-white text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+                    <FaClock className="text-blue-900 text-3xl" />
+                  </div>
+                  <p className="text-lg text-slate-800 font-bold mb-2">Waiting for Interview Times</p>
+                  <p className="text-sm text-slate-600">The interviewer will suggest time slots soon.</p>
+                  <p className="text-xs text-slate-500 mt-2">You'll be notified when slots are available.</p>
                 </div>
               )}
 
               {request.interviewerSuggestedSlots && request.interviewerSuggestedSlots.length > 0 && (
-                <div className="border border-amber-100 rounded-lg p-3 bg-amber-50/40">
-                  <p className="font-semibold text-amber-800 mb-2">Interviewer’s suggested slots</p>
-                  <div className="space-y-2">
+                <div className="border-2 border-blue-100 rounded-xl p-5 bg-gradient-to-br from-blue-50 to-white">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 bg-blue-900 rounded-lg flex items-center justify-center">
+                      <FaClock className="text-white text-sm" />
+                    </div>
+                    <p className="font-bold text-slate-900">Interviewer's Suggested Slots</p>
+                  </div>
+                  <div className="space-y-2.5">
                     {request.interviewerSuggestedSlots.map((slot, idx) => (
-                      <div key={idx} className="flex items-center justify-between">
-                        <span className="text-slate-700">{formatSlot(slot)}</span>
+                      <div key={idx} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-1.5 h-1.5 bg-blue-900 rounded-full"></div>
+                          <span className="text-sm text-slate-700 font-medium">{formatSlot(slot)}</span>
+                        </div>
                         {canAcceptFromOriginal && (
                           <button
                             type="button"
                             onClick={() => requesterAcceptSlot(idx)}
-                            className="ml-2 bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 rounded text-[11px] font-medium"
+                            className="ml-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
                           >
+                            <FaCheck className="text-xs" />
                             Accept
                           </button>
                         )}
@@ -1348,18 +1490,25 @@ const SessionRequests = () => {
                     ))}
                   </div>
                   {request.alternateSlotsRejected && (
-                    <p className="mt-2 text-[11px] text-rose-600">
-                      Your alternate slots were rejected. You can only pick from these options now.
-                    </p>
+                    <div className="mt-3 bg-rose-50 border-l-4 border-rose-500 rounded-r-lg px-4 py-3">
+                      <p className="text-xs text-rose-700 font-semibold">
+                        ⚠️ Your alternate slots were rejected. Please select from the available options above.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
 
               {canSuggestAlternates && (
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
-                  <p className="font-semibold text-slate-800 mb-2">Suggest up to 2 alternate slots</p>
+                <div className="border-2 border-blue-100 rounded-xl p-5 bg-gradient-to-br from-blue-50 to-white shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-blue-900 rounded-lg flex items-center justify-center shadow-md">
+                      <FaClock className="text-white text-lg" />
+                    </div>
+                    <p className="font-bold text-lg text-slate-900">Suggest up to 2 Alternate Slots</p>
+                  </div>
                   {alternateSlots.map((slot, idx) => (
-                    <div key={idx} className="mb-2">
+                    <div key={idx} className="mb-3">
                       <DateTimePicker
                         date={slot.start ? slot.start.split('T')[0] : ''}
                         time={slot.start ? slot.start.split('T')[1]?.slice(0,5) : ''}
@@ -1374,36 +1523,57 @@ const SessionRequests = () => {
                     <button
                       type="button"
                       onClick={() => addSlot('alternate', setAlternateSlots)}
-                      className="text-slate-700 text-xs font-medium mt-1"
+                      className="text-blue-700 hover:text-blue-800 text-sm font-semibold flex items-center gap-2 mt-2 hover:bg-blue-50 px-3 py-2 rounded-lg transition-colors"
                     >
-                      + Add alternate slot
+                      <span className="text-lg">+</span>
+                      Add Alternate Slot
                     </button>
                   )}
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
-                    placeholder="Reason for unavailability (required)"
-                    className="mt-3 w-full border border-slate-200 rounded px-2 py-1 text-xs"
+                    placeholder="Please explain why you're not available for the suggested times..."
+                    className="mt-4 w-full border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-4 py-3 text-sm resize-none transition-colors"
                   />
                   <button
                     type="button"
                     onClick={requesterSubmitAlternates}
                     disabled={loading}
-                    className="mt-3 bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded text-xs font-semibold disabled:opacity-50"
+                    className="mt-4 w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white px-5 py-3 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
                   >
-                    {loading ? 'Sending...' : 'Send alternates to interviewer'}
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <FaCheck />
+                        Send Alternates to Interviewer
+                      </>
+                    )}
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          <p className="mt-4 text-[11px] text-slate-400">
-            {role === 'interviewer'
-              ? 'If requester do not select any slot within 12 hours of your suggestion, the first suggested slot will be auto-scheduled.'
-              : 'If you do not select any slot within 12 hours of the interviewer’s suggestion, the first suggested slot will be auto-scheduled.'}
-          </p>
+          <div className="mt-6 bg-blue-50 border-l-4 border-blue-900 rounded-r-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5">
+                <svg className="w-5 h-5 text-blue-900" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <p className="text-sm text-slate-700 leading-relaxed">
+                {role === 'interviewer'
+                  ? 'If the requester does not select any slot within 12 hours of your suggestion, the first suggested slot will be auto-scheduled.'
+                  : 'If you do not select any slot within 12 hours of the interviewer\'s suggestion, the first suggested slot will be auto-scheduled.'}
+              </p>
+            </div>
+          </div>
+          </div>
         </div>
       </div>
     );
