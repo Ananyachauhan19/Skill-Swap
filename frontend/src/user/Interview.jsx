@@ -1476,8 +1476,8 @@ const Interview = () => {
             </div>
 
             {/* Right Illustration */}
-            <div className="flex-1 relative hidden lg:block">
-              <div className="relative w-full max-w-[450px] mx-auto scale-[1.25]">
+            <div className="flex-1 relative w-full">
+              <div className="relative w-full max-w-[300px] sm:max-w-[350px] lg:max-w-[450px] mx-auto scale-90 sm:scale-100 lg:scale-[1.25]">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
                 <img
                   src="/assets/interview-illustration.webp"

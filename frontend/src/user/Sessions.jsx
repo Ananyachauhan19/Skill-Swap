@@ -431,7 +431,7 @@ const Sessions = () => {
           <motion.img
             src="/assets/session.webp"
             alt="Learning Session"
-            className="w-full max-w-xs sm:max-w-md mx-auto object-contain"
+            className="w-full max-w-[280px] sm:max-w-xs md:max-w-md lg:max-w-lg mx-auto object-contain"
             initial={{ opacity: 0, x: 60 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4, duration: 0.8 }}
