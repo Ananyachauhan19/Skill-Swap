@@ -48,10 +48,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
 
 
   const carouselImages = [
-    "/assets/interview-illustration.webp",
+     "/assets/interview-illustration.webp",
     "/assets/expert-connect-illustration.webp",
-    "/assets/group-discussion-illustration.webp",
-    "/assets/skillchoose.webp",
+    "/assets/skillswap-hero.webp",
   ];
   const extendedImages = [...carouselImages, carouselImages[0]]; // Append first image for seamless loop
 

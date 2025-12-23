@@ -33,8 +33,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const carouselImages = [
     "/assets/interview-illustration.webp",
     "/assets/expert-connect-illustration.webp",
-    "/assets/group-discussion-illustration.webp",
-    "/assets/skillchoose.webp",
+    "/assets/skillswap-hero.webp",
   ];
   // Duplicate images for seamless infinite loop
   const extendedImages = [...carouselImages, carouselImages[0]];
@@ -257,13 +256,6 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
                   <path fill="#FBBC05" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
                 </svg>
                 <span>Login with Google</span>
-              </button>
-
-              <button onClick={() => handleOAuth("linkedin")} className="w-full flex items-center justify-center gap-3 py-2 sm:py-2.5 px-4 bg-white border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-100">
-                <svg className="w-5 h-5" viewBox="0 0 448 512" fill="#0077B5">
-                  <path d="M100.28 448H7.4V148.9h92.88zM53.79 108.1C24.09 108.1 0 83.5 0 53.8S24.09 0 53.79 0s53.79 24.6 53.79 53.8-24.09 54.3-53.79 54.3zM447.9 448h-92.68V302.4c0-34.7-.7-79.2-48.29-79.2-48.29 0-55.69 37.7-55.69 76.7V448h-92.78V148.9h89.08v40.8h1.3c12.4-23.5 42.69-48.3 87.88-48.3 94 0 111.28 61.9 111.28 142.3V448z" />
-                </svg>
-                <span>Login with LinkedIn</span>
               </button>
             </div>
 
