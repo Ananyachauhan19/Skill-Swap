@@ -960,17 +960,81 @@ const Users = () => {
                           </div>
                         </div>
 
+                        {/* Expired Interviews */}
+                        <div>
+                          <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                            Expired Interviews
+                          </h4>
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center">
+                            <div className="text-[11px] text-gray-600 mb-1">Total Expired</div>
+                            <div className="text-xl font-bold text-gray-700">
+                              {userDetails.interviewStats && userDetails.interviewStats.scheduledInterviews ? (() => {
+                                const expiredCount = userDetails.interviewStats.scheduledInterviews.filter(interview => {
+                                  if (!interview.scheduledAt) return false;
+                                  try {
+                                    const scheduledTime = new Date(interview.scheduledAt).getTime();
+                                    const expiryTime = scheduledTime + 12 * 60 * 60 * 1000;
+                                    return Date.now() >= expiryTime;
+                                  } catch {
+                                    return false;
+                                  }
+                                }).length;
+                                return expiredCount;
+                              })() : 0}
+                            </div>
+                            <div className="text-[10px] text-gray-500 mt-1">
+                              Interviews expired 12 hours after scheduled time
+                            </div>
+                          </div>
+                        </div>
+
                         {/* Scheduled Interviews */}
                         <div>
                           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
                             Scheduled Interviews
-                            {userDetails.interviewStats && userDetails.interviewStats.scheduledInterviews && (
-                              <span className="ml-2 text-blue-600">({userDetails.interviewStats.scheduledInterviews.length})</span>
-                            )}
+                            {userDetails.interviewStats && userDetails.interviewStats.scheduledInterviews && (() => {
+                              // Filter out expired interviews (12+ hours past scheduled time)
+                              const nonExpiredInterviews = userDetails.interviewStats.scheduledInterviews.filter(interview => {
+                                if (!interview.scheduledAt) return true;
+                                try {
+                                  const scheduledTime = new Date(interview.scheduledAt).getTime();
+                                  const expiryTime = scheduledTime + 12 * 60 * 60 * 1000;
+                                  return Date.now() < expiryTime;
+                                } catch {
+                                  return true;
+                                }
+                              });
+                              return nonExpiredInterviews.length > 0 && (
+                                <span className="ml-2 text-blue-600">({nonExpiredInterviews.length})</span>
+                              );
+                            })()}
                           </h4>
-                          {userDetails.interviewStats && userDetails.interviewStats.scheduledInterviews && userDetails.interviewStats.scheduledInterviews.length > 0 ? (
+                          {userDetails.interviewStats && userDetails.interviewStats.scheduledInterviews && (() => {
+                            // Filter out expired interviews
+                            const nonExpiredInterviews = userDetails.interviewStats.scheduledInterviews.filter(interview => {
+                              if (!interview.scheduledAt) return true;
+                              try {
+                                const scheduledTime = new Date(interview.scheduledAt).getTime();
+                                const expiryTime = scheduledTime + 12 * 60 * 60 * 1000;
+                                return Date.now() < expiryTime;
+                              } catch {
+                                return true;
+                              }
+                            });
+                            return nonExpiredInterviews.length;
+                          })() > 0 ? (
                             <div className="space-y-2 max-h-96 overflow-y-auto">
-                              {userDetails.interviewStats.scheduledInterviews.map((interview, idx) => {
+                              {userDetails.interviewStats.scheduledInterviews.filter(interview => {
+                                // Filter out expired interviews
+                                if (!interview.scheduledAt) return true;
+                                try {
+                                  const scheduledTime = new Date(interview.scheduledAt).getTime();
+                                  const expiryTime = scheduledTime + 12 * 60 * 60 * 1000;
+                                  return Date.now() < expiryTime;
+                                } catch {
+                                  return true;
+                                }
+                              }).map((interview, idx) => {
                                 const isRequester = String(interview.requester._id || interview.requester) === String(selectedUser._id);
                                 const otherUser = isRequester ? interview.assignedInterviewer : interview.requester;
                                 return (
