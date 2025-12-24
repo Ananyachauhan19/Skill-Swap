@@ -15,6 +15,7 @@ const Employee = require('../models/Employee');
 const Report = require('../models/Report');
 const supabase = require('../utils/supabaseClient');
 const adminStatsController = require('../controllers/adminStatsController');
+const analyticsController = require('../controllers/analyticsController');
 
 // Protect all routes in this file with both authentication and admin authorization
 router.use(requireAuth, requireAdmin);
@@ -24,6 +25,15 @@ router.use(requireAuth, requireAdmin);
 router.get('/stats', adminStatsController.getStats);
 // Analytics route for charts
 router.get('/analytics', adminStatsController.getAnalytics);
+
+// New Analytics Dashboard Routes
+router.get('/analytics/overview', analyticsController.getOverview);
+router.get('/analytics/users', analyticsController.getUsers);
+router.get('/analytics/sessions', analyticsController.getSessions);
+router.get('/analytics/interviews', analyticsController.getInterviews);
+router.get('/analytics/skills', analyticsController.getSkills);
+router.get('/analytics/rewards', analyticsController.getRewards);
+router.get('/analytics/reports', analyticsController.getReports);
 
 // Get all users with filtering
 router.get('/users', async (req, res) => {

@@ -204,7 +204,15 @@ const NewDashboard = () => {
 
       <div className="mt-8 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link
+            to="/admin/analytics"
+            className="p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all"
+          >
+            <FiTrendingUp className="text-green-600 mb-2" size={24} />
+            <p className="font-medium text-gray-900">View Analytics</p>
+            <p className="text-sm text-gray-600 mt-1">Platform insights & metrics</p>
+          </Link>
           <Link
             to="/admin/applications"
             className="p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
