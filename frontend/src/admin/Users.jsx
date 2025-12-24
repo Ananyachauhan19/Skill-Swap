@@ -415,11 +415,7 @@ const Users = () => {
                       )}
                       <div className="flex-1 min-w-0">
                         <a
-                          href={`/profile/${user.username}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                          }}
-                          className="text-sm font-semibold text-gray-900 hover:text-blue-600 hover:underline truncate text-left block"
+                          className="text-sm font-semibold text-gray-900 text-left block"
                         >
                           {user.firstName || user.lastName
                             ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
