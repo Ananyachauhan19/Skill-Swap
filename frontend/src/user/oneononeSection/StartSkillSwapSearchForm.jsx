@@ -201,6 +201,10 @@ const StartSkillSwapSearchForm = () => {
       setError("Please select all fields (Class, Subject, and Topic)");
       return;
     }
+    if (!questionValue || questionValue.trim() === '') {
+      setError("Please describe your question");
+      return;
+    }
     setLoading(true);
     setError("");
     socket.emit('find-tutors', {
@@ -389,7 +393,7 @@ const StartSkillSwapSearchForm = () => {
       </div>
       <div className="mb-6">
         <label htmlFor="question" className="block text-sm font-semibold text-slate-900 mb-2">
-          Your Question <span className="text-slate-400 font-normal">(Optional)</span>
+          Your Question <span className="text-red-500">*</span>
         </label>
         <textarea
           id="question"
@@ -398,6 +402,7 @@ const StartSkillSwapSearchForm = () => {
           placeholder="Describe your question or doubt in detail to help tutors prepare..."
           className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 text-sm outline-none resize-none hover:border-slate-400 transition-colors"
           rows="4"
+          required
         />
       </div>
       <div className="mb-7">

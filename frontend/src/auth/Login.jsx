@@ -270,13 +270,13 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email or Employee ID</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
                 <input
                   type="text"
                   name="email"
                   value={form.email}
                   onChange={handleChange}
-                  placeholder="Enter your email or employee ID"
+                  placeholder="Enter your email "
                   className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 text-sm sm:text-base"
                 />
               </div>

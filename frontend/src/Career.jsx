@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { 
   FiUsers, FiTrendingUp, FiAward, FiHeart, 
   FiTarget, FiZap, FiGlobe, FiCode, FiBriefcase,
-  FiBook, FiTrendingDown, FiUserPlus 
+  FiBook, FiTrendingDown, FiUserPlus, FiUserCheck, FiClipboard
 } from "react-icons/fi";
 import RecruitmentApplication from "./user/RecruitmentApplication";
 
 const Career = () => {
+  const navigate = useNavigate();
   const [showRecruitmentForm, setShowRecruitmentForm] = useState(false);
 
   const handleShowRecruitmentForm = () => {
@@ -99,16 +101,38 @@ const Career = () => {
               Join SkillSwap Hub and be part of a revolutionary peer-to-peer learning ecosystem where 
               <span className="font-semibold text-blue-900"> you teach, learn, and earn</span> – all at once!
             </p>
-            <motion.button
-              onClick={() => setShowRecruitmentForm(true)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-5 py-2.5 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
-            >
-              <FiUserPlus className="text-base sm:text-lg md:text-xl" />
-              <span className="hidden sm:inline">Apply Now - Tutor Verifier Role</span>
-              <span className="sm:hidden">Apply Now</span>
-            </motion.button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto px-2">
+              <motion.button
+                onClick={() => setShowRecruitmentForm(true)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-2.5 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                <FiUserPlus className="text-base sm:text-lg md:text-xl" />
+                <span className="hidden lg:inline">Tutor Verifier</span>
+                <span className="lg:hidden">Verifier</span>
+              </motion.button>
+              <motion.button
+                onClick={() => navigate('/tutor/apply')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-2.5 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                <FiUserCheck className="text-base sm:text-lg md:text-xl" />
+                <span className="hidden lg:inline">Apply as Tutor</span>
+                <span className="lg:hidden">Tutor</span>
+              </motion.button>
+              <motion.button
+                onClick={() => navigate('/register-interviewer')}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-2.5 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                <FiClipboard className="text-base sm:text-lg md:text-xl" />
+                <span className="hidden lg:inline">Apply as Interviewer</span>
+                <span className="lg:hidden">Interviewer</span>
+              </motion.button>
+            </div>
           </div>
         </motion.div>
       </section>
@@ -345,26 +369,37 @@ const Career = () => {
             At SkillSwap Hub, you don't just build a career — you build the future of learning. 
             If you're ready to be part of a global movement that empowers millions, we want to hear from you!
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto px-2">
             <motion.button
               onClick={() => setShowRecruitmentForm(true)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-5 py-3 sm:px-6 sm:py-3.5 md:px-8 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
             >
               <FiUserPlus className="text-base sm:text-lg md:text-xl" />
-              <span className="hidden sm:inline">Apply for Tutor Verifier Role</span>
-              <span className="sm:hidden">Apply Now</span>
+              <span className="hidden lg:inline">Tutor Verifier</span>
+              <span className="lg:hidden">Verifier</span>
             </motion.button>
-            <motion.a
-              href="mailto:skillswaphubb@gmail.com"
+            <motion.button
+              onClick={() => navigate('/tutor/apply')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 sm:px-6 sm:py-3.5 md:px-8 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-gray-300"
+              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
             >
-              <span className="hidden sm:inline">Email Us for Other Roles</span>
-              <span className="sm:hidden">Email Us</span>
-            </motion.a>
+              <FiUserCheck className="text-base sm:text-lg md:text-xl" />
+              <span className="hidden lg:inline">Apply as Tutor</span>
+              <span className="lg:hidden">Tutor</span>
+            </motion.button>
+            <motion.button
+              onClick={() => navigate('/register-interviewer')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+            >
+              <FiClipboard className="text-base sm:text-lg md:text-xl" />
+              <span className="hidden lg:inline">Apply as Interviewer</span>
+              <span className="lg:hidden">Interviewer</span>
+            </motion.button>
           </div>
           <p className="mt-6 sm:mt-7 md:mt-8 text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-900 bg-clip-text text-transparent px-2">
             Teach what you know, Learn what you don't – Earn while you do! 🌍
