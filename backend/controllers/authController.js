@@ -154,7 +154,7 @@ exports.verifyOtp = async (req, res) => {
     isAdmin,
   };
 
-  return res.status(200).json({ message: 'Login successful', user: userPayload });
+  return res.status(200).json({ message: 'Login successful', user: userPayload, token });
 };
 
 // Add logout controller
