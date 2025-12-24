@@ -100,7 +100,15 @@ module.exports = (io) => {
     // Register user with their socket ID
     socket.on('register', async (userId) => {
       if (userId) {
-        const user = await User.findByIdAndUpdate(userId, { socketId: socket.id }, { new: true });
+        const user = await User.findByIdAndUpdate(
+          userId, 
+          { 
+            socketId: socket.id,
+            isOnline: true,
+            lastLogin: new Date()
+          }, 
+          { new: true }
+        );
         if (user) {
           socket.userId = userId;
           onlineUsers.set(socket.id, {
@@ -115,6 +123,14 @@ module.exports = (io) => {
             role: user.role, // Added role to track teacher or learner
             isAvailableForSessions: user.isAvailableForSessions ?? true // Track availability status
           });
+          
+          // Broadcast online status change to admin users
+          io.emit('user-online-status-changed', {
+            userId: user._id.toString(),
+            isOnline: true,
+            lastLogin: new Date()
+          });
+          
           console.log(`[Socket Register] Registered socket ${socket.id} for user ${userId}`, {
             userId: user._id,
             socketId: user.socketId,
@@ -1562,10 +1578,20 @@ module.exports = (io) => {
       }
     });
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       const userData = onlineUsers.get(socket.id);
       if (userData) {
         console.log(`[Socket Disconnect] User ${userData.firstName} went offline`);
+        
+        // Update user's online status in database
+        await User.findByIdAndUpdate(userData.userId, { isOnline: false });
+        
+        // Broadcast offline status change to admin users
+        io.emit('user-online-status-changed', {
+          userId: userData.userId.toString(),
+          isOnline: false
+        });
+        
         onlineUsers.delete(socket.id);
       }
       

@@ -7,6 +7,12 @@ const User = require('../models/User');
 const Session = require('../models/Session');
 const SkillMate = require('../models/SkillMate');
 const Video = require('../models/Video');
+const SessionRequest = require('../models/SessionRequest');
+const InterviewRequest = require('../models/InterviewRequest');
+const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+const InterviewerApplication = require('../models/InterviewerApplication');
+const Employee = require('../models/Employee');
+const Report = require('../models/Report');
 const supabase = require('../utils/supabaseClient');
 const adminStatsController = require('../controllers/adminStatsController');
 
@@ -73,18 +79,18 @@ router.get('/users', async (req, res) => {
 router.get('/users/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    
-    // Get user details
+
+    // Get user core details
     const user = await User.findById(userId)
       .select('-password -otp -otpExpires')
       .populate('skillMates', 'username firstName lastName profilePic role')
       .lean();
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
-    // Get sessions where user is creator or requester
+
+    // Get sessions where user is creator or requester (legacy session model)
     const sessions = await Session.find({
       $or: [{ creator: userId }, { requester: userId }]
     })
@@ -92,7 +98,7 @@ router.get('/users/:userId', async (req, res) => {
       .populate('requester', 'username firstName lastName')
       .sort({ createdAt: -1 })
       .lean();
-    
+
     // Get SkillMate requests (both sent and received)
     const skillMateRequests = await SkillMate.find({
       $or: [{ requester: userId }, { recipient: userId }]
@@ -101,11 +107,102 @@ router.get('/users/:userId', async (req, res) => {
       .populate('recipient', 'username firstName lastName profilePic')
       .sort({ createdAt: -1 })
       .lean();
-    
+
+    // One-on-one session stats (SessionRequest model)
+    const sessionRequests = await SessionRequest.find({
+      sessionType: 'one-on-one',
+      $or: [{ requester: userId }, { tutor: userId }],
+    })
+      .select('requester tutor status')
+      .lean();
+
+    const totalSessions = sessionRequests.length;
+    const sessionsAsStudent = sessionRequests.filter((s) => String(s.requester) === String(userId)).length;
+    const sessionsAsTutor = sessionRequests.filter((s) => String(s.tutor) === String(userId)).length;
+
+    const sessionStats = {
+      totalSessions,
+      sessionsAsStudent,
+      sessionsAsTutor,
+    };
+
+    // Interview stats (InterviewRequest + interviewer aggregates)
+    const interviewRequests = await InterviewRequest.find({
+      $or: [{ requester: userId }, { assignedInterviewer: userId }],
+    })
+      .select('requester assignedInterviewer status rating scheduledAt company position')
+      .populate('requester', 'username firstName lastName profilePic')
+      .populate('assignedInterviewer', 'username firstName lastName profilePic')
+      .lean();
+
+    // Count only completed interviews
+    const completedInterviews = interviewRequests.filter((r) => r.status === 'completed');
+    const totalCompletedInterviews = completedInterviews.length;
+    const completedAsRequester = completedInterviews.filter((r) => String(r.requester._id || r.requester) === String(userId)).length;
+    const completedAsInterviewer = completedInterviews.filter((r) => String(r.assignedInterviewer?._id || r.assignedInterviewer) === String(userId)).length;
+
+    // Get scheduled interviews (all interviews with scheduled status, regardless of time)
+    const scheduledInterviews = interviewRequests
+      .filter((r) => 
+        r.scheduledAt && 
+        ['scheduled', 'assigned'].includes(r.status)
+      )
+      .sort((a, b) => new Date(b.scheduledAt) - new Date(a.scheduledAt))
+      .slice(0, 20); // Show up to 20 scheduled interviews
+
+    const ratingsAsInterviewer = interviewRequests.filter(
+      (r) => r.rating != null && String(r.assignedInterviewer?._id || r.assignedInterviewer) === String(userId)
+    );
+    const ratingsCountAsInterviewer = ratingsAsInterviewer.length;
+    const averageRatingAsInterviewer =
+      ratingsCountAsInterviewer > 0
+        ? ratingsAsInterviewer.reduce((sum, r) => sum + (r.rating || 0), 0) / ratingsCountAsInterviewer
+        : 0;
+
+    const interviewerApp = await InterviewerApplication.findOne({ user: userId })
+      .select('-resumeUrl')
+      .lean();
+
+    const approvedInterviewer = await ApprovedInterviewer.findOne({ user: userId })
+      .select('-profile.resumeUrl')
+      .lean();
+
+    const interviewStats = {
+      totalCompletedInterviews,
+      completedAsRequester,
+      completedAsInterviewer,
+      scheduledInterviews,
+      ratingsCountAsInterviewer,
+      averageRatingAsInterviewer,
+      interviewerApp,
+      approvedInterviewer,
+    };
+
+    // Reports against this user (account reports)
+    const reports = await Report.find({
+      type: 'account',
+      $or: [
+        { reportedUserId: String(userId) },
+        { reportedUsername: user.username },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Employee record (if this user is also an employee)
+    let employee = null;
+    if (user.email) {
+      employee = await Employee.findOne({ email: user.email.toLowerCase() }).lean();
+    }
+
     res.json({
       user,
       sessions,
       skillMateRequests,
+      sessionStats,
+      interviewStats,
+      reports,
+      employee,
     });
   } catch (error) {
     console.error('Error fetching user details:', error);

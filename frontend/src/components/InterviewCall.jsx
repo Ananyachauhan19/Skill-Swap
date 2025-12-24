@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import socket from '../socket.js';
-import InterviewSessionRatingModal from './InterviewSessionRatingModal.jsx';
+import InterviewSessionRatingModal from '../user/interviewSection/InterviewSessionRatingModal.jsx';
 import { BACKEND_URL } from '../config.js';
 
 const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', onEnd }) => {
@@ -76,6 +76,7 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
   // Rating modal state
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [interviewerName, setInterviewerName] = useState('');
+  const [interviewData, setInterviewData] = useState(null);
   const hasEndedRef = useRef(false);
 
   // Constants for whiteboard
@@ -389,29 +390,13 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
 
   const applySinkId = async (videoEl, sinkId) => { if (!videoEl || typeof videoEl.setSinkId !== 'function' || !sinkId) return; try { await videoEl.setSinkId(sinkId); localStorage.setItem('preferredSinkId', sinkId); } catch (err) { console.warn('[DEBUG] setSinkId failed:', err); } };
 
-  const submitInterviewRating = async ({ rating, feedback }) => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/interview/rate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ requestId: sessionId, rating, feedback })
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to submit rating');
-      }
-
-      setShowRatingModal(false);
-      onEnd && onEnd();
-    } catch (err) {
-      console.error('Failed to submit rating:', err);
-      alert(err.message || 'Failed to submit rating. Please try again.');
-    }
+  const handleRatingSubmitted = (data) => {
+    console.log('Rating submitted successfully:', data);
+    setShowRatingModal(false);
+    onEnd && onEnd();
   };
 
-  // Fetch interviewer name for rating modal
+  // Fetch interview details for rating modal
   useEffect(() => {
     const fetchInterviewDetails = async () => {
       try {
@@ -420,6 +405,7 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
         });
         if (res.ok) {
           const interview = await res.json();
+          setInterviewData(interview);
           const interviewer = interview.assignedInterviewer;
           if (interviewer) {
             setInterviewerName(`${interviewer.firstName || ''} ${interviewer.lastName || ''}`.trim() || interviewer.username);
@@ -639,9 +625,13 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
 
       {/* Rating Modal for Students */}
       <InterviewSessionRatingModal
-        open={showRatingModal}
-        onSubmit={submitInterviewRating}
-        interviewerName={interviewerName}
+        isOpen={showRatingModal}
+        onClose={() => {
+          setShowRatingModal(false);
+          onEnd && onEnd();
+        }}
+        interview={interviewData}
+        onRatingSubmitted={handleRatingSubmitted}
       />
     </div>
   );

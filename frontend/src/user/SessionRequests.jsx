@@ -737,6 +737,8 @@ const SessionRequests = () => {
         return 'bg-red-100 text-red-800';
       case 'scheduled':
         return 'bg-blue-100 text-blue-800';
+      case 'expired':
+        return 'bg-gray-100 text-gray-600 border border-gray-300';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -990,6 +992,21 @@ const SessionRequests = () => {
     </div>
   );
 
+  // Helper function to check if expired interview should be removed (2 days after expiry)
+  const shouldRemoveExpiredInterview = (request) => {
+    if (request.status === 'scheduled' && request.scheduledAt) {
+      try {
+        const scheduledTime = new Date(request.scheduledAt).getTime();
+        const expiryTime = scheduledTime + 12 * 60 * 60 * 1000; // 12 hours after scheduled
+        const removalTime = expiryTime + 2 * 24 * 60 * 60 * 1000; // 2 days after expiry
+        return Date.now() >= removalTime;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
+
   const InterviewRequestCard = ({ request, isReceived }) => {
     const isPending = request.status === 'pending';
     const isAssignedInterviewer =
@@ -997,16 +1014,24 @@ const SessionRequests = () => {
       request.assignedInterviewer &&
       String(user._id) === String(request.assignedInterviewer._id || request.assignedInterviewer);
 
+    // Check if interview is expired (12 hours after scheduled time)
+    let isExpired = false;
     let canJoinInterview = false;
     if (request.status === 'scheduled' && request.scheduledAt) {
       try {
         const scheduledTime = new Date(request.scheduledAt).getTime();
+        const expiryTime = scheduledTime + 12 * 60 * 60 * 1000; // 12 hours after scheduled time
         const joinOpenTime = scheduledTime - 15 * 60 * 1000; // 15 minutes before
-        canJoinInterview = Date.now() >= joinOpenTime;
+        
+        isExpired = Date.now() >= expiryTime;
+        canJoinInterview = Date.now() >= joinOpenTime && !isExpired;
       } catch {
         canJoinInterview = false;
       }
     }
+
+    // Display expired status instead of scheduled
+    const displayStatus = isExpired ? 'expired' : request.status;
 
     return (
       <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-300">
@@ -1027,8 +1052,8 @@ const SessionRequests = () => {
               </p>
             </div>
           </div>
-          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(request.status)}`}>
-            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(displayStatus)}`}>
+            {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
           </span>
         </div>
 
@@ -1057,7 +1082,7 @@ const SessionRequests = () => {
           </div>
 
           <div className="flex gap-2">
-            {request.status === 'scheduled' ? null : (
+            {request.status === 'scheduled' && !isExpired ? null : isExpired ? null : (
               <button
                 onClick={() => setNegotiationModalState({ open: true, request })}
                 className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200"
@@ -1066,15 +1091,20 @@ const SessionRequests = () => {
                 {isAssignedInterviewer ? 'Suggest / Manage Time' : 'Choose Interview Time'}
               </button>
             )}
-            {request.status === 'scheduled' && (
+            {request.status === 'scheduled' && !isExpired && (
               <button
                 onClick={() => handleJoinInterview(request)}
                 disabled={!canJoinInterview}
-                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200"
+                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FaVideo size={10} />
                 {canJoinInterview ? 'Join Interview' : 'Join available 15 min before'}
               </button>
+            )}
+            {isExpired && (
+              <div className="text-xs text-slate-500 italic">
+                Interview expired 12 hours after scheduled time
+              </div>
             )}
           </div>
         </div>
@@ -2093,7 +2123,7 @@ const SessionRequests = () => {
                 ))
               )
             ) : activeTab === 'received' ? (
-              (interviewRequests?.received || []).length === 0 ? (
+              (interviewRequests?.received || []).filter(req => !shouldRemoveExpiredInterview(req)).length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
                   <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <FaUser className="text-amber-500 text-xl" />
@@ -2103,11 +2133,11 @@ const SessionRequests = () => {
                   <p className="text-slate-400 text-xs mt-1">Interview requests will appear here</p>
                 </div>
               ) : (
-                (interviewRequests?.received || []).map((request) => (
+                (interviewRequests?.received || []).filter(req => !shouldRemoveExpiredInterview(req)).map((request) => (
                   <InterviewRequestCard key={request._id} request={request} isReceived={true} />
                 ))
               )
-            ) : (interviewRequests?.sent || []).length === 0 ? (
+            ) : (interviewRequests?.sent || []).filter(req => !shouldRemoveExpiredInterview(req)).length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
                 <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
                   <FaVideo className="text-amber-500 text-xl" />
@@ -2117,7 +2147,7 @@ const SessionRequests = () => {
                 <p className="text-slate-400 text-xs mt-1">Request mock interviews to practice!</p>
               </div>
             ) : (
-              (interviewRequests?.sent || []).map((request) => (
+              (interviewRequests?.sent || []).filter(req => !shouldRemoveExpiredInterview(req)).map((request) => (
                 <InterviewRequestCard key={request._id} request={request} isReceived={false} />
               ))
             )}

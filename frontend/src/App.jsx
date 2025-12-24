@@ -193,6 +193,7 @@ const adminOnlyRoutes = [
       },
     ],
   },
+  { path: '/profile/:username', element: <PublicProfile /> },
   { path: '*', element: <Navigate to="/admin/dashboard" replace /> },
 ];
 
@@ -258,8 +259,9 @@ function App() {
   }, [loading]);
 
   // Enforce redirect for admin to /admin regardless of prior location
+  // But allow access to public profiles
   useEffect(() => {
-    if (isAdminUser && !location.pathname.startsWith('/admin')) {
+    if (isAdminUser && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/profile/')) {
       navigate('/admin', { replace: true });
     }
   }, [isAdminUser, location.pathname, navigate]);

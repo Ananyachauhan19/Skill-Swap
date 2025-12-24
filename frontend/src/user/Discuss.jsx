@@ -1,7 +1,6 @@
 import React from 'react';
 import PastGDSection from './discussSection/PastGDSection';
 import FAQSection from './discussSection/FAQSection';
-import InterviewSearchBox from './interviewSection/InterviewSearchBox';
 import PastGDExpertSection from './discussSection/PastGDExpertSection';
 import TopPerformersSection from "./HomeSection/TopPerformersSection";
 
@@ -130,9 +129,9 @@ const Discuss = () => {
           Start typing a job, course, branch, or session title.
         </p>
         <div className="flex justify-center mb-8">
-          <div className="w-full max-w-3xl">
+          {/* <div className="w-full max-w-3xl">
             <InterviewSearchBox />
-          </div>
+          </div> */}
         </div>
         <div ref={gdListRef}>
           <PastGDExpertSection />
