@@ -1,3 +1,3 @@
-import Package from "../Package";
+import GoPro from "../HomeSection/GoPro";
 
-export default Package;
+export default GoPro;

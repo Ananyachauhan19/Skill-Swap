@@ -18,6 +18,13 @@ const recruitmentApplicationSchema = new mongoose.Schema({
   institutionName: { type: String, required: true, trim: true },
   yearsOfExperience: { type: Number, required: true, min: 0 },
   degreeCertificateUrl: { type: String, required: true },
+  // New multi-degree support: store each degree name with its certificate URL
+  degrees: [
+    {
+      name: { type: String, required: true },
+      certificateUrl: { type: String, required: true },
+    },
+  ],
   proofOfExperienceUrl: { type: String, required: true },
   selectedClasses: [{ type: String, required: true }],
   selectedSubjects: [{ type: String, required: true }],

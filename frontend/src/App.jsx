@@ -31,7 +31,6 @@ import LearningHistory from './user/LearningHistory';
 import HelpSupportPage from './user/HelpSupportPage';
 import GoPro from './user/HomeSection/GoPro';
 import AccountSettings from './user/AccountSettings';
-import Package from './user/Package';
 import privateProfileRoutes from './user/privateProfile/privateProfileRoutes';
 import PrivateProfile from './user/PrivateProfile';
 import PublicProfile from './user/PublicProfile';
@@ -116,7 +115,6 @@ const appRoutes = [
   { path: '/testimonials', element: <ProtectedRoute><Testimonial showAll={true} /></ProtectedRoute> },
   { path: '/your-profile', element: <ProtectedRoute><Profile /></ProtectedRoute> },
   { path: '/createSession', element: <ProtectedRoute><CreateSession /></ProtectedRoute> },
-  { path: '/package', element: <ProtectedRoute><Package /></ProtectedRoute> },
   { path: '/learning-history', element: <ProtectedRoute><LearningHistory /></ProtectedRoute> },
   { path: '/coins-history', element: <ProtectedRoute><CoinsHistory /></ProtectedRoute> },
   { path: '/help', element: <ProtectedRoute><HelpSupportPage /></ProtectedRoute> },

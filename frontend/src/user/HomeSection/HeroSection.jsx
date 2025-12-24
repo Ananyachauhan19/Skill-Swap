@@ -57,7 +57,6 @@ const HeroSection = ({ exploreRef }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [promptIndex, setPromptIndex] = useState(0);
-  const [recruitmentStatus, setRecruitmentStatus] = useState(null);
 
   // Dynamic educational prompts
   const prompts = [
@@ -90,41 +89,6 @@ const HeroSection = ({ exploreRef }) => {
       setLoading(false);
       setUserProfile(null);
     }
-  }, [isLoggedIn]);
-
-  // Fetch recruitment application status to drive button label/state
-  useEffect(() => {
-    const fetchRecruitmentStatus = async () => {
-      if (!isLoggedIn) {
-        setRecruitmentStatus(null);
-        return;
-      }
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/recruitment/my-applications`, {
-          method: 'GET',
-          credentials: 'include',
-        });
-        if (!res.ok) {
-          setRecruitmentStatus(null);
-          return;
-        }
-        const apps = await res.json();
-        if (!Array.isArray(apps) || apps.length === 0) {
-          setRecruitmentStatus(null);
-          return;
-        }
-        const hasApproved = apps.some(a => a.status === 'approved');
-        const hasPending = apps.some(a => a.status === 'pending');
-        if (hasApproved) setRecruitmentStatus('approved');
-        else if (hasPending) setRecruitmentStatus('pending');
-        else setRecruitmentStatus(null);
-      } catch (e) {
-        console.error('Failed to load recruitment status', e);
-        setRecruitmentStatus(null);
-      }
-    };
-
-    fetchRecruitmentStatus();
   }, [isLoggedIn]);
 
   // Cycle through prompts every 5 seconds
@@ -202,32 +166,7 @@ const HeroSection = ({ exploreRef }) => {
               whileHover="hover"
               whileTap="tap"
             >
-              Go Pro
-            </motion.button>
-            <motion.button
-              onClick={() => {
-                if (!isLoggedIn) {
-                  openLogin();
-                  return;
-                }
-                if (recruitmentStatus === 'approved') return; // fully recruited; no re-apply
-                navigate('/recruitment-application');
-              }}
-              disabled={recruitmentStatus === 'approved'}
-              className={`border-2 px-4 py-2 rounded-md font-semibold text-sm transition-all duration-300 ${
-                recruitmentStatus === 'approved'
-                  ? 'border-emerald-300 text-emerald-500 bg-emerald-50 cursor-default'
-                  : 'border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white'
-              }`}
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
-            >
-              {recruitmentStatus === 'pending'
-                ? 'Pending recruitment application'
-                : recruitmentStatus === 'approved'
-                ? 'Recruited'
-                : 'Recruitment Drive'}
+              Purchase
             </motion.button>
           </motion.div>
         </motion.div>

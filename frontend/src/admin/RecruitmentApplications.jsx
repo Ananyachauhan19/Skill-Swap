@@ -268,27 +268,53 @@ const RecruitmentApplications = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pt-4 border-t border-gray-200">
-                      <a
-                        href={app.degreeCertificateUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
-                      >
-                        <FiEye className="w-4 h-4" />
-                        View Degree Certificate
-                      </a>
-                      <a
-                        href={app.proofOfExperienceUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
-                      >
-                        <FiEye className="w-4 h-4" />
-                        View Experience Proof
-                      </a>
+                    <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
+                      {/* Degree certificates (multi-degree aware) */}
+                      <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-xs font-semibold text-gray-700 mr-1">Degree Certificates:</span>
+                        {Array.isArray(app.degrees) && app.degrees.length > 0 ? (
+                          app.degrees.map((deg, idx) => (
+                            <a
+                              key={`${deg.name || 'Degree'}-${idx}`}
+                              href={deg.certificateUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs font-medium text-gray-700 transition-colors"
+                            >
+                              <FiEye className="w-3 h-3" />
+                              <span>{deg.name || `Degree ${idx + 1}`}</span>
+                            </a>
+                          ))
+                        ) : app.degreeCertificateUrl ? (
+                          <a
+                            href={app.degreeCertificateUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
+                          >
+                            <FiEye className="w-4 h-4" />
+                            View Degree Certificate
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-500">No degree certificate uploaded</span>
+                        )}
+                      </div>
+
+                      {/* Experience proof */}
+                      <div className="flex items-center gap-3">
+                        <a
+                          href={app.proofOfExperienceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
+                        >
+                          <FiEye className="w-4 h-4" />
+                          View Experience Proof
+                        </a>
+                      </div>
 
                       {app.status === 'pending' && (
                         <>

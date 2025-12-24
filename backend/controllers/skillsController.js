@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const csv = require('csvtojson');
 const SHEET_URL = process.env.GOOGLE_SHEET_CSV_URL;
+const DEGREE_SHEET_URL = process.env.GOOGLE_DEGREE_CSV_URL;
 
 async function getSkillsList(req, res, next) {
   try {
@@ -64,8 +65,44 @@ async function getSkillsList(req, res, next) {
     console.log('[Skills API] Sample classes:', classes.slice(0, 10).join(', '));
     console.log('[Skills API] Class->Subject mappings:', Object.keys(subjectsByClass).length);
     console.log('[Skills API] Subject->Topic mappings:', Object.keys(topicsBySubject).length);
-    
-    return res.json({ classes, subjectsByClass, topicsBySubject });
+
+    // Optionally load degree options from a separate Google Sheet
+    let degrees = [];
+    if (DEGREE_SHEET_URL) {
+      try {
+        console.log('[Skills API] Fetching degrees from Google Sheet...');
+        console.log('[Skills API] Degree sheet URL:', DEGREE_SHEET_URL);
+        const resp2 = await fetch(DEGREE_SHEET_URL);
+        if (!resp2.ok) throw new Error('Failed fetching degree sheet');
+        const text2 = await resp2.text();
+        console.log('[Skills API] Downloaded degree CSV, size:', text2.length, 'bytes');
+
+        const rows2 = await csv({ trim: true }).fromString(text2);
+        console.log('[Skills API] Parsed', rows2.length, 'rows from degree CSV');
+
+        const degreeSet = new Set();
+        rows2.forEach(r => {
+          const vals = Object.values(r || {});
+          const fallback = (vals[0] || '').toString().trim();
+          const name = (
+            r.Degree ||
+            r.degree ||
+            r['Degree Name'] ||
+            r['degree_name'] ||
+            fallback
+          ).toString().trim();
+          if (name) {
+            degreeSet.add(name);
+          }
+        });
+        degrees = Array.from(degreeSet).sort((a, b) => a.localeCompare(b));
+        console.log('[Skills API] ✅ Degrees processed:', degrees.length);
+      } catch (degErr) {
+        console.error('[Skills API] ❌ Error loading degrees sheet:', degErr.message);
+      }
+    }
+
+    return res.json({ classes, subjectsByClass, topicsBySubject, degrees });
   } catch (err) {
     console.error('[Skills API] ❌ Error:', err.message);
     next(err);
