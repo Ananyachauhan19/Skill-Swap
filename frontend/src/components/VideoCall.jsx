@@ -48,9 +48,18 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
   // AV controls
   const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(true); // Start with video OFF
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false); // Track if video has been added to stream
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [isCameraSwitched, setIsCameraSwitched] = useState(false);
+  
+  // Controlled video feature
+  const [videoTimeRemaining, setVideoTimeRemaining] = useState(0); // seconds remaining
+  const [isVideoShuttingDown, setIsVideoShuttingDown] = useState(false);
+  const videoTimerRef = useRef(null);
+  const videoShutoffTimeoutRef = useRef(null);
+  const lastActivityRef = useRef(Date.now());
+  const networkQualityRef = useRef('good'); // 'good' | 'poor'
 
   // Screen share / recording / background / fullscreen
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -178,10 +187,14 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
     const initialize = async () => {
       try {
-        // Request cam/mic
+        // Request AUDIO ONLY - Video will be added on-demand (Filo-style)
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: isCameraSwitched ? 'environment' : 'user' },
-          audio: true,
+          video: false, // Start without video to save bandwidth
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
         });
         if (!mounted) return;
 
@@ -499,6 +512,87 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     localVideoRef.current.style.filter = virtualBackground === 'blur' ? 'blur(5px)' : 'none';
   }, [virtualBackground]);
 
+  // Page visibility monitoring - turn off video when tab is inactive
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && isVideoEnabled && !isVideoOff) {
+        console.info('[VIDEO-CONTROL] Tab inactive, turning off video to save bandwidth');
+        disableVideoTrack('Tab became inactive');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isVideoEnabled, isVideoOff]);
+
+  // User activity monitoring - turn off video after 30 seconds of inactivity
+  useEffect(() => {
+    if (!isVideoEnabled || isVideoOff) return;
+
+    const updateActivity = () => {
+      lastActivityRef.current = Date.now();
+    };
+
+    const checkInactivity = setInterval(() => {
+      const inactiveTime = Date.now() - lastActivityRef.current;
+      if (inactiveTime > 30000 && !isVideoOff) { // 30 seconds
+        console.info('[VIDEO-CONTROL] User inactive for 30s, turning off video');
+        disableVideoTrack('User inactivity detected');
+      }
+    }, 5000);
+
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('touchstart', updateActivity);
+    window.addEventListener('click', updateActivity);
+
+    return () => {
+      clearInterval(checkInactivity);
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('touchstart', updateActivity);
+      window.removeEventListener('click', updateActivity);
+    };
+  }, [isVideoEnabled, isVideoOff]);
+
+  // Network quality monitoring - simulate basic check via WebRTC stats
+  useEffect(() => {
+    if (!peerConnectionRef.current || !isVideoEnabled) return;
+
+    const checkNetworkQuality = async () => {
+      try {
+        const stats = await peerConnectionRef.current.getStats();
+        let packetsLost = 0;
+        let packetsReceived = 0;
+
+        stats.forEach(report => {
+          if (report.type === 'inbound-rtp' && report.kind === 'video') {
+            packetsLost += report.packetsLost || 0;
+            packetsReceived += report.packetsReceived || 0;
+          }
+        });
+
+        const lossRate = packetsReceived > 0 ? packetsLost / packetsReceived : 0;
+        
+        if (lossRate > 0.1) { // >10% packet loss = poor network
+          if (networkQualityRef.current === 'good') {
+            console.warn('[VIDEO-CONTROL] Network quality degraded, turning off video');
+            networkQualityRef.current = 'poor';
+            if (!isVideoOff) {
+              disableVideoTrack('Poor network quality detected');
+            }
+          }
+        } else {
+          networkQualityRef.current = 'good';
+        }
+      } catch (err) {
+        console.warn('[VIDEO-CONTROL] Network quality check failed:', err);
+      }
+    };
+
+    const intervalId = setInterval(checkNetworkQuality, 10000); // Check every 10 seconds
+    return () => clearInterval(intervalId);
+  }, [isVideoEnabled, isVideoOff]);
+
   // Initialize whiteboard canvas
   useEffect(() => {
     if (!showWhiteboard || !canvasRef.current) return;
@@ -622,6 +716,16 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
 
   const cleanup = () => {
     try {
+      // Clear video control timers
+      if (videoTimerRef.current) {
+        clearInterval(videoTimerRef.current);
+        videoTimerRef.current = null;
+      }
+      if (videoShutoffTimeoutRef.current) {
+        clearTimeout(videoShutoffTimeoutRef.current);
+        videoShutoffTimeoutRef.current = null;
+      }
+      
       localStreamRef.current?.getTracks()?.forEach(t => t.stop());
       screenStream?.getTracks()?.forEach(t => t.stop());
       if (mediaRecorderRef.current && isRecording) {
@@ -894,34 +998,208 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     setIsMuted(!audioTrack.enabled);
   };
 
+  // Enable video dynamically with LOW BANDWIDTH constraints (360p, 15fps)
+  const enableVideoTrack = async () => {
+    try {
+      if (isVideoEnabled && !isVideoOff) {
+        // Video already enabled, just turn it back on
+        const videoTrack = localStreamRef.current?.getVideoTracks?.()?.[0];
+        if (videoTrack) {
+          videoTrack.enabled = true;
+          setIsVideoOff(false);
+          startVideoTimer();
+          return;
+        }
+      }
+
+      console.info('[VIDEO-CONTROL] Enabling video with low-bandwidth constraints');
+      
+      // LOW BANDWIDTH VIDEO CONSTRAINTS (Filo-style)
+      const videoConstraints = {
+        width: { ideal: 640, max: 640 },    // 360p width
+        height: { ideal: 360, max: 360 },   // 360p height
+        frameRate: { ideal: 15, max: 15 },  // Low FPS to save bandwidth
+        facingMode: isCameraSwitched ? 'environment' : 'user'
+      };
+
+      // Get video track separately
+      const videoStream = await navigator.mediaDevices.getUserMedia({
+        video: videoConstraints,
+        audio: false // Don't request audio again
+      });
+
+      const videoTrack = videoStream.getVideoTracks()[0];
+      
+      if (!videoTrack) {
+        throw new Error('Failed to get video track');
+      }
+
+      // Add video track to existing stream
+      localStreamRef.current.addTrack(videoTrack);
+      
+      // Update local video element
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+
+      // Add track to peer connection and trigger renegotiation
+      if (peerConnectionRef.current) {
+        const sender = peerConnectionRef.current.addTrack(videoTrack, localStreamRef.current);
+        
+        // Apply bitrate constraints for bandwidth optimization
+        const parameters = sender.getParameters();
+        if (!parameters.encodings) {
+          parameters.encodings = [{}];
+        }
+        parameters.encodings[0].maxBitrate = 300000; // 300 kbps max (very low)
+        await sender.setParameters(parameters);
+
+        // Trigger renegotiation
+        try {
+          const offer = await peerConnectionRef.current.createOffer();
+          await peerConnectionRef.current.setLocalDescription(offer);
+          socket.emit('offer', { sessionId, offer });
+          console.info('[VIDEO-CONTROL] Video track added, renegotiation sent');
+        } catch (err) {
+          console.error('[VIDEO-CONTROL] Renegotiation failed:', err);
+        }
+      }
+
+      setIsVideoEnabled(true);
+      setIsVideoOff(false);
+      
+      // Start auto-shutoff timer (3-5 minutes)
+      startVideoTimer();
+      
+      console.info('[VIDEO-CONTROL] Video enabled successfully with 360p@15fps');
+    } catch (error) {
+      console.error('[VIDEO-CONTROL] Failed to enable video:', error);
+      alert('Unable to enable video. Please check camera permissions.');
+    }
+  };
+
+  // Disable video track (but keep audio running)
+  const disableVideoTrack = (reason = 'Manual') => {
+    try {
+      console.info(`[VIDEO-CONTROL] Disabling video: ${reason}`);
+      
+      const videoTrack = localStreamRef.current?.getVideoTracks?.()?.[0];
+      if (videoTrack) {
+        videoTrack.enabled = false;
+        setIsVideoOff(true);
+      }
+      
+      // Clear timers
+      if (videoTimerRef.current) {
+        clearInterval(videoTimerRef.current);
+        videoTimerRef.current = null;
+      }
+      if (videoShutoffTimeoutRef.current) {
+        clearTimeout(videoShutoffTimeoutRef.current);
+        videoShutoffTimeoutRef.current = null;
+      }
+      
+      setVideoTimeRemaining(0);
+      setIsVideoShuttingDown(false);
+    } catch (error) {
+      console.error('[VIDEO-CONTROL] Failed to disable video:', error);
+    }
+  };
+
+  // Start video timer with auto-shutoff after 3-5 minutes
+  const startVideoTimer = () => {
+    const VIDEO_DURATION = 180; // 3 minutes (180 seconds) - configurable
+    const WARNING_TIME = 30; // Show warning 30 seconds before shutoff
+    
+    setVideoTimeRemaining(VIDEO_DURATION);
+    
+    // Clear existing timers
+    if (videoTimerRef.current) clearInterval(videoTimerRef.current);
+    if (videoShutoffTimeoutRef.current) clearTimeout(videoShutoffTimeoutRef.current);
+    
+    // Countdown timer
+    videoTimerRef.current = setInterval(() => {
+      setVideoTimeRemaining(prev => {
+        const newTime = prev - 1;
+        
+        if (newTime <= WARNING_TIME && !isVideoShuttingDown) {
+          setIsVideoShuttingDown(true);
+          console.info('[VIDEO-CONTROL] Video will shut off in', newTime, 'seconds');
+        }
+        
+        if (newTime <= 0) {
+          clearInterval(videoTimerRef.current);
+          disableVideoTrack('Auto-shutoff timer expired');
+          return 0;
+        }
+        
+        return newTime;
+      });
+    }, 1000);
+  };
+
+  // Toggle video (turn on if off, turn off if on)
   const toggleVideo = () => {
-    const videoTrack = localStreamRef.current?.getVideoTracks?.()[0];
-    if (!videoTrack) return;
-    videoTrack.enabled = !videoTrack.enabled;
-    setIsVideoOff(!videoTrack.enabled);
+    if (isVideoOff) {
+      enableVideoTrack();
+    } else {
+      disableVideoTrack('Manual toggle');
+    }
   };
 
   const switchCamera = async () => {
     try {
-      setIsCameraSwitched(prev => !prev);
-      localStreamRef.current?.getTracks?.().forEach(t => t.stop());
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: !isCameraSwitched ? 'environment' : 'user' },
-        audio: true,
-      });
-      setLocalStream(newStream);
-      localStreamRef.current = newStream;
-      if (localVideoRef.current) localVideoRef.current.srcObject = newStream;
+      if (!isVideoEnabled || isVideoOff) {
+        console.warn('[VIDEO-CONTROL] Cannot switch camera - video is not enabled');
+        return;
+      }
 
-      const videoTrack = newStream.getVideoTracks()[0];
+      setIsCameraSwitched(prev => !prev);
+      
+      // Stop only video track, keep audio
+      const videoTrack = localStreamRef.current?.getVideoTracks?.()?.[0];
+      if (videoTrack) {
+        videoTrack.stop();
+        localStreamRef.current.removeTrack(videoTrack);
+      }
+
+      // Get new video track with switched camera (with low bandwidth constraints)
+      const videoStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640, max: 640 },
+          height: { ideal: 360, max: 360 },
+          frameRate: { ideal: 15, max: 15 },
+          facingMode: !isCameraSwitched ? 'environment' : 'user'
+        },
+        audio: false
+      });
+
+      const newVideoTrack = videoStream.getVideoTracks()[0];
+      localStreamRef.current.addTrack(newVideoTrack);
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+
+      // Replace track in peer connection
       const sender = peerConnectionRef.current
         ?.getSenders()
         ?.find(s => s.track?.kind === 'video');
-      if (sender && videoTrack) {
-        await sender.replaceTrack(videoTrack);
+      if (sender && newVideoTrack) {
+        await sender.replaceTrack(newVideoTrack);
+        
+        // Reapply bitrate constraints
+        const parameters = sender.getParameters();
+        if (!parameters.encodings) {
+          parameters.encodings = [{}];
+        }
+        parameters.encodings[0].maxBitrate = 300000;
+        await sender.setParameters(parameters);
       }
+      
+      console.info('[VIDEO-CONTROL] Camera switched successfully');
     } catch (err) {
-      console.error('[DEBUG] switchCamera error:', err);
+      console.error('[VIDEO-CONTROL] switchCamera error:', err);
     }
   };
 
@@ -1152,6 +1430,19 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
           {typeof goldCoins === 'number' && (
             <span className="ml-2 sm:ml-4" title="Your current gold coins">Gold: {goldCoins.toFixed(2)}</span>
           )}
+          {/* Video Timer Display */}
+          {isVideoEnabled && !isVideoOff && videoTimeRemaining > 0 && (
+            <span 
+              className={`ml-2 sm:ml-4 px-2 py-1 rounded text-xs sm:text-sm ${
+                isVideoShuttingDown 
+                  ? 'bg-red-600/80 animate-pulse' 
+                  : 'bg-blue-600/80'
+              }`}
+              title="Video will auto-shutoff to save bandwidth"
+            >
+              📹 {Math.floor(videoTimeRemaining / 60)}:{String(videoTimeRemaining % 60).padStart(2, '0')}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -1186,6 +1477,21 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
               <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black/60 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs">
                 You ({username})
               </div>
+              {/* Audio-Only Mode Indicator */}
+              {isVideoOff && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90">
+                  <div className="text-center">
+                    <div className="text-5xl sm:text-7xl mb-2">🎙️</div>
+                    <p className="text-sm sm:text-base font-semibold">Audio Only</p>
+                    <p className="text-xs sm:text-sm text-gray-300 mt-1">
+                      {!isVideoEnabled 
+                        ? 'Click camera button to enable video' 
+                        : 'Saving bandwidth'
+                      }
+                    </p>
+                  </div>
+                </div>
+              )}
               <button
                 onClick={makeLocalFullScreen}
                 className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
@@ -1508,12 +1814,19 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
         </button>
         <button
           onClick={toggleVideo}
-          className={`p-1 sm:p-2 rounded-full transition-colors ${isVideoOff ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
-          aria-pressed={isVideoOff}
-          aria-label="Toggle camera"
+          className={`p-1 sm:p-2 rounded-full transition-colors relative ${
+            isVideoOff 
+              ? 'bg-yellow-600 hover:bg-yellow-700' 
+              : 'bg-green-600 hover:bg-green-700'
+          }`}
+          title={isVideoOff ? '📹 Enable Video (Audio-only mode saves bandwidth)' : '📹 Disable Video (Keep audio running)'}
+          aria-pressed={!isVideoOff}
+          aria-label={isVideoOff ? 'Enable video' : 'Disable video'}
         >
           <Icon.Cam off={isVideoOff} />
+          {isVideoOff && !isVideoEnabled && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse" title="Video not enabled yet"></span>
+          )}
         </button>
         <button
           onClick={switchCamera}
