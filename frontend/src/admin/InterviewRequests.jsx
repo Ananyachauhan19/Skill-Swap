@@ -10,21 +10,17 @@ import {
 
 const STATUS_CONFIG = {
   pending: { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: FiClock, label: 'Pending' },
-  assigned: { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: FiUser, label: 'Assigned' },
   scheduled: { color: 'bg-purple-50 text-purple-700 border-purple-200', icon: FiCalendar, label: 'Scheduled' },
   completed: { color: 'bg-green-50 text-green-700 border-green-200', icon: FiCheck, label: 'Completed' },
   rejected: { color: 'bg-red-50 text-red-700 border-red-200', icon: FiX, label: 'Rejected' },
-  cancelled: { color: 'bg-gray-50 text-gray-700 border-gray-200', icon: FiX, label: 'Cancelled' },
 };
 
 const statusOptions = [
   { id: 'all', label: 'All Status' },
   { id: 'pending', label: 'Pending' },
-  { id: 'assigned', label: 'Assigned' },
   { id: 'scheduled', label: 'Scheduled' },
   { id: 'completed', label: 'Completed' },
   { id: 'rejected', label: 'Rejected' },
-  { id: 'cancelled', label: 'Cancelled' },
 ];
 
 const dateRangeOptions = [
@@ -324,8 +320,8 @@ export default function InterviewRequests() {
 
     const tabs = [
       { id: 'overview', label: 'Overview', icon: FiUser },
-      { id: 'details', label: 'Details', icon: FiBriefcase },
-      { id: 'history', label: 'History', icon: FiClock },
+      { id: 'feedback', label: 'Feedback', icon: FiMessageSquare },
+      { id: 'timeline', label: 'Timeline', icon: FiClock },
     ];
 
     return (
@@ -385,37 +381,41 @@ export default function InterviewRequests() {
         </div>
 
         {/* Drawer Body */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-50" style={{ maxHeight: 'calc(100vh - 200px)' }}>
           {detailTab === 'overview' && (
             <div className="space-y-4">
-              {/* Position Details */}
+              {/* Requested For */}
               <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Position Information</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Requested For</h4>
                 <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="text-gray-500">Company:</span>{' '}
-                    <span className="text-gray-900 font-medium">{selectedRequest.company}</span>
-                  </div>
                   <div>
                     <span className="text-gray-500">Position:</span>{' '}
                     <span className="text-gray-900 font-medium">{selectedRequest.position}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Requested:</span>{' '}
-                    <span className="text-gray-900 font-medium">{formatDateTime(selectedRequest.createdAt)}</span>
+                    <span className="text-gray-500">Company:</span>{' '}
+                    <span className="text-gray-900 font-medium">{selectedRequest.company}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Assigned Interviewer */}
+              {/* Interviewer Requested To */}
               {selectedRequest.assignedInterviewer && (
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Assigned Interviewer</h4>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white font-bold shadow">
-                      {getInitials(selectedRequest.assignedInterviewer.username)}
-                    </div>
-                    <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Interviewer Requested To</h4>
+                  <div className="flex items-start gap-3 mb-3">
+                    {selectedRequest.assignedInterviewer.profilePic ? (
+                      <img
+                        src={selectedRequest.assignedInterviewer.profilePic}
+                        alt={selectedRequest.assignedInterviewer.username}
+                        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-teal-600 flex items-center justify-center text-white font-bold shadow">
+                        {getInitials(selectedRequest.assignedInterviewer.username)}
+                      </div>
+                    )}
+                    <div className="flex-1">
                       <p className="font-medium text-gray-900">
                         {selectedRequest.assignedInterviewer.username}
                       </p>
@@ -424,84 +424,73 @@ export default function InterviewRequests() {
                       </p>
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Schedule */}
-              {selectedRequest.scheduledAt && (
-                <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Interview Schedule</h4>
-                  <div className="flex items-center gap-2">
-                    <FiCalendar className="text-purple-600" size={16} />
-                    <span className="text-sm font-medium text-gray-900">
-                      {formatDateTime(selectedRequest.scheduledAt)}
-                    </span>
+                  <div className="space-y-2 text-sm">
+                    {selectedRequest.assignedInterviewer.experience && selectedRequest.assignedInterviewer.experience.length > 0 && selectedRequest.assignedInterviewer.experience[0].position && (
+                      <div>
+                        <span className="text-gray-500">Position:</span>{' '}
+                        <span className="text-gray-900 font-medium">{selectedRequest.assignedInterviewer.experience[0].position}</span>
+                      </div>
+                    )}
+                    {selectedRequest.assignedInterviewer.experience && selectedRequest.assignedInterviewer.experience.length > 0 && selectedRequest.assignedInterviewer.experience[0].company && (
+                      <div>
+                        <span className="text-gray-500">Company:</span>{' '}
+                        <span className="text-gray-900 font-medium">{selectedRequest.assignedInterviewer.experience[0].company}</span>
+                      </div>
+                    )}
+                    {selectedRequest.assignedInterviewer.ratingAverage !== undefined && selectedRequest.assignedInterviewer.ratingAverage > 0 && (
+                      <div>
+                        <span className="text-gray-500">Average Rating:</span>{' '}
+                        <span className="text-gray-900 font-medium inline-flex items-center gap-1">
+                          <FiStar className="text-yellow-500 fill-current" size={14} />
+                          {selectedRequest.assignedInterviewer.ratingAverage.toFixed(1)}/5
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-
-              {/* Rating */}
-              {selectedRequest.rating && (
-                <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Interview Rating</h4>
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex">
-                      {[...Array(5)].map((_, i) => (
-                        <FiStar
-                          key={i}
-                          size={18}
-                          className={i < selectedRequest.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}
-                        />
-                      ))}
-                    </div>
-                    <span className="font-semibold text-gray-900">{selectedRequest.rating}/5</span>
-                  </div>
-                  {selectedRequest.feedback && (
-                    <p className="text-sm text-gray-700 mt-2 p-2 bg-gray-50 rounded">
-                      {selectedRequest.feedback}
-                    </p>
-                  )}
                 </div>
               )}
             </div>
           )}
 
-          {detailTab === 'details' && (
+          {detailTab === 'feedback' && (
             <div className="space-y-4">
-              {/* Requester Contact */}
-              <div className="bg-white rounded-lg p-4 border border-gray-200">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Requester Information</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <FiUser size={14} className="text-gray-400" />
-                    <span className="text-gray-700">
-                      {selectedRequest.requester?.firstName} {selectedRequest.requester?.lastName}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FiMail size={14} className="text-gray-400" />
-                    <span className="text-gray-700">{selectedRequest.requester?.email}</span>
-                  </div>
-                  {selectedRequest.requester?.country && (
-                    <div className="flex items-center gap-2">
-                      <FiMapPin size={14} className="text-gray-400" />
-                      <span className="text-gray-700">{selectedRequest.requester.country}</span>
+              {selectedRequest.rating || selectedRequest.feedback ? (
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Requestor's Feedback</h4>
+                  {selectedRequest.rating && (
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <FiStar
+                              key={i}
+                              size={18}
+                              className={i < selectedRequest.rating ? 'text-yellow-500 fill-current' : 'text-gray-300'}
+                            />
+                          ))}
+                        </div>
+                        <span className="font-semibold text-gray-900">{selectedRequest.rating}/5</span>
+                      </div>
+                    </div>
+                  )}
+                  {selectedRequest.feedback && (
+                    <div>
+                      <p className="text-sm text-gray-700 p-3 bg-gray-50 rounded border border-gray-200">
+                        {selectedRequest.feedback}
+                      </p>
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Message */}
-              {selectedRequest.message && (
-                <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Request Message</h4>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedRequest.message}</p>
+              ) : (
+                <div className="bg-white rounded-lg p-6 border border-gray-200 text-center">
+                  <FiMessageSquare className="mx-auto text-gray-400 mb-2" size={32} />
+                  <p className="text-sm text-gray-600">No feedback provided yet</p>
                 </div>
               )}
             </div>
           )}
 
-          {detailTab === 'history' && (
+          {detailTab === 'timeline' && (
             <div className="space-y-3">
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">Timeline</h4>
@@ -509,30 +498,21 @@ export default function InterviewRequests() {
                   <div className="flex gap-3">
                     <div className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">Request Created</p>
+                      <p className="text-sm font-medium text-gray-900">Interview Requested</p>
                       <p className="text-xs text-gray-500">{formatDateTime(selectedRequest.createdAt)}</p>
                     </div>
                   </div>
-                  {selectedRequest.assignedInterviewer && (
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500 mt-1.5"></div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Interviewer Assigned</p>
-                        <p className="text-xs text-gray-500">
-                          {selectedRequest.assignedInterviewer.username}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {selectedRequest.scheduledAt && (
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500 mt-1.5"></div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Interview Scheduled</p>
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500 mt-1.5"></div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Interview Scheduled</p>
+                      {selectedRequest.scheduledAt ? (
                         <p className="text-xs text-gray-500">{formatDateTime(selectedRequest.scheduledAt)}</p>
-                      </div>
+                      ) : (
+                        <p className="text-xs text-gray-500 italic">Not scheduled yet</p>
+                      )}
                     </div>
-                  )}
+                  </div>
                   {selectedRequest.status === 'completed' && (
                     <div className="flex gap-3">
                       <div className="flex-shrink-0 w-2 h-2 rounded-full bg-green-500 mt-1.5"></div>
@@ -565,7 +545,7 @@ export default function InterviewRequests() {
     <div className="flex flex-col h-full bg-gray-50">
       {/* Filter Bar */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
-        <div className="px-6 py-4">
+        <div className="px-4 py-3">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-semibold text-gray-900">Interview Requests</h1>
             <div className="text-sm text-gray-600">
@@ -651,7 +631,7 @@ export default function InterviewRequests() {
             drawerOpen ? 'w-[calc(100%-400px)]' : 'w-full'
           }`}
         >
-          <div className="p-6">
+          <div className="p-4">
             {paginatedRequests.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -698,13 +678,11 @@ export default function InterviewRequests() {
         </div>
 
         {/* Sliding Detail Drawer */}
-        <div
-          className={`flex-shrink-0 bg-white border-l border-gray-200 shadow-lg transition-all duration-300 overflow-hidden ${
-            drawerOpen ? 'w-[400px]' : 'w-0'
-          }`}
-        >
-          {drawerOpen && <div className="h-full w-[400px]">{renderDrawerContent()}</div>}
-        </div>
+        {drawerOpen && (
+          <div className="flex-shrink-0 bg-white border-l border-gray-200 shadow-lg w-[400px] overflow-hidden">
+            <div className="h-full w-[400px] flex flex-col overflow-hidden">{renderDrawerContent()}</div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -19,8 +19,8 @@ exports.getRequestById = async (req, res) => {
     const userId = req.user._id;
     
     const request = await InterviewRequest.findById(id)
-      .populate('requester', 'firstName lastName username email')
-      .populate('assignedInterviewer', 'firstName lastName username email');
+      .populate('requester', 'firstName lastName username email profilePic')
+      .populate('assignedInterviewer', 'firstName lastName username email profilePic experience ratingAverage ratingCount');
     
     if (!request) {
       return res.status(404).json({ message: 'Interview request not found' });
@@ -872,14 +872,14 @@ exports.getUserRequests = async (req, res) => {
     const isAdmin = req.user && req.user.email && req.user.email.toLowerCase() === adminEmail;
 
     if (isAdmin) {
-      const all = await InterviewRequest.find().populate('requester', 'username firstName lastName').populate('assignedInterviewer', 'username firstName lastName').sort({ createdAt: -1 });
+      const all = await InterviewRequest.find().populate('requester', 'username firstName lastName profilePic email').populate('assignedInterviewer', 'username firstName lastName profilePic email experience ratingAverage ratingCount').sort({ createdAt: -1 });
       return res.json(all);
     }
 
     // Find requests where the user is requester or the assigned interviewer
     const docs = await InterviewRequest.find({
       $or: [{ requester: req.user._id }, { assignedInterviewer: req.user._id }]
-    }).populate('requester', 'username firstName lastName').populate('assignedInterviewer', 'username firstName lastName').sort({ createdAt: -1 });
+    }).populate('requester', 'username firstName lastName profilePic email').populate('assignedInterviewer', 'username firstName lastName profilePic email experience ratingAverage ratingCount').sort({ createdAt: -1 });
 
     // Apply auto-schedule fallback lazily for all relevant docs
     for (const d of docs) {
@@ -904,7 +904,7 @@ exports.getAllRequests = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    const all = await InterviewRequest.find().populate('requester', 'username firstName lastName').populate('assignedInterviewer', 'username firstName lastName').sort({ createdAt: -1 });
+    const all = await InterviewRequest.find().populate('requester', 'username firstName lastName profilePic email').populate('assignedInterviewer', 'username firstName lastName profilePic email experience ratingAverage ratingCount').sort({ createdAt: -1 });
     res.json(all);
   } catch (err) {
     console.error('getAllRequests error', err);
@@ -932,8 +932,8 @@ exports.assignInterviewer = async (req, res) => {
     reqDoc.status = 'pending';
     await reqDoc.save();
 
-    await reqDoc.populate('requester', 'username firstName lastName');
-    await reqDoc.populate('assignedInterviewer', 'username firstName lastName');
+    await reqDoc.populate('requester', 'username firstName lastName profilePic');
+    await reqDoc.populate('assignedInterviewer', 'username firstName lastName profilePic experience ratingAverage ratingCount');
 
     // Notify interviewer
     const io = req.app.get('io');

@@ -239,7 +239,7 @@ exports.list = async (req, res) => {
     // Include tutor activation fields (no countdown anymore, activation is immediate)
     const apps = await TutorApplication.find().populate(
       'user',
-      'username email firstName lastName isTutor skillsToTeach',
+      'username email firstName lastName isTutor skillsToTeach profilePic',
     );
 
     // For employees, restrict visibility based on allowedClasses/allowedSubjects.
