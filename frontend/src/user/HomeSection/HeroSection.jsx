@@ -166,7 +166,7 @@ const HeroSection = ({ exploreRef }) => {
               whileHover="hover"
               whileTap="tap"
             >
-              Go Pro
+              Purchase
             </motion.button>
           </motion.div>
         </motion.div>

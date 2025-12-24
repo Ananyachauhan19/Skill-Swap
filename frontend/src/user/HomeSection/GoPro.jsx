@@ -82,30 +82,30 @@ const GoPro = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-blue-100/20">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20 sm:pt-24 pb-16 sm:pb-20 px-4 sm:px-6">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-indigo-600/5 to-purple-600/5" />
-        <div className="relative max-w-7xl mx-auto text-center">
+      <section className="relative overflow-hidden pt-20 sm:pt-22 pb-8 sm:pb-12 px-3 sm:px-4">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-800/5 via-blue-900/5 to-blue-800/5" />
+        <div className="relative max-w-6xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 mb-6 leading-tight">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-800 to-blue-900 mb-3 sm:mb-4 leading-tight">
               Upgrade to SkillSwapHub Pro
             </h1>
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-700 max-w-3xl mx-auto mb-8 leading-relaxed">
+            <p className="text-xs sm:text-sm md:text-base text-gray-600 max-w-2xl mx-auto mb-4 sm:mb-6 leading-relaxed px-2">
               Unlock premium content, connect with top experts, and accelerate your learning journey with Skill Coins
             </p>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 rounded-full text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
+              className="inline-flex items-center gap-1.5 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
               onClick={() => document.getElementById('pricing').scrollIntoView({ behavior: 'smooth' })}
             >
               Upgrade Now
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </motion.button>
@@ -114,24 +114,24 @@ const GoPro = () => {
       </section>
 
       {/* 3-Step Process Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-6 bg-white">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-8 sm:py-12 px-3 sm:px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+            className="text-center mb-6 sm:mb-8"
           >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               How It Works
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xs sm:text-sm text-gray-600 max-w-xl mx-auto px-2">
               Three simple steps to unlock your full learning potential
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             {[
               {
                 step: "01",
@@ -173,18 +173,18 @@ const GoPro = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
-                whileHover={{ y: -8 }}
+                whileHover={{ y: -4 }}
                 className="relative group"
               >
-                <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300">
-                  <div className={`w-16 h-16 bg-gradient-to-br ${item.color} rounded-xl flex items-center justify-center mb-6 text-white p-3 group-hover:scale-110 transition-transform duration-300`}>
+                <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${item.color} rounded-lg flex items-center justify-center mb-3 sm:mb-4 text-white p-2 group-hover:scale-110 transition-transform duration-300`}>
                     {item.icon}
                   </div>
-                  <div className="absolute top-4 right-4 text-6xl font-bold text-gray-100 group-hover:text-gray-200 transition-colors">
+                  <div className="absolute top-2 right-2 text-3xl sm:text-4xl font-bold text-gray-100 group-hover:text-gray-200 transition-colors">
                     {item.step}
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">{item.description}</p>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">{item.title}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">{item.description}</p>
                 </div>
               </motion.div>
             ))}
@@ -193,19 +193,19 @@ const GoPro = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-16 sm:py-20 px-4 sm:px-6 bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="max-w-7xl mx-auto">
+      <section id="pricing" className="py-8 sm:py-12 px-3 sm:px-4 bg-gradient-to-br from-slate-50 via-blue-50/30 to-blue-100/20">
+        <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+            className="text-center mb-6 sm:mb-8"
           >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               Choose Your Package
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xs sm:text-sm text-gray-600 max-w-xl mx-auto px-2">
               Flexible pricing to match your learning needs. All packages come with instant delivery.
             </p>
           </motion.div>
@@ -242,7 +242,7 @@ const GoPro = () => {
               <p className="text-gray-500">Check back soon for new offers!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 items-stretch">
               {packages.map((pkg, idx) => {
                 const isGolden = pkg.type === 'Golden' || pkg.type === 'ONLY_GOLDEN';
                 const isSilver = pkg.type === 'Silver' || pkg.type === 'ONLY_SILVER';
@@ -311,25 +311,25 @@ const GoPro = () => {
                     className="h-full flex"
                   >
                     <motion.div
-                      whileHover={{ y: -8, scale: isMostPopular ? 1.03 : 1.02 }}
-                      className={`relative bg-white rounded-3xl shadow-xl border-2 transition-all duration-300 overflow-hidden flex flex-col w-full
-                        ${isMostPopular ? 'ring-4 ring-purple-200 shadow-2xl' : colors.border} 
+                      whileHover={{ y: -4, scale: isMostPopular ? 1.02 : 1.01 }}
+                      className={`relative bg-white rounded-xl sm:rounded-2xl shadow-lg border-2 transition-all duration-300 overflow-hidden flex flex-col w-full
+                        ${isMostPopular ? 'ring-2 ring-blue-800/30 shadow-xl' : colors.border} 
                         ${colors.shadow}`}
                     >
                       {/* Most Popular Badge */}
                       {isMostPopular && (
-                        <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white text-center py-2.5 text-xs font-bold uppercase tracking-wider z-10">
-                          ⭐ Most Popular Choice
+                        <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-800 to-blue-900 text-white text-center py-1.5 sm:py-2 text-[10px] sm:text-xs font-bold uppercase tracking-wide z-10">
+                          ⭐ Most Popular
                         </div>
                       )}
                       
                       {/* Card Content */}
-                      <div className={`flex flex-col flex-1 p-8 ${isMostPopular ? 'pt-16' : 'pt-8'}`}>
+                      <div className={`flex flex-col flex-1 p-3 sm:p-4 md:p-5 ${isMostPopular ? 'pt-8 sm:pt-10' : 'pt-3 sm:pt-4'}`}>
                         {/* Package Type Badge */}
-                        <div className="flex items-center justify-between mb-5">
-                          <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide text-white shadow-lg ${colors.badge}`}>
+                        <div className="flex items-center justify-between mb-2 sm:mb-3">
+                          <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide text-white shadow-md ${colors.badge}`}>
                             {isGolden && (
-                              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                              <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                               </svg>
                             )}
@@ -349,20 +349,20 @@ const GoPro = () => {
 
                         {/* Package Name & Description */}
                         <div className="flex-grow">
-                          <h3 className="text-2xl font-extrabold text-gray-900 mb-3 leading-tight">{pkg.name || 'Package'}</h3>
-                          <p className="text-gray-600 text-sm leading-relaxed h-12 overflow-hidden">{pkg.description || 'Skill coins package'}</p>
+                          <h3 className="text-sm sm:text-base md:text-lg font-extrabold text-gray-900 mb-1 sm:mb-2 leading-tight">{pkg.name || 'Package'}</h3>
+                          <p className="text-gray-600 text-[10px] sm:text-xs leading-relaxed h-8 sm:h-10 overflow-hidden">{pkg.description || 'Skill coins package'}</p>
                         </div>
 
                         {/* Pricing */}
-                        <div className="my-6 py-4 border-y border-gray-100">
-                          <div className="flex items-baseline gap-2 mb-2">
-                            <span className="text-4xl font-black text-gray-900">₹{displayPrice}</span>
+                        <div className="my-3 sm:my-4 py-2 sm:py-3 border-y border-gray-100">
+                          <div className="flex items-baseline gap-1.5 mb-1">
+                            <span className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900">₹{displayPrice}</span>
                             {displayOriginalPrice && displayOriginalPrice > displayPrice && (
-                              <span className="text-base text-gray-400 line-through font-medium">₹{displayOriginalPrice}</span>
+                              <span className="text-xs sm:text-sm text-gray-400 line-through font-medium">₹{displayOriginalPrice}</span>
                             )}
                           </div>
-                          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold ${colors.iconBg} ${colors.coinText}`}>
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <div className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-semibold ${colors.iconBg} ${colors.coinText}`}>
+                            <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
                             </svg>
@@ -382,26 +382,26 @@ const GoPro = () => {
 
                         {/* Purchase Button */}
                         <motion.button
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => handlePurchase(pkg._id)}
                           disabled={purchaseLoading && selectedPackageId === pkg._id}
-                          className={`w-full py-4 rounded-xl font-bold text-base transition-all duration-300 shadow-lg hover:shadow-xl
+                          className={`w-full py-2 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-300 shadow-md hover:shadow-lg
                             ${colors.buttonBg}
                             text-white disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           {purchaseLoading && selectedPackageId === pkg._id ? (
-                            <span className="flex items-center justify-center gap-2">
-                              <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <span className="flex items-center justify-center gap-1.5">
+                              <svg className="animate-spin h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                               </svg>
                               Processing...
                             </span>
                           ) : (
-                            <span className="flex items-center justify-center gap-2">
+                            <span className="flex items-center justify-center gap-1.5">
                               Purchase Now
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                               </svg>
                             </span>
@@ -410,19 +410,19 @@ const GoPro = () => {
 
                         {/* Features List */}
                         {pkg.features && pkg.features.length > 0 && (
-                          <div className="mt-6 pt-6 border-t border-gray-100">
-                            <ul className="space-y-3">
-                              {pkg.features.slice(0, 4).map((feature, fIdx) => (
-                                <li key={fIdx} className="flex items-start gap-3 text-sm text-gray-700">
-                                  <svg className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
+                            <ul className="space-y-1.5 sm:space-y-2">
+                              {pkg.features.slice(0, 3).map((feature, fIdx) => (
+                                <li key={fIdx} className="flex items-start gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-gray-700">
+                                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                                   </svg>
                                   <span className="leading-tight">{feature}</span>
                                 </li>
                               ))}
-                              {pkg.features.length > 4 && (
-                                <li className="text-xs text-gray-500 italic pl-8">
-                                  +{pkg.features.length - 4} more features
+                              {pkg.features.length > 3 && (
+                                <li className="text-[10px] text-gray-500 italic pl-5 sm:pl-6">
+                                  +{pkg.features.length - 3} more
                                 </li>
                               )}
                             </ul>
@@ -439,19 +439,19 @@ const GoPro = () => {
       </section>
 
       {/* Feature Comparison Table */}
-      <section className="py-16 sm:py-20 px-4 sm:px-6 bg-white">
+      <section className="py-8 sm:py-12 px-3 sm:px-4 bg-white">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+            className="text-center mb-6 sm:mb-8"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               Compare Coin Types
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600 px-2">
               Choose the right coins for your learning goals
             </p>
           </motion.div>
@@ -461,23 +461,23 @@ const GoPro = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden"
+            className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
           >
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-gradient-to-r from-gray-50 to-gray-100">
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Feature</th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
+                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-900">Feature</th>
+                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-semibold text-gray-700">
                       <div className="flex flex-col items-center">
-                        <span className="text-lg">Silver Coins</span>
-                        <span className="text-xs text-gray-500 mt-1">₹0.25 each</span>
+                        <span className="text-xs sm:text-sm">Silver</span>
+                        <span className="text-[9px] sm:text-[10px] text-gray-500 mt-0.5">₹0.25</span>
                       </div>
                     </th>
-                    <th className="px-6 py-4 text-center text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
+                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
                       <div className="flex flex-col items-center">
-                        <span className="text-lg">Golden Coins</span>
-                        <span className="text-xs text-yellow-700 mt-1">₹2 each</span>
+                        <span className="text-xs sm:text-sm">Golden</span>
+                        <span className="text-[9px] sm:text-[10px] text-yellow-700 mt-0.5">₹2</span>
                       </div>
                     </th>
                   </tr>
@@ -491,12 +491,12 @@ const GoPro = () => {
                     { feature: 'Interview Rounds', silver: '-', golden: 'Rs. 1500' },
                   ].map((row, idx) => (
                     <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 text-sm text-gray-900 font-medium">{row.feature}</td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-900 font-medium">{row.feature}</td>
+                      <td className="px-2 sm:px-4 py-2 sm:py-3 text-center">
                         {typeof row.silver === 'string' ? (
-                          <span className="text-sm font-semibold text-gray-700">{row.silver}</span>
+                          <span className="text-[10px] sm:text-xs font-semibold text-gray-700">{row.silver}</span>
                         ) : row.silver === true ? (
-                          <svg className="w-6 h-6 text-green-500 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mx-auto" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
                         ) : row.silver === '-' ? (
@@ -532,24 +532,24 @@ const GoPro = () => {
       </section>
 
       {/* Trust & Security Section */}
-      <section className="py-16 sm:py-20 px-4 sm:px-6 bg-gradient-to-br from-blue-50 to-indigo-50">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-8 sm:py-12 px-3 sm:px-4 bg-gradient-to-br from-blue-50/30 to-blue-100/20">
+        <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+            className="text-center mb-6 sm:mb-8"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               Safe & Secure
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600 px-2">
               Your trust is our priority
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             {[
               {
                 icon: (
@@ -585,13 +585,13 @@ const GoPro = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: idx * 0.1 }}
-                className="bg-white rounded-2xl p-8 shadow-lg text-center hover:shadow-xl transition-shadow duration-300"
+                className="bg-white rounded-xl p-4 sm:p-6 shadow-lg text-center hover:shadow-xl transition-shadow duration-300"
               >
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-600 p-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 text-blue-800 p-2">
                   {item.icon}
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{item.title}</h3>
-                <p className="text-gray-600">{item.description}</p>
+                <h3 className="text-sm sm:text-base font-bold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">{item.description}</p>
               </motion.div>
             ))}
           </div>
