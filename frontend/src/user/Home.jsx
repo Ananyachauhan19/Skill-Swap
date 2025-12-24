@@ -6,6 +6,7 @@ import ActivityStatsSection from "./HomeSection/ActivityStatsSection";
 import TopPerformersSection from "./HomeSection/TopPerformersSection";
 import WhoAreWeSection from "./HomeSection/WhoAreWeSection";
 import WhyChooseSection from "./HomeSection/WhyChooseSection";
+import RecruitmentSection from "./HomeSection/RecruitmentSection";
 import LetsStartSection from "./HomeSection/LetsStartSection";
 
 const Home = () => {
@@ -18,6 +19,7 @@ const Home = () => {
         <TopPerformersSection />
         <WhyChooseSection />
         <WhoAreWeSection />
+        <RecruitmentSection />
         <LetsStartSection />
       </motion.div>
     </main>

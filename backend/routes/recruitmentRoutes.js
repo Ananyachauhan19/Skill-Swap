@@ -24,6 +24,25 @@ const upload = multer({
 // Supabase bucket for recruitment PDFs
 const RECRUITMENT_PDF_BUCKET = process.env.SUPABASE_RECRUITMENT_PDFS_BUCKET || 'recruitment-pdfs';
 
+// Get recruitment statistics (public endpoint)
+router.get('/stats', async (req, res) => {
+  try {
+    // Count approved applications (employees who have been hired)
+    const approvedCount = await RecruitmentApplication.countDocuments({ status: 'approved' });
+    
+    return res.json({ 
+      totalRecruitments: approvedCount,
+      success: true 
+    });
+  } catch (error) {
+    console.error('Error fetching recruitment stats:', error);
+    return res.status(500).json({ 
+      message: 'Failed to fetch recruitment statistics',
+      totalRecruitments: 0
+    });
+  }
+});
+
 // Submit recruitment application (authenticated users only)
 router.post('/submit', requireAuth, upload.fields([
   { name: 'degreeCertificates', maxCount: 10 },
