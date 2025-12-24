@@ -198,7 +198,7 @@ const RecruitmentApplication = () => {
         throw new Error('Please upload a PDF for each selected degree');
       }
       if (!form.proofOfExperience) {
-        throw new Error('Please upload proof of experience');
+        throw new Error('Please upload proof of employment');
       }
 
       const formData = new FormData();
@@ -403,7 +403,6 @@ const RecruitmentApplication = () => {
                     type="button"
                     onClick={() => setClassDropdownOpen((open) => !open)}
                     className="w-full flex items-center justify-between px-2.5 py-1.5 border border-gray-300 rounded-md bg-white text-xs text-gray-700 hover:border-blue-800 focus:outline-none focus:ring-1 focus:ring-blue-200">
-                >
                     <span className="truncate">
                       {form.selectedClasses.length === 0
                         ? 'Select'
@@ -579,7 +578,7 @@ const RecruitmentApplication = () => {
                   </label>
                   <input
                     type="file"
-                    name="proofOfEmployement"
+                    name="proofOfExperience"
                     accept=".pdf"
                     onChange={handleFileChange}
                     required
