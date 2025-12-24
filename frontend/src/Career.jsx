@@ -1,113 +1,378 @@
-import React from "react";
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { 
+  FiUsers, FiTrendingUp, FiAward, FiHeart, 
+  FiTarget, FiZap, FiGlobe, FiCode, FiBriefcase,
+  FiBook, FiTrendingDown, FiUserPlus 
+} from "react-icons/fi";
+import RecruitmentApplication from "./user/RecruitmentApplication";
 
-const Career = () => (
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-6 sm:pb-10 text-gray-800">
-    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 text-center lg:text-left">Careers at SkillSwap Hub</h1>
-    <p className="mb-4">At SkillSwap Hub, we believe that learning never stops. We're building the world's first peer-to-peer micro-tutoring and skill-exchange ecosystem where anyone can <b>Teach what you know, Learn what you don't – Earn while you do!</b></p>
-    <p className="mb-4">Joining SkillSwap Hub means becoming part of a revolutionary mission:</p>
-    <ul className="list-disc pl-6 mb-4">
-      <li>To democratize education.</li>
-      <li>To empower individuals to both share knowledge and acquire new skills.</li>
-      <li>To build a community where learning, teaching, and earning go hand-in-hand.</li>
-    </ul>
-    <p className="mb-4">We are not just another edtech platform — we’re creating the future of skill-sharing. And we want passionate changemakers like you to be part of this journey.</p>
+const Career = () => {
+  const [showRecruitmentForm, setShowRecruitmentForm] = useState(false);
 
-    <h2 className="text-xl font-semibold mt-8 mb-2">Why Work With Us?</h2>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Purpose-driven mission: Every task you do contributes directly to changing how the world learns.</li>
-      <li>Startup culture: Fast-paced, dynamic, and full of opportunities to take ownership.</li>
-      <li>Impact at scale: Your work will directly touch the lives of students, professionals, freelancers, and mentors across the globe.</li>
-      <li>Growth mindset: We encourage continuous learning, mentorship, and upskilling within our team.</li>
-      <li>Flexible work culture: Remote-friendly opportunities with result-based performance.</li>
-      <li>Rewarding future: ESOPs, performance bonuses, and leadership opportunities for early team members.</li>
-    </ul>
+  const handleShowRecruitmentForm = () => {
+    setShowRecruitmentForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-    <h2 className="text-xl font-semibold mt-8 mb-2">Who Can Join Us?</h2>
-    <p className="mb-4">We’re always on the lookout for passionate learners, innovators, and problem-solvers. Whether you’re a fresher, an experienced professional, or even a student looking for internship opportunities, SkillSwap Hub has a place for you.<br />We’re hiring across multiple functions:</p>
-    <h3 className="font-semibold mt-4 mb-2">1. Technology & Product</h3>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Software Developers (Frontend, Backend, Full Stack, Mobile App – Flutter)</li>
-      <li>AI/ML Engineers (Recommendation Systems, NLP, LLM, Generative AI)</li>
-      <li>Data Engineers & Analysts</li>
-      <li>UI/UX Designers</li>
-      <li>Product Managers</li>
-    </ul>
-    <p className="mb-4">If you love solving complex problems, designing scalable systems, or creating user-friendly experiences, this is the place for you.</p>
-    <h3 className="font-semibold mt-4 mb-2">2. Business & Strategy</h3>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Business Development Managers</li>
-      <li>Strategic Partnerships Associates</li>
-      <li>Operations & Growth Managers</li>
-      <li>Market Research Analysts</li>
-    </ul>
-    <p className="mb-4">Perfect for those who enjoy networking, strategy, and building growth engines for a global startup.</p>
-    <h3 className="font-semibold mt-4 mb-2">3. Content & Education</h3>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Academic Content Creators (Quizzes, Mock Interviews, Learning Material)</li>
-      <li>Video Tutors & Live Session Mentors</li>
-      <li>Community Managers for Learners & Educators</li>
-      <li>Instructional Designers</li>
-    </ul>
-    <p className="mb-4">If teaching, content creation, or education excites you — this is your playground.</p>
-    <h3 className="font-semibold mt-4 mb-2">4. Marketing & Creative</h3>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Digital Marketing Specialists (SEO, Social Media, Paid Ads)</li>
-      <li>Brand Managers</li>
-      <li>Video Editors & Motion Graphics Designers</li>
-      <li>Copywriters & Content Writers</li>
-    </ul>
-    <p className="mb-4">For the creative minds who can tell powerful stories and engage audiences.</p>
-    <h3 className="font-semibold mt-4 mb-2">5. Internships & Campus Ambassadors</h3>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Interns (Tech, Marketing, Operations, Design, Research)</li>
-      <li>Student Ambassadors (Represent SkillSwap Hub in your college/university)</li>
-    </ul>
-    <p className="mb-4">Ideal for students who want real-world experience while learning & contributing to a high-impact startup.</p>
+  const benefits = [
+    { icon: <FiTrendingUp />, title: "Competitive Salaries", desc: "Performance bonuses & ESOPs for early team members" },
+    { icon: <FiZap />, title: "Flexible Work", desc: "Remote-friendly with result-based performance" },
+    { icon: <FiAward />, title: "Learning Allowance", desc: "Free premium features & upskilling support" },
+    { icon: <FiGlobe />, title: "Global Impact", desc: "Shape the future of education worldwide" },
+  ];
 
-    <h2 className="text-xl font-semibold mt-8 mb-2">Our Culture & Values</h2>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Innovation First – We constantly challenge the norm.</li>
-      <li>Collaboration Over Competition – We grow by supporting one another.</li>
-      <li>Learning Culture – Every day is a new opportunity to grow.</li>
-      <li>Transparency & Trust – Open communication and ownership are at our core.</li>
-      <li>Impact-Driven Work – We measure success by the difference we create.</li>
-    </ul>
+  const departments = [
+    {
+      icon: <FiCode className="text-3xl" />,
+      title: "Technology & Product",
+      roles: ["Software Developers (Frontend, Backend, Full Stack)", "AI/ML Engineers", "Data Engineers", "UI/UX Designers", "Product Managers"],
+      color: "from-blue-800 to-blue-900"
+    },
+    {
+      icon: <FiBriefcase className="text-3xl" />,
+      title: "Business & Strategy",
+      roles: ["Business Development Managers", "Strategic Partnerships", "Operations & Growth Managers", "Market Research Analysts"],
+      color: "from-blue-700 to-blue-800"
+    },
+    {
+      icon: <FiBook className="text-3xl" />,
+      title: "Content & Education",
+      roles: ["Academic Content Creators", "Video Tutors & Mentors", "Community Managers", "Instructional Designers"],
+      color: "from-blue-600 to-blue-700"
+    },
+    {
+      icon: <FiTrendingUp className="text-3xl" />,
+      title: "Marketing & Creative",
+      roles: ["Digital Marketing Specialists", "Brand Managers", "Video Editors", "Copywriters & Content Writers"],
+      color: "from-blue-500 to-blue-600"
+    },
+  ];
 
-    <h2 className="text-xl font-semibold mt-8 mb-2">Benefits of Joining SkillSwap Hub</h2>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Competitive salaries & performance bonuses.</li>
-      <li>ESOPs for early team members.</li>
-      <li>Flexible working hours & hybrid/remote options.</li>
-      <li>Free access to SkillSwap Hub premium features.</li>
-      <li>Learning allowance for courses, certifications, and upskilling.</li>
-      <li>Exposure to building a startup from scratch.</li>
-      <li>Networking with mentors, investors, and innovators across industries.</li>
-    </ul>
+  const values = [
+    { icon: <FiZap />, title: "Innovation First", desc: "We constantly challenge the norm" },
+    { icon: <FiUsers />, title: "Collaboration Over Competition", desc: "We grow by supporting one another" },
+    { icon: <FiBook />, title: "Learning Culture", desc: "Every day is a new opportunity to grow" },
+    { icon: <FiHeart />, title: "Impact-Driven Work", desc: "We measure success by the difference we create" },
+  ];
 
-    <h2 className="text-xl font-semibold mt-8 mb-2">Life at SkillSwap Hub</h2>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Brainstorming breakthrough ideas with passionate people.</li>
-      <li>Celebrating small wins & learning from challenges.</li>
-      <li>Friday fun sessions & team-building activities.</li>
-      <li>Fast-tracked career growth in a high-energy environment.</li>
-      <li>Being part of a mission that goes beyond a paycheck.</li>
-    </ul>
+  if (showRecruitmentForm) {
+    return (
+      <div className="relative">
+        <button
+          onClick={() => setShowRecruitmentForm(false)}
+          className="fixed top-20 left-4 z-50 px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors shadow-lg"
+        >
+          ← Back to Careers
+        </button>
+        <RecruitmentApplication />
+      </div>
+    );
+  }
 
-    <h2 className="text-xl font-semibold mt-8 mb-2">Career Growth Opportunities</h2>
-    <ul className="list-disc pl-6 mb-4">
-      <li>Get leadership responsibilities faster.</li>
-      <li>Shape the culture of a growing startup.</li>
-      <li>Gain cross-functional exposure.</li>
-      <li>Build a personal brand in the startup & edtech ecosystem.</li>
-    </ul>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-blue-100/20">
+      {/* Hero Section */}
+      <section className="relative pt-16 sm:pt-20 md:pt-24 pb-12 sm:pb-16 md:pb-20 px-3 sm:px-4 md:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/5 via-blue-800/5 to-blue-700/5" />
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-7xl mx-auto relative z-10"
+        >
+          <div className="text-center mb-8 sm:mb-12">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="inline-block mb-4 sm:mb-6"
+            >
+              <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white px-4 py-1.5 sm:px-6 sm:py-2 rounded-full text-xs sm:text-sm font-semibold shadow-lg">
+                We're Hiring! Join Our Mission
+              </div>
+            </motion.div>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold mb-4 sm:mb-6 bg-gradient-to-r from-blue-900 to-blue-900 bg-clip-text text-transparent px-2">
+              Build the Future of Learning
+            </h1>
+            <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-700 max-w-3xl mx-auto mb-6 sm:mb-8 leading-relaxed px-3 sm:px-4">
+              Join SkillSwap Hub and be part of a revolutionary peer-to-peer learning ecosystem where 
+              <span className="font-semibold text-blue-900"> you teach, learn, and earn</span> – all at once!
+            </p>
+            <motion.button
+              onClick={() => setShowRecruitmentForm(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-5 py-2.5 sm:px-6 sm:py-3 md:px-8 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+            >
+              <FiUserPlus className="text-base sm:text-lg md:text-xl" />
+              <span className="hidden sm:inline">Apply Now - Tutor Verifier Role</span>
+              <span className="sm:hidden">Apply Now</span>
+            </motion.button>
+          </div>
+        </motion.div>
+      </section>
 
-    <h2 className="text-xl font-semibold mt-8 mb-2">How to Apply?</h2>
-    <p className="mb-4">We’re always excited to meet passionate individuals!<br />Drop your resume and a short note about why you’d like to join us at <a href="mailto:skillswaphubb@gmail.com" className="text-blue-600 underline">skillswaphubb@gmail.com</a></p>
+      {/* Mission Statement */}
+      <section className="py-10 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8 sm:mb-12"
+          >
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 sm:mb-6 px-2">Our Mission</h2>
+            <div className="max-w-4xl mx-auto bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border border-blue-200 shadow-lg">
+              <p className="text-sm sm:text-base md:text-lg text-gray-800 leading-relaxed mb-3 sm:mb-4">
+                At SkillSwap Hub, we're democratizing education and empowering individuals to both 
+                <span className="font-semibold text-blue-900"> share knowledge and acquire new skills</span>. 
+                We're building a community where learning, teaching, and earning go hand-in-hand.
+              </p>
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 mt-4 sm:mt-6">
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 rounded-full shadow">
+                  <FiTarget className="text-blue-900 text-sm sm:text-base" />
+                  <span className="text-xs sm:text-sm font-semibold text-blue-900">Democratize Education</span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 rounded-full shadow">
+                  <FiUsers className="text-blue-900 text-sm sm:text-base" />
+                  <span className="text-xs sm:text-sm font-semibold text-blue-900">Empower Individuals</span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-white px-2.5 py-1.5 sm:px-3 sm:py-2 md:px-4 rounded-full shadow">
+                  <FiGlobe className="text-blue-900 text-sm sm:text-base" />
+                  <span className="text-xs sm:text-sm font-semibold text-blue-900">Build Community</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
-    <h2 className="text-xl font-semibold mt-8 mb-2">Final Word</h2>
-    <p className="mb-4">At SkillSwap Hub, you don’t just build a career — you build the future of learning.<br />So if you’re ready to be part of a global movement that empowers millions to teach, learn, and earn, then SkillSwap Hub is the place for you.</p>
-    <p className="font-semibold mt-6">Teach what you know, Learn what you don't – Earn while you do! 🌍</p>
-  </div>
-);
+      {/* Why Work With Us */}
+      <section className="py-10 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8 sm:mb-12"
+          >
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">Why Join Us?</h2>
+            <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-3">
+              Every task you do contributes directly to changing how the world learns
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
+            {benefits.map((benefit, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -8 }}
+                className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300"
+              >
+                <div className="text-3xl sm:text-4xl text-blue-900 mb-3 sm:mb-4">{benefit.icon}</div>
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 mb-1.5 sm:mb-2">{benefit.title}</h3>
+                <p className="text-gray-600 text-xs sm:text-sm">{benefit.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Departments */}
+      <section className="py-10 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 lg:px-8 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8 sm:mb-12"
+          >
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">Open Positions</h2>
+            <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-3">
+              We're hiring across multiple functions. Find your perfect role!
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 lg:gap-8">
+            {departments.map((dept, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-gradient-to-br from-gray-50 to-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300"
+              >
+                <div className={`inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-r ${dept.color} text-white mb-3 sm:mb-4 shadow-lg text-xl sm:text-2xl`}>
+                  {dept.icon}
+                </div>
+                <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 md:mb-4">{dept.title}</h3>
+                <ul className="space-y-1.5 sm:space-y-2">
+                  {dept.roles.map((role, idx) => (
+                    <li key={idx} className="flex items-start gap-1.5 sm:gap-2 text-gray-700">
+                      <span className="text-blue-900 mt-0.5 text-sm sm:text-base">•</span>
+                      <span className="text-xs sm:text-sm">{role}</span>
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Internships Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-6 sm:mt-8 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 border-2 border-blue-200 shadow-lg"
+          >
+            <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-2.5 sm:p-3 md:p-4 rounded-lg sm:rounded-xl">
+                <FiUserPlus className="text-xl sm:text-2xl md:text-3xl" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-900">Internships & Campus Ambassadors</h3>
+                <p className="text-xs sm:text-sm text-gray-600">Perfect for students seeking real-world startup experience</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
+              <div className="bg-white rounded-lg p-3 sm:p-4 shadow">
+                <p className="font-semibold text-gray-900 text-sm sm:text-base">Interns</p>
+                <p className="text-xs sm:text-sm text-gray-600">Tech, Marketing, Operations, Design, Research</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 sm:p-4 shadow">
+                <p className="font-semibold text-gray-900 text-sm sm:text-base">Student Ambassadors</p>
+                <p className="text-xs sm:text-sm text-gray-600">Represent SkillSwap Hub at your college/university</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Values */}
+      <section className="py-10 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8 sm:mb-12"
+          >
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">Our Core Values</h2>
+            <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-3">
+              The principles that guide everything we do
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
+            {values.map((value, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-center shadow-lg border border-gray-200 hover:border-blue-900 hover:shadow-xl transition-all duration-300">
+              >
+                <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-100 text-blue-900 text-xl sm:text-2xl mb-3 sm:mb-4">
+                  {value.icon}
+                </div>
+                <h3 className="text-sm sm:text-base md:text-lg font-bold text-gray-900 mb-1.5 sm:mb-2">{value.title}</h3>
+                <p className="text-xs sm:text-sm text-gray-600">{value.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Life at SkillSwap Hub */}
+      <section className="py-10 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 lg:px-8 bg-gradient-to-br from-blue-800 to-blue-900 text-white">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8 sm:mb-12"
+          >
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 px-2">Life at SkillSwap Hub</h2>
+            <p className="text-sm sm:text-base md:text-lg text-blue-100 max-w-2xl mx-auto px-3">
+              More than just a workplace – it's where innovation meets passion
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
+            {[
+              "Brainstorm breakthrough ideas with passionate people",
+              "Celebrate wins & learn from challenges together",
+              "Friday fun sessions & team-building activities",
+              "Fast-tracked career growth in a high-energy environment"
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-5 md:p-6 border border-white/20 hover:bg-white/20 transition-all duration-300"
+              >
+                <div className="text-3xl sm:text-4xl mb-2 sm:mb-3 md:mb-4">
+                  {index === 0 ? "💡" : index === 1 ? "🎉" : index === 2 ? "🎮" : "🚀"}
+                </div>
+                <p className="text-xs sm:text-sm">{item}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-10 sm:py-12 md:py-16 lg:py-20 px-3 sm:px-4 md:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-gray-100">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-4xl mx-auto text-center"
+        >
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 sm:mb-5 md:mb-6 px-2">
+            Ready to Make an Impact?
+          </h2>
+          <p className="text-sm sm:text-base md:text-lg text-gray-700 mb-6 sm:mb-7 md:mb-8 leading-relaxed px-3">
+            At SkillSwap Hub, you don't just build a career — you build the future of learning. 
+            If you're ready to be part of a global movement that empowers millions, we want to hear from you!
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-2">
+            <motion.button
+              onClick={() => setShowRecruitmentForm(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-5 py-3 sm:px-6 sm:py-3.5 md:px-8 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+            >
+              <FiUserPlus className="text-base sm:text-lg md:text-xl" />
+              <span className="hidden sm:inline">Apply for Tutor Verifier Role</span>
+              <span className="sm:hidden">Apply Now</span>
+            </motion.button>
+            <motion.a
+              href="mailto:skillswaphubb@gmail.com"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-gray-900 px-5 py-3 sm:px-6 sm:py-3.5 md:px-8 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300 border-2 border-gray-300"
+            >
+              <span className="hidden sm:inline">Email Us for Other Roles</span>
+              <span className="sm:hidden">Email Us</span>
+            </motion.a>
+          </div>
+          <p className="mt-6 sm:mt-7 md:mt-8 text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-900 bg-clip-text text-transparent px-2">
+            Teach what you know, Learn what you don't – Earn while you do! 🌍
+          </p>
+        </motion.div>
+      </section>
+    </div>
+  );
+};
 
 export default Career;

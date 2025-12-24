@@ -239,23 +239,23 @@ const RecruitmentApplication = () => {
 
   if (existingApplication) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 py-12 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-8 sm:py-12 px-3 sm:px-4">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 p-5 sm:p-8">
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FiAlertCircle className="w-8 h-8 text-blue-600" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <FiAlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-blue-900" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Already Submitted</h2>
-              <p className="text-gray-600 mb-4">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Application Already Submitted</h2>
+              <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 px-2">
                 You have a pending recruitment application. We are reviewing it and will get back to you soon.
               </p>
-              <div className="inline-flex items-center px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-sm font-medium text-yellow-800">
+              <div className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs sm:text-sm font-medium text-yellow-800">
                 Status: <span className="ml-2 capitalize">{existingApplication.status}</span>
               </div>
               <button
                 onClick={() => navigate('/')}
-                className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="mt-4 sm:mt-6 px-5 py-2 sm:px-6 sm:py-2.5 bg-gradient-to-r from-blue-800 to-blue-900 text-white rounded-lg hover:from-blue-900 hover:to-blue-950 transition-all text-sm sm:text-base font-semibold"
               >
                 Go to Home
               </button>
@@ -267,44 +267,44 @@ const RecruitmentApplication = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 text-white">
-            <h1 className="text-3xl font-bold mb-2">Join Our Teaching Team</h1>
-            <p className="text-blue-100">Apply to become a tutor application verifier</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-6 sm:py-8 px-3 sm:px-4">
+      <div className="max-w-5xl mx-auto">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-4 sm:px-6 md:px-8 py-4 sm:py-5 text-white">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 sm:mb-2">Join Our Teaching Team</h1>
+            <p className="text-xs sm:text-sm text-blue-100">Apply to become a tutor application verifier</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5">
             {/* Personal Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiUser className="w-4 h-4" /> Full Name
+                <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                  <FiUser className="w-3 h-3 sm:w-4 sm:h-4" /> Full Name
                 </label>
                 <input
                   type="text"
                   value={user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}
                   disabled
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiMail className="w-4 h-4" /> Email Address
+                <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                  <FiMail className="w-3 h-3 sm:w-4 sm:h-4" /> Email Address
                 </label>
                 <input
                   type="email"
                   value={user.email}
                   disabled
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                 />
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiPhone className="w-4 h-4" /> Phone Number *
+                <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                  <FiPhone className="w-3 h-3 sm:w-4 sm:h-4" /> Phone Number *
                 </label>
                 <input
                   type="tel"
@@ -313,7 +313,7 @@ const RecruitmentApplication = () => {
                   onChange={handleChange}
                   disabled={Boolean(user.phone)}
                   required={!user.phone}
-                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-blue-500 outline-none transition-all ${
+                  className={`w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none transition-all ${
                     user.phone
                       ? 'border-gray-300 bg-gray-50 text-gray-600 cursor-not-allowed'
                       : 'border-gray-300'
@@ -321,13 +321,13 @@ const RecruitmentApplication = () => {
                   placeholder={user.phone ? undefined : 'Enter your phone number'}
                 />
                 {user.phone && (
-                  <p className="mt-1 text-xs text-gray-500">Using your verified account phone number.</p>
+                  <p className="mt-1 text-[10px] sm:text-xs text-gray-500">Using your verified account phone number.</p>
                 )}
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiCalendar className="w-4 h-4" /> Age *
+                <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                  <FiCalendar className="w-3 h-3 sm:w-4 sm:h-4" /> Age *
                 </label>
                 <input
                   type="number"
@@ -337,21 +337,21 @@ const RecruitmentApplication = () => {
                   min="18"
                   max="100"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none transition-all"
                   placeholder="Enter your age"
                 />
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiBriefcase className="w-4 h-4" /> Current Role *
+                <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                  <FiBriefcase className="w-3 h-3 sm:w-4 sm:h-4" /> Current Role *
                 </label>
                 <select
                   name="currentRole"
                   value={form.currentRole}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none transition-all"
                 >
                   <option value="">Select role</option>
                   <option value="school-teacher">School Teacher</option>
@@ -360,8 +360,8 @@ const RecruitmentApplication = () => {
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiBook className="w-4 h-4" /> Institution Name *
+                <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                  <FiBook className="w-3 h-3 sm:w-4 sm:h-4" /> Institution Name *
                 </label>
                 <input
                   type="text"
@@ -369,14 +369,14 @@ const RecruitmentApplication = () => {
                   value={form.institutionName}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none transition-all"
                   placeholder="Your school/college name"
                 />
               </div>
 
               <div>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                  <FiAward className="w-4 h-4" /> Years of Experience *
+                <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                  <FiAward className="w-3 h-3 sm:w-4 sm:h-4" /> Years of Experience *
                 </label>
                 <input
                   type="number"
@@ -386,7 +386,7 @@ const RecruitmentApplication = () => {
                   min="0"
                   step="0.5"
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none transition-all"
                   placeholder="E.g., 5 or 5.5"
                 />
               </div>
@@ -394,14 +394,14 @@ const RecruitmentApplication = () => {
 
             {/* Classes Selection */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">
+              <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 block">
                 Select Classes/Courses * ({form.selectedClasses.length} selected)
               </label>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setClassDropdownOpen((open) => !open)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full flex items-center justify-between px-3 py-2 sm:px-4 sm:py-2.5 border border-gray-300 rounded-lg bg-white text-xs sm:text-sm text-gray-700 hover:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900"
                 >
                   <span className="truncate">
                     {form.selectedClasses.length === 0
@@ -415,14 +415,14 @@ const RecruitmentApplication = () => {
                 </button>
 
                 {classDropdownOpen && (
-                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto">
                     {classOptions.length === 0 ? (
-                      <div className="px-4 py-2 text-sm text-gray-500">Loading classes...</div>
+                      <div className="px-3 py-2 text-xs sm:text-sm text-gray-500">Loading classes...</div>
                     ) : (
                       classOptions.map((cls) => (
                         <label
                           key={cls}
-                          className="flex items-center gap-2 px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                          className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 hover:bg-blue-50 cursor-pointer text-xs sm:text-sm"
                         >
                           <input
                             type="checkbox"
@@ -441,10 +441,10 @@ const RecruitmentApplication = () => {
 
             {/* Subjects Selection */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">
+              <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 block">
                 Select Subjects * ({form.selectedSubjects.length} selected)
                 {form.selectedClasses.length > 0 && (
-                  <span className="text-xs text-gray-500 font-normal ml-2">
+                  <span className="text-[10px] sm:text-xs text-gray-500 font-normal ml-1 sm:ml-2">
                     (filtered by selected classes)
                   </span>
                 )}
@@ -453,7 +453,7 @@ const RecruitmentApplication = () => {
                 <button
                   type="button"
                   onClick={() => setSubjectDropdownOpen((open) => !open)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full flex items-center justify-between px-3 py-2 sm:px-4 sm:py-2.5 border border-gray-300 rounded-lg bg-white text-xs sm:text-sm text-gray-700 hover:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900"
                   disabled={form.selectedClasses.length === 0}
                 >
                   <span className="truncate">
@@ -472,20 +472,20 @@ const RecruitmentApplication = () => {
                 </button>
 
                 {subjectDropdownOpen && (
-                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto">
                     {form.selectedClasses.length === 0 ? (
-                      <div className="px-4 py-2 text-sm text-amber-600 bg-amber-50">
+                      <div className="px-3 py-2 text-xs sm:text-sm text-amber-600 bg-amber-50">
                         Please select at least one class first
                       </div>
                     ) : filteredSubjects.length === 0 ? (
-                      <div className="px-4 py-2 text-sm text-gray-500">
+                      <div className="px-3 py-2 text-xs sm:text-sm text-gray-500">
                         No subjects found for selected classes
                       </div>
                     ) : (
                       filteredSubjects.map((subj) => (
                         <label
                           key={subj}
-                          className="flex items-center gap-2 px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                          className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 hover:bg-blue-50 cursor-pointer text-xs sm:text-sm"
                         >
                           <input
                             type="checkbox"
@@ -503,14 +503,14 @@ const RecruitmentApplication = () => {
             </div>
             {/* Degrees Selection */}
             <div>
-              <label className="text-sm font-semibold text-gray-700 mb-2 block">
+              <label className="text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2 block">
                 Select Degrees * ({form.selectedDegrees.length} selected)
               </label>
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setDegreeDropdownOpen((open) => !open)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-sm text-gray-700 hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full flex items-center justify-between px-3 py-2 sm:px-4 sm:py-2.5 border border-gray-300 rounded-lg bg-white text-xs sm:text-sm text-gray-700 hover:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900"
                 >
                   <span className="truncate">
                     {degreeOptions.length === 0
@@ -526,14 +526,14 @@ const RecruitmentApplication = () => {
                 </button>
 
                 {degreeDropdownOpen && (
-                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 sm:max-h-60 overflow-y-auto">
                     {degreeOptions.length === 0 ? (
-                      <div className="px-4 py-2 text-sm text-gray-500">No degrees configured</div>
+                      <div className="px-3 py-2 text-xs sm:text-sm text-gray-500">No degrees configured</div>
                     ) : (
                       degreeOptions.map((deg) => (
                         <label
                           key={deg}
-                          className="flex items-center gap-2 px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                          className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 hover:bg-blue-50 cursor-pointer text-xs sm:text-sm"
                         >
                           <input
                             type="checkbox"
@@ -551,23 +551,23 @@ const RecruitmentApplication = () => {
             </div>
 
             {/* File Uploads */}
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-4">
               {/* Per-degree certificate uploads */}
               {form.selectedDegrees.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   {form.selectedDegrees.map((deg) => (
                     <div key={deg}>
-                      <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                        <FiUpload className="w-4 h-4" /> {deg} Certificate (PDF) *
+                      <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                        <FiUpload className="w-3 h-3 sm:w-4 sm:h-4" /> {deg} Certificate (PDF) *
                       </label>
                       <input
                         type="file"
                         accept=".pdf"
                         onChange={(e) => handleDegreeFileChange(deg, e.target.files && e.target.files[0])}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-semibold hover:file:bg-blue-100"
+                        className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none transition-all file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-2 sm:file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-900 file:font-semibold file:text-[10px] sm:file:text-xs hover:file:bg-blue-100"
                       />
                       {form.degreeCertificates[deg] && (
-                        <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                        <p className="mt-1 text-[10px] sm:text-xs text-green-600 flex items-center gap-1">
                           <FiCheck className="w-3 h-3" /> {form.degreeCertificates[deg].name}
                         </p>
                       )}
@@ -577,10 +577,10 @@ const RecruitmentApplication = () => {
               )}
 
               {/* Proof of experience */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                    <FiUpload className="w-4 h-4" /> Proof of Employement (PDF) *
+                  <label className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                    <FiUpload className="w-3 h-3 sm:w-4 sm:h-4" /> Proof of Employment (PDF) *
                   </label>
                   <input
                     type="file"
@@ -588,10 +588,10 @@ const RecruitmentApplication = () => {
                     accept=".pdf"
                     onChange={handleFileChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 file:font-semibold hover:file:bg-blue-100"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none transition-all file:mr-2 sm:file:mr-4 file:py-1.5 sm:file:py-2 file:px-2 sm:file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-900 file:font-semibold file:text-[10px] sm:file:text-xs hover:file:bg-blue-100"
                   />
                   {form.proofOfExperience && (
-                    <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                    <p className="mt-1 text-[10px] sm:text-xs text-green-600 flex items-center gap-1">
                       <FiCheck className="w-3 h-3" /> {form.proofOfExperience.name}
                     </p>
                   )}
@@ -603,43 +603,43 @@ const RecruitmentApplication = () => {
 
             {/* Messages */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                <FiX className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-800">{error}</p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+                <FiX className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 shrink-0 mt-0.5" />
+                <p className="text-xs sm:text-sm text-red-800">{error}</p>
               </div>
             )}
 
             {message && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
-                <FiCheck className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-green-800">{message}</p>
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+                <FiCheck className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 shrink-0 mt-0.5" />
+                <p className="text-xs sm:text-sm text-green-800">{message}</p>
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 sm:pt-4 border-t border-gray-200">
               <button
                 type="button"
                 onClick={() => navigate('/')}
                 disabled={loading}
-                className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="px-4 py-2 sm:px-6 sm:py-2.5 border border-gray-300 rounded-lg text-xs sm:text-sm text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                className="px-5 py-2 sm:px-8 sm:py-2.5 bg-gradient-to-r from-blue-800 to-blue-900 text-white rounded-lg font-semibold text-xs sm:text-sm hover:from-blue-900 hover:to-blue-950 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading ? (
                   <>
-                    <FiLoader className="w-5 h-5 animate-spin" />
-                    Submitting...
+                    <FiLoader className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                    <span>Submitting...</span>
                   </>
                 ) : (
                   <>
-                    <FiCheck className="w-5 h-5" />
-                    Submit Application
+                    <FiCheck className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Submit Application</span>
                   </>
                 )}
               </button>

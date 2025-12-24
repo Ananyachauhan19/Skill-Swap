@@ -15,6 +15,7 @@ import {
   FaChevronDown,
   FaArrowLeft,
 } from "react-icons/fa";
+import { MdReport } from "react-icons/md";
 import { useNavigate, useParams } from "react-router-dom";
 import ContributionCalendar from "../myprofile/ContributionCalendar";
 import Chat from "../../components/Chat";
@@ -487,6 +488,30 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 <span className="text-xs text-gray-600">Not added yet</span>
               )}
             </div>
+
+            {/* Report Button */}
+            <div className="mb-5">
+              <button
+                className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow"
+                onClick={() => {
+                  if (!profile) return;
+                  navigate('/report', {
+                    state: {
+                      reportedUser: {
+                        _id: profile._id,
+                        username: profile.username,
+                        fullName: profile.fullName,
+                        email: profile.email,
+                      },
+                    },
+                  });
+                }}
+                title="Report this profile"
+              >
+                <MdReport className="text-lg" />
+                <span>Report User</span>
+              </button>
+            </div>
           </div>
         </aside>
 
@@ -650,25 +675,6 @@ const SideBarPublic = ({ username, setNotFound }) => {
                           Message
                         </button>
                       )}
-                      <button
-                        className="border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 px-6 sm:px-8 py-2 rounded-lg text-sm font-medium"
-                        onClick={() => {
-                          if (!profile) return;
-                          navigate('/report', {
-                            state: {
-                              reportedUser: {
-                                _id: profile._id,
-                                username: profile.username,
-                                fullName: profile.fullName,
-                                email: profile.email,
-                              },
-                            },
-                          });
-                        }}
-                        title="Report this profile"
-                      >
-                        Report
-                      </button>
                     </div>
                   </div>
                 </>
