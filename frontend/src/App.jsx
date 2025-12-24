@@ -34,8 +34,6 @@ import AccountSettings from './user/AccountSettings';
 import privateProfileRoutes from './user/privateProfile/privateProfileRoutes';
 import PrivateProfile from './user/PrivateProfile';
 import PublicProfile from './user/PublicProfile';
-import publicProfileRoutes from './user/publicProfile/publicProfileRoutes';
-import StartSkillSwap from './user/StartSkillSwap';
 import SessionRequests from './user/SessionRequests';
 import JoinSession from './user/JoinSession.jsx';
 import InterviewCallPage from './components/InterviewCallPage';
@@ -44,7 +42,6 @@ import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
 import CoinsHistory from './user/CoinsHistory';
 import Blog from './user/company/Blog';
-import SearchPage from './user/SearchPage';
 import AdminPanel from './admin/adminpanel';
 import AdminRoute from './routes/AdminRoute';
 import Applications from './admin/Applications.jsx';
@@ -121,11 +118,9 @@ const appRoutes = [
   { path: '/pro', element: <ProtectedRoute><GoPro /></ProtectedRoute> },
   { path: '/recruitment-application', element: <ProtectedRoute><RecruitmentApplication /></ProtectedRoute> },
   { path: '/accountSettings', element: <ProtectedRoute><AccountSettings /></ProtectedRoute> },
-  { path: '/StartSkillSwap', element: <ProtectedRoute><StartSkillSwap /></ProtectedRoute> },
   { path: '/report', element: <ProtectedRoute><ReportPage /></ProtectedRoute> },
   { path: '/teaching-history', element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> },
   { path: '/blog', element: <ProtectedRoute><Blog /></ProtectedRoute> },
-  { path: '/search', element: <ProtectedRoute><SearchPage /></ProtectedRoute> },
   {
     path: '/employee',
     element: <EmployeeRoute />,
