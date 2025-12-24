@@ -8,6 +8,27 @@ const InterviewRequest = require('./models/InterviewRequest');
 const { trackActivity, ACTIVITY_TYPES } = require('./utils/contributions');
 const { sendMail } = require('./utils/sendMail');
 const T = require('./utils/emailTemplates');
+const supabase = require('./utils/supabaseClient');
+
+// Helper: derive bucket + path from a public Supabase Storage URL
+function parseSupabasePublicUrl(publicUrl) {
+  try {
+    if (!publicUrl) return null;
+    const url = new URL(publicUrl);
+    const marker = '/storage/v1/object/public/';
+    const idx = url.pathname.indexOf(marker);
+    if (idx === -1) return null;
+    const after = url.pathname.slice(idx + marker.length); // e.g. "questions/userId/file.jpg"
+    const firstSlash = after.indexOf('/');
+    if (firstSlash === -1) return null;
+    const bucket = after.slice(0, firstSlash);
+    const path = after.slice(firstSlash + 1);
+    if (!bucket || !path) return null;
+    return { bucket, path };
+  } catch {
+    return null;
+  }
+}
 
 module.exports = (io) => {
   // Store session rooms
@@ -1363,10 +1384,37 @@ module.exports = (io) => {
               console.error('[Session] Failed to track session completion contributions:', err);
             }
           }
+          // Legacy Session-based calls do not store question images
           return;
         }
 
-        // 2) If no Session found, treat it as an InterviewRequest-based call
+        // 2) If this is a one-on-one SessionRequest-based room, clean up any stored question image
+        const sr = await SessionRequest.findById(sessionId).select('questionImageUrl');
+        if (sr) {
+          if (sr.questionImageUrl) {
+            try {
+              const parsed = parseSupabasePublicUrl(sr.questionImageUrl);
+              if (parsed) {
+                const { error: delErr } = await supabase.storage
+                  .from(parsed.bucket)
+                  .remove([parsed.path]);
+                if (delErr) {
+                  console.error('[Session] Failed to delete question image from Supabase:', delErr.message || delErr);
+                } else {
+                  console.log('[Session] Deleted question image from Supabase for session', sessionId);
+                }
+              }
+            } catch (e) {
+              console.error('[Session] Error while cleaning up question image for session', sessionId, e);
+            }
+            // Clear URL so we do not try to delete again
+            sr.questionImageUrl = '';
+            await sr.save().catch(() => {});
+          }
+          return;
+        }
+
+        // 3) If no Session found, treat it as an InterviewRequest-based call
         const interview = await InterviewRequest.findById(sessionId)
           .populate('requester', '_id')
           .populate('assignedInterviewer', '_id');

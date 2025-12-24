@@ -301,7 +301,7 @@ const Career = () => {
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-center shadow-lg border border-gray-200 hover:border-blue-900 hover:shadow-xl transition-all duration-300">
+                className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 text-center shadow-lg border border-gray-200 hover:border-blue-900 hover:shadow-xl transition-all duration-300"
               >
                 <div className="inline-flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-blue-100 text-blue-900 text-xl sm:text-2xl mb-3 sm:mb-4">
                   {value.icon}
