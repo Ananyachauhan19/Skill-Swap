@@ -242,7 +242,7 @@ const GoPro = () => {
               <p className="text-gray-500">Check back soon for new offers!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 items-start">
               {packages.map((pkg, idx) => {
                 const isGolden = pkg.type === 'Golden' || pkg.type === 'ONLY_GOLDEN';
                 const isSilver = pkg.type === 'Silver' || pkg.type === 'ONLY_SILVER';
@@ -324,7 +324,7 @@ const GoPro = () => {
                       )}
                       
                       {/* Card Content */}
-                      <div className={`flex flex-col flex-1 p-3 sm:p-4 md:p-5 ${isMostPopular ? 'pt-8 sm:pt-10' : 'pt-3 sm:pt-4'}`}>
+                      <div className={`flex flex-col flex-1 p-4 sm:p-5 ${isMostPopular ? 'pt-9 sm:pt-11' : 'pt-4 sm:pt-5'}`}>
                         {/* Package Type Badge */}
                         <div className="flex items-center justify-between mb-2 sm:mb-3">
                           <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide text-white shadow-md ${colors.badge}`}>
@@ -348,20 +348,20 @@ const GoPro = () => {
                         </div>
 
                         {/* Package Name & Description */}
-                        <div className="flex-grow">
-                          <h3 className="text-sm sm:text-base md:text-lg font-extrabold text-gray-900 mb-1 sm:mb-2 leading-tight">{pkg.name || 'Package'}</h3>
-                          <p className="text-gray-600 text-[10px] sm:text-xs leading-relaxed h-8 sm:h-10 overflow-hidden">{pkg.description || 'Skill coins package'}</p>
+                        <div className="flex-grow mb-3">
+                          <h3 className="text-base sm:text-lg font-extrabold text-gray-900 mb-2 leading-tight">{pkg.name || 'Package'}</h3>
+                          <p className="text-gray-600 text-xs leading-relaxed line-clamp-2">{pkg.description || 'Skill coins package'}</p>
                         </div>
 
                         {/* Pricing */}
-                        <div className="my-3 sm:my-4 py-2 sm:py-3 border-y border-gray-100">
-                          <div className="flex items-baseline gap-1.5 mb-1">
-                            <span className="text-xl sm:text-2xl md:text-3xl font-black text-gray-900">₹{displayPrice}</span>
+                        <div className="my-3 py-3 border-y border-gray-100">
+                          <div className="flex items-baseline gap-2 mb-2">
+                            <span className="text-2xl sm:text-3xl font-black text-gray-900">₹{displayPrice}</span>
                             {displayOriginalPrice && displayOriginalPrice > displayPrice && (
                               <span className="text-xs sm:text-sm text-gray-400 line-through font-medium">₹{displayOriginalPrice}</span>
                             )}
                           </div>
-                          <div className={`inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-semibold ${colors.iconBg} ${colors.coinText}`}>
+                          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold ${colors.iconBg} ${colors.coinText}`}>
                             <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="currentColor" viewBox="0 0 20 20">
                               <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
@@ -386,7 +386,7 @@ const GoPro = () => {
                           whileTap={{ scale: 0.98 }}
                           onClick={() => handlePurchase(pkg._id)}
                           disabled={purchaseLoading && selectedPackageId === pkg._id}
-                          className={`w-full py-2 sm:py-2.5 rounded-lg font-bold text-xs sm:text-sm transition-all duration-300 shadow-md hover:shadow-lg
+                          className={`w-full py-3 rounded-lg font-bold text-sm transition-all duration-300 shadow-md hover:shadow-lg
                             ${colors.buttonBg}
                             text-white disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
