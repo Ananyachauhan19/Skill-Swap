@@ -48,9 +48,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
 
 
   const carouselImages = [
-     "/assets/interview-illustration.webp",
-    "/assets/expert-connect-illustration.webp",
-    "/assets/skillswap-hero.webp",
+     "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589371/webimages/interview-illustration.png",
+    "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589368/webimages/expert-connect-illustration.png",
+    "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589376/webimages/skillswap-hero.png",
   ];
   const extendedImages = [...carouselImages, carouselImages[0]]; // Append first image for seamless loop
 
@@ -237,7 +237,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
           >
             <div className="absolute top-3 left-3 z-30">
               <img
-                src="/assets/skillswap-logo.webp"
+                src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png"
                 alt="SkillSwap Logo"
                 className="h-7 lg:h-8 w-auto"
               />

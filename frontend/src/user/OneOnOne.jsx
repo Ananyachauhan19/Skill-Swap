@@ -161,7 +161,7 @@ const OneOnOne = () => {
   <div className="relative w-full max-w-[480px] mx-auto scale-[1.32]">
     <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
     <img
-      src="/assets/expert-connect-illustration.webp"
+      src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589368/webimages/expert-connect-illustration.png"
       alt="Expert Connect"
       className="relative w-full h-auto object-contain drop-shadow-2xl"
     />

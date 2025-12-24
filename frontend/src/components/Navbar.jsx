@@ -895,7 +895,7 @@ const Navbar = () => {
             onClick={() => navigate('/')}
           >
             <img
-              src="/assets/skillswap-logo.webp"
+              src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png"
               alt="SkillSwapHub Logo"
               className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 object-contain rounded-full shadow-md border-2 border-blue-900"
             />

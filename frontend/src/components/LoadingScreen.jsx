@@ -7,7 +7,7 @@ const LoadingScreen = () => {
         {/* Logo container with spinner */}
         <div className="relative w-20 h-20 flex items-center justify-center">
           <img
-            src="/assets/skillswap-logo.webp"
+            src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png"
             alt="SkillSwap Logo"
             className="w-12 h-12 object-contain drop-shadow-md z-10"
           />

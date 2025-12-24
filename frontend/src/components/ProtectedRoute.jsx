@@ -10,7 +10,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
       <div className="fixed inset-0 flex items-center justify-center bg-white z-40">
         <div className="relative w-32 h-32 flex items-center justify-center">
           <img
-            src="/assets/skillswap-logo.webp"
+            src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png"
             alt="SkillSwap Logo"
             className="w-20 h-20 object-contain drop-shadow"
           />

@@ -204,7 +204,7 @@ const Footer = () => {
                     </defs>
                   </svg>
                   <img
-                    src="/assets/skillswap-logo.webp"
+                    src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png"
                     alt="SkillSwapHub Logo"
                     className="h-12 w-12 object-contain absolute top-2 left-2"
                   />

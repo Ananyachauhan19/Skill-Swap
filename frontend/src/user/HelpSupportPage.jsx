@@ -140,7 +140,7 @@ const HelpSupportPage = () => {
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <div className="p-6 sm:p-8">
               <div className="flex items-center mb-6">
-                <img src="/assets/skillswap-logo.webp" alt="SkillSwapHub" className="h-8 mr-3" />
+                <img src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png" alt="SkillSwapHub" className="h-8 mr-3" />
                 <h2 className="text-xl sm:text-2xl font-bold text-gray-800">How SkillSwapHub Works</h2>
               </div>
               

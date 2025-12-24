@@ -111,9 +111,9 @@ const Discuss = () => {
           </div>
           <div className="flex-1 mt-6 md:mt-0">
             <picture>
-              <source srcSet="/assets/group-discussion-illustration.webp" type="image/webp" />
+              <source srcSet="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589369/webimages/group-discussion-illustration.png" type="image/webp" />
               <img
-                src="/assets/group-discussion-illustration.webp"
+                src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589369/webimages/group-discussion-illustration.png"
                 alt="Group Discussion Illustration"
                 className="w-full max-w-xs sm:max-w-md mx-auto object-contain"
               />

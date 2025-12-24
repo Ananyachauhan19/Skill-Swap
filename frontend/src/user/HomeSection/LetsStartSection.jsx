@@ -29,7 +29,7 @@ const LetsStartSection = () => {
               className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-8 backdrop-blur-sm"
             >
               <img
-                src="/assets/skillswap-logo.webp"
+                src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png"
                 alt="SkillSwap Logo"
                 className="w-10 h-10 object-contain drop-shadow-sm"
               />

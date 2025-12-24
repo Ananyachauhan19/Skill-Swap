@@ -13,7 +13,7 @@ const ExploreOpportunitiesSection = () => {
       icon: <FaUserFriends />,
       color: 'blue',
      description: 'Join interactive live sessions hosted by experts in real-time.',
-      backgroundImage: '/assets/exploreopportunities/livesession.webp'
+      backgroundImage: 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766589381/webimages/exploreopportunities/livesession.jpeg'
     },
     {
       title: 'One on One Sessions',
@@ -21,7 +21,7 @@ const ExploreOpportunitiesSection = () => {
       icon: <FaVideo />,
       color: 'purple',
       link: '/one-on-one',
-      backgroundImage: '/assets/exploreopportunities/peertopeer.webp'
+      backgroundImage: 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766589382/webimages/exploreopportunities/peertopeer.jpeg'
     },
     {
       title: 'Mock Interview Practice',
@@ -29,7 +29,7 @@ const ExploreOpportunitiesSection = () => {
       icon: <FaBriefcase />,
       color: 'green',
       link: '/interview',
-       backgroundImage: '/assets/exploreopportunities/mockinterview.webp'
+       backgroundImage: 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766589381/webimages/exploreopportunities/mockinterview.jpeg'
     }
   ];
 

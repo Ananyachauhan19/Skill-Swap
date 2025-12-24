@@ -1534,7 +1534,7 @@ const Interview = () => {
               <div className="relative w-full max-w-[300px] sm:max-w-[350px] lg:max-w-[450px] mx-auto scale-90 sm:scale-100 lg:scale-[1.25]">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
                 <img
-                  src="/assets/interview-illustration.webp"
+                  src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589371/webimages/interview-illustration.png"
                   alt="Mock Interview"
                   className="relative w-full h-auto object-contain drop-shadow-2xl"
                 />

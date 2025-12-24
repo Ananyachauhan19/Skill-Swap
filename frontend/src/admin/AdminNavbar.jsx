@@ -24,7 +24,7 @@ const AdminNavbar = () => {
           onClick={() => navigate('/admin/dashboard')} 
           className="flex items-center gap-1.5 sm:gap-2 font-semibold text-blue-700 hover:text-blue-800 focus:outline-none transition"
         >
-          <img src="/assets/skillswap-logo.webp" alt="SkillSwap" className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow" />
+          <img src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png" alt="SkillSwap" className="w-6 h-6 sm:w-8 sm:h-8 drop-shadow" />
           <span className="text-base sm:text-lg tracking-wide hidden xs:inline">Admin Console</span>
         </button>
         

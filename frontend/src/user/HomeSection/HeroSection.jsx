@@ -233,9 +233,9 @@ const HeroSection = ({ exploreRef }) => {
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
           >
             <picture>
-              <source srcSet="/assets/skillswap-hero.webp" type="image/webp" />
+              <source srcSet="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589376/webimages/skillswap-hero.png" type="image/webp" />
               <img
-                src="/assets/skillswap-hero.png"
+                src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589376/webimages/skillswap-hero.png"
                 alt="SkillSwap Hero Image"
                 className="w-full h-auto object-contain scale-[1.15] hover:scale-[1.2] transition-transform duration-300"
               />

@@ -44,7 +44,7 @@ const EmployeeSidebar = ({ collapsed, setCollapsed }) => {
       <div className="h-16 border-b border-gray-200 flex items-center justify-between px-4">
         {!collapsed && (
           <div className="flex items-center gap-2">
-            <img src="/assets/skillswap-logo.webp" alt="SkillSwap" className="w-8 h-8" />
+            <img src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png" alt="SkillSwap" className="w-8 h-8" />
             <span className="font-bold text-blue-700 text-lg">Employee</span>
           </div>
         )}

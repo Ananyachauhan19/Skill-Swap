@@ -31,9 +31,9 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const [isEmployeeOtp, setIsEmployeeOtp] = useState(false);
 
   const carouselImages = [
-    "/assets/interview-illustration.webp",
-    "/assets/expert-connect-illustration.webp",
-    "/assets/skillswap-hero.webp",
+    "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589371/webimages/interview-illustration.png",
+    "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589368/webimages/expert-connect-illustration.png",
+    "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589376/webimages/skillswap-hero.png",
   ];
   // Duplicate images for seamless infinite loop
   const extendedImages = [...carouselImages, carouselImages[0]];
@@ -210,7 +210,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
             borderBottomRightRadius: "40px",
           }}>
             <div className="absolute top-4 left-4 z-30">
-              <img src="/assets/skillswap-logo.webp" alt="SkillSwap Logo" className="h-6 sm:h-7 md:h-8 w-auto" />
+              <img src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png" alt="SkillSwap Logo" className="h-6 sm:h-7 md:h-8 w-auto" />
             </div>
 
             <div className="absolute inset-0 flex items-center justify-center z-20 p-8">

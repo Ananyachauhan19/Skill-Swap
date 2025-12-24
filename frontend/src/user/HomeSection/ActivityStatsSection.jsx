@@ -50,7 +50,7 @@ const ActivityStatsSection = () => {
       icon: <FaUsers className="text-white" />,
       color: 'blue',
       description: 'Join our growing community',
-      backgroundImage: '/assets/activesession/activeusers.webp'
+      backgroundImage: 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766589380/webimages/activesession/activeusers.jpeg'
     },
     {
       id: 2,
@@ -59,7 +59,7 @@ const ActivityStatsSection = () => {
       icon: <FaChalkboardTeacher className="text-white" />,
       color: 'purple',
       description: 'Learn from the best',
-      backgroundImage: '/assets/activesession/availableexpert.webp'
+      backgroundImage: 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766589380/webimages/activesession/availableexpert.jpeg'
     },
     {
       id: 3,
@@ -68,7 +68,7 @@ const ActivityStatsSection = () => {
       icon: <FaUsers className="text-white" />,
       color: 'indigo',
       description: 'Practice with professionals',
-      backgroundImage: '/assets/activesession/availableexpert.webp'
+      backgroundImage: 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766589380/webimages/activesession/availableexpert.jpeg'
     },
     {
       id: 4,
@@ -77,7 +77,7 @@ const ActivityStatsSection = () => {
       icon: <FaLayerGroup className="text-white" />,
       color: 'green',
       description: 'Knowledge shared daily',
-      backgroundImage: '/assets/activesession/completesession.webp'
+      backgroundImage: 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766589381/webimages/activesession/completesession.jpeg'
     }
   ];
 

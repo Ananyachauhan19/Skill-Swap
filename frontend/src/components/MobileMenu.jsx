@@ -52,7 +52,7 @@ const MobileMenu = ({
       <div className="flex items-center justify-between px-4 py-4 border-b-2 border-blue-200 bg-gradient-to-r from-blue-50 to-white flex-shrink-0 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center gap-2">
           <img
-            src="/assets/skillswap-logo.webp"
+            src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png"
             alt="SkillSwapHub Logo"
             className="h-8 w-8 object-cover rounded-full shadow border-2 border-blue-900 flex-shrink-0"
           />

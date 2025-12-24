@@ -662,31 +662,31 @@ const About = () => {
                           {
                             name: "Abhishek Kumar",
                             role: "Founder & CEO",
-                            image: "/assets/team/abhishek.jpeg",
+                            image: "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589383/webimages/team/abhishek.jpeg",
                             description: "Abhishek is the visionary behind SkillSwap Hub. With a passion for technology, education, and innovation, Abhishek drives the platform's strategy, vision, and growth. A coder, problem-solver, and lifelong learner, he ensures that the platform evolves with the needs of students and tutors, combining technology with practical learning solutions."
                           },
                           {
                             name: "Ananya Chauhan",
                             role: "Co-Founder",
-                            image: "/assets/team/Ananya.jpg",
+                            image: "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589384/webimages/team/Ananya.jpg",
                             description: "Ananya leads community engagement. Her expertise in growth strategies, and communication ensures that SkillSwap Hub reaches learners and tutors globally. She is passionate about building inclusive communities and helping users unlock their full potential."
                           },
                           {
                             name: "Anubhav Dhyani",
                             role: "CTO",
-                            image: "/assets/team/anubhav.jpeg",
+                            image: "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589383/webimages/team/anubhav.jpeg",
                             description: "Anubhav heads the technology and product development. With a strong background in software development, AI, and system architecture, he ensures that SkillSwap Hub is scalable, secure, and feature-rich, providing a seamless experience to every user."
                           },
                           {
                             name: "Vivek",
                             role: "Co-Founder",
-                            image: "/assets/team/vivek.jpeg",
+                            image: "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589384/webimages/team/vivek.jpeg",
                             description: "Vivek focuses on platform operations and user experience. His attention to detail and dedication ensures that every session, SkillCoin transaction, and gamification feature works flawlessly, creating a smooth experience for all learners and tutors."
                           },
                           {
                             name: "Akshit",
                             role: "Co-Founder",
-                            image: "/assets/team/akshit.jpeg",
+                            image: "https://res.cloudinary.com/dbltazdsa/image/upload/v1766589383/webimages/team/akshit.jpeg",
                             description: "Akshit brings his expertise in data, analytics, and innovation to optimize platform features. His insights help in improving AI matchmaking, gamification, and content recommendations, making the learning process smarter and more personalized."
                           }
                         ].map((member, index) => (

@@ -429,7 +429,7 @@ const Sessions = () => {
             </motion.p>
           </div>
           <motion.img
-            src="/assets/session.webp"
+            src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589372/webimages/session.png"
             alt="Learning Session"
             className="w-full max-w-[280px] sm:max-w-xs md:max-w-md lg:max-w-lg mx-auto object-contain"
             initial={{ opacity: 0, x: 60 }}
