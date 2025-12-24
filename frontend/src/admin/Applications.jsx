@@ -76,9 +76,8 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
 
   const selected = useMemo(() => {
     const app = applications.find(a => a._id === selectedId);
-    if (app && !drawerOpen) setDrawerOpen(true);
     return app;
-  }, [applications, selectedId, drawerOpen]);
+  }, [applications, selectedId]);
 
   const fetchApps = async (q = {}) => {
     const effectiveCategory = q.category ?? category;
@@ -148,6 +147,12 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
   };
 
   useEffect(() => { fetchApps(); /* eslint-disable-next-line */ }, []);
+
+  // Clear selection when category changes
+  useEffect(() => {
+    setSelectedId(null);
+    setDrawerOpen(false);
+  }, [category]);
 
   // Re-fetch whenever filters change (admin & employee).
   // Admin mode uses a small debounce; employee mode fetches immediately.
@@ -337,9 +342,6 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
         ]
       : [
           { id: 'overview', label: 'Overview', icon: FiUser },
-          { id: 'education', label: 'Education', icon: FiBook },
-          { id: 'experience', label: 'Experience', icon: FiBriefcase },
-          { id: 'certificates', label: 'Certificates', icon: FiAward },
           { id: 'resume', label: 'Resume', icon: FiFileText },
         ];
 
@@ -403,7 +405,7 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
         </div>
 
         {/* Drawer Body */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-2 bg-gray-50">
           {detailTab === 'overview' && (
             <div className="space-y-4">
               <div className="bg-white rounded-lg p-4 border border-gray-200">
@@ -412,10 +414,6 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
                   <div className="flex items-center gap-2 text-gray-700">
                     <FiMail size={14} className="text-gray-400" />
                     <span>{user.email || '—'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <FiMapPin size={14} className="text-gray-400" />
-                    <span>{user.country || '—'}</span>
                   </div>
                 </div>
               </div>
@@ -435,6 +433,14 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
                     <div>
                       <span className="text-gray-500">Qualification:</span>{' '}
                       <span className="text-gray-900 font-medium">{selected.qualification || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Experience:</span>{' '}
+                      <span className="text-gray-900 font-medium">{selected.experience || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Total Past Interviews:</span>{' '}
+                      <span className="text-gray-900 font-medium">{selected.totalPastInterviews ?? '—'}</span>
                     </div>
                   </div>
                 </div>
@@ -653,9 +659,9 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
     <div className="flex flex-col h-full bg-gray-50">
       {/* Top Control Bar: shared filters; category tabs only for admin */}
       <div className="border-b border-gray-200 bg-white">
-        <div className="px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           {/* Left: title + category (admin only) */}
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
             <div>
               <h1 className="text-lg font-semibold text-gray-900">Applications</h1>
               <p className="text-xs text-gray-500">
@@ -782,14 +788,15 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
       </div>
 
       {/* Main Content Area - Two Column Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-h-0">
         {/* Applications List */}
         <div
           className={`flex-shrink-0 bg-gray-50 overflow-y-auto transition-all duration-300 ${
             drawerOpen ? 'w-[calc(100%-400px)]' : 'w-full'
           }`}
+          style={{ maxHeight: 'calc(100vh - 160px)' }}
         >
-          <div className={`p-6 ${viewMode === 'compact' ? 'space-y-2' : 'space-y-3'}`}>
+          <div className={`p-4 ${viewMode === 'compact' ? 'space-y-2' : 'space-y-3'}`}>
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
@@ -813,16 +820,15 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
           </div>
         </div>
 
-        {/* Sliding Detail Drawer */}
-        <div
-          className={`flex-shrink-0 bg-white border-l border-gray-200 shadow-lg transition-all duration-300 overflow-hidden ${
-            drawerOpen ? 'w-[400px]' : 'w-0'
-          }`}
-        >
-          {drawerOpen && (
-            <div className="h-full w-[400px]">{renderDrawerContent()}</div>
-          )}
-        </div>
+        {/* Side Drawer Panel - Only render when open */}
+        {drawerOpen && (
+          <div
+            className="flex-shrink-0 bg-white border-l border-gray-200 shadow-lg w-[400px] overflow-hidden"
+            style={{ maxHeight: 'calc(100vh - 160px)' }}
+          >
+            <div className="h-full w-[400px] flex flex-col overflow-hidden">{renderDrawerContent()}</div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,9 @@ const InterviewerApplication = require('../models/InterviewerApplication');
 const TutorApplication = require('../models/TutorApplication');
 const Package = require('../models/Package');
 const HelpMessage = require('../models/HelpMessage');
+const Report = require('../models/Report');
+const Employee = require('../models/Employee');
+const RecruitmentApplication = require('../models/RecruitmentApplication');
 
 // Helper: build date buckets for last N days
 function buildDateRange(days = 14, endDate) {
@@ -38,6 +41,9 @@ exports.getStats = async (req, res) => {
       pendingTutorApplications,
       totalPackages,
       pendingHelpRequests,
+      totalEmployees,
+      pendingRecruitmentApplications,
+      pendingReports,
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ socketId: { $exists: true, $ne: null } }),
@@ -56,6 +62,10 @@ exports.getStats = async (req, res) => {
       TutorApplication.countDocuments({ status: 'pending' }),
       Package.countDocuments({ isActive: true }),
       HelpMessage.countDocuments({ status: 'pending' }),
+      // Newly added metrics
+      Employee.countDocuments(), // employees hired
+      RecruitmentApplication.countDocuments({ status: 'pending' }),
+      Report.countDocuments({ resolved: false }),
     ]);
 
     // Expert users by role (teaching capability) - distinct from applications
@@ -80,6 +90,9 @@ exports.getStats = async (req, res) => {
         assignedInterviewRequests,
         totalPackages,
         pendingHelpRequests,
+        employeesHired: totalEmployees,
+        pendingEmployeeApplications: pendingRecruitmentApplications,
+        pendingReports,
       },
     });
   } catch (e) {
