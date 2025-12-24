@@ -730,60 +730,6 @@ const Users = () => {
                           </div>
                         </div>
 
-                        {/* Bio */}
-                        {userDetails.user.bio && (
-                          <div>
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                              Bio
-                            </h4>
-                            <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                              {userDetails.user.bio}
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Skills */}
-                        {((userDetails.user.skillsToTeach && userDetails.user.skillsToTeach.length > 0) ||
-                          (userDetails.user.skillsToLearn && userDetails.user.skillsToLearn.length > 0)) && (
-                          <div>
-                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-                              Skills
-                            </h4>
-                            {userDetails.user.skillsToTeach && userDetails.user.skillsToTeach.length > 0 && (
-                              <div className="mb-3">
-                                <div className="text-xs text-gray-600 mb-2">To Teach</div>
-                                <div className="flex flex-wrap gap-2">
-                                  {userDetails.user.skillsToTeach.map((skill, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full border border-purple-300"
-                                    >
-                                      {skill.class ? `${skill.class} • ` : ''}
-                                      {skill.subject} -{' '}
-                                      {skill.topic === 'ALL' ? 'ALL Topics' : skill.topic}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            {userDetails.user.skillsToLearn && userDetails.user.skillsToLearn.length > 0 && (
-                              <div>
-                                <div className="text-xs text-gray-600 mb-2">To Learn</div>
-                                <div className="flex flex-wrap gap-2">
-                                  {userDetails.user.skillsToLearn.map((skill, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full border border-blue-300"
-                                    >
-                                      {skill}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
                         {/* Reports */}
                         <div>
                           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
@@ -830,7 +776,23 @@ const Users = () => {
                             <p className="text-sm text-gray-500 italic">No reports against this user</p>
                           )}
                         </div>
+
+                        
+                        {/* Bio */}
+                        {userDetails.user.bio && (
+                          <div>
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                              Bio
+                            </h4>
+                            <p className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                              {userDetails.user.bio}
+                            </p>
+                          </div>
+                        )}
+                        
                       </div>
+
+                      
                     )}
 
                     {/* One-on-One Sessions Tab */}
