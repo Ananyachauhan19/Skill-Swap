@@ -184,15 +184,15 @@ exports.getUsers = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
     const dateBuckets = generateDateBuckets(start, end);
+    const now = new Date();
 
     // Summary
-    // All-time registered users; date filter only applies to newUsers/registrations
     const totalUsers = await User.countDocuments({});
     const newUsers = await User.countDocuments({ createdAt: { $gte: start, $lte: end } });
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const activeUsers = await User.countDocuments({ lastActivityAt: { $gte: thirtyDaysAgo } });
 
-    // Retention rate calculation
+    // Retention rate
     const usersFromPreviousPeriod = await User.countDocuments({
       createdAt: { $lt: start }
     });
@@ -238,7 +238,6 @@ exports.getUsers = async (req, res) => {
     ]);
 
     // Activity frequency
-    const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -251,6 +250,284 @@ exports.getUsers = async (req, res) => {
         { lastLogin: { $lt: oneMonthAgo } },
         { lastLogin: { $exists: false } }
       ]})
+    ]);
+
+    // 1. Role Engagement Matrix - actual behavior by role
+    const SessionRequest = require('../models/SessionRequest');
+    const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+    
+    const roleEngagement = await Promise.all(
+      ['learner', 'teacher', 'both'].map(async (role) => {
+        const usersInRole = await User.find({ role }).select('_id');
+        const userIds = usersInRole.map(u => u._id);
+
+        const [sessionsAttended, sessionsConducted, interviewsRequested, interviewsConducted] = await Promise.all([
+          SessionRequest.countDocuments({
+            requester: { $in: userIds },
+            status: 'completed',
+            createdAt: { $gte: start, $lte: end }
+          }),
+          SessionRequest.countDocuments({
+            tutor: { $in: userIds },
+            status: 'completed',
+            createdAt: { $gte: start, $lte: end }
+          }),
+          InterviewRequest.countDocuments({
+            requester: { $in: userIds },
+            createdAt: { $gte: start, $lte: end }
+          }),
+          InterviewRequest.countDocuments({
+            assignedInterviewer: { $in: userIds },
+            status: 'completed',
+            createdAt: { $gte: start, $lte: end }
+          })
+        ]);
+
+        return {
+          role,
+          userCount: userIds.length,
+          sessionsAttended,
+          sessionsConducted,
+          interviewsRequested,
+          interviewsConducted
+        };
+      })
+    );
+
+    // 2. User Conversion Funnel
+    const [registered, profileCompleted, firstSessionBooked, repeatUsers, tutorApproved, interviewerApproved] = await Promise.all([
+      User.countDocuments({ createdAt: { $gte: start, $lte: end } }),
+      User.countDocuments({
+        createdAt: { $gte: start, $lte: end },
+        skillsToLearn: { $exists: true, $ne: [] }
+      }),
+      User.aggregate([
+        { $match: { createdAt: { $gte: start, $lte: end } } },
+        {
+          $lookup: {
+            from: 'sessionrequests',
+            localField: '_id',
+            foreignField: 'requester',
+            as: 'sessions'
+          }
+        },
+        { $match: { 'sessions.0': { $exists: true } } },
+        { $count: 'count' }
+      ]).then(r => r[0]?.count || 0),
+      User.aggregate([
+        { $match: { createdAt: { $gte: start, $lte: end } } },
+        {
+          $lookup: {
+            from: 'sessionrequests',
+            localField: '_id',
+            foreignField: 'requester',
+            as: 'sessions'
+          }
+        },
+        { $match: { $expr: { $gte: [{ $size: '$sessions' }, 2] } } },
+        { $count: 'count' }
+      ]).then(r => r[0]?.count || 0),
+      User.countDocuments({
+        createdAt: { $gte: start, $lte: end },
+        isTutor: true
+      }),
+      ApprovedInterviewer.countDocuments({
+        createdAt: { $gte: start, $lte: end }
+      })
+    ]);
+
+    const conversionFunnel = [
+      { stage: 'Registered', count: registered },
+      { stage: 'Profile Completed', count: profileCompleted },
+      { stage: 'First Session', count: firstSessionBooked },
+      { stage: 'Repeat User', count: repeatUsers },
+      { stage: 'Tutor Approved', count: tutorApproved },
+      { stage: 'Interviewer Approved', count: interviewerApproved }
+    ];
+
+    // 3. Repeat vs One-Time Users
+    const userSegmentation = await User.aggregate([
+      {
+        $lookup: {
+          from: 'sessionrequests',
+          localField: '_id',
+          foreignField: 'requester',
+          as: 'sessions'
+        }
+      },
+      {
+        $addFields: {
+          sessionCount: { $size: '$sessions' }
+        }
+      },
+      {
+        $bucket: {
+          groupBy: '$sessionCount',
+          boundaries: [0, 1, 3, 999999],
+          default: 'power',
+          output: { count: { $sum: 1 } }
+        }
+      }
+    ]);
+
+    const oneTime = userSegmentation.find(s => s._id === 1)?.count || 0;
+    const repeat = userSegmentation.find(s => s._id === 3)?.count || 0;
+    const power = userSegmentation.find(s => s._id === 'power' || s._id >= 999999)?.count || 0;
+    const noActivity = userSegmentation.find(s => s._id === 0)?.count || 0;
+
+    // 4. Cross-Role Transitions
+    const roleTransitions = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $lte: end },
+          $or: [
+            { role: 'both' },
+            { isTutor: true },
+            { _id: { $in: (await ApprovedInterviewer.find({}).select('user')).map(a => a.user) } }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: {
+            isBoth: { $eq: ['$role', 'both'] },
+            isTutor: '$isTutor',
+            isInterviewer: { $cond: [{ $in: ['$_id', (await ApprovedInterviewer.find({}).select('user')).map(a => a.user)] }, true, false] }
+          },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const studentToTutor = roleTransitions.find(r => r._id.isTutor && !r._id.isBoth)?.count || 0;
+    const studentToBoth = roleTransitions.find(r => r._id.isBoth)?.count || 0;
+    const tutorToInterviewer = await ApprovedInterviewer.countDocuments({
+      user: { $in: (await User.find({ isTutor: true }).select('_id')).map(u => u._id) }
+    });
+
+    // 5. Time-Based Engagement Patterns
+    const timePatterns = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $project: {
+          hour: { $hour: { date: '$createdAt', timezone: 'UTC' } },
+          dayOfWeek: { $dayOfWeek: { date: '$createdAt', timezone: 'UTC' } }
+        }
+      },
+      {
+        $group: {
+          _id: { hour: '$hour', day: '$dayOfWeek' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 6. User Reliability & Quality Signals by role
+    const reliabilityMetrics = await Promise.all(
+      ['learner', 'teacher', 'both'].map(async (role) => {
+        const usersInRole = await User.find({ role }).select('_id');
+        const userIds = usersInRole.map(u => u._id);
+
+        const [total, completed, cancelled, noShow] = await Promise.all([
+          SessionRequest.countDocuments({
+            $or: [{ requester: { $in: userIds } }, { tutor: { $in: userIds } }],
+            createdAt: { $gte: start, $lte: end }
+          }),
+          SessionRequest.countDocuments({
+            $or: [{ requester: { $in: userIds } }, { tutor: { $in: userIds } }],
+            status: 'completed',
+            createdAt: { $gte: start, $lte: end }
+          }),
+          SessionRequest.countDocuments({
+            $or: [{ requester: { $in: userIds } }, { tutor: { $in: userIds } }],
+            status: 'cancelled',
+            createdAt: { $gte: start, $lte: end }
+          }),
+          SessionRequest.countDocuments({
+            $or: [{ requester: { $in: userIds } }, { tutor: { $in: userIds } }],
+            status: 'no-show',
+            createdAt: { $gte: start, $lte: end }
+          })
+        ]);
+
+        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        const cancellationRate = total > 0 ? Math.round((cancelled / total) * 100) : 0;
+        const noShowRate = total > 0 ? Math.round((noShow / total) * 100) : 0;
+
+        return {
+          role,
+          completionRate,
+          cancellationRate,
+          noShowRate,
+          total
+        };
+      })
+    );
+
+    // 7. New vs Established User Behavior
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const newUserIds = (await User.find({ createdAt: { $gte: sevenDaysAgo } }).select('_id')).map(u => u._id);
+    const establishedUserIds = (await User.find({ createdAt: { $lt: sevenDaysAgo } }).select('_id')).map(u => u._id);
+
+    const [newUserSessions, establishedUserSessions, newUserCancellations, establishedUserCancellations] = await Promise.all([
+      SessionRequest.countDocuments({
+        requester: { $in: newUserIds },
+        createdAt: { $gte: start, $lte: end }
+      }),
+      SessionRequest.countDocuments({
+        requester: { $in: establishedUserIds },
+        createdAt: { $gte: start, $lte: end }
+      }),
+      SessionRequest.countDocuments({
+        requester: { $in: newUserIds },
+        status: 'cancelled',
+        createdAt: { $gte: start, $lte: end }
+      }),
+      SessionRequest.countDocuments({
+        requester: { $in: establishedUserIds },
+        status: 'cancelled',
+        createdAt: { $gte: start, $lte: end }
+      })
+    ]);
+
+    // 8. Churn Risk Indicators
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const [inactiveUsers, highCancellationUsers] = await Promise.all([
+      User.countDocuments({
+        lastActivityAt: { $lt: fourteenDaysAgo },
+        createdAt: { $lt: fourteenDaysAgo }
+      }),
+      User.aggregate([
+        {
+          $lookup: {
+            from: 'sessionrequests',
+            localField: '_id',
+            foreignField: 'requester',
+            as: 'sessions'
+          }
+        },
+        {
+          $addFields: {
+            cancelledCount: {
+              $size: {
+                $filter: {
+                  input: '$sessions',
+                  as: 'session',
+                  cond: { $eq: ['$$session.status', 'cancelled'] }
+                }
+              }
+            },
+            totalCount: { $size: '$sessions' }
+          }
+        },
+        {
+          $match: {
+            totalCount: { $gte: 3 },
+            $expr: { $gte: [{ $divide: ['$cancelledCount', '$totalCount'] }, 0.5] }
+          }
+        },
+        { $count: 'count' }
+      ]).then(r => r[0]?.count || 0)
     ]);
 
     res.json({
@@ -267,7 +544,39 @@ exports.getUsers = async (req, res) => {
         { frequency: 'Weekly', count: weekly },
         { frequency: 'Monthly', count: monthly },
         { frequency: 'Inactive', count: inactive }
-      ]
+      ],
+      roleEngagement,
+      conversionFunnel,
+      userSegmentation: {
+        oneTime,
+        repeat,
+        power,
+        noActivity
+      },
+      roleTransitions: {
+        studentToTutor,
+        studentToBoth,
+        tutorToInterviewer
+      },
+      timePatterns,
+      reliabilityMetrics,
+      newVsEstablished: {
+        newUsers: {
+          sessions: newUserSessions,
+          cancellations: newUserCancellations,
+          cancellationRate: newUserSessions > 0 ? Math.round((newUserCancellations / newUserSessions) * 100) : 0
+        },
+        established: {
+          sessions: establishedUserSessions,
+          cancellations: establishedUserCancellations,
+          cancellationRate: establishedUserSessions > 0 ? Math.round((establishedUserCancellations / establishedUserSessions) * 100) : 0
+        }
+      },
+      churnRisk: {
+        inactiveUsers,
+        highCancellationUsers,
+        totalAtRisk: inactiveUsers + highCancellationUsers
+      }
     });
   } catch (error) {
     console.error('Analytics users error:', error);
