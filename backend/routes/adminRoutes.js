@@ -34,6 +34,7 @@ router.get('/analytics/interviews', analyticsController.getInterviews);
 router.get('/analytics/skills', analyticsController.getSkills);
 router.get('/analytics/rewards', analyticsController.getRewards);
 router.get('/analytics/reports', analyticsController.getReports);
+router.get('/analytics/visitors', analyticsController.getVisitorAnalytics);
 
 // Get all users with filtering
 router.get('/users', async (req, res) => {

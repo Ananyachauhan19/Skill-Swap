@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { sendOtpEmail } = require('../utils/sendMail');
 const { trackDailyLogin } = require('../utils/contributions');
 const DeviceSession = require('../models/DeviceSession');
+const AnonymousVisitor = require('../models/AnonymousVisitor');
 
 exports.register = async (req, res) => {
   const { firstName, lastName, email, phone, gender, password, username, role, skillsToTeach, skillsToLearn } = req.body;
@@ -19,6 +20,23 @@ exports.register = async (req, res) => {
     silverCoins: 100,
     goldCoins: 0,
   });
+
+  // Link current anonymous visitor session (if any) to this new user for conversion analytics
+  try {
+    const visitorId = req.cookies?.visitor_id;
+    if (visitorId) {
+      await AnonymousVisitor.findOneAndUpdate(
+        { visitorId, isConverted: false },
+        { 
+          isConverted: true, 
+          convertedUserId: user._id, 
+          convertedAt: new Date() 
+        }
+      );
+    }
+  } catch (e) {
+    console.error('[AnonymousVisitor] Failed to record conversion on register:', e.message || e);
+  }
 
   // Generate OTP for email verification
   const otp = Math.floor(100000 + Math.random() * 900000);
@@ -102,6 +120,23 @@ exports.verifyOtp = async (req, res) => {
     });
   } catch (error) {
     console.error('Error tracking daily login:', error);
+  }
+
+  // Mark anonymous visitor as converted if visitor_id cookie exists
+  try {
+    const visitorId = req.cookies?.visitor_id;
+    if (visitorId) {
+      await AnonymousVisitor.findOneAndUpdate(
+        { visitorId, isConverted: false },
+        { 
+          isConverted: true, 
+          convertedUserId: user._id, 
+          convertedAt: new Date() 
+        }
+      );
+    }
+  } catch (e) {
+    console.error('[AnonymousVisitor] Failed to record conversion on login:', e.message || e);
   }
 
   // Create a device session for this login

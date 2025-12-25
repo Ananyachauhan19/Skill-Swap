@@ -3,6 +3,7 @@ const Session = require('../models/Session');
 const InterviewRequest = require('../models/InterviewRequest');
 const Report = require('../models/Report');
 const Contribution = require('../models/Contribution');
+const AnonymousVisitor = require('../models/AnonymousVisitor');
 
 // Helper: Get date range based on query params
 function getDateRange(req) {
@@ -46,14 +47,28 @@ function generateDateBuckets(start, end) {
 exports.getOverview = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
+    const now = new Date();
     const dateBuckets = generateDateBuckets(start, end);
 
     // Summary stats
-    const [totalUsers, totalSessions, totalInterviews, activeUsers] = await Promise.all([
-      User.countDocuments({ createdAt: { $lte: end } }),
+    const [totalUsers, totalSessions, totalInterviews] = await Promise.all([
+      // All registered users on the platform (independent of date filter)
+      User.countDocuments({}),
       Session.countDocuments({ createdAt: { $gte: start, $lte: end } }),
-      InterviewRequest.countDocuments({ createdAt: { $gte: start, $lte: end } }),
-      User.countDocuments({ isOnline: true })
+      InterviewRequest.countDocuments({ createdAt: { $gte: start, $lte: end } })
+    ]);
+
+    // Active user analytics based on lastActivityAt
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+
+    const [dau, wau, mau, realtimeActive] = await Promise.all([
+      User.countDocuments({ lastActivityAt: { $gte: oneDayAgo } }),
+      User.countDocuments({ lastActivityAt: { $gte: sevenDaysAgo } }),
+      User.countDocuments({ lastActivityAt: { $gte: thirtyDaysAgo } }),
+      User.countDocuments({ lastActivityAt: { $gte: tenMinutesAgo } })
     ]);
 
     // User growth over time
@@ -79,11 +94,8 @@ exports.getOverview = async (req, res) => {
     }));
 
     // Active vs Inactive users over time
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const activeUsersCount = await User.countDocuments({ 
-      lastLogin: { $gte: thirtyDaysAgo, $lte: end }
-    });
-    const inactiveUsersCount = totalUsers - activeUsersCount;
+    const activeUsersCount = mau;
+    const inactiveUsersCount = Math.max(totalUsers - activeUsersCount, 0);
 
     // Activity trends (sessions and interviews)
     const sessionTrend = await Session.aggregate([
@@ -143,7 +155,6 @@ exports.getOverview = async (req, res) => {
         totalUsers,
         totalSessions,
         totalInterviews,
-        activeUsers
       },
       userGrowth: userGrowthData,
       activeVsInactive: {
@@ -151,6 +162,12 @@ exports.getOverview = async (req, res) => {
         inactive: inactiveUsersCount
       },
       activityTrends,
+      activeUserAnalytics: {
+        dau,
+        wau,
+        mau,
+        realtime: realtimeActive
+      },
       reports: {
         resolved,
         unresolved
@@ -169,10 +186,11 @@ exports.getUsers = async (req, res) => {
     const dateBuckets = generateDateBuckets(start, end);
 
     // Summary
-    const totalUsers = await User.countDocuments({ createdAt: { $lte: end } });
+    // All-time registered users; date filter only applies to newUsers/registrations
+    const totalUsers = await User.countDocuments({});
     const newUsers = await User.countDocuments({ createdAt: { $gte: start, $lte: end } });
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const activeUsers = await User.countDocuments({ lastLogin: { $gte: thirtyDaysAgo } });
+    const activeUsers = await User.countDocuments({ lastActivityAt: { $gte: thirtyDaysAgo } });
 
     // Retention rate calculation
     const usersFromPreviousPeriod = await User.countDocuments({
@@ -555,30 +573,26 @@ exports.getInterviews = async (req, res) => {
 exports.getSkills = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
+    // Get active users in the selected window and use their skillsToLearn
+    let users = await User.find({
+      lastActivityAt: { $gte: start, $lte: end }
+    }).select('skillsToLearn');
 
-    // Get all sessions to analyze skills
-    const sessions = await Session.find({
-      createdAt: { $gte: start, $lte: end }
-    }).select('skillsToLearn status');
+    // Fallback: if no active users in range, use all users so the card is never empty
+    if (!users.length) {
+      users = await User.find({}).select('skillsToLearn');
+    }
 
-    // Count skill occurrences
+    // Count skill occurrences from users' skillsToLearn
     const skillCounts = {};
-    const skillCompletions = {};
 
-    sessions.forEach(session => {
-      if (session.skillsToLearn && Array.isArray(session.skillsToLearn)) {
-        session.skillsToLearn.forEach(skill => {
-          skillCounts[skill] = (skillCounts[skill] || 0) + 1;
-          
-          if (!skillCompletions[skill]) {
-            skillCompletions[skill] = { completed: 0, incomplete: 0 };
-          }
-          
-          if (session.status === 'completed') {
-            skillCompletions[skill].completed++;
-          } else {
-            skillCompletions[skill].incomplete++;
-          }
+    users.forEach(user => {
+      if (Array.isArray(user.skillsToLearn)) {
+        user.skillsToLearn.forEach((skill) => {
+          if (!skill || typeof skill !== 'string') return;
+          const trimmed = skill.trim();
+          if (!trimmed) return;
+          skillCounts[trimmed] = (skillCounts[trimmed] || 0) + 1;
         });
       }
     });
@@ -595,25 +609,10 @@ exports.getSkills = async (req, res) => {
       .slice(0, 10)
       .map(([skill, count]) => ({ skill, count }));
 
-    // Completion rate by skill (top 10 most used skills)
-    const completionRate = Object.entries(skillCompletions)
-      .sort((a, b) => (b[1].completed + b[1].incomplete) - (a[1].completed + a[1].incomplete))
-      .slice(0, 10)
-      .map(([skill, data]) => ({
-        skill,
-        completed: data.completed,
-        incomplete: data.incomplete
-      }));
-
     // Summary
     const totalSkills = Object.keys(skillCounts).length;
     const activeSkills = Object.values(skillCounts).filter(count => count > 0).length;
-    
-    const totalCompletions = Object.values(skillCompletions).reduce((sum, data) => sum + data.completed, 0);
-    const totalSessions = Object.values(skillCompletions).reduce((sum, data) => sum + data.completed + data.incomplete, 0);
-    const avgCompletionRate = totalSessions > 0 
-      ? Math.round((totalCompletions / totalSessions) * 100)
-      : 0;
+    const avgCompletionRate = 0; // Not computed without per-skill session data
 
     const mostPopular = mostRequested[0]?.skill || 'N/A';
 
@@ -626,7 +625,7 @@ exports.getSkills = async (req, res) => {
       },
       mostRequested,
       leastUsed,
-      completionRate
+      completionRate: []
     });
   } catch (error) {
     console.error('Analytics skills error:', error);
@@ -831,6 +830,202 @@ exports.getReports = async (req, res) => {
     });
   } catch (error) {
     console.error('Analytics reports error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Anonymous Visitor Analytics (for Overview tab)
+exports.getVisitorAnalytics = async (req, res) => {
+  try {
+    const { start, end } = getDateRange(req);
+    const now = new Date();
+
+    // Define "active" anonymous visitor thresholds
+    const MIN_TIME_SPENT = 15; // seconds
+    const MIN_PAGE_VIEWS = 2;
+
+    // Date windows for DAU/WAU/MAU
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const rangeMatch = { lastSeenAt: { $gte: start, $lte: end } };
+
+    // Active visitor criteria: time spent > threshold OR multiple page views OR repeated visits
+    const activeVisitorMatch = {
+      lastSeenAt: { $gte: start, $lte: end },
+      $or: [
+        { totalTimeSpent: { $gte: MIN_TIME_SPENT } },
+        { $expr: { $gte: [{ $size: { $ifNull: ['$pageViews', []] } }, MIN_PAGE_VIEWS] } },
+        { visitCount: { $gte: 2 } },
+      ],
+    };
+
+    const [
+      totalVisitors,
+      activeVisitors,
+      newVisitorsAgg,
+      avgVisitsAgg,
+      avgTimeSpentAgg,
+      conversions,
+      dauAnon,
+      wauAnon,
+      mauAnon,
+    ] = await Promise.all([
+      AnonymousVisitor.countDocuments(rangeMatch),
+      AnonymousVisitor.countDocuments(activeVisitorMatch),
+      AnonymousVisitor.aggregate([
+        { $match: { firstSeenAt: { $gte: start, $lte: end } } },
+        { $count: 'count' },
+      ]),
+      AnonymousVisitor.aggregate([
+        { $match: rangeMatch },
+        { $group: { _id: null, avgVisits: { $avg: '$visitCount' } } },
+      ]),
+      AnonymousVisitor.aggregate([
+        { $match: rangeMatch },
+        { $group: { _id: null, avgTime: { $avg: '$totalTimeSpent' } } },
+      ]),
+      AnonymousVisitor.countDocuments({ 
+        isConverted: true,
+        convertedAt: { $gte: start, $lte: end } 
+      }),
+      // DAU/WAU/MAU for anonymous visitors
+      AnonymousVisitor.countDocuments({
+        isConverted: false,
+        lastSeenAt: { $gte: oneDayAgo },
+        $or: [
+          { totalTimeSpent: { $gte: MIN_TIME_SPENT } },
+          { visitCount: { $gte: 2 } },
+        ],
+      }),
+      AnonymousVisitor.countDocuments({
+        isConverted: false,
+        lastSeenAt: { $gte: sevenDaysAgo },
+        $or: [
+          { totalTimeSpent: { $gte: MIN_TIME_SPENT } },
+          { visitCount: { $gte: 2 } },
+        ],
+      }),
+      AnonymousVisitor.countDocuments({
+        isConverted: false,
+        lastSeenAt: { $gte: thirtyDaysAgo },
+        $or: [
+          { totalTimeSpent: { $gte: MIN_TIME_SPENT } },
+          { visitCount: { $gte: 2 } },
+        ],
+      }),
+    ]);
+
+    const newVisitors = newVisitorsAgg[0]?.count || 0;
+    const returningVisitors = Math.max(totalVisitors - newVisitors, 0);
+    const avgVisitsPerVisitor = avgVisitsAgg[0]?.avgVisits || 0;
+    const avgTimeSpentPerVisitor = avgTimeSpentAgg[0]?.avgTime || 0;
+
+    // Top pages by all anonymous visitors
+    const topLandingPages = await AnonymousVisitor.aggregate([
+      { $match: rangeMatch },
+      { $unwind: { path: '$pageViews', preserveNullAndEmptyArrays: false } },
+      {
+        $group: {
+          _id: '$pageViews.path',
+          views: { $sum: 1 },
+          avgTimeSpent: { $avg: '$pageViews.timeSpent' },
+        },
+      },
+      { $sort: { views: -1 } },
+      { $limit: 10 },
+    ]).then((rows) =>
+      rows.map((r) => ({
+        path: r._id,
+        views: r.views,
+        avgTimeSpent: Math.round(r.avgTimeSpent || 0),
+      }))
+    );
+
+    // Top pages before conversion (last page before user registered/logged in)
+    const topPagesBeforeConversion = await AnonymousVisitor.aggregate([
+      {
+        $match: {
+          isConverted: true,
+          convertedAt: { $gte: start, $lte: end },
+          pageViews: { $exists: true, $ne: [] },
+        },
+      },
+      {
+        $project: {
+          lastPage: { $arrayElemAt: ['$pageViews.path', -1] },
+        },
+      },
+      {
+        $group: {
+          _id: '$lastPage',
+          conversions: { $sum: 1 },
+        },
+      },
+      { $sort: { conversions: -1 } },
+      { $limit: 5 },
+    ]).then((rows) => rows.map((r) => ({ path: r._id, conversions: r.conversions })));
+
+    // Traffic sources distribution
+    const topReferrers = await AnonymousVisitor.aggregate([
+      { $match: rangeMatch },
+      {
+        $group: {
+          _id: { $ifNull: ['$source', 'direct'] },
+          visitors: { $sum: 1 },
+        },
+      },
+      { $sort: { visitors: -1 } },
+      { $limit: 8 },
+    ]).then((rows) => rows.map((r) => ({ source: r._id, visitors: r.visitors })));
+
+    // Visit frequency distribution
+    const visitFrequency = await AnonymousVisitor.aggregate([
+      { $match: rangeMatch },
+      {
+        $bucket: {
+          groupBy: '$visitCount',
+          boundaries: [1, 2, 5, 10, 20, 999999],
+          default: '20+',
+          output: { count: { $sum: 1 } },
+        },
+      },
+    ]).then((rows) => {
+      const labels = ['1 visit', '2-4 visits', '5-9 visits', '10-19 visits', '20+ visits'];
+      return labels.map((label, idx) => {
+        const bucket = rows.find((r) => r._id === [1, 2, 5, 10, 20, 999999][idx]);
+        return { label, count: bucket?.count || 0 };
+      });
+    });
+
+    const conversionRate = totalVisitors > 0 ? Math.round((conversions / totalVisitors) * 100) : 0;
+    const inactiveVisitors = totalVisitors - activeVisitors;
+
+    res.json({
+      summary: {
+        totalVisitors,
+        activeVisitors,
+        inactiveVisitors,
+        newVisitors,
+        returningVisitors,
+        avgVisitsPerVisitor: Math.round(avgVisitsPerVisitor * 10) / 10,
+        avgTimeSpentPerVisitor: Math.round(avgTimeSpentPerVisitor),
+        conversions,
+        conversionRate,
+      },
+      activeAnonymous: {
+        dau: dauAnon,
+        wau: wauAnon,
+        mau: mauAnon,
+      },
+      topLandingPages,
+      topPagesBeforeConversion,
+      topReferrers,
+      visitFrequency,
+    });
+  } catch (error) {
+    console.error('Analytics visitors error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

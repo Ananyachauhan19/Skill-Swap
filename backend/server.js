@@ -48,6 +48,7 @@ const User = require('./models/User');
 const Notification = require('./models/Notification');
 const { sendMail } = require('./utils/sendMail');
 const emailTemplates = require('./utils/emailTemplates');
+const anonymousVisitorTracking = require('./middleware/anonymousVisitorTracking');
 
 const app = express();
 const server = http.createServer(app);
@@ -125,6 +126,7 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(anonymousVisitorTracking);
 require('./socket')(io);
 app.set('io', io);
 app.use('/api/auth', authRoutes);

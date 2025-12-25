@@ -1,5 +1,6 @@
 const Contribution = require('../models/Contribution');
 const ContributionEvent = require('../models/ContributionEvent');
+const User = require('../models/User');
 
 // Best-effort cleanup of legacy unique index on { user, date }
 // which conflicts with the new { userId, dateKey } model.
@@ -163,6 +164,17 @@ async function trackActivity({ userId, activityType, activityId, when = new Date
   // Add metadata to breakdown if provided (e.g., coin amounts)
   if (metadata.coinsAmount) {
     breakdownIncs.totalCoinsTransacted = metadata.coinsAmount;
+  }
+
+  // Update unified activity timestamp for DAU/WAU/MAU & realtime analytics
+  try {
+    await User.updateOne(
+      { _id: userId },
+      { $set: { lastActivityAt: when } }
+    );
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[Activity] Failed to update lastActivityAt for user', String(userId), e.message || e);
   }
 
   return await recordContributionEvent({
