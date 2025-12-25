@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+import { BACKEND_URL } from "./config";
 import { 
   FiUsers, FiTrendingUp, FiAward, FiHeart, 
   FiTarget, FiZap, FiGlobe, FiCode, FiBriefcase,
@@ -11,6 +13,89 @@ import RecruitmentApplication from "./user/RecruitmentApplication";
 const Career = () => {
   const navigate = useNavigate();
   const [showRecruitmentForm, setShowRecruitmentForm] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState({
+    isTutor: false,
+    isInterviewer: false,
+    isTutorVerifier: false
+  });
+
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const checkVerificationStatus = async () => {
+      if (!user) {
+        setVerificationStatus({
+          isTutor: false,
+          isInterviewer: false,
+          isTutorVerifier: false
+        });
+        return;
+      }
+
+      try {
+        // Check if user is a tutor (from user object)
+        const isTutor = user?.isTutor === true;
+        console.log('User isTutor check:', isTutor, 'User object:', user);
+
+        // Check if user is an interviewer
+        let isInterviewer = false;
+        try {
+          const interviewerResponse = await fetch(`${BACKEND_URL}/api/interview/check-interviewer`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (interviewerResponse.ok) {
+            const interviewerData = await interviewerResponse.json();
+            console.log('Interviewer response:', interviewerData);
+            isInterviewer = interviewerData?.isApprovedInterviewer === true || 
+                           interviewerData?.isInterviewer === true ||
+                           interviewerData?.approved === true;
+          }
+        } catch (err) {
+          console.error('Error checking interviewer status:', err);
+        }
+
+        // Check if user is a tutor verifier (employee)
+        let isTutorVerifier = false;
+        try {
+          const verifierResponse = await fetch(`${BACKEND_URL}/api/employee/check-verifier`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (verifierResponse.ok) {
+            const verifierData = await verifierResponse.json();
+            console.log('Verifier response:', verifierData);
+            isTutorVerifier = verifierData?.isTutorVerifier === true ||
+                             verifierData?.isEmployee === true ||
+                             verifierData?.hasAccess === true ||
+                             verifierData?.canVerifyTutors === true;
+          }
+        } catch (err) {
+          console.error('Error checking verifier status:', err);
+        }
+
+        console.log('Final verification status:', { isTutor, isInterviewer, isTutorVerifier });
+        
+        setVerificationStatus({
+          isTutor,
+          isInterviewer,
+          isTutorVerifier
+        });
+      } catch (error) {
+        console.error('Error in checkVerificationStatus:', error);
+      }
+    };
+
+    checkVerificationStatus();
+  }, [user]);
 
   const handleShowRecruitmentForm = () => {
     setShowRecruitmentForm(true);
@@ -103,34 +188,49 @@ const Career = () => {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto px-2">
               <motion.button
-                onClick={() => setShowRecruitmentForm(true)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-2.5 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300"
+                onClick={() => !verificationStatus.isTutorVerifier && setShowRecruitmentForm(true)}
+                whileHover={!verificationStatus.isTutorVerifier ? { scale: 1.05 } : {}}
+                whileTap={!verificationStatus.isTutorVerifier ? { scale: 0.95 } : {}}
+                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl transition-all duration-300 ${
+                  verificationStatus.isTutorVerifier
+                    ? 'bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white cursor-default shadow-[0_8px_16px_rgba(34,197,94,0.4),inset_0_-2px_8px_rgba(0,0,0,0.3),inset_0_2px_8px_rgba(255,255,255,0.2)]'
+                    : 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white hover:shadow-2xl'
+                }`}
               >
                 <FiUserPlus className="text-base sm:text-lg md:text-xl" />
-                <span className="hidden lg:inline">Tutor Verifier</span>
-                <span className="lg:hidden">Verifier</span>
+                <span className="hidden lg:inline">{verificationStatus.isTutorVerifier ? 'Verified Verifier' : 'Tutor Verifier'}</span>
+                <span className="lg:hidden">{verificationStatus.isTutorVerifier ? 'Verified' : 'Verifier'}</span>
+                {verificationStatus.isTutorVerifier && <FiUserCheck className="text-base sm:text-lg" />}
               </motion.button>
               <motion.button
-                onClick={() => navigate('/tutor/apply')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-2.5 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300"
+                onClick={() => !verificationStatus.isTutor && navigate('/tutor/apply')}
+                whileHover={!verificationStatus.isTutor ? { scale: 1.05 } : {}}
+                whileTap={!verificationStatus.isTutor ? { scale: 0.95 } : {}}
+                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl transition-all duration-300 ${
+                  verificationStatus.isTutor
+                    ? 'bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white cursor-default shadow-[0_8px_16px_rgba(34,197,94,0.4),inset_0_-2px_8px_rgba(0,0,0,0.3),inset_0_2px_8px_rgba(255,255,255,0.2)]'
+                    : 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white hover:shadow-2xl'
+                }`}
               >
                 <FiUserCheck className="text-base sm:text-lg md:text-xl" />
-                <span className="hidden lg:inline">Apply as Tutor</span>
-                <span className="lg:hidden">Tutor</span>
+                <span className="hidden lg:inline">{verificationStatus.isTutor ? 'Verified Tutor' : 'Apply as Tutor'}</span>
+                <span className="lg:hidden">{verificationStatus.isTutor ? 'Verified' : 'Tutor'}</span>
+                {verificationStatus.isTutor && <FiUserCheck className="text-base sm:text-lg" />}
               </motion.button>
               <motion.button
-                onClick={() => navigate('/register-interviewer')}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-2.5 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl hover:shadow-2xl transition-all duration-300"
+                onClick={() => !verificationStatus.isInterviewer && navigate('/register-interviewer')}
+                whileHover={!verificationStatus.isInterviewer ? { scale: 1.05 } : {}}
+                whileTap={!verificationStatus.isInterviewer ? { scale: 0.95 } : {}}
+                className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base shadow-xl transition-all duration-300 ${
+                  verificationStatus.isInterviewer
+                    ? 'bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white cursor-default shadow-[0_8px_16px_rgba(34,197,94,0.4),inset_0_-2px_8px_rgba(0,0,0,0.3),inset_0_2px_8px_rgba(255,255,255,0.2)]'
+                    : 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white hover:shadow-2xl'
+                }`}
               >
                 <FiClipboard className="text-base sm:text-lg md:text-xl" />
-                <span className="hidden lg:inline">Apply as Interviewer</span>
-                <span className="lg:hidden">Interviewer</span>
+                <span className="hidden lg:inline">{verificationStatus.isInterviewer ? 'Verified Interviewer' : 'Apply as Interviewer'}</span>
+                <span className="lg:hidden">{verificationStatus.isInterviewer ? 'Verified' : 'Interviewer'}</span>
+                {verificationStatus.isInterviewer && <FiUserCheck className="text-base sm:text-lg" />}
               </motion.button>
             </div>
           </div>
@@ -371,34 +471,49 @@ const Career = () => {
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto px-2">
             <motion.button
-              onClick={() => setShowRecruitmentForm(true)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+              onClick={() => !verificationStatus.isTutorVerifier && setShowRecruitmentForm(true)}
+              whileHover={!verificationStatus.isTutorVerifier ? { scale: 1.05 } : {}}
+              whileTap={!verificationStatus.isTutorVerifier ? { scale: 0.95 } : {}}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl transition-all duration-300 ${
+                verificationStatus.isTutorVerifier
+                  ? 'bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white cursor-default shadow-[0_8px_16px_rgba(34,197,94,0.4),inset_0_-2px_8px_rgba(0,0,0,0.3),inset_0_2px_8px_rgba(255,255,255,0.2)]'
+                  : 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white hover:shadow-2xl'
+              }`}
             >
               <FiUserPlus className="text-base sm:text-lg md:text-xl" />
-              <span className="hidden lg:inline">Tutor Verifier</span>
-              <span className="lg:hidden">Verifier</span>
+              <span className="hidden lg:inline">{verificationStatus.isTutorVerifier ? 'Verified Verifier' : 'Tutor Verifier'}</span>
+              <span className="lg:hidden">{verificationStatus.isTutorVerifier ? 'Verified' : 'Verifier'}</span>
+              {verificationStatus.isTutorVerifier && <FiUserCheck className="text-base sm:text-lg" />}
             </motion.button>
             <motion.button
-              onClick={() => navigate('/tutor/apply')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+              onClick={() => !verificationStatus.isTutor && navigate('/tutor/apply')}
+              whileHover={!verificationStatus.isTutor ? { scale: 1.05 } : {}}
+              whileTap={!verificationStatus.isTutor ? { scale: 0.95 } : {}}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl transition-all duration-300 ${
+                verificationStatus.isTutor
+                  ? 'bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white cursor-default shadow-[0_8px_16px_rgba(34,197,94,0.4),inset_0_-2px_8px_rgba(0,0,0,0.3),inset_0_2px_8px_rgba(255,255,255,0.2)]'
+                  : 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white hover:shadow-2xl'
+              }`}
             >
               <FiUserCheck className="text-base sm:text-lg md:text-xl" />
-              <span className="hidden lg:inline">Apply as Tutor</span>
-              <span className="lg:hidden">Tutor</span>
+              <span className="hidden lg:inline">{verificationStatus.isTutor ? 'Verified Tutor' : 'Apply as Tutor'}</span>
+              <span className="lg:hidden">{verificationStatus.isTutor ? 'Verified' : 'Tutor'}</span>
+              {verificationStatus.isTutor && <FiUserCheck className="text-base sm:text-lg" />}
             </motion.button>
             <motion.button
-              onClick={() => navigate('/register-interviewer')}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl hover:shadow-2xl transition-all duration-300"
+              onClick={() => !verificationStatus.isInterviewer && navigate('/register-interviewer')}
+              whileHover={!verificationStatus.isInterviewer ? { scale: 1.05 } : {}}
+              whileTap={!verificationStatus.isInterviewer ? { scale: 0.95 } : {}}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base md:text-lg shadow-xl transition-all duration-300 ${
+                verificationStatus.isInterviewer
+                  ? 'bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white cursor-default shadow-[0_8px_16px_rgba(34,197,94,0.4),inset_0_-2px_8px_rgba(0,0,0,0.3),inset_0_2px_8px_rgba(255,255,255,0.2)]'
+                  : 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white hover:shadow-2xl'
+              }`}
             >
               <FiClipboard className="text-base sm:text-lg md:text-xl" />
-              <span className="hidden lg:inline">Apply as Interviewer</span>
-              <span className="lg:hidden">Interviewer</span>
+              <span className="hidden lg:inline">{verificationStatus.isInterviewer ? 'Verified Interviewer' : 'Apply as Interviewer'}</span>
+              <span className="lg:hidden">{verificationStatus.isInterviewer ? 'Verified' : 'Interviewer'}</span>
+              {verificationStatus.isInterviewer && <FiUserCheck className="text-base sm:text-lg" />}
             </motion.button>
           </div>
           <p className="mt-6 sm:mt-7 md:mt-8 text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-900 to-blue-900 bg-clip-text text-transparent px-2">

@@ -26,30 +26,64 @@ const RecruitmentSection = () => {
       }
 
       try {
-        // Check if user is a tutor
-        const isTutor = user?.isTutor || false;
+        // Check if user is a tutor (from user object)
+        const isTutor = user?.isTutor === true;
+        console.log('RecruitmentSection - User isTutor check:', isTutor);
 
         // Check if user is an interviewer
-        const interviewerResponse = await fetch(`${BACKEND_URL}/api/interview/check-interviewer`, {
-          credentials: 'include'
-        });
-        const interviewerData = await interviewerResponse.json();
-        const isInterviewer = interviewerData?.isApprovedInterviewer || false;
+        let isInterviewer = false;
+        try {
+          const interviewerResponse = await fetch(`${BACKEND_URL}/api/interview/check-interviewer`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (interviewerResponse.ok) {
+            const interviewerData = await interviewerResponse.json();
+            console.log('RecruitmentSection - Interviewer response:', interviewerData);
+            isInterviewer = interviewerData?.isApprovedInterviewer === true || 
+                           interviewerData?.isInterviewer === true ||
+                           interviewerData?.approved === true;
+          }
+        } catch (err) {
+          console.error('RecruitmentSection - Error checking interviewer status:', err);
+        }
 
-        // Check if user is a tutor verifier (employee with tutor access)
-        const verifierResponse = await fetch(`${BACKEND_URL}/api/employee/check-verifier`, {
-          credentials: 'include'
-        });
-        const verifierData = await verifierResponse.json();
-        const isTutorVerifier = verifierData?.isTutorVerifier || false;
+        // Check if user is a tutor verifier (employee)
+        let isTutorVerifier = false;
+        try {
+          const verifierResponse = await fetch(`${BACKEND_URL}/api/employee/check-verifier`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (verifierResponse.ok) {
+            const verifierData = await verifierResponse.json();
+            console.log('RecruitmentSection - Verifier response:', verifierData);
+            isTutorVerifier = verifierData?.isTutorVerifier === true ||
+                             verifierData?.isEmployee === true ||
+                             verifierData?.hasAccess === true ||
+                             verifierData?.canVerifyTutors === true;
+          }
+        } catch (err) {
+          console.error('RecruitmentSection - Error checking verifier status:', err);
+        }
 
+        console.log('RecruitmentSection - Final verification status:', { isTutor, isInterviewer, isTutorVerifier });
+        
         setVerificationStatus({
           isTutor,
           isInterviewer,
           isTutorVerifier
         });
       } catch (error) {
-        console.error('Error checking verification status:', error);
+        console.error('RecruitmentSection - Error in checkVerificationStatus:', error);
       }
     };
 
