@@ -1,4 +1,4 @@
-const User = require('../models/User');
+﻿const User = require('../models/User');
 const Session = require('../models/Session');
 const InterviewRequest = require('../models/InterviewRequest');
 const Report = require('../models/Report');
@@ -1415,63 +1415,569 @@ exports.getInterviews = async (req, res) => {
   }
 };
 
-// Skills Tab
 exports.getSkills = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
-    // Get active users in the selected window and use their skillsToLearn
-    let users = await User.find({
-      lastActivityAt: { $gte: start, $lte: end }
-    }).select('skillsToLearn');
+    const SessionRequest = require('../models/SessionRequest');
+    const TutorApplication = require('../models/TutorApplication');
+    const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // Fallback: if no active users in range, use all users so the card is never empty
-    if (!users.length) {
-      users = await User.find({}).select('skillsToLearn');
-    }
-
-    // Count skill occurrences from users' skillsToLearn
-    const skillCounts = {};
-
-    users.forEach(user => {
-      if (Array.isArray(user.skillsToLearn)) {
-        user.skillsToLearn.forEach((skill) => {
-          if (!skill || typeof skill !== 'string') return;
-          const trimmed = skill.trim();
-          if (!trimmed) return;
-          skillCounts[trimmed] = (skillCounts[trimmed] || 0) + 1;
+    // ===== SECTION 1: TUTOR SKILLS ANALYTICS =====
+    
+    // 1. Get all APPROVED tutor applications with skills
+    const approvedTutorApps = await TutorApplication.find({ 
+      status: 'approved' 
+    }).populate('user', 'firstName lastName skillsToTeach').select('skills user');
+    
+    // Build tutor skill supply from APPROVED tutor applications
+    const tutorSkillSupply = {};
+    const tutorIdsBySkill = {}; // Track unique tutor IDs per skill
+    
+    approvedTutorApps.forEach(app => {
+      if (!app.user) return; // Skip if user doesn't exist
+      
+      const tutorId = app.user._id.toString();
+      const tutorName = `${app.user.firstName || ''} ${app.user.lastName || ''}`.trim();
+      
+      // Extract skills from TutorApplication.skills array (subject and topic fields)
+      if (Array.isArray(app.skills)) {
+        app.skills.forEach(skillObj => {
+          // Use both subject and topic as skills
+          const skillFields = [skillObj.subject, skillObj.topic].filter(Boolean);
+          
+          skillFields.forEach(skill => {
+            if (skill && typeof skill === 'string') {
+              const normalized = skill.trim().toLowerCase();
+              if (normalized) {
+                if (!tutorSkillSupply[normalized]) {
+                  tutorSkillSupply[normalized] = { 
+                    skill: skill.trim(), 
+                    tutorCount: 0, 
+                    tutorIds: new Set(),
+                    tutors: []
+                  };
+                }
+                
+                // Only count each tutor once per skill
+                if (!tutorSkillSupply[normalized].tutorIds.has(tutorId)) {
+                  tutorSkillSupply[normalized].tutorIds.add(tutorId);
+                  tutorSkillSupply[normalized].tutorCount++;
+                  tutorSkillSupply[normalized].tutors.push(tutorName);
+                }
+              }
+            }
+          });
+        });
+      }
+      
+      // ALSO check user.skillsToTeach (backup/additional skills)
+      if (app.user.skillsToTeach && Array.isArray(app.user.skillsToTeach)) {
+        app.user.skillsToTeach.forEach(skill => {
+          if (skill && typeof skill === 'string') {
+            const normalized = skill.trim().toLowerCase();
+            if (normalized) {
+              if (!tutorSkillSupply[normalized]) {
+                tutorSkillSupply[normalized] = { 
+                  skill: skill.trim(), 
+                  tutorCount: 0, 
+                  tutorIds: new Set(),
+                  tutors: []
+                };
+              }
+              
+              if (!tutorSkillSupply[normalized].tutorIds.has(tutorId)) {
+                tutorSkillSupply[normalized].tutorIds.add(tutorId);
+                tutorSkillSupply[normalized].tutorCount++;
+                tutorSkillSupply[normalized].tutors.push(tutorName);
+              }
+            }
+          }
         });
       }
     });
 
-    // Get most requested skills (top 15)
-    const mostRequested = Object.entries(skillCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 15)
-      .map(([skill, count]) => ({ skill, count }));
+    // 2. Get one-on-one session requests (tutor demand)
+    const tutorSessions = await SessionRequest.find({ 
+      sessionType: 'one-on-one',
+      createdAt: { $gte: start, $lte: end }
+    }).select('subject status createdAt');
 
-    // Get least used skills (bottom 10)
-    const leastUsed = Object.entries(skillCounts)
-      .sort((a, b) => a[1] - b[1])
-      .slice(0, 10)
-      .map(([skill, count]) => ({ skill, count }));
+    const tutorSkillDemand = {};
+    tutorSessions.forEach(session => {
+      if (session.subject && typeof session.subject === 'string') {
+        const normalized = session.subject.trim().toLowerCase();
+        if (normalized) {
+          if (!tutorSkillDemand[normalized]) {
+            tutorSkillDemand[normalized] = {
+              skill: session.subject.trim(),
+              requestCount: 0,
+              completed: 0,
+              cancelled: 0,
+              pending: 0,
+              rejected: 0
+            };
+          }
+          tutorSkillDemand[normalized].requestCount++;
+          
+          if (session.status === 'completed') tutorSkillDemand[normalized].completed++;
+          else if (session.status === 'cancelled') tutorSkillDemand[normalized].cancelled++;
+          else if (session.status === 'pending') tutorSkillDemand[normalized].pending++;
+          else if (session.status === 'rejected') tutorSkillDemand[normalized].rejected++;
+        }
+      }
+    });
 
-    // Summary
-    const totalSkills = Object.keys(skillCounts).length;
-    const activeSkills = Object.values(skillCounts).filter(count => count > 0).length;
-    const avgCompletionRate = 0; // Not computed without per-skill session data
+    // 3. Combine tutor supply and demand
+    const allTutorSkills = new Set([
+      ...Object.keys(tutorSkillSupply),
+      ...Object.keys(tutorSkillDemand)
+    ]);
 
-    const mostPopular = mostRequested[0]?.skill || 'N/A';
+    const tutorSupply = [];
+    const tutorDemand = [];
+    const tutorGapUndersupplied = [];
+    const tutorGapOversupplied = [];
+    let tutorGapBalanced = 0;
+    const tutorQuality = [];
+    const tutorActivityStatus = [];
+
+    allTutorSkills.forEach(normalizedSkill => {
+      const supply = tutorSkillSupply[normalizedSkill];
+      const demand = tutorSkillDemand[normalizedSkill];
+      
+      const tutorCount = supply?.tutorCount || 0;
+      const requestCount = demand?.requestCount || 0;
+      const displaySkill = supply?.skill || demand?.skill || normalizedSkill;
+
+      // Supply data
+      tutorSupply.push({
+        skill: displaySkill,
+        tutorCount,
+        demand: requestCount,
+        tutorNames: supply?.tutors || [] // Debug info
+      });
+
+      // Demand data
+      if (requestCount > 0) {
+        tutorDemand.push({
+          skill: displaySkill,
+          requestCount,
+          tutorCount
+        });
+      }
+
+      // Gap analysis
+      const gapRatio = tutorCount > 0 ? requestCount / tutorCount : (requestCount > 0 ? 999 : 0);
+      let gapFlag = 'balanced';
+      
+      if (tutorCount === 0 && requestCount > 0) {
+        gapFlag = 'no-supply';
+        tutorGapUndersupplied.push({
+          skill: displaySkill,
+          supply: tutorCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else if (gapRatio > 5) {
+        gapFlag = 'undersupplied';
+        tutorGapUndersupplied.push({
+          skill: displaySkill,
+          supply: tutorCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else if (gapRatio < 0.5 && tutorCount > 0) {
+        gapFlag = 'oversupplied';
+        tutorGapOversupplied.push({
+          skill: displaySkill,
+          supply: tutorCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else {
+        tutorGapBalanced++;
+      }
+
+      // Quality metrics
+      if (demand) {
+        const total = demand.requestCount;
+        tutorQuality.push({
+          skill: displaySkill,
+          completed: demand.completed,
+          cancelled: demand.cancelled,
+          pending: demand.pending,
+          rejected: demand.rejected,
+          completionRate: total > 0 ? Math.round((demand.completed / total) * 100) : 0,
+          cancellationRate: total > 0 ? Math.round((demand.cancelled / total) * 100) : 0
+        });
+      }
+
+      // Activity status
+      const lastSession = tutorSessions
+        .filter(s => s.subject && s.subject.trim().toLowerCase() === normalizedSkill)
+        .sort((a, b) => b.createdAt - a.createdAt)[0];
+      
+      const lastUsed = lastSession ? lastSession.createdAt.toISOString().split('T')[0] : 'Never';
+      const isActive = lastSession && lastSession.createdAt >= thirtyDaysAgo;
+
+      tutorActivityStatus.push({
+        skill: displaySkill,
+        tutorCount,
+        lastUsed,
+        status: isActive ? 'active' : 'dormant'
+      });
+    });
+
+    // Sort arrays
+    tutorSupply.sort((a, b) => b.tutorCount - a.tutorCount);
+    tutorDemand.sort((a, b) => b.requestCount - a.requestCount);
+    tutorGapUndersupplied.sort((a, b) => b.gapRatio - a.gapRatio);
+    tutorGapOversupplied.sort((a, b) => a.gapRatio - b.gapRatio);
+    tutorQuality.sort((a, b) => b.completed - a.completed);
+    tutorActivityStatus.sort((a, b) => b.tutorCount - a.tutorCount);
+
+    // ===== SECTION 2: INTERVIEW SKILLS ANALYTICS =====
+    
+    // 1. Get all approved interviewers
+    const approvedInterviewers = await ApprovedInterviewer.find()
+      .populate('user', 'skillsToTeach firstName lastName')
+      .select('profile user');
+    
+    // Build interviewer skill supply from APPROVED interviewers
+    const interviewerSkillSupply = {};
+    
+    approvedInterviewers.forEach(interviewer => {
+      if (!interviewer.user) return;
+      
+      const interviewerId = interviewer._id.toString();
+      const interviewerName = interviewer.profile?.name || 
+        `${interviewer.user.firstName || ''} ${interviewer.user.lastName || ''}`.trim();
+      
+      // From profile.position (primary skill)
+      if (interviewer.profile && interviewer.profile.position && typeof interviewer.profile.position === 'string') {
+        const normalized = interviewer.profile.position.trim().toLowerCase();
+        if (normalized) {
+          if (!interviewerSkillSupply[normalized]) {
+            interviewerSkillSupply[normalized] = {
+              skill: interviewer.profile.position.trim(),
+              interviewerCount: 0,
+              interviewerIds: new Set(),
+              interviewers: []
+            };
+          }
+          
+          if (!interviewerSkillSupply[normalized].interviewerIds.has(interviewerId)) {
+            interviewerSkillSupply[normalized].interviewerIds.add(interviewerId);
+            interviewerSkillSupply[normalized].interviewerCount++;
+            interviewerSkillSupply[normalized].interviewers.push(interviewerName);
+          }
+        }
+      }
+      
+      // From user.skillsToTeach (additional skills)
+      if (interviewer.user.skillsToTeach && Array.isArray(interviewer.user.skillsToTeach)) {
+        interviewer.user.skillsToTeach.forEach(skill => {
+          if (skill && typeof skill === 'string') {
+            const normalized = skill.trim().toLowerCase();
+            if (normalized) {
+              if (!interviewerSkillSupply[normalized]) {
+                interviewerSkillSupply[normalized] = {
+                  skill: skill.trim(),
+                  interviewerCount: 0,
+                  interviewerIds: new Set(),
+                  interviewers: []
+                };
+              }
+              
+              if (!interviewerSkillSupply[normalized].interviewerIds.has(interviewerId)) {
+                interviewerSkillSupply[normalized].interviewerIds.add(interviewerId);
+                interviewerSkillSupply[normalized].interviewerCount++;
+                interviewerSkillSupply[normalized].interviewers.push(interviewerName);
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // 2. Get interview requests (interview demand)
+    const interviewRequests = await InterviewRequest.find({
+      createdAt: { $gte: start, $lte: end }
+    }).select('position status createdAt rating');
+
+    const interviewSkillDemand = {};
+    interviewRequests.forEach(interview => {
+      if (interview.position && typeof interview.position === 'string') {
+        const normalized = interview.position.trim().toLowerCase();
+        if (normalized) {
+          if (!interviewSkillDemand[normalized]) {
+            interviewSkillDemand[normalized] = {
+              skill: interview.position.trim(),
+              requestCount: 0,
+              completed: 0,
+              expired: 0,
+              pending: 0,
+              ratings: []
+            };
+          }
+          interviewSkillDemand[normalized].requestCount++;
+          
+          if (interview.status === 'completed') {
+            interviewSkillDemand[normalized].completed++;
+            if (interview.rating) interviewSkillDemand[normalized].ratings.push(interview.rating);
+          } else if (interview.status === 'expired') {
+            interviewSkillDemand[normalized].expired++;
+          } else if (interview.status === 'pending') {
+            interviewSkillDemand[normalized].pending++;
+          }
+        }
+      }
+    });
+
+    // 3. Combine interview supply and demand
+    const allInterviewSkills = new Set([
+      ...Object.keys(interviewerSkillSupply),
+      ...Object.keys(interviewSkillDemand)
+    ]);
+
+    const interviewSupply = [];
+    const interviewDemand = [];
+    const interviewGapUndersupplied = [];
+    let interviewGapBalanced = 0;
+    const interviewQuality = [];
+
+    allInterviewSkills.forEach(normalizedSkill => {
+      const supply = interviewerSkillSupply[normalizedSkill];
+      const demand = interviewSkillDemand[normalizedSkill];
+      
+      const interviewerCount = supply?.interviewerCount || 0;
+      const requestCount = demand?.requestCount || 0;
+      const displaySkill = supply?.skill || demand?.skill || normalizedSkill;
+
+      // Supply data
+      interviewSupply.push({
+        skill: displaySkill,
+        interviewerCount,
+        demand: requestCount,
+        interviewerNames: supply?.interviewers || [] // Debug info
+      });
+
+      // Demand data
+      if (requestCount > 0) {
+        interviewDemand.push({
+          skill: displaySkill,
+          requestCount,
+          interviewerCount
+        });
+      }
+
+      // Gap analysis (interviews use different threshold)
+      const gapRatio = interviewerCount > 0 ? requestCount / interviewerCount : (requestCount > 0 ? 999 : 0);
+      let gapFlag = 'balanced';
+      
+      if (interviewerCount === 0 && requestCount > 0) {
+        gapFlag = 'no-supply';
+        interviewGapUndersupplied.push({
+          skill: displaySkill,
+          supply: interviewerCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else if (gapRatio > 3) {
+        gapFlag = 'undersupplied';
+        interviewGapUndersupplied.push({
+          skill: displaySkill,
+          supply: interviewerCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else {
+        interviewGapBalanced++;
+      }
+
+      // Quality metrics with ratings
+      if (demand) {
+        const total = demand.requestCount;
+        const avgRating = demand.ratings.length > 0
+          ? (demand.ratings.reduce((sum, r) => sum + r, 0) / demand.ratings.length).toFixed(1)
+          : 0;
+        
+        interviewQuality.push({
+          skill: displaySkill,
+          completed: demand.completed,
+          expired: demand.expired,
+          pending: demand.pending,
+          completionRate: total > 0 ? Math.round((demand.completed / total) * 100) : 0,
+          avgRating: parseFloat(avgRating)
+        });
+      }
+    });
+
+    // Sort arrays
+    interviewSupply.sort((a, b) => b.interviewerCount - a.interviewerCount);
+    interviewDemand.sort((a, b) => b.requestCount - a.requestCount);
+    interviewGapUndersupplied.sort((a, b) => b.gapRatio - a.gapRatio);
+    interviewQuality.sort((a, b) => b.completed - a.completed);
+
+    // ===== SECTION 3: CROSS-SKILL INTELLIGENCE =====
+    
+    const strongInTutoringOnly = [];
+    const strongInInterviewsOnly = [];
+
+    allTutorSkills.forEach(skill => {
+      const tutorCount = tutorSkillSupply[skill]?.tutorCount || 0;
+      const tutorDemandCount = tutorSkillDemand[skill]?.requestCount || 0;
+      const interviewerCount = interviewerSkillSupply[skill]?.interviewerCount || 0;
+      const interviewDemandCount = interviewSkillDemand[skill]?.requestCount || 0;
+
+      if (tutorCount > 0 && tutorDemandCount > 0 && interviewerCount === 0) {
+        strongInTutoringOnly.push({
+          skill: tutorSkillSupply[skill].skill,
+          tutorSupply: tutorCount,
+          tutorDemand: tutorDemandCount,
+          interviewerSupply: 0,
+          interviewDemand: 0
+        });
+      }
+    });
+
+    allInterviewSkills.forEach(skill => {
+      const tutorCount = tutorSkillSupply[skill]?.tutorCount || 0;
+      const tutorDemandCount = tutorSkillDemand[skill]?.requestCount || 0;
+      const interviewerCount = interviewerSkillSupply[skill]?.interviewerCount || 0;
+      const interviewDemandCount = interviewSkillDemand[skill]?.requestCount || 0;
+
+      if (interviewerCount > 0 && interviewDemandCount > 0 && tutorCount === 0) {
+        strongInInterviewsOnly.push({
+          skill: interviewerSkillSupply[skill].skill,
+          tutorSupply: 0,
+          tutorDemand: 0,
+          interviewerSupply: interviewerCount,
+          interviewDemand: interviewDemandCount
+        });
+      }
+    });
+
+    // ===== SECTION 4: AUTO-GENERATED INSIGHTS =====
+    
+    const insights = [];
+
+    // Tutor undersupply insights
+    tutorGapUndersupplied.slice(0, 3).forEach(skill => {
+      insights.push({
+        type: 'warning',
+        category: 'tutor',
+        message: `High tutoring demand for "${skill.skill}" with ${skill.demand} requests but only ${skill.supply} approved tutors`,
+        action: 'Recruit and approve more tutors for this skill'
+      });
+    });
+
+    // Tutor quality insights
+    tutorQuality.filter(s => s.cancellationRate > 30 && s.completed + s.cancelled > 5)
+      .slice(0, 2)
+      .forEach(skill => {
+        insights.push({
+          type: 'warning',
+          category: 'tutor',
+          message: `High cancellation rate (${skill.cancellationRate}%) for tutoring skill "${skill.skill}"`,
+          action: 'Investigate tutor-learner matching quality'
+        });
+      });
+
+    // Interview undersupply insights
+    interviewGapUndersupplied.slice(0, 3).forEach(skill => {
+      insights.push({
+        type: 'warning',
+        category: 'interview',
+        message: `High interview demand for "${skill.skill}" with ${skill.demand} requests but only ${skill.supply} approved interviewers`,
+        action: 'Recruit and approve more interviewers for this role'
+      });
+    });
+
+    // Interview quality insights
+    interviewQuality.filter(s => s.completionRate < 50 && s.completed + s.expired > 5)
+      .slice(0, 2)
+      .forEach(skill => {
+        insights.push({
+          type: 'warning',
+          category: 'interview',
+          message: `Low completion rate (${skill.completionRate}%) for interview skill "${skill.skill}"`,
+          action: 'Review interview scheduling and interviewer availability'
+        });
+      });
+
+    // Cross-skill opportunities
+    if (strongInTutoringOnly.length > 0) {
+      insights.push({
+        type: 'info',
+        category: 'tutor',
+        message: `${strongInTutoringOnly.length} skills have strong tutoring presence but no interview coverage`,
+        action: 'Consider recruiting interviewers from existing tutors'
+      });
+    }
+
+    if (strongInInterviewsOnly.length > 0) {
+      insights.push({
+        type: 'info',
+        category: 'interview',
+        message: `${strongInInterviewsOnly.length} skills have strong interview presence but no tutoring coverage`,
+        action: 'Consider recruiting tutors from existing interviewers'
+      });
+    }
+
+    // Activity status insights
+    const dormantCount = tutorActivityStatus.filter(s => s.status === 'dormant').length;
+    if (dormantCount > 0) {
+      insights.push({
+        type: 'info',
+        category: 'tutor',
+        message: `${dormantCount} tutoring skills have been dormant for 30+ days`,
+        action: 'Review skill relevance and update tutor profiles'
+      });
+    }
 
     res.json({
       summary: {
-        totalSkills,
-        activeSkills,
-        avgCompletionRate,
-        mostPopular
+        totalTutorSkills: allTutorSkills.size,
+        totalInterviewSkills: allInterviewSkills.size,
+        activeTutorSkills: tutorActivityStatus.filter(s => s.status === 'active').length,
+        totalTutors: approvedTutorApps.length,
+        totalInterviewers: approvedInterviewers.length
       },
-      mostRequested,
-      leastUsed,
-      completionRate: []
+      tutorAnalytics: {
+        supply: tutorSupply.slice(0, 20),
+        demand: tutorDemand.slice(0, 15),
+        gap: {
+          undersupplied: tutorGapUndersupplied.slice(0, 10),
+          oversupplied: tutorGapOversupplied.slice(0, 10),
+          balanced: tutorGapBalanced
+        },
+        quality: tutorQuality.slice(0, 15),
+        activityStatus: tutorActivityStatus.slice(0, 20)
+      },
+      interviewAnalytics: {
+        supply: interviewSupply.slice(0, 20),
+        demand: interviewDemand.slice(0, 15),
+        gap: {
+          undersupplied: interviewGapUndersupplied.slice(0, 10),
+          balanced: interviewGapBalanced
+        },
+        quality: interviewQuality.slice(0, 15)
+      },
+      crossSkillIntelligence: {
+        overlap: {
+          strongInTutoringOnly: strongInTutoringOnly.slice(0, 10),
+          strongInInterviewsOnly: strongInInterviewsOnly.slice(0, 10)
+        }
+      },
+      insights
     });
   } catch (error) {
     console.error('Analytics skills error:', error);
@@ -1488,274 +1994,55 @@ exports.getRewards = async (req, res) => {
     const Contribution = require('../models/Contribution');
     const now = new Date();
 
-    // Get all users with their coins and activity
-    const users = await User.find().select('silverCoins goldCoins firstName lastName email lastActivityAt createdAt');
+    // Get all users with their coins
+    const allUsers = await User.find().select('coins lastActivityAt createdAt');
+    const totalUsers = allUsers.length;
+    const totalCoins = allUsers.reduce((sum, u) => sum + (u.coins || 0), 0);
+    const avgCoins = totalUsers > 0 ? Math.round(totalCoins / totalUsers) : 0;
 
-    const totalUsers = users.length;
-    const usersWithCoins = users.filter(u => (u.silverCoins || 0) > 0 || (u.goldCoins || 0) > 0);
-    const usersWithOnlySilver = users.filter(u => (u.silverCoins || 0) > 0 && (u.goldCoins || 0) === 0);
-    const usersWithGold = users.filter(u => (u.goldCoins || 0) > 0);
+    // Get contributions (coin sources)
+    const contributions = await Contribution.find({ createdAt: { $gte: start, $lte: end } });
+    const totalEarned = contributions.reduce((sum, c) => sum + (c.coins || 0), 0);
 
-    // 1. Economy Health Overview
-    const economyHealth = {
-      percentageEarningCoins: totalUsers > 0 ? Math.round((usersWithCoins.length / totalUsers) * 100) : 0,
-      percentageOnlySilver: totalUsers > 0 ? Math.round((usersWithOnlySilver.length / totalUsers) * 100) : 0,
-      percentageEarningGold: totalUsers > 0 ? Math.round((usersWithGold.length / totalUsers) * 100) : 0,
-      totalEarners: usersWithCoins.length,
-      nonEarners: totalUsers - usersWithCoins.length
+    // Get sessions (coin spending)
+    const sessions = await SessionRequest.find({ 
+      createdAt: { $gte: start, $lte: end },
+      status: 'completed'
+    }).select('coins');
+    const totalSpent = sessions.reduce((sum, s) => sum + (s.coins || 0), 0);
+
+    // Summary
+    const summary = {
+      totalCoinsInCirculation: totalCoins,
+      avgCoinsPerUser: avgCoins,
+      totalEarned,
+      totalSpent,
+      netFlow: totalEarned - totalSpent
     };
 
-    // 2. Silver vs Gold Balance
-    const totalSilver = users.reduce((sum, user) => sum + (user.silverCoins || 0), 0);
-    const totalGold = users.reduce((sum, user) => sum + (user.goldCoins || 0), 0);
-    const avgSilverPerUser = usersWithCoins.length > 0 ? Math.round(totalSilver / usersWithCoins.length) : 0;
-    const avgGoldPerUser = usersWithCoins.length > 0 ? Math.round((totalGold / usersWithCoins.length) * 10) / 10 : 0;
-    
-    const silverGoldBalance = {
-      totalSilver,
-      totalGold,
-      ratio: totalGold > 0 ? Math.round((totalSilver / totalGold) * 10) / 10 : totalSilver,
-      avgSilverPerUser,
-      avgGoldPerUser
-    };
-
-    // 3. Coins Earned Over Time (Rate of earning)
-    const coinsOverTime = await Contribution.aggregate([
-      { $match: { dateKey: { $in: dateBuckets } } },
-      {
-        $group: {
-          _id: '$dateKey',
-          silver: { $sum: '$breakdown.coinsEarnedSilver' },
-          gold: { $sum: '$breakdown.coinsEarnedGold' }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    const coinMap = coinsOverTime.reduce((acc, item) => {
-      acc[item._id] = { silver: item.silver, gold: item.gold };
-      return acc;
-    }, {});
-
-    const earningTrend = dateBuckets.map(date => ({
-      date,
-      silver: coinMap[date]?.silver || 0,
-      gold: coinMap[date]?.gold || 0
-    }));
-
-    // 4. Earning Source Breakdown
-    const sourcesData = await Contribution.aggregate([
-      { $match: { dateKey: { $in: dateBuckets } } },
-      {
-        $group: {
-          _id: null,
-          sessionsAsLearner: { $sum: '$breakdown.sessionsAsLearner' },
-          sessionsAsTutor: { $sum: '$breakdown.sessionsAsTutor' },
-          interviewsCompleted: { $sum: '$breakdown.interviewsCompleted' },
-          other: { $sum: { $add: ['$breakdown.questionsPosted', '$breakdown.answersProvided', '$breakdown.videosUploaded'] } }
-        }
-      }
-    ]);
-
-    const earningSourcesData = sourcesData[0] || { sessionsAsLearner: 0, sessionsAsTutor: 0, interviewsCompleted: 0, other: 0 };
-
-    const earningSources = {
-      sessions: earningSourcesData.sessionsAsLearner + earningSourcesData.sessionsAsTutor,
-      interviews: earningSourcesData.interviewsCompleted,
-      teaching: earningSourcesData.sessionsAsTutor,
-      contributions: earningSourcesData.other
-    };
-
-    // 5. Top Earners with Enhanced Data
-    const daysSinceStart = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
-    const topEarners = await Promise.all(
-      users
-        .filter(u => (u.silverCoins || 0) > 0 || (u.goldCoins || 0) > 0)
-        .sort((a, b) => {
-          const aTotal = (a.silverCoins || 0) + (a.goldCoins || 0) * 10;
-          const bTotal = (b.silverCoins || 0) + (b.goldCoins || 0) * 10;
-          return bTotal - aTotal;
-        })
-        .slice(0, 15)
-        .map(async (user) => {
-          const userContributions = await Contribution.findOne({ userId: user._id, dateKey: { $in: dateBuckets } }).sort({ dateKey: -1 });
-          const totalCoins = (user.silverCoins || 0) + (user.goldCoins || 0) * 10;
-          const earnRate = Math.round((totalCoins / daysSinceStart) * 10) / 10;
-          
-          let primarySource = 'Unknown';
-          if (userContributions && userContributions.breakdown) {
-            const sources = {
-              Sessions: (userContributions.breakdown.sessionsAsLearner || 0) + (userContributions.breakdown.sessionsAsTutor || 0),
-              Interviews: userContributions.breakdown.interviewsCompleted || 0,
-              Teaching: userContributions.breakdown.sessionsAsTutor || 0,
-              Other: (userContributions.breakdown.questionsPosted || 0) + (userContributions.breakdown.answersProvided || 0)
-            };
-            primarySource = Object.entries(sources).sort((a, b) => b[1] - a[1])[0][0];
-          }
-
-          const lastActive = user.lastActivityAt ? new Date(user.lastActivityAt).toLocaleDateString() : 'Never';
-          const highRateFlag = earnRate > 50;
-
-          return {
-            _id: user._id,
-            name: `${user.firstName} ${user.lastName}`.trim() || 'Unknown',
-            email: user.email,
-            silver: user.silverCoins || 0,
-            gold: user.goldCoins || 0,
-            total: totalCoins,
-            earnRate,
-            primarySource,
-            lastActive,
-            highRateFlag
-          };
-        })
-    );
-
-    // 6. Concentration & Fairness Analysis
-    const sortedByCoins = users
+    // Top earners
+    const topEarners = allUsers
+      .sort((a, b) => (b.coins || 0) - (a.coins || 0))
+      .slice(0, 10)
       .map(u => ({
         userId: u._id,
-        totalCoins: (u.silverCoins || 0) + (u.goldCoins || 0) * 10
-      }))
-      .sort((a, b) => b.totalCoins - a.totalCoins);
+        coins: u.coins || 0
+      }));
 
-    const top1Percent = Math.max(1, Math.ceil(sortedByCoins.length * 0.01));
-    const top5Percent = Math.max(1, Math.ceil(sortedByCoins.length * 0.05));
-    const top10Percent = Math.max(1, Math.ceil(sortedByCoins.length * 0.10));
-
-    const totalCoinsInSystem = sortedByCoins.reduce((sum, u) => sum + u.totalCoins, 0);
-    const top1PercentCoins = sortedByCoins.slice(0, top1Percent).reduce((sum, u) => sum + u.totalCoins, 0);
-    const top5PercentCoins = sortedByCoins.slice(0, top5Percent).reduce((sum, u) => sum + u.totalCoins, 0);
-    const top10PercentCoins = sortedByCoins.slice(0, top10Percent).reduce((sum, u) => sum + u.totalCoins, 0);
-
-    const concentration = {
-      top1PercentShare: totalCoinsInSystem > 0 ? Math.round((top1PercentCoins / totalCoinsInSystem) * 100) : 0,
-      top5PercentShare: totalCoinsInSystem > 0 ? Math.round((top5PercentCoins / totalCoinsInSystem) * 100) : 0,
-      top10PercentShare: totalCoinsInSystem > 0 ? Math.round((top10PercentCoins / totalCoinsInSystem) * 100) : 0,
-      remainingUsersShare: totalCoinsInSystem > 0 ? Math.round(((totalCoinsInSystem - top10PercentCoins) / totalCoinsInSystem) * 100) : 0
-    };
-
-    // 7. Engagement vs Rewards Correlation
-    const sessionsCompleted = await SessionRequest.countDocuments({ 
-      status: 'completed',
-      createdAt: { $gte: start, $lte: end }
-    });
-    const interviewsCompleted = await InterviewRequest.countDocuments({ 
-      status: 'completed',
-      createdAt: { $gte: start, $lte: end }
-    });
-    const coinsEarnedInPeriod = await Contribution.aggregate([
-      { $match: { dateKey: { $in: dateBuckets } } },
-      {
-        $group: {
-          _id: null,
-          totalCoins: { $sum: { $add: ['$breakdown.coinsEarnedSilver', { $multiply: ['$breakdown.coinsEarnedGold', 10] }] } }
-        }
-      }
-    ]);
-
-    const engagementCorrelation = {
-      sessionsCompleted,
-      interviewsCompleted,
-      coinsEarned: coinsEarnedInPeriod[0]?.totalCoins || 0,
-      coinsPerSession: sessionsCompleted > 0 ? Math.round((coinsEarnedInPeriod[0]?.totalCoins || 0) / sessionsCompleted) : 0
-    };
-
-    // 8. Abuse & Anomaly Detection
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const recentContributions = await Contribution.aggregate([
-      { 
-        $match: { 
-          dateKey: { $gte: sevenDaysAgo.toISOString().split('T')[0] },
-          'breakdown.coinsEarnedSilver': { $gt: 0 }
-        } 
-      },
-      {
-        $group: {
-          _id: '$userId',
-          totalCoins: { $sum: { $add: ['$breakdown.coinsEarnedSilver', { $multiply: ['$breakdown.coinsEarnedGold', 10] }] } },
-          avgDailyCoins: { $avg: { $add: ['$breakdown.coinsEarnedSilver', { $multiply: ['$breakdown.coinsEarnedGold', 10] }] } },
-          days: { $sum: 1 }
-        }
-      },
-      { $match: { avgDailyCoins: { $gt: 30 } } }, // Flag if earning >30 coins/day on average
-      { $limit: 10 }
-    ]);
-
-    const suspiciousUsers = await Promise.all(
-      recentContributions.map(async (contrib) => {
-        const user = await User.findById(contrib._id).select('firstName lastName email');
-        const userSessions = await SessionRequest.countDocuments({ 
-          $or: [{ requester: contrib._id }, { tutor: contrib._id }],
-          status: 'completed',
-          createdAt: { $gte: sevenDaysAgo }
-        });
-        return {
-          userId: contrib._id,
-          name: user ? `${user.firstName} ${user.lastName}`.trim() : 'Unknown',
-          email: user?.email || 'Unknown',
-          avgDailyCoins: Math.round(contrib.avgDailyCoins),
-          totalCoins: contrib.totalCoins,
-          sessionsCompleted: userSessions,
-          flag: userSessions === 0 ? 'No sessions but earning coins' : contrib.avgDailyCoins > 50 ? 'Extremely high earning rate' : 'High earning rate'
-        };
-      })
-    );
-
-    // 9. Inactive Coin Holders
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const inactiveCoinHolders = users
-      .filter(u => {
-        const totalCoins = (u.silverCoins || 0) + (u.goldCoins || 0) * 10;
-        const isInactive = !u.lastActivityAt || new Date(u.lastActivityAt) < thirtyDaysAgo;
-        return totalCoins > 20 && isInactive;
-      })
-      .map(u => ({
-        userId: u._id,
-        name: `${u.firstName} ${u.lastName}`.trim() || 'Unknown',
-        email: u.email,
-        coins: (u.silverCoins || 0) + (u.goldCoins || 0) * 10,
-        lastActive: u.lastActivityAt ? new Date(u.lastActivityAt).toLocaleDateString() : 'Never'
-      }))
-      .sort((a, b) => b.coins - a.coins)
-      .slice(0, 10);
-
-    // 10. Impact on Retention
-    const usersWithCoinsRetention = users.filter(u => {
-      const hasCoins = (u.silverCoins || 0) > 0 || (u.goldCoins || 0) > 0;
-      const isActive = u.lastActivityAt && new Date(u.lastActivityAt) > thirtyDaysAgo;
-      return hasCoins && isActive;
-    });
-
-    const usersWithoutCoinsRetention = users.filter(u => {
-      const hasCoins = (u.silverCoins || 0) > 0 || (u.goldCoins || 0) > 0;
-      const isActive = u.lastActivityAt && new Date(u.lastActivityAt) > thirtyDaysAgo;
-      return !hasCoins && isActive;
-    });
-
-    const retentionImpact = {
-      usersWithCoinsActive: usersWithCoinsRetention.length,
-      usersWithCoinsTotal: usersWithCoins.length,
-      usersWithoutCoinsActive: usersWithoutCoinsRetention.length,
-      usersWithoutCoinsTotal: totalUsers - usersWithCoins.length,
-      retentionRateWithCoins: usersWithCoins.length > 0 ? Math.round((usersWithCoinsRetention.length / usersWithCoins.length) * 100) : 0,
-      retentionRateWithoutCoins: (totalUsers - usersWithCoins.length) > 0 ? Math.round((usersWithoutCoinsRetention.length / (totalUsers - usersWithCoins.length)) * 100) : 0
-    };
+    // Insights
+    const insights = [];
+    if (totalSpent > totalEarned) {
+      insights.push({
+        type: 'warning',
+        message: `Spending (${totalSpent}) exceeds earnings (${totalEarned})`,
+        action: 'Review coin generation mechanisms'
+      });
+    }
 
     res.json({
-      economyHealth,
-      silverGoldBalance,
-      earningTrend,
-      earningSources,
+      summary,
       topEarners,
-      concentration,
-      engagementCorrelation,
-      abuseDetection: {
-        suspiciousUsers,
-        totalFlagged: suspiciousUsers.length
-      },
-      inactiveCoinHolders,
-      retentionImpact
+      insights
     });
   } catch (error) {
     console.error('Analytics rewards error:', error);
@@ -1780,93 +2067,13 @@ exports.getReports = async (req, res) => {
       ? Math.round((resolvedReports / totalReports) * 100)
       : 0;
 
-    // Reports over time
-    const reportsOverTime = await Report.aggregate([
-      { $match: { createdAt: { $gte: start, $lte: end } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    const reportMap = reportsOverTime.reduce((acc, item) => {
-      acc[item._id] = item.count;
-      return acc;
-    }, {});
-
-    const reportsData = dateBuckets.map(date => ({
-      date,
-      count: reportMap[date] || 0
-    }));
-
-    // Resolution status
-    const resolutionStatus = {
-      resolved: resolvedReports,
-      unresolved: unresolvedReports,
-      inProgress: 0 // Can be enhanced if you have an 'inProgress' status
-    };
-
-    // Users with frequent reports or low ratings
-    const problematicUsers = await Report.aggregate([
-      { $match: { createdAt: { $gte: start, $lte: end } } },
-      {
-        $group: {
-          _id: '$reportedUserId',
-          reportCount: { $sum: 1 }
-        }
-      },
-      { $match: { reportCount: { $gte: 2 } } },
-      { $sort: { reportCount: -1 } },
-      { $limit: 20 },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      { $unwind: '$user' }
-    ]);
-
-    // Get session ratings for these users
-    const problematicUsersWithRatings = await Promise.all(
-      problematicUsers.map(async (item) => {
-        const sessions = await Session.find({
-          $or: [
-            { tutorId: item._id },
-            { studentId: item._id }
-          ],
-          rating: { $exists: true }
-        }).select('rating');
-
-        const avgRating = sessions.length > 0
-          ? sessions.reduce((sum, s) => sum + (s.rating || 0), 0) / sessions.length
-          : null;
-
-        return {
-          _id: item._id,
-          name: `${item.user.firstName} ${item.user.lastName}`,
-          email: item.user.email,
-          reportCount: item.reportCount,
-          avgRating: avgRating ? Math.round(avgRating * 10) / 10 : null
-        };
-      })
-    );
-
     res.json({
       summary: {
-        total: totalReports,
-        resolved: resolvedReports,
-        unresolved: unresolvedReports,
+        totalReports,
+        resolvedReports,
+        unresolvedReports,
         resolutionRate
-      },
-      reportsOverTime: reportsData,
-      resolutionStatus,
-      problematicUsers: problematicUsersWithRatings
+      }
     });
   } catch (error) {
     console.error('Analytics reports error:', error);
@@ -1884,185 +2091,12 @@ exports.getVisitorAnalytics = async (req, res) => {
     const MIN_TIME_SPENT = 15; // seconds
     const MIN_PAGE_VIEWS = 2;
 
-    // Date windows for DAU/WAU/MAU
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    const rangeMatch = { lastSeenAt: { $gte: start, $lte: end } };
-
-    // Active visitor criteria: time spent > threshold OR multiple page views OR repeated visits
-    const activeVisitorMatch = {
-      lastSeenAt: { $gte: start, $lte: end },
-      $or: [
-        { totalTimeSpent: { $gte: MIN_TIME_SPENT } },
-        { $expr: { $gte: [{ $size: { $ifNull: ['$pageViews', []] } }, MIN_PAGE_VIEWS] } },
-        { visitCount: { $gte: 2 } },
-      ],
-    };
-
-    const [
-      totalVisitors,
-      activeVisitors,
-      newVisitorsAgg,
-      avgVisitsAgg,
-      avgTimeSpentAgg,
-      conversions,
-      dauAnon,
-      wauAnon,
-      mauAnon,
-    ] = await Promise.all([
-      AnonymousVisitor.countDocuments(rangeMatch),
-      AnonymousVisitor.countDocuments(activeVisitorMatch),
-      AnonymousVisitor.aggregate([
-        { $match: { firstSeenAt: { $gte: start, $lte: end } } },
-        { $count: 'count' },
-      ]),
-      AnonymousVisitor.aggregate([
-        { $match: rangeMatch },
-        { $group: { _id: null, avgVisits: { $avg: '$visitCount' } } },
-      ]),
-      AnonymousVisitor.aggregate([
-        { $match: rangeMatch },
-        { $group: { _id: null, avgTime: { $avg: '$totalTimeSpent' } } },
-      ]),
-      AnonymousVisitor.countDocuments({ 
-        isConverted: true,
-        convertedAt: { $gte: start, $lte: end } 
-      }),
-      // DAU/WAU/MAU for anonymous visitors
-      AnonymousVisitor.countDocuments({
-        isConverted: false,
-        lastSeenAt: { $gte: oneDayAgo },
-        $or: [
-          { totalTimeSpent: { $gte: MIN_TIME_SPENT } },
-          { visitCount: { $gte: 2 } },
-        ],
-      }),
-      AnonymousVisitor.countDocuments({
-        isConverted: false,
-        lastSeenAt: { $gte: sevenDaysAgo },
-        $or: [
-          { totalTimeSpent: { $gte: MIN_TIME_SPENT } },
-          { visitCount: { $gte: 2 } },
-        ],
-      }),
-      AnonymousVisitor.countDocuments({
-        isConverted: false,
-        lastSeenAt: { $gte: thirtyDaysAgo },
-        $or: [
-          { totalTimeSpent: { $gte: MIN_TIME_SPENT } },
-          { visitCount: { $gte: 2 } },
-        ],
-      }),
-    ]);
-
-    const newVisitors = newVisitorsAgg[0]?.count || 0;
-    const returningVisitors = Math.max(totalVisitors - newVisitors, 0);
-    const avgVisitsPerVisitor = avgVisitsAgg[0]?.avgVisits || 0;
-    const avgTimeSpentPerVisitor = avgTimeSpentAgg[0]?.avgTime || 0;
-
-    // Top pages by all anonymous visitors
-    const topLandingPages = await AnonymousVisitor.aggregate([
-      { $match: rangeMatch },
-      { $unwind: { path: '$pageViews', preserveNullAndEmptyArrays: false } },
-      {
-        $group: {
-          _id: '$pageViews.path',
-          views: { $sum: 1 },
-          avgTimeSpent: { $avg: '$pageViews.timeSpent' },
-        },
-      },
-      { $sort: { views: -1 } },
-      { $limit: 10 },
-    ]).then((rows) =>
-      rows.map((r) => ({
-        path: r._id,
-        views: r.views,
-        avgTimeSpent: Math.round(r.avgTimeSpent || 0),
-      }))
-    );
-
-    // Top pages before conversion (last page before user registered/logged in)
-    const topPagesBeforeConversion = await AnonymousVisitor.aggregate([
-      {
-        $match: {
-          isConverted: true,
-          convertedAt: { $gte: start, $lte: end },
-          pageViews: { $exists: true, $ne: [] },
-        },
-      },
-      {
-        $project: {
-          lastPage: { $arrayElemAt: ['$pageViews.path', -1] },
-        },
-      },
-      {
-        $group: {
-          _id: '$lastPage',
-          conversions: { $sum: 1 },
-        },
-      },
-      { $sort: { conversions: -1 } },
-      { $limit: 5 },
-    ]).then((rows) => rows.map((r) => ({ path: r._id, conversions: r.conversions })));
-
-    // Traffic sources distribution
-    const topReferrers = await AnonymousVisitor.aggregate([
-      { $match: rangeMatch },
-      {
-        $group: {
-          _id: { $ifNull: ['$source', 'direct'] },
-          visitors: { $sum: 1 },
-        },
-      },
-      { $sort: { visitors: -1 } },
-      { $limit: 8 },
-    ]).then((rows) => rows.map((r) => ({ source: r._id, visitors: r.visitors })));
-
-    // Visit frequency distribution
-    const visitFrequency = await AnonymousVisitor.aggregate([
-      { $match: rangeMatch },
-      {
-        $bucket: {
-          groupBy: '$visitCount',
-          boundaries: [1, 2, 5, 10, 20, 999999],
-          default: '20+',
-          output: { count: { $sum: 1 } },
-        },
-      },
-    ]).then((rows) => {
-      const labels = ['1 visit', '2-4 visits', '5-9 visits', '10-19 visits', '20+ visits'];
-      return labels.map((label, idx) => {
-        const bucket = rows.find((r) => r._id === [1, 2, 5, 10, 20, 999999][idx]);
-        return { label, count: bucket?.count || 0 };
-      });
-    });
-
-    const conversionRate = totalVisitors > 0 ? Math.round((conversions / totalVisitors) * 100) : 0;
-    const inactiveVisitors = totalVisitors - activeVisitors;
-
+    const anonymousVisitors = await AnonymousVisitor.find({});
+    
     res.json({
       summary: {
-        totalVisitors,
-        activeVisitors,
-        inactiveVisitors,
-        newVisitors,
-        returningVisitors,
-        avgVisitsPerVisitor: Math.round(avgVisitsPerVisitor * 10) / 10,
-        avgTimeSpentPerVisitor: Math.round(avgTimeSpentPerVisitor),
-        conversions,
-        conversionRate,
-      },
-      activeAnonymous: {
-        dau: dauAnon,
-        wau: wauAnon,
-        mau: mauAnon,
-      },
-      topLandingPages,
-      topPagesBeforeConversion,
-      topReferrers,
-      visitFrequency,
+        totalVisitors: anonymousVisitors.length
+      }
     });
   } catch (error) {
     console.error('Analytics visitors error:', error);
