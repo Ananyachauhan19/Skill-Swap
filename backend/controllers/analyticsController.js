@@ -1484,84 +1484,278 @@ exports.getRewards = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
     const dateBuckets = generateDateBuckets(start, end);
+    const SessionRequest = require('../models/SessionRequest');
+    const Contribution = require('../models/Contribution');
+    const now = new Date();
 
-    // Get all users with their coins
-    const users = await User.find().select('silverCoins goldCoins firstName lastName email');
+    // Get all users with their coins and activity
+    const users = await User.find().select('silverCoins goldCoins firstName lastName email lastActivityAt createdAt');
 
-    // Calculate totals
-    const totalSilver = users.reduce((sum, user) => sum + (user.silverCoins || 0), 0);
-    const totalGold = users.reduce((sum, user) => sum + (user.goldCoins || 0), 0);
-    const activeEarners = users.filter(user => (user.silverCoins || 0) > 0 || (user.goldCoins || 0) > 0).length;
-    const avgPerUser = users.length > 0 
-      ? Math.round((totalSilver + totalGold * 10) / users.length)
-      : 0;
+    const totalUsers = users.length;
+    const usersWithCoins = users.filter(u => (u.silverCoins || 0) > 0 || (u.goldCoins || 0) > 0);
+    const usersWithOnlySilver = users.filter(u => (u.silverCoins || 0) > 0 && (u.goldCoins || 0) === 0);
+    const usersWithGold = users.filter(u => (u.goldCoins || 0) > 0);
 
-    // Coins distribution
-    const coinsDistribution = {
-      silver: totalSilver,
-      gold: totalGold
+    // 1. Economy Health Overview
+    const economyHealth = {
+      percentageEarningCoins: totalUsers > 0 ? Math.round((usersWithCoins.length / totalUsers) * 100) : 0,
+      percentageOnlySilver: totalUsers > 0 ? Math.round((usersWithOnlySilver.length / totalUsers) * 100) : 0,
+      percentageEarningGold: totalUsers > 0 ? Math.round((usersWithGold.length / totalUsers) * 100) : 0,
+      totalEarners: usersWithCoins.length,
+      nonEarners: totalUsers - usersWithCoins.length
     };
 
-    // Coins over time (using contribution events if available)
-    let coinsOverTime = [];
+    // 2. Silver vs Gold Balance
+    const totalSilver = users.reduce((sum, user) => sum + (user.silverCoins || 0), 0);
+    const totalGold = users.reduce((sum, user) => sum + (user.goldCoins || 0), 0);
+    const avgSilverPerUser = usersWithCoins.length > 0 ? Math.round(totalSilver / usersWithCoins.length) : 0;
+    const avgGoldPerUser = usersWithCoins.length > 0 ? Math.round((totalGold / usersWithCoins.length) * 10) / 10 : 0;
     
-    try {
-      const ContributionEvent = require('../models/ContributionEvent');
-      
-      const coinEvents = await ContributionEvent.aggregate([
-        { $match: { createdAt: { $gte: start, $lte: end } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            silver: { $sum: { $cond: [{ $eq: ['$coinType', 'silver'] }, '$amount', 0] } },
-            gold: { $sum: { $cond: [{ $eq: ['$coinType', 'gold'] }, '$amount', 0] } }
+    const silverGoldBalance = {
+      totalSilver,
+      totalGold,
+      ratio: totalGold > 0 ? Math.round((totalSilver / totalGold) * 10) / 10 : totalSilver,
+      avgSilverPerUser,
+      avgGoldPerUser
+    };
+
+    // 3. Coins Earned Over Time (Rate of earning)
+    const coinsOverTime = await Contribution.aggregate([
+      { $match: { dateKey: { $in: dateBuckets } } },
+      {
+        $group: {
+          _id: '$dateKey',
+          silver: { $sum: '$breakdown.coinsEarnedSilver' },
+          gold: { $sum: '$breakdown.coinsEarnedGold' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const coinMap = coinsOverTime.reduce((acc, item) => {
+      acc[item._id] = { silver: item.silver, gold: item.gold };
+      return acc;
+    }, {});
+
+    const earningTrend = dateBuckets.map(date => ({
+      date,
+      silver: coinMap[date]?.silver || 0,
+      gold: coinMap[date]?.gold || 0
+    }));
+
+    // 4. Earning Source Breakdown
+    const sourcesData = await Contribution.aggregate([
+      { $match: { dateKey: { $in: dateBuckets } } },
+      {
+        $group: {
+          _id: null,
+          sessionsAsLearner: { $sum: '$breakdown.sessionsAsLearner' },
+          sessionsAsTutor: { $sum: '$breakdown.sessionsAsTutor' },
+          interviewsCompleted: { $sum: '$breakdown.interviewsCompleted' },
+          other: { $sum: { $add: ['$breakdown.questionsPosted', '$breakdown.answersProvided', '$breakdown.videosUploaded'] } }
+        }
+      }
+    ]);
+
+    const earningSourcesData = sourcesData[0] || { sessionsAsLearner: 0, sessionsAsTutor: 0, interviewsCompleted: 0, other: 0 };
+
+    const earningSources = {
+      sessions: earningSourcesData.sessionsAsLearner + earningSourcesData.sessionsAsTutor,
+      interviews: earningSourcesData.interviewsCompleted,
+      teaching: earningSourcesData.sessionsAsTutor,
+      contributions: earningSourcesData.other
+    };
+
+    // 5. Top Earners with Enhanced Data
+    const daysSinceStart = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)));
+    const topEarners = await Promise.all(
+      users
+        .filter(u => (u.silverCoins || 0) > 0 || (u.goldCoins || 0) > 0)
+        .sort((a, b) => {
+          const aTotal = (a.silverCoins || 0) + (a.goldCoins || 0) * 10;
+          const bTotal = (b.silverCoins || 0) + (b.goldCoins || 0) * 10;
+          return bTotal - aTotal;
+        })
+        .slice(0, 15)
+        .map(async (user) => {
+          const userContributions = await Contribution.findOne({ userId: user._id, dateKey: { $in: dateBuckets } }).sort({ dateKey: -1 });
+          const totalCoins = (user.silverCoins || 0) + (user.goldCoins || 0) * 10;
+          const earnRate = Math.round((totalCoins / daysSinceStart) * 10) / 10;
+          
+          let primarySource = 'Unknown';
+          if (userContributions && userContributions.breakdown) {
+            const sources = {
+              Sessions: (userContributions.breakdown.sessionsAsLearner || 0) + (userContributions.breakdown.sessionsAsTutor || 0),
+              Interviews: userContributions.breakdown.interviewsCompleted || 0,
+              Teaching: userContributions.breakdown.sessionsAsTutor || 0,
+              Other: (userContributions.breakdown.questionsPosted || 0) + (userContributions.breakdown.answersProvided || 0)
+            };
+            primarySource = Object.entries(sources).sort((a, b) => b[1] - a[1])[0][0];
           }
-        },
-        { $sort: { _id: 1 } }
-      ]);
 
-      const coinMap = coinEvents.reduce((acc, item) => {
-        acc[item._id] = { silver: item.silver, gold: item.gold };
-        return acc;
-      }, {});
+          const lastActive = user.lastActivityAt ? new Date(user.lastActivityAt).toLocaleDateString() : 'Never';
+          const highRateFlag = earnRate > 50;
 
-      coinsOverTime = dateBuckets.map(date => ({
-        date,
-        silver: coinMap[date]?.silver || 0,
-        gold: coinMap[date]?.gold || 0
-      }));
-    } catch (err) {
-      // If ContributionEvent model doesn't exist, create mock data
-      coinsOverTime = dateBuckets.map(date => ({
-        date,
-        silver: 0,
-        gold: 0
-      }));
-    }
+          return {
+            _id: user._id,
+            name: `${user.firstName} ${user.lastName}`.trim() || 'Unknown',
+            email: user.email,
+            silver: user.silverCoins || 0,
+            gold: user.goldCoins || 0,
+            total: totalCoins,
+            earnRate,
+            primarySource,
+            lastActive,
+            highRateFlag
+          };
+        })
+    );
 
-    // Leaderboard (top 20 earners)
-    const leaderboard = users
-      .map(user => ({
-        _id: user._id,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        silver: user.silverCoins || 0,
-        gold: user.goldCoins || 0,
-        total: (user.silverCoins || 0) + (user.goldCoins || 0) * 10
+    // 6. Concentration & Fairness Analysis
+    const sortedByCoins = users
+      .map(u => ({
+        userId: u._id,
+        totalCoins: (u.silverCoins || 0) + (u.goldCoins || 0) * 10
       }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 20);
+      .sort((a, b) => b.totalCoins - a.totalCoins);
+
+    const top1Percent = Math.max(1, Math.ceil(sortedByCoins.length * 0.01));
+    const top5Percent = Math.max(1, Math.ceil(sortedByCoins.length * 0.05));
+    const top10Percent = Math.max(1, Math.ceil(sortedByCoins.length * 0.10));
+
+    const totalCoinsInSystem = sortedByCoins.reduce((sum, u) => sum + u.totalCoins, 0);
+    const top1PercentCoins = sortedByCoins.slice(0, top1Percent).reduce((sum, u) => sum + u.totalCoins, 0);
+    const top5PercentCoins = sortedByCoins.slice(0, top5Percent).reduce((sum, u) => sum + u.totalCoins, 0);
+    const top10PercentCoins = sortedByCoins.slice(0, top10Percent).reduce((sum, u) => sum + u.totalCoins, 0);
+
+    const concentration = {
+      top1PercentShare: totalCoinsInSystem > 0 ? Math.round((top1PercentCoins / totalCoinsInSystem) * 100) : 0,
+      top5PercentShare: totalCoinsInSystem > 0 ? Math.round((top5PercentCoins / totalCoinsInSystem) * 100) : 0,
+      top10PercentShare: totalCoinsInSystem > 0 ? Math.round((top10PercentCoins / totalCoinsInSystem) * 100) : 0,
+      remainingUsersShare: totalCoinsInSystem > 0 ? Math.round(((totalCoinsInSystem - top10PercentCoins) / totalCoinsInSystem) * 100) : 0
+    };
+
+    // 7. Engagement vs Rewards Correlation
+    const sessionsCompleted = await SessionRequest.countDocuments({ 
+      status: 'completed',
+      createdAt: { $gte: start, $lte: end }
+    });
+    const interviewsCompleted = await InterviewRequest.countDocuments({ 
+      status: 'completed',
+      createdAt: { $gte: start, $lte: end }
+    });
+    const coinsEarnedInPeriod = await Contribution.aggregate([
+      { $match: { dateKey: { $in: dateBuckets } } },
+      {
+        $group: {
+          _id: null,
+          totalCoins: { $sum: { $add: ['$breakdown.coinsEarnedSilver', { $multiply: ['$breakdown.coinsEarnedGold', 10] }] } }
+        }
+      }
+    ]);
+
+    const engagementCorrelation = {
+      sessionsCompleted,
+      interviewsCompleted,
+      coinsEarned: coinsEarnedInPeriod[0]?.totalCoins || 0,
+      coinsPerSession: sessionsCompleted > 0 ? Math.round((coinsEarnedInPeriod[0]?.totalCoins || 0) / sessionsCompleted) : 0
+    };
+
+    // 8. Abuse & Anomaly Detection
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const recentContributions = await Contribution.aggregate([
+      { 
+        $match: { 
+          dateKey: { $gte: sevenDaysAgo.toISOString().split('T')[0] },
+          'breakdown.coinsEarnedSilver': { $gt: 0 }
+        } 
+      },
+      {
+        $group: {
+          _id: '$userId',
+          totalCoins: { $sum: { $add: ['$breakdown.coinsEarnedSilver', { $multiply: ['$breakdown.coinsEarnedGold', 10] }] } },
+          avgDailyCoins: { $avg: { $add: ['$breakdown.coinsEarnedSilver', { $multiply: ['$breakdown.coinsEarnedGold', 10] }] } },
+          days: { $sum: 1 }
+        }
+      },
+      { $match: { avgDailyCoins: { $gt: 30 } } }, // Flag if earning >30 coins/day on average
+      { $limit: 10 }
+    ]);
+
+    const suspiciousUsers = await Promise.all(
+      recentContributions.map(async (contrib) => {
+        const user = await User.findById(contrib._id).select('firstName lastName email');
+        const userSessions = await SessionRequest.countDocuments({ 
+          $or: [{ requester: contrib._id }, { tutor: contrib._id }],
+          status: 'completed',
+          createdAt: { $gte: sevenDaysAgo }
+        });
+        return {
+          userId: contrib._id,
+          name: user ? `${user.firstName} ${user.lastName}`.trim() : 'Unknown',
+          email: user?.email || 'Unknown',
+          avgDailyCoins: Math.round(contrib.avgDailyCoins),
+          totalCoins: contrib.totalCoins,
+          sessionsCompleted: userSessions,
+          flag: userSessions === 0 ? 'No sessions but earning coins' : contrib.avgDailyCoins > 50 ? 'Extremely high earning rate' : 'High earning rate'
+        };
+      })
+    );
+
+    // 9. Inactive Coin Holders
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const inactiveCoinHolders = users
+      .filter(u => {
+        const totalCoins = (u.silverCoins || 0) + (u.goldCoins || 0) * 10;
+        const isInactive = !u.lastActivityAt || new Date(u.lastActivityAt) < thirtyDaysAgo;
+        return totalCoins > 20 && isInactive;
+      })
+      .map(u => ({
+        userId: u._id,
+        name: `${u.firstName} ${u.lastName}`.trim() || 'Unknown',
+        email: u.email,
+        coins: (u.silverCoins || 0) + (u.goldCoins || 0) * 10,
+        lastActive: u.lastActivityAt ? new Date(u.lastActivityAt).toLocaleDateString() : 'Never'
+      }))
+      .sort((a, b) => b.coins - a.coins)
+      .slice(0, 10);
+
+    // 10. Impact on Retention
+    const usersWithCoinsRetention = users.filter(u => {
+      const hasCoins = (u.silverCoins || 0) > 0 || (u.goldCoins || 0) > 0;
+      const isActive = u.lastActivityAt && new Date(u.lastActivityAt) > thirtyDaysAgo;
+      return hasCoins && isActive;
+    });
+
+    const usersWithoutCoinsRetention = users.filter(u => {
+      const hasCoins = (u.silverCoins || 0) > 0 || (u.goldCoins || 0) > 0;
+      const isActive = u.lastActivityAt && new Date(u.lastActivityAt) > thirtyDaysAgo;
+      return !hasCoins && isActive;
+    });
+
+    const retentionImpact = {
+      usersWithCoinsActive: usersWithCoinsRetention.length,
+      usersWithCoinsTotal: usersWithCoins.length,
+      usersWithoutCoinsActive: usersWithoutCoinsRetention.length,
+      usersWithoutCoinsTotal: totalUsers - usersWithCoins.length,
+      retentionRateWithCoins: usersWithCoins.length > 0 ? Math.round((usersWithCoinsRetention.length / usersWithCoins.length) * 100) : 0,
+      retentionRateWithoutCoins: (totalUsers - usersWithCoins.length) > 0 ? Math.round((usersWithoutCoinsRetention.length / (totalUsers - usersWithCoins.length)) * 100) : 0
+    };
 
     res.json({
-      summary: {
-        totalSilver,
-        totalGold,
-        activeEarners,
-        avgPerUser
+      economyHealth,
+      silverGoldBalance,
+      earningTrend,
+      earningSources,
+      topEarners,
+      concentration,
+      engagementCorrelation,
+      abuseDetection: {
+        suspiciousUsers,
+        totalFlagged: suspiciousUsers.length
       },
-      coinsDistribution,
-      coinsOverTime,
-      leaderboard
+      inactiveCoinHolders,
+      retentionImpact
     });
   } catch (error) {
     console.error('Analytics rewards error:', error);
