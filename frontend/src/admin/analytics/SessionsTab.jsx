@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Line, Bar } from 'react-chartjs-2';
 import { BACKEND_URL } from '../../config';
-import { LoadingSpinner, commonChartOptions, lineChartColors } from './chartConfig';
+import { LoadingSpinner, commonChartOptions, lineChartColors } from './chartConfig.jsx';
 
 export default function SessionsTab({ dateRange }) {
   const [data, setData] = useState(null);

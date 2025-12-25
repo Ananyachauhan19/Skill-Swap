@@ -89,8 +89,8 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const { username: paramUsername } = useParams();
   const [activeTab, setActiveTab] = useState("home");
   const activeTabStyle =
-    "border-b-2 border-blue-600 text-dark-blue font-semibold";
-  const normalTabStyle = "text-gray-600 hover:text-dark-blue";
+    "border-b-4 border-blue-600 text-gray-900 font-bold -mb-0.5";
+  const normalTabStyle = "text-gray-500 hover:text-gray-900 font-medium";
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -319,21 +319,22 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
   return (
     <ProfileContext.Provider value={{ searchQuery, setSearchQuery, profileUserId: profile?._id }}>
-      <div className="flex flex-col sm:flex-row min-h-screen w-full bg-gradient-to-br from-blue-50 to-cream-100 font-sans">
+      <div className="flex flex-col sm:flex-row min-h-screen w-full bg-[#f8f9fb] font-sans">
         {/* Sidebar - Web Version */}
-        <aside className="hidden sm:flex sm:w-56 min-h-screen bg-blue-50 px-4 pt-6 border-r border-blue-200">
+        <aside className="hidden sm:flex sm:w-72 min-h-screen bg-white px-6 pt-8 border-r border-gray-200 shadow-sm">
           <div className="w-full">
-            <div className="mb-5">
-              <div className="flex flex-col gap-2">
+            <div className="mb-7">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Connect</h3>
+              <div className="flex flex-col gap-3">
                 {profile?.linkedin && (
                   <a
                     href={`https://linkedin.com/in/${profile.linkedin}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-xs"
+                    className="flex items-center gap-3 text-gray-600 hover:text-blue-600 text-sm font-medium transition-colors duration-200 p-2 rounded-lg hover:bg-gray-50"
                   >
-                    <FaLinkedin className="text-lg text-dark-blue" />
-                    LinkedIn
+                    <FaLinkedin className="text-xl text-blue-600" />
+                    <span>LinkedIn</span>
                   </a>
                 )}
                 {profile?.github && (
@@ -341,10 +342,10 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     href={`https://github.com/${profile.github}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-xs"
+                    className="flex items-center gap-3 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors duration-200 p-2 rounded-lg hover:bg-gray-50"
                   >
-                    <FaGithub className="text-lg text-dark-blue" />
-                    GitHub
+                    <FaGithub className="text-xl text-gray-900" />
+                    <span>GitHub</span>
                   </a>
                 )}
                 {profile?.twitter && (
@@ -352,10 +353,10 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     href={`https://twitter.com/${profile.twitter}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-xs"
+                    className="flex items-center gap-3 text-gray-600 hover:text-blue-500 text-sm font-medium transition-colors duration-200 p-2 rounded-lg hover:bg-gray-50"
                   >
-                    <FaTwitter className="text-lg text-dark-blue" />
-                    Twitter
+                    <FaTwitter className="text-xl text-blue-500" />
+                    <span>Twitter</span>
                   </a>
                 )}
                 {profile?.website && (
@@ -367,103 +368,92 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-gray-600 hover:text-dark-blue text-xs"
+                    className="flex items-center gap-3 text-gray-600 hover:text-green-600 text-sm font-medium transition-colors duration-200 p-2 rounded-lg hover:bg-gray-50"
                   >
-                    <FaGlobe className="text-lg text-dark-blue" />
-                    Website
+                    <FaGlobe className="text-xl text-green-600" />
+                    <span>Website</span>
                   </a>
                 )}
               </div>
             </div>
 
-            <div className="mb-5">
-              <div className="font-semibold text-dark-blue mb-2 text-base">
-                Education
-              </div>
+            <div className="mb-7">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Education</h3>
               {loading ? (
-                <span className="text-gray-600 text-sm">Loading...</span>
+                <span className="text-gray-500 text-sm">Loading...</span>
               ) : error ? (
                 <span className="text-red-500 text-sm">{error}</span>
               ) : profile?.education && profile.education.length > 0 ? (
-                <ul className="flex flex-col gap-2">
+                <ul className="flex flex-col gap-4">
                   {profile.education.map((edu, i) => (
                     <li
                       key={i}
-                      className="text-xs text-gray-600 whitespace-pre-line"
+                      className="text-sm leading-relaxed border-l-2 border-blue-600 pl-3"
                     >
-                      {edu.course && <div>{edu.course}</div>}
-                      {edu.branch && <div>{edu.branch}</div>}
-                      {edu.college && <div>{edu.college}</div>}
-                      {edu.city && <div>{edu.city}</div>}
-                      {edu.passingYear && <div>{edu.passingYear}</div>}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <span className="text-xs text-gray-600">Not added yet</span>
-              )}
-            </div>
-
-            <div className="mb-5">
-              <div className="font-semibold text-dark-blue mb-2 text-base">
-                Experience
-              </div>
-              {loading ? (
-                <span className="text-gray-600 text-sm">Loading...</span>
-              ) : error ? (
-                <span className="text-red-500 text-sm">{error}</span>
-              ) : profile?.experience && profile.experience.length > 0 ? (
-                <ul className="flex flex-col gap-2">
-                  {profile.experience.map((exp, i) => (
-                    <li key={i} className="text-xs text-gray-600">
-                      {exp.position && exp.company && exp.duration && exp.description ? (
-                        <span>
-                          <span className="font-medium">{exp.position}</span>
-                          {` at ${exp.company} for ${exp.duration}. ${exp.description}`}
-                        </span>
-                      ) : (
-                        <span>
-                          {exp.position && <span className="font-medium">{exp.position}</span>}
-                          {exp.company ? ` at ${exp.company}` : ""}
-                          {exp.duration ? ` (${exp.duration})` : ""}
-                          {exp.description ? `: ${exp.description}` : ""}
-                        </span>
+                      {edu.course && <div className="font-semibold text-gray-900 mb-1">{edu.course}</div>}
+                      {edu.branch && <div className="text-blue-600 text-sm font-medium mb-0.5">{edu.branch}</div>}
+                      {edu.college && <div className="text-gray-600 text-xs">{edu.college}</div>}
+                      {(edu.city || edu.passingYear) && (
+                        <div className="text-gray-500 text-xs mt-1">
+                          {edu.city}{edu.city && edu.passingYear && ' • '}{edu.passingYear}
+                        </div>
                       )}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <span className="text-xs text-gray-600">Not added yet</span>
+                <span className="text-xs text-gray-400">Not added yet</span>
               )}
             </div>
 
-            <div className="mb-5">
-              <div className="font-semibold text-dark-blue mb-2 text-base">
-                Skills
-              </div>
+            <div className="mb-7">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Experience</h3>
               {loading ? (
-                <span className="text-gray-600 text-sm">Loading...</span>
+                <span className="text-gray-500 text-sm">Loading...</span>
               ) : error ? (
                 <span className="text-red-500 text-sm">{error}</span>
-              ) : profile?.skills && profile.skills.length > 0 ? (
-                <ul className="flex flex-col gap-2">
-                  {profile.skills.map((skill, i) => (
-                    <li key={i} className="text-xs text-gray-600">
-                      {skill}
+              ) : profile?.experience && profile.experience.length > 0 ? (
+                <ul className="flex flex-col gap-4">
+                  {profile.experience.map((exp, i) => (
+                    <li key={i} className="text-sm leading-relaxed border-l-2 border-blue-600 pl-3">
+                      {exp.position && <div className="font-semibold text-gray-900 mb-1">{exp.position}</div>}
+                      {exp.company && <div className="text-blue-600 text-sm font-medium mb-0.5">{exp.company}</div>}
+                      {exp.duration && <div className="text-gray-500 text-xs mb-1">{exp.duration}</div>}
+                      {exp.description && <div className="text-gray-600 text-xs leading-relaxed">{exp.description}</div>}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <span className="text-xs text-gray-600">Not added yet</span>
+                <span className="text-xs text-gray-400">Not added yet</span>
               )}
             </div>
 
-            <div className="mb-5">
-              <div className="font-semibold text-dark-blue mb-2 text-base">
-                What I Can Teach
-              </div>
+            <div className="mb-7">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Skills</h3>
               {loading ? (
-                <span className="text-gray-600 text-sm">Loading...</span>
+                <span className="text-gray-500 text-sm">Loading...</span>
+              ) : error ? (
+                <span className="text-red-500 text-sm">{error}</span>
+              ) : profile?.skills && profile.skills.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {profile.skills.map((skill, i) => (
+                    <span
+                      key={i}
+                      className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 hover:bg-gray-200 transition-colors duration-200"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-xs text-gray-400">Not added yet</span>
+              )}
+            </div>
+
+            <div className="mb-7">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">What I Can Teach</h3>
+              {loading ? (
+                <span className="text-gray-500 text-sm">Loading...</span>
               ) : error ? (
                 <span className="text-red-500 text-sm">{error}</span>
               ) : profile?.skillsToTeach && profile.skillsToTeach.length > 0 ? (
@@ -471,12 +461,12 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   {profile.skillsToTeach.map((s, i) => (
                     <li
                       key={i}
-                      className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[10px] font-medium border border-blue-200 flex items-center gap-1"
+                      className="bg-green-50 text-green-800 px-3 py-1.5 rounded-lg text-xs font-medium border border-green-200 hover:bg-green-100 transition-colors duration-200"
                     >
                       {s.class ? `${s.class} • ` : ""}
                       {s.subject}{" "}
                       {s.topic === "ALL"
-                        ? " > ALL Topics"
+                        ? " > ALL"
                         : s.topic
                         ? `> ${s.topic}`
                         : ""}{" "}
@@ -485,14 +475,14 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   ))}
                 </ul>
               ) : (
-                <span className="text-xs text-gray-600">Not added yet</span>
+                <span className="text-xs text-gray-400">Not added yet</span>
               )}
             </div>
 
             {/* Report Button */}
-            <div className="mb-5">
+            <div className="mb-7 pt-4 border-t border-gray-200">
               <button
-                className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm hover:shadow"
+                className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md"
                 onClick={() => {
                   if (!profile) return;
                   navigate('/report', {
@@ -516,10 +506,10 @@ const SideBarPublic = ({ username, setNotFound }) => {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-h-screen pt-8 pb-6 px-4 sm:px-8">
-          <div className="max-w-5xl mx-auto">
+        <main className="flex-1 min-h-screen pt-10 pb-8 px-6 sm:px-10">
+          <div className="max-w-6xl mx-auto">
             {/* Profile Section */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-start mb-8">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start mb-10 bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-200">
               {loading ? (
                 <div className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] mx-auto">
                   <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
@@ -543,27 +533,27 @@ const SideBarPublic = ({ username, setNotFound }) => {
                       "https://placehold.co/100x100?text=User"
                     }
                     alt={`${profile?.fullName || "User"}'s profile picture`}
-                    className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] rounded-full object-cover border-2 border-blue-200 mx-auto sm:mx-0"
+                    className="w-[120px] h-[120px] sm:w-[200px] sm:h-[200px] rounded-full object-cover border-4 border-gray-200 shadow-lg mx-auto sm:mx-0"
                   />
-                  <div className="mt-4 sm:mt-0 sm:ml-6 flex-1 flex flex-col items-center sm:items-start relative">
-                    <h1 className="text-xl sm:text-3xl font-bold text-dark-blue text-center sm:text-left">
+                  <div className="mt-6 sm:mt-0 sm:ml-8 flex-1 flex flex-col items-center sm:items-start relative">
+                    <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 text-center sm:text-left mb-2">
                       {profile?.fullName || "Full Name"}
                     </h1>
-                    <p className="text-sm text-gray-600 text-center sm:text-left">
+                    <p className="text-base text-blue-600 font-medium text-center sm:text-left mb-3">
                       {profile?.username ? `@${profile.username}` : "@username"}
                     </p>
-                    <p className="text-sm text-gray-600 mt-2 max-w-md text-center sm:text-left">
+                    <p className="text-sm text-gray-600 leading-relaxed mt-1 max-w-xl text-center sm:text-left">
                       {profile?.bio ||
                         "Your bio goes here, set it in Setup Profile."}
                     </p>
-                    <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center sm:justify-start relative z-10">
+                    <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center sm:justify-start relative z-10">
                       <button
-                        className={`border border-blue-200 text-dark-blue px-6 sm:px-8 py-2 rounded-lg text-sm font-medium max-w-xs flex items-center justify-between ${
+                        className={`border px-8 py-3 rounded-xl text-sm font-semibold max-w-xs flex items-center justify-between transition-all duration-200 shadow-sm hover:shadow-md ${
                           isSkillMate
-                            ? "bg-green-50 border-green-200"
+                            ? "bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
                             : pendingRequest
-                            ? "bg-yellow-50 border-yellow-200"
-                            : "bg-blue-50 hover:bg-blue-100"
+                            ? "bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                            : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
                         }`}
                         onClick={
                           isSkillMate
@@ -668,7 +658,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                       )}
                       {isSkillMate && (
                         <button
-                          className="border border-blue-200 text-white bg-blue-600 hover:bg-blue-700 px-6 sm:px-8 py-2 rounded-lg text-sm font-medium"
+                          className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-8 py-3 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
                           onClick={() => setActiveChatId(profile?._id)}
                           title="Message"
                         >
@@ -855,8 +845,8 @@ const SideBarPublic = ({ username, setNotFound }) => {
             {/* Contribution Calendar removed here; appears in Home tab only */}
 
             {/* Tab Navigation */}
-            <div className="px-2 sm:px-0 pt-4 sm:pt-6">
-              <div className="flex items-center gap-2 sm:gap-4 border-b border-blue-200 mb-6">
+            <div className="px-2 sm:px-0 pt-6 sm:pt-8">
+              <div className="flex items-center gap-2 sm:gap-6 border-b-2 border-gray-200 mb-8">
                 {/* Back Button - Mobile Only */}
                 <button
                   onClick={() => navigate(-1)}
@@ -866,10 +856,10 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   <FaArrowLeft className="text-sm" />
                 </button>
                 
-                <div className="flex flex-wrap gap-2 sm:gap-4">
+                <div className="flex flex-wrap gap-4 sm:gap-6">
                   <button
                     onClick={() => setActiveTab('home')}
-                    className={`pb-2 px-3 text-sm font-medium ${
+                    className={`pb-3 px-2 text-base ${
                       activeTab === 'home' ? activeTabStyle : normalTabStyle
                     }`}
                   >
@@ -877,7 +867,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   </button>
                   <button
                     onClick={() => setActiveTab('live')}
-                    className={`pb-2 px-3 text-sm font-medium ${
+                    className={`pb-3 px-2 text-base ${
                       activeTab === 'live' ? activeTabStyle : normalTabStyle
                     }`}
                   >
@@ -885,7 +875,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   </button>
                   <button
                     onClick={() => setActiveTab('videos')}
-                    className={`pb-2 px-3 text-sm font-medium ${
+                    className={`pb-3 px-2 text-base ${
                       activeTab === 'videos' ? activeTabStyle : normalTabStyle
                     }`}
                   >

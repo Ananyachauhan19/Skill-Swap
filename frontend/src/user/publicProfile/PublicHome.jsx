@@ -11,9 +11,9 @@ const PublicHome = () => {
   const effectiveUserId = profileUserId || queryUserId || undefined;
 
   return (
-    <div className="w-full bg-gradient-to-br from-blue-50 to-white min-h-screen py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
-      <div className="max-w-4xl w-full mx-auto">
-        <div className="mb-6 sm:mb-8">
+    <div className="w-full min-h-screen py-6 sm:py-8 px-4 sm:px-6 lg:px-10">
+      <div className="max-w-5xl w-full mx-auto">
+        <div className="mb-8 sm:mb-10">
           <ContributionCalendar userId={effectiveUserId} />
         </div>
       </div>
