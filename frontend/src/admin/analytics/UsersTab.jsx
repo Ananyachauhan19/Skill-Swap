@@ -40,6 +40,125 @@ export default function UsersTab({ dateRange }) {
     return <LoadingSpinner />;
   }
 
+  // Behavioral Insights Data
+  const roleEngagementData = {
+    labels: data?.roleEngagement?.map(r => r.role) || [],
+    datasets: [
+      {
+        label: 'Sessions Attended',
+        data: data?.roleEngagement?.map(r => r.sessionsAttended) || [],
+        backgroundColor: 'rgba(59, 130, 246, 0.8)'
+      },
+      {
+        label: 'Sessions Conducted',
+        data: data?.roleEngagement?.map(r => r.sessionsConducted) || [],
+        backgroundColor: 'rgba(16, 185, 129, 0.8)'
+      },
+      {
+        label: 'Interviews Requested',
+        data: data?.roleEngagement?.map(r => r.interviewsRequested) || [],
+        backgroundColor: 'rgba(245, 158, 11, 0.8)'
+      },
+      {
+        label: 'Interviews Conducted',
+        data: data?.roleEngagement?.map(r => r.interviewsConducted) || [],
+        backgroundColor: 'rgba(139, 92, 246, 0.8)'
+      }
+    ]
+  };
+
+  const funnelData = {
+    labels: data?.conversionFunnel?.map(s => s.stage) || [],
+    datasets: [{
+      label: 'Users',
+      data: data?.conversionFunnel?.map(s => s.count) || [],
+      backgroundColor: ['rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(245, 158, 11, 0.8)', 'rgba(239, 68, 68, 0.8)', 'rgba(139, 92, 246, 0.8)', 'rgba(236, 72, 153, 0.8)']
+    }]
+  };
+
+  const segmentationData = {
+    labels: ['No Activity', 'One-Time', 'Repeat', 'Power Users'],
+    datasets: [{
+      data: [
+        data?.userSegmentation?.noActivity || 0,
+        data?.userSegmentation?.oneTime || 0,
+        data?.userSegmentation?.repeat || 0,
+        data?.userSegmentation?.power || 0
+      ],
+      backgroundColor: ['rgba(156, 163, 175, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(16, 185, 129, 0.8)', 'rgba(245, 158, 11, 0.8)']
+    }]
+  };
+
+  const transitionsData = {
+    labels: ['Student → Tutor', 'Student → Both', 'Tutor → Interviewer'],
+    datasets: [{
+      label: 'Transitions',
+      data: [
+        data?.roleTransitions?.studentToTutor || 0,
+        data?.roleTransitions?.studentToBoth || 0,
+        data?.roleTransitions?.tutorToInterviewer || 0
+      ],
+      backgroundColor: 'rgba(139, 92, 246, 0.8)'
+    }]
+  };
+
+  const hourCounts = Array(24).fill(0);
+  data?.timePatterns?.forEach(p => {
+    hourCounts[p._id.hour] += p.count;
+  });
+  const timePatternData = {
+    labels: hourCounts.map((_, i) => `${i}:00`),
+    datasets: [{
+      label: 'Activity',
+      data: hourCounts,
+      backgroundColor: 'rgba(59, 130, 246, 0.8)'
+    }]
+  };
+
+  const reliabilityData = {
+    labels: data?.reliabilityMetrics?.map(r => r.role) || [],
+    datasets: [
+      {
+        label: 'Completion (%)',
+        data: data?.reliabilityMetrics?.map(r => r.completionRate) || [],
+        backgroundColor: 'rgba(16, 185, 129, 0.8)'
+      },
+      {
+        label: 'Cancellation (%)',
+        data: data?.reliabilityMetrics?.map(r => r.cancellationRate) || [],
+        backgroundColor: 'rgba(245, 158, 11, 0.8)'
+      },
+      {
+        label: 'No-Show (%)',
+        data: data?.reliabilityMetrics?.map(r => r.noShowRate) || [],
+        backgroundColor: 'rgba(239, 68, 68, 0.8)'
+      }
+    ]
+  };
+
+  const newVsEstData = {
+    labels: ['New (<7d)', 'Established'],
+    datasets: [
+      {
+        label: 'Sessions',
+        data: [
+          data?.newVsEstablished?.newUsers?.sessions || 0,
+          data?.newVsEstablished?.established?.sessions || 0
+        ],
+        backgroundColor: 'rgba(59, 130, 246, 0.8)'
+      },
+      {
+        label: 'Cancel Rate (%)',
+        data: [
+          data?.newVsEstablished?.newUsers?.cancellationRate || 0,
+          data?.newVsEstablished?.established?.cancellationRate || 0
+        ],
+        backgroundColor: 'rgba(245, 158, 11, 0.8)'
+      }
+    ]
+  };
+
+  // Original Charts Data
   const registrationData = {
     labels: data?.registrations?.map(d => d.date.slice(5)) || [],
     datasets: [{
@@ -118,7 +237,165 @@ export default function UsersTab({ dateRange }) {
         </div>
       </div>
 
-      {/* Charts */}
+      {/* Behavioral Insights Section */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-5 rounded-xl border border-purple-100">
+        <h2 className="text-lg font-bold mb-4 text-gray-900 flex items-center">
+          <span className="mr-2">🔍</span> Behavioral Insights
+        </h2>
+        
+        {/* Role Engagement + Conversion Funnel */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-semibold mb-3 text-gray-800">Role Engagement Matrix</h3>
+            <div className="h-48">
+              <Bar 
+                data={roleEngagementData} 
+                options={{ 
+                  ...commonChartOptions,
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true } },
+                  plugins: { 
+                    legend: { 
+                      position: 'bottom', 
+                      labels: { boxWidth: 10, font: { size: 10 }, padding: 8 } 
+                    } 
+                  }
+                }} 
+              />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-semibold mb-3 text-gray-800">User Conversion Funnel</h3>
+            <div className="h-48">
+              <Bar 
+                data={funnelData} 
+                options={{ 
+                  ...commonChartOptions,
+                  maintainAspectRatio: false,
+                  indexAxis: 'y',
+                  scales: { x: { beginAtZero: true } },
+                  plugins: { legend: { display: false } }
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* User Segmentation + Role Transitions */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-semibold mb-3 text-gray-800">Repeat vs One-Time Users</h3>
+            <div className="h-48">
+              <Doughnut 
+                data={segmentationData} 
+                options={{ 
+                  ...commonChartOptions,
+                  maintainAspectRatio: false,
+                  plugins: { 
+                    legend: { 
+                      position: 'bottom', 
+                      labels: { boxWidth: 10, font: { size: 10 }, padding: 8 } 
+                    } 
+                  }
+                }} 
+              />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-semibold mb-3 text-gray-800">Cross-Role Transitions</h3>
+            <div className="h-48">
+              <Bar 
+                data={transitionsData} 
+                options={{ 
+                  ...commonChartOptions,
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true } },
+                  plugins: { legend: { display: false } }
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Time Patterns + Reliability */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-semibold mb-3 text-gray-800">Peak Activity Hours (UTC)</h3>
+            <div className="h-48">
+              <Bar 
+                data={timePatternData} 
+                options={{ 
+                  ...commonChartOptions,
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true } },
+                  plugins: { legend: { display: false } }
+                }} 
+              />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-semibold mb-3 text-gray-800">User Reliability by Role</h3>
+            <div className="h-48">
+              <Bar 
+                data={reliabilityData} 
+                options={{ 
+                  ...commonChartOptions,
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true, max: 100 } },
+                  plugins: { 
+                    legend: { 
+                      position: 'bottom', 
+                      labels: { boxWidth: 10, font: { size: 10 }, padding: 8 } 
+                    } 
+                  }
+                }} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* New vs Established + Churn Risk */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-semibold mb-3 text-gray-800">New vs Established Behavior</h3>
+            <div className="h-48">
+              <Bar 
+                data={newVsEstData} 
+                options={{ 
+                  ...commonChartOptions,
+                  maintainAspectRatio: false,
+                  scales: { y: { beginAtZero: true } },
+                  plugins: { 
+                    legend: { 
+                      position: 'bottom', 
+                      labels: { boxWidth: 10, font: { size: 10 }, padding: 8 } 
+                    } 
+                  }
+                }} 
+              />
+            </div>
+          </div>
+          <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+            <h3 className="text-sm font-semibold mb-3 text-gray-800">Churn Risk Indicators</h3>
+            <div className="space-y-4 py-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">Inactive 14+ Days:</span>
+                <span className="text-2xl font-bold text-orange-600">{data?.churnRisk?.inactiveUsers || 0}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-gray-600">High Cancellation (50%+):</span>
+                <span className="text-2xl font-bold text-red-600">{data?.churnRisk?.highCancellationUsers || 0}</span>
+              </div>
+              <div className="flex justify-between items-center border-t pt-3">
+                <span className="text-sm font-semibold text-gray-800">Total At Risk:</span>
+                <span className="text-3xl font-bold text-red-700">{data?.churnRisk?.totalAtRisk || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Original Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow xl:col-span-2">
           <div className="mb-4">

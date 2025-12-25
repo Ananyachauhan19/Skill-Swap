@@ -15,6 +15,7 @@ import { useEmployeeAuth } from './context/EmployeeAuthContext.jsx';
 import RegisterInterviewer from './user/RegisterInterviewer.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
 import socket from './socket';
+import visitorTracker from './utils/visitorTracker';
 
 // Pages
 import Home from './user/Home';
@@ -278,7 +279,25 @@ function App() {
       return;
     }
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-  }, [location.pathname, location.search, location.hash]);
+    
+    // Track page view for anonymous visitors
+    if (!user) {
+      visitorTracker.trackPageView(location.pathname);
+    }
+  }, [location.pathname, location.search, location.hash, user]);
+
+  // Initialize visitor tracking for anonymous users
+  useEffect(() => {
+    if (!user && isAppReady) {
+      visitorTracker.init();
+    }
+    
+    return () => {
+      if (!user) {
+        visitorTracker.destroy();
+      }
+    };
+  }, [user, isAppReady]);
 
   // Socket connection for authenticated users
   useEffect(() => {

@@ -1,8 +1,9 @@
-const User = require('../models/User');
+﻿const User = require('../models/User');
 const Session = require('../models/Session');
 const InterviewRequest = require('../models/InterviewRequest');
 const Report = require('../models/Report');
 const Contribution = require('../models/Contribution');
+const AnonymousVisitor = require('../models/AnonymousVisitor');
 
 // Helper: Get date range based on query params
 function getDateRange(req) {
@@ -46,14 +47,28 @@ function generateDateBuckets(start, end) {
 exports.getOverview = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
+    const now = new Date();
     const dateBuckets = generateDateBuckets(start, end);
 
     // Summary stats
-    const [totalUsers, totalSessions, totalInterviews, activeUsers] = await Promise.all([
-      User.countDocuments({ createdAt: { $lte: end } }),
+    const [totalUsers, totalSessions, totalInterviews] = await Promise.all([
+      // All registered users on the platform (independent of date filter)
+      User.countDocuments({}),
       Session.countDocuments({ createdAt: { $gte: start, $lte: end } }),
-      InterviewRequest.countDocuments({ createdAt: { $gte: start, $lte: end } }),
-      User.countDocuments({ isOnline: true })
+      InterviewRequest.countDocuments({ createdAt: { $gte: start, $lte: end } })
+    ]);
+
+    // Active user analytics based on lastActivityAt
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
+
+    const [dau, wau, mau, realtimeActive] = await Promise.all([
+      User.countDocuments({ lastActivityAt: { $gte: oneDayAgo } }),
+      User.countDocuments({ lastActivityAt: { $gte: sevenDaysAgo } }),
+      User.countDocuments({ lastActivityAt: { $gte: thirtyDaysAgo } }),
+      User.countDocuments({ lastActivityAt: { $gte: tenMinutesAgo } })
     ]);
 
     // User growth over time
@@ -79,11 +94,8 @@ exports.getOverview = async (req, res) => {
     }));
 
     // Active vs Inactive users over time
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const activeUsersCount = await User.countDocuments({ 
-      lastLogin: { $gte: thirtyDaysAgo, $lte: end }
-    });
-    const inactiveUsersCount = totalUsers - activeUsersCount;
+    const activeUsersCount = mau;
+    const inactiveUsersCount = Math.max(totalUsers - activeUsersCount, 0);
 
     // Activity trends (sessions and interviews)
     const sessionTrend = await Session.aggregate([
@@ -143,7 +155,6 @@ exports.getOverview = async (req, res) => {
         totalUsers,
         totalSessions,
         totalInterviews,
-        activeUsers
       },
       userGrowth: userGrowthData,
       activeVsInactive: {
@@ -151,6 +162,12 @@ exports.getOverview = async (req, res) => {
         inactive: inactiveUsersCount
       },
       activityTrends,
+      activeUserAnalytics: {
+        dau,
+        wau,
+        mau,
+        realtime: realtimeActive
+      },
       reports: {
         resolved,
         unresolved
@@ -167,14 +184,15 @@ exports.getUsers = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
     const dateBuckets = generateDateBuckets(start, end);
+    const now = new Date();
 
     // Summary
-    const totalUsers = await User.countDocuments({ createdAt: { $lte: end } });
+    const totalUsers = await User.countDocuments({});
     const newUsers = await User.countDocuments({ createdAt: { $gte: start, $lte: end } });
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const activeUsers = await User.countDocuments({ lastLogin: { $gte: thirtyDaysAgo } });
+    const activeUsers = await User.countDocuments({ lastActivityAt: { $gte: thirtyDaysAgo } });
 
-    // Retention rate calculation
+    // Retention rate
     const usersFromPreviousPeriod = await User.countDocuments({
       createdAt: { $lt: start }
     });
@@ -220,7 +238,6 @@ exports.getUsers = async (req, res) => {
     ]);
 
     // Activity frequency
-    const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -233,6 +250,284 @@ exports.getUsers = async (req, res) => {
         { lastLogin: { $lt: oneMonthAgo } },
         { lastLogin: { $exists: false } }
       ]})
+    ]);
+
+    // 1. Role Engagement Matrix - actual behavior by role
+    const SessionRequest = require('../models/SessionRequest');
+    const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+    
+    const roleEngagement = await Promise.all(
+      ['learner', 'teacher', 'both'].map(async (role) => {
+        const usersInRole = await User.find({ role }).select('_id');
+        const userIds = usersInRole.map(u => u._id);
+
+        const [sessionsAttended, sessionsConducted, interviewsRequested, interviewsConducted] = await Promise.all([
+          SessionRequest.countDocuments({
+            requester: { $in: userIds },
+            status: 'completed',
+            createdAt: { $gte: start, $lte: end }
+          }),
+          SessionRequest.countDocuments({
+            tutor: { $in: userIds },
+            status: 'completed',
+            createdAt: { $gte: start, $lte: end }
+          }),
+          InterviewRequest.countDocuments({
+            requester: { $in: userIds },
+            createdAt: { $gte: start, $lte: end }
+          }),
+          InterviewRequest.countDocuments({
+            assignedInterviewer: { $in: userIds },
+            status: 'completed',
+            createdAt: { $gte: start, $lte: end }
+          })
+        ]);
+
+        return {
+          role,
+          userCount: userIds.length,
+          sessionsAttended,
+          sessionsConducted,
+          interviewsRequested,
+          interviewsConducted
+        };
+      })
+    );
+
+    // 2. User Conversion Funnel
+    const [registered, profileCompleted, firstSessionBooked, repeatUsers, tutorApproved, interviewerApproved] = await Promise.all([
+      User.countDocuments({ createdAt: { $gte: start, $lte: end } }),
+      User.countDocuments({
+        createdAt: { $gte: start, $lte: end },
+        skillsToLearn: { $exists: true, $ne: [] }
+      }),
+      User.aggregate([
+        { $match: { createdAt: { $gte: start, $lte: end } } },
+        {
+          $lookup: {
+            from: 'sessionrequests',
+            localField: '_id',
+            foreignField: 'requester',
+            as: 'sessions'
+          }
+        },
+        { $match: { 'sessions.0': { $exists: true } } },
+        { $count: 'count' }
+      ]).then(r => r[0]?.count || 0),
+      User.aggregate([
+        { $match: { createdAt: { $gte: start, $lte: end } } },
+        {
+          $lookup: {
+            from: 'sessionrequests',
+            localField: '_id',
+            foreignField: 'requester',
+            as: 'sessions'
+          }
+        },
+        { $match: { $expr: { $gte: [{ $size: '$sessions' }, 2] } } },
+        { $count: 'count' }
+      ]).then(r => r[0]?.count || 0),
+      User.countDocuments({
+        createdAt: { $gte: start, $lte: end },
+        isTutor: true
+      }),
+      ApprovedInterviewer.countDocuments({
+        createdAt: { $gte: start, $lte: end }
+      })
+    ]);
+
+    const conversionFunnel = [
+      { stage: 'Registered', count: registered },
+      { stage: 'Profile Completed', count: profileCompleted },
+      { stage: 'First Session', count: firstSessionBooked },
+      { stage: 'Repeat User', count: repeatUsers },
+      { stage: 'Tutor Approved', count: tutorApproved },
+      { stage: 'Interviewer Approved', count: interviewerApproved }
+    ];
+
+    // 3. Repeat vs One-Time Users
+    const userSegmentation = await User.aggregate([
+      {
+        $lookup: {
+          from: 'sessionrequests',
+          localField: '_id',
+          foreignField: 'requester',
+          as: 'sessions'
+        }
+      },
+      {
+        $addFields: {
+          sessionCount: { $size: '$sessions' }
+        }
+      },
+      {
+        $bucket: {
+          groupBy: '$sessionCount',
+          boundaries: [0, 1, 3, 999999],
+          default: 'power',
+          output: { count: { $sum: 1 } }
+        }
+      }
+    ]);
+
+    const oneTime = userSegmentation.find(s => s._id === 1)?.count || 0;
+    const repeat = userSegmentation.find(s => s._id === 3)?.count || 0;
+    const power = userSegmentation.find(s => s._id === 'power' || s._id >= 999999)?.count || 0;
+    const noActivity = userSegmentation.find(s => s._id === 0)?.count || 0;
+
+    // 4. Cross-Role Transitions
+    const roleTransitions = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $lte: end },
+          $or: [
+            { role: 'both' },
+            { isTutor: true },
+            { _id: { $in: (await ApprovedInterviewer.find({}).select('user')).map(a => a.user) } }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: {
+            isBoth: { $eq: ['$role', 'both'] },
+            isTutor: '$isTutor',
+            isInterviewer: { $cond: [{ $in: ['$_id', (await ApprovedInterviewer.find({}).select('user')).map(a => a.user)] }, true, false] }
+          },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const studentToTutor = roleTransitions.find(r => r._id.isTutor && !r._id.isBoth)?.count || 0;
+    const studentToBoth = roleTransitions.find(r => r._id.isBoth)?.count || 0;
+    const tutorToInterviewer = await ApprovedInterviewer.countDocuments({
+      user: { $in: (await User.find({ isTutor: true }).select('_id')).map(u => u._id) }
+    });
+
+    // 5. Time-Based Engagement Patterns
+    const timePatterns = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $project: {
+          hour: { $hour: { date: '$createdAt', timezone: 'UTC' } },
+          dayOfWeek: { $dayOfWeek: { date: '$createdAt', timezone: 'UTC' } }
+        }
+      },
+      {
+        $group: {
+          _id: { hour: '$hour', day: '$dayOfWeek' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 6. User Reliability & Quality Signals by role
+    const reliabilityMetrics = await Promise.all(
+      ['learner', 'teacher', 'both'].map(async (role) => {
+        const usersInRole = await User.find({ role }).select('_id');
+        const userIds = usersInRole.map(u => u._id);
+
+        const [total, completed, cancelled, noShow] = await Promise.all([
+          SessionRequest.countDocuments({
+            $or: [{ requester: { $in: userIds } }, { tutor: { $in: userIds } }],
+            createdAt: { $gte: start, $lte: end }
+          }),
+          SessionRequest.countDocuments({
+            $or: [{ requester: { $in: userIds } }, { tutor: { $in: userIds } }],
+            status: 'completed',
+            createdAt: { $gte: start, $lte: end }
+          }),
+          SessionRequest.countDocuments({
+            $or: [{ requester: { $in: userIds } }, { tutor: { $in: userIds } }],
+            status: 'cancelled',
+            createdAt: { $gte: start, $lte: end }
+          }),
+          SessionRequest.countDocuments({
+            $or: [{ requester: { $in: userIds } }, { tutor: { $in: userIds } }],
+            status: 'no-show',
+            createdAt: { $gte: start, $lte: end }
+          })
+        ]);
+
+        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        const cancellationRate = total > 0 ? Math.round((cancelled / total) * 100) : 0;
+        const noShowRate = total > 0 ? Math.round((noShow / total) * 100) : 0;
+
+        return {
+          role,
+          completionRate,
+          cancellationRate,
+          noShowRate,
+          total
+        };
+      })
+    );
+
+    // 7. New vs Established User Behavior
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const newUserIds = (await User.find({ createdAt: { $gte: sevenDaysAgo } }).select('_id')).map(u => u._id);
+    const establishedUserIds = (await User.find({ createdAt: { $lt: sevenDaysAgo } }).select('_id')).map(u => u._id);
+
+    const [newUserSessions, establishedUserSessions, newUserCancellations, establishedUserCancellations] = await Promise.all([
+      SessionRequest.countDocuments({
+        requester: { $in: newUserIds },
+        createdAt: { $gte: start, $lte: end }
+      }),
+      SessionRequest.countDocuments({
+        requester: { $in: establishedUserIds },
+        createdAt: { $gte: start, $lte: end }
+      }),
+      SessionRequest.countDocuments({
+        requester: { $in: newUserIds },
+        status: 'cancelled',
+        createdAt: { $gte: start, $lte: end }
+      }),
+      SessionRequest.countDocuments({
+        requester: { $in: establishedUserIds },
+        status: 'cancelled',
+        createdAt: { $gte: start, $lte: end }
+      })
+    ]);
+
+    // 8. Churn Risk Indicators
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const [inactiveUsers, highCancellationUsers] = await Promise.all([
+      User.countDocuments({
+        lastActivityAt: { $lt: fourteenDaysAgo },
+        createdAt: { $lt: fourteenDaysAgo }
+      }),
+      User.aggregate([
+        {
+          $lookup: {
+            from: 'sessionrequests',
+            localField: '_id',
+            foreignField: 'requester',
+            as: 'sessions'
+          }
+        },
+        {
+          $addFields: {
+            cancelledCount: {
+              $size: {
+                $filter: {
+                  input: '$sessions',
+                  as: 'session',
+                  cond: { $eq: ['$$session.status', 'cancelled'] }
+                }
+              }
+            },
+            totalCount: { $size: '$sessions' }
+          }
+        },
+        {
+          $match: {
+            totalCount: { $gte: 3 },
+            $expr: { $gte: [{ $divide: ['$cancelledCount', '$totalCount'] }, 0.5] }
+          }
+        },
+        { $count: 'count' }
+      ]).then(r => r[0]?.count || 0)
     ]);
 
     res.json({
@@ -249,7 +544,39 @@ exports.getUsers = async (req, res) => {
         { frequency: 'Weekly', count: weekly },
         { frequency: 'Monthly', count: monthly },
         { frequency: 'Inactive', count: inactive }
-      ]
+      ],
+      roleEngagement,
+      conversionFunnel,
+      userSegmentation: {
+        oneTime,
+        repeat,
+        power,
+        noActivity
+      },
+      roleTransitions: {
+        studentToTutor,
+        studentToBoth,
+        tutorToInterviewer
+      },
+      timePatterns,
+      reliabilityMetrics,
+      newVsEstablished: {
+        newUsers: {
+          sessions: newUserSessions,
+          cancellations: newUserCancellations,
+          cancellationRate: newUserSessions > 0 ? Math.round((newUserCancellations / newUserSessions) * 100) : 0
+        },
+        established: {
+          sessions: establishedUserSessions,
+          cancellations: establishedUserCancellations,
+          cancellationRate: establishedUserSessions > 0 ? Math.round((establishedUserCancellations / establishedUserSessions) * 100) : 0
+        }
+      },
+      churnRisk: {
+        inactiveUsers,
+        highCancellationUsers,
+        totalAtRisk: inactiveUsers + highCancellationUsers
+      }
     });
   } catch (error) {
     console.error('Analytics users error:', error);
@@ -262,16 +589,22 @@ exports.getSessions = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
     const dateBuckets = generateDateBuckets(start, end);
+    const SessionRequest = require('../models/SessionRequest');
+    const now = new Date();
 
     // Summary
-    const totalSessions = await Session.countDocuments({ createdAt: { $gte: start, $lte: end } });
-    const completedSessions = await Session.countDocuments({ 
+    const totalSessions = await SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end } });
+    const completedSessions = await SessionRequest.countDocuments({ 
       createdAt: { $gte: start, $lte: end },
       status: 'completed'
     });
+    const cancelledSessions = await SessionRequest.countDocuments({
+      createdAt: { $gte: start, $lte: end },
+      status: 'cancelled'
+    });
 
     // Calculate average duration for completed sessions
-    const durationStats = await Session.aggregate([
+    const durationStats = await SessionRequest.aggregate([
       { 
         $match: { 
           createdAt: { $gte: start, $lte: end },
@@ -294,69 +627,88 @@ exports.getSessions = async (req, res) => {
     const completionRate = totalSessions > 0 
       ? Math.round((completedSessions / totalSessions) * 100)
       : 0;
+    const cancellationRate = totalSessions > 0
+      ? Math.round((cancelledSessions / totalSessions) * 100)
+      : 0;
 
-    // Sessions over time
-    const sessionsOverTime = await Session.aggregate([
+    // 1. Session Activity Trend - completed vs cancelled
+    const sessionsOverTime = await SessionRequest.aggregate([
       { $match: { createdAt: { $gte: start, $lte: end } } },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
+          total: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
         }
       },
       { $sort: { _id: 1 } }
     ]);
 
     const sessionMap = sessionsOverTime.reduce((acc, item) => {
-      acc[item._id] = item.count;
+      acc[item._id] = { total: item.total, completed: item.completed, cancelled: item.cancelled };
       return acc;
     }, {});
 
     const sessionsData = dateBuckets.map(date => ({
       date,
-      count: sessionMap[date] || 0
+      total: sessionMap[date]?.total || 0,
+      completed: sessionMap[date]?.completed || 0,
+      cancelled: sessionMap[date]?.cancelled || 0
     }));
 
-    // Role breakdown - sessions as student vs tutor
-    const roleBreakdown = await Session.aggregate([
+    // 2. Role Participation Insight - aggregated totals
+    const roleParticipation = await SessionRequest.aggregate([
       { $match: { createdAt: { $gte: start, $lte: end } } },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          asStudent: { $sum: { $cond: [{ $ne: ['$studentId', null] }, 1, 0] } },
-          asTutor: { $sum: { $cond: [{ $ne: ['$tutorId', null] }, 1, 0] } }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    const roleMap = roleBreakdown.reduce((acc, item) => {
-      acc[item._id] = { asStudent: item.asStudent, asTutor: item.asTutor };
-      return acc;
-    }, {});
-
-    const roleData = dateBuckets.map(date => ({
-      date,
-      asStudent: roleMap[date]?.asStudent || 0,
-      asTutor: roleMap[date]?.asTutor || 0
-    }));
-
-    // Status breakdown
-    const statusBreakdown = await Session.aggregate([
-      { $match: { createdAt: { $gte: start, $lte: end } } },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
+          _id: null,
+          asStudent: { $sum: 1 },
+          asTutor: { $sum: 1 }
         }
       }
     ]);
 
-    // Duration distribution
-    const durationDistribution = await Session.aggregate([
+    // 3. Session Lifecycle Funnel
+    const [booked, approved, started, completed, cancelled] = await Promise.all([
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end } }),
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: { $in: ['approved', 'active', 'completed'] } }),
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, startedAt: { $exists: true, $ne: null } }),
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: 'completed' }),
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: 'cancelled' })
+    ]);
+
+    const lifecycleFunnel = [
+      { stage: 'Booked', count: booked },
+      { stage: 'Approved', count: approved },
+      { stage: 'Started', count: started },
+      { stage: 'Completed', count: completed },
+      { stage: 'Cancelled', count: cancelled }
+    ];
+
+    // 4. Session Reliability Metrics with trends
+    const prevPeriodLength = end.getTime() - start.getTime();
+    const prevStart = new Date(start.getTime() - prevPeriodLength);
+    const prevEnd = start;
+
+    const [prevTotal, prevCompleted, prevCancelled] = await Promise.all([
+      SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd } }),
+      SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd }, status: 'completed' }),
+      SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd }, status: 'cancelled' })
+    ]);
+
+    const prevCompletionRate = prevTotal > 0 ? Math.round((prevCompleted / prevTotal) * 100) : 0;
+    const prevCancellationRate = prevTotal > 0 ? Math.round((prevCancelled / prevTotal) * 100) : 0;
+
+    const completionTrend = completionRate - prevCompletionRate;
+    const cancellationTrend = cancellationRate - prevCancellationRate;
+
+    // 5. Session Duration Quality
+    const durationQuality = await SessionRequest.aggregate([
       { 
         $match: { 
           createdAt: { $gte: start, $lte: end },
+          status: 'completed',
           duration: { $exists: true }
         }
       },
@@ -364,9 +716,10 @@ exports.getSessions = async (req, res) => {
         $bucket: {
           groupBy: '$duration',
           boundaries: [0, 15, 30, 45, 60, 90, 120, 999999],
-          default: '120+',
+          default: 'other',
           output: {
-            count: { $sum: 1 }
+            count: { $sum: 1 },
+            avgDuration: { $avg: '$duration' }
           }
         }
       }
@@ -374,24 +727,178 @@ exports.getSessions = async (req, res) => {
 
     const durationLabels = ['0-15 min', '15-30 min', '30-45 min', '45-60 min', '60-90 min', '90-120 min', '120+ min'];
     const durationData = durationLabels.map((label, index) => {
-      const bucket = durationDistribution.find(d => d._id === [0, 15, 30, 45, 60, 90, 120, 999999][index]);
+      const bucket = durationQuality.find(d => d._id === [0, 15, 30, 45, 60, 90, 120, 999999][index]);
       return {
         range: label,
-        count: bucket?.count || 0
+        count: bucket?.count || 0,
+        avgDuration: bucket?.avgDuration || 0
       };
     });
+
+    const shortSessions = await SessionRequest.countDocuments({
+      createdAt: { $gte: start, $lte: end },
+      status: 'completed',
+      duration: { $lt: 15 }
+    });
+
+    // 6. Repeat Session Behavior
+    const userSessionCounts = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: { requester: '$requester', tutor: '$tutor' },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id.requester',
+          uniqueTutors: { $addToSet: '$_id.tutor' },
+          totalSessions: { $sum: '$count' },
+          repeatWithSame: { $sum: { $cond: [{ $gt: ['$count', 1] }, 1, 0] } }
+        }
+      }
+    ]);
+
+    let oneTime = 0, repeatSame = 0, repeatDifferent = 0;
+    userSessionCounts.forEach(user => {
+      if (user.totalSessions === 1) oneTime++;
+      else if (user.repeatWithSame > 0) repeatSame++;
+      else if (user.uniqueTutors.length > 1) repeatDifferent++;
+    });
+
+    // 7. Time-Based Session Patterns
+    const timePatterns = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $project: {
+          hour: { $hour: { date: '$createdAt', timezone: 'UTC' } },
+          dayOfWeek: { $dayOfWeek: { date: '$createdAt', timezone: 'UTC' } }
+        }
+      },
+      {
+        $group: {
+          _id: { hour: '$hour', day: '$dayOfWeek' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 8. Tutor Performance Signals (Aggregated)
+    const tutorMetrics = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$tutor',
+          totalSessions: { $sum: 1 },
+          completedSessions: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          cancelledSessions: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } },
+          avgDuration: { $avg: { $cond: [{ $eq: ['$status', 'completed'] }, '$duration', null] } }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgCompletionRate: { 
+            $avg: { 
+              $multiply: [
+                { $divide: ['$completedSessions', '$totalSessions'] }, 
+                100
+              ] 
+            } 
+          },
+          avgSessionDuration: { $avg: '$avgDuration' },
+          avgCancellationRate: {
+            $avg: {
+              $multiply: [
+                { $divide: ['$cancelledSessions', '$totalSessions'] },
+                100
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const aggregatedTutorPerformance = {
+      avgCompletionRate: tutorMetrics[0]?.avgCompletionRate ? Math.round(tutorMetrics[0].avgCompletionRate) : 0,
+      avgSessionDuration: tutorMetrics[0]?.avgSessionDuration ? Math.round(tutorMetrics[0].avgSessionDuration) : 0,
+      avgCancellationRate: tutorMetrics[0]?.avgCancellationRate ? Math.round(tutorMetrics[0].avgCancellationRate) : 0
+    };
+
+    // 9. Session Risk & Alerts
+    const tutorsWithHighCancellation = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$tutor',
+          total: { $sum: 1 },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$cancelled', '$total'] }, 0.4] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const studentsWithHighNoShow = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$requester',
+          total: { $sum: 1 },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$cancelled', '$total'] }, 0.4] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const sessionRiskAlerts = {
+      tutorsWithHighCancellation: tutorsWithHighCancellation[0]?.count || 0,
+      studentsWithHighNoShow: studentsWithHighNoShow[0]?.count || 0,
+      totalAtRisk: (tutorsWithHighCancellation[0]?.count || 0) + (studentsWithHighNoShow[0]?.count || 0)
+    };
 
     res.json({
       summary: {
         total: totalSessions,
         completed: completedSessions,
         avgDuration,
-        completionRate
+        completionRate,
+        cancellationRate
       },
       sessionsOverTime: sessionsData,
-      roleBreakdown: roleData,
-      statusBreakdown,
-      durationDistribution: durationData
+      roleParticipation: roleParticipation[0] || { asStudent: 0, asTutor: 0 },
+      lifecycleFunnel,
+      reliabilityMetrics: {
+        completionRate,
+        cancellationRate,
+        completionTrend,
+        cancellationTrend
+      },
+      durationQuality: {
+        distribution: durationData,
+        shortSessions,
+        avgDuration
+      },
+      repeatBehavior: {
+        oneTime,
+        repeatSame,
+        repeatDifferent
+      },
+      timePatterns,
+      tutorPerformance: aggregatedTutorPerformance,
+      sessionRiskAlerts
     });
   } catch (error) {
     console.error('Analytics sessions error:', error);
@@ -404,6 +911,9 @@ exports.getInterviews = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
     const dateBuckets = generateDateBuckets(start, end);
+    const InterviewerApplication = require('../models/InterviewerApplication');
+    const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+    const now = new Date();
 
     // Summary
     const totalInterviews = await InterviewRequest.countDocuments({ 
@@ -423,13 +933,13 @@ exports.getInterviews = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          interviewerRating: { $exists: true, $ne: null }
+          rating: { $exists: true, $ne: null }
         }
       },
       {
         $group: {
           _id: null,
-          avgRating: { $avg: '$interviewerRating' }
+          avgRating: { $avg: '$rating' }
         }
       }
     ]);
@@ -438,51 +948,109 @@ exports.getInterviews = async (req, res) => {
       ? Math.round(ratingStats[0].avgRating * 10) / 10
       : 0;
 
-    // Interviews over time
+    // 1. Interview Activity Trend - scheduled, completed, expired, rejected, cancelled
     const interviewsOverTime = await InterviewRequest.aggregate([
       { $match: { createdAt: { $gte: start, $lte: end } } },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
+          total: { $sum: 1 },
+          scheduled: { $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] } },
+          completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          expired: { $sum: { $cond: [{ $eq: ['$status', 'expired'] }, 1, 0] } },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
         }
       },
       { $sort: { _id: 1 } }
     ]);
 
     const interviewMap = interviewsOverTime.reduce((acc, item) => {
-      acc[item._id] = item.count;
+      acc[item._id] = { 
+        total: item.total, 
+        scheduled: item.scheduled, 
+        completed: item.completed, 
+        expired: item.expired,
+        rejected: item.rejected,
+        cancelled: item.cancelled
+      };
       return acc;
     }, {});
 
     const interviewsData = dateBuckets.map(date => ({
       date,
-      count: interviewMap[date] || 0
+      total: interviewMap[date]?.total || 0,
+      scheduled: interviewMap[date]?.scheduled || 0,
+      completed: interviewMap[date]?.completed || 0,
+      expired: interviewMap[date]?.expired || 0,
+      rejected: interviewMap[date]?.rejected || 0,
+      cancelled: interviewMap[date]?.cancelled || 0
     }));
 
-    // Participation breakdown
+    // 2. Interview Participation Breakdown
     const participation = {
-      asRequester: await InterviewRequest.countDocuments({
-        createdAt: { $gte: start, $lte: end },
-        requesterId: { $exists: true }
-      }),
+      asRequester: totalInterviews,
       asInterviewer: await InterviewRequest.countDocuments({
         createdAt: { $gte: start, $lte: end },
-        interviewerId: { $exists: true, $ne: null }
+        assignedInterviewer: { $exists: true, $ne: null }
       })
     };
 
-    // Average ratings distribution
-    const avgRatings = await InterviewRequest.aggregate([
+    // 3. Interview Lifecycle Funnel
+    const [requested, assigned, scheduled, conducted, completed, expired, rejected, cancelled] = await Promise.all([
+      InterviewRequest.countDocuments({ createdAt: { $gte: start, $lte: end } }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        assignedInterviewer: { $exists: true, $ne: null } 
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'scheduled' 
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        scheduledAt: { $exists: true, $ne: null } 
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'completed' 
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'expired'
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'rejected'
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'cancelled'
+      })
+    ]);
+
+    const lifecycleFunnel = [
+      { stage: 'Requested', count: requested },
+      { stage: 'Assigned', count: assigned },
+      { stage: 'Scheduled', count: scheduled },
+      { stage: 'Conducted', count: conducted },
+      { stage: 'Completed', count: completed },
+      { stage: 'Expired (Auto)', count: expired },
+      { stage: 'Rejected', count: rejected },
+      { stage: 'Cancelled', count: cancelled }
+    ];
+
+    // 4. Interview Quality & Ratings
+    const ratingDistribution = await InterviewRequest.aggregate([
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          interviewerRating: { $exists: true, $ne: null }
+          rating: { $exists: true, $ne: null }
         }
       },
       {
         $bucket: {
-          groupBy: '$interviewerRating',
+          groupBy: '$rating',
           boundaries: [0, 1, 2, 3, 4, 5, 6],
           default: 'other',
           output: {
@@ -494,31 +1062,162 @@ exports.getInterviews = async (req, res) => {
 
     const ratingsData = [1, 2, 3, 4, 5].map(rating => ({
       rating,
-      count: avgRatings.find(r => r._id === rating)?.count || 0
+      count: ratingDistribution.find(r => r._id === rating)?.count || 0
     }));
 
-    // Interviewer pipeline
-    const [applied, approved, active, experienced] = await Promise.all([
-      InterviewRequest.distinct('requesterId', { createdAt: { $gte: start, $lte: end } }).then(ids => ids.length),
-      InterviewRequest.distinct('interviewerId', { 
-        createdAt: { $gte: start, $lte: end },
-        interviewerId: { $exists: true, $ne: null }
-      }).then(ids => ids.length),
-      InterviewRequest.distinct('interviewerId', {
-        createdAt: { $gte: start, $lte: end },
-        status: 'scheduled',
-        interviewerId: { $exists: true, $ne: null }
-      }).then(ids => ids.length),
+    // Rating trend over time
+    const ratingTrend = await InterviewRequest.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+          rating: { $exists: true, $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          avgRating: { $avg: '$rating' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const ratingTrendMap = ratingTrend.reduce((acc, item) => {
+      acc[item._id] = Math.round(item.avgRating * 10) / 10;
+      return acc;
+    }, {});
+
+    const ratingTrendData = dateBuckets.map(date => ({
+      date,
+      avgRating: ratingTrendMap[date] || 0
+    }));
+
+    // 5. Interviewer Reliability Signals
+    const interviewerMetrics = await InterviewRequest.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: start, $lte: end },
+          assignedInterviewer: { $exists: true, $ne: null }
+        } 
+      },
+      {
+        $group: {
+          _id: '$assignedInterviewer',
+          totalInterviews: { $sum: 1 },
+          completedInterviews: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          expiredInterviews: { $sum: { $cond: [{ $eq: ['$status', 'expired'] }, 1, 0] } },
+          rejectedInterviews: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
+          cancelledInterviews: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgCompletionRate: { 
+            $avg: { 
+              $multiply: [
+                { $divide: ['$completedInterviews', '$totalInterviews'] }, 
+                100
+              ] 
+            } 
+          },
+          avgExpiryRate: {
+            $avg: {
+              $multiply: [
+                { $divide: ['$expiredInterviews', '$totalInterviews'] },
+                100
+              ]
+            }
+          },
+          avgRejectionRate: {
+            $avg: {
+              $multiply: [
+                { $divide: ['$rejectedInterviews', '$totalInterviews'] },
+                100
+              ]
+            }
+          },
+          avgCancellationRate: {
+            $avg: {
+              $multiply: [
+                { $divide: ['$cancelledInterviews', '$totalInterviews'] },
+                100
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const reliabilitySignals = {
+      avgCompletionRate: interviewerMetrics[0]?.avgCompletionRate ? Math.round(interviewerMetrics[0].avgCompletionRate) : 0,
+      avgExpiryRate: interviewerMetrics[0]?.avgExpiryRate ? Math.round(interviewerMetrics[0].avgExpiryRate) : 0,
+      avgRejectionRate: interviewerMetrics[0]?.avgRejectionRate ? Math.round(interviewerMetrics[0].avgRejectionRate) : 0,
+      avgCancellationRate: interviewerMetrics[0]?.avgCancellationRate ? Math.round(interviewerMetrics[0].avgCancellationRate) : 0
+    };
+
+    // 6. Interview Duration & Depth (using scheduledAt and completedAt if available)
+    // Since there's no explicit duration field, we'll estimate based on scheduled slots
+    const durationAnalysis = await InterviewRequest.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+          status: 'completed',
+          interviewerSuggestedSlots: { $exists: true, $ne: [] }
+        }
+      },
+      {
+        $addFields: {
+          estimatedDuration: {
+            $divide: [
+              { 
+                $subtract: [
+                  { $arrayElemAt: ['$interviewerSuggestedSlots.end', 0] },
+                  { $arrayElemAt: ['$interviewerSuggestedSlots.start', 0] }
+                ]
+              },
+              60000
+            ]
+          }
+        }
+      },
+      {
+        $bucket: {
+          groupBy: '$estimatedDuration',
+          boundaries: [0, 15, 30, 45, 60, 90, 120, 999999],
+          default: 'unknown',
+          output: {
+            count: { $sum: 1 }
+          }
+        }
+      }
+    ]);
+
+    const durationLabels = ['0-15 min', '15-30 min', '30-45 min', '45-60 min', '60-90 min', '90-120 min', '120+ min'];
+    const durationData = durationLabels.map((label, index) => {
+      const bucket = durationAnalysis.find(d => d._id === [0, 15, 30, 45, 60, 90, 120, 999999][index]);
+      return {
+        range: label,
+        count: bucket?.count || 0
+      };
+    });
+
+    // 7. Interviewer Approval Pipeline Health
+    const [pendingApplications, approvedApplications, activeInterviewers, experiencedInterviewers] = await Promise.all([
+      InterviewerApplication.countDocuments({ status: 'pending' }),
+      InterviewerApplication.countDocuments({ status: 'approved' }),
+      ApprovedInterviewer.countDocuments({ isActive: true }),
       InterviewRequest.aggregate([
         {
           $match: {
             createdAt: { $gte: start, $lte: end },
-            interviewerId: { $exists: true, $ne: null }
+            assignedInterviewer: { $exists: true, $ne: null },
+            status: 'completed'
           }
         },
         {
           $group: {
-            _id: '$interviewerId',
+            _id: '$assignedInterviewer',
             count: { $sum: 1 }
           }
         },
@@ -527,6 +1226,160 @@ exports.getInterviews = async (req, res) => {
         }
       ]).then(result => result.length)
     ]);
+
+    const approvalPipeline = [
+      { stage: 'Applied', count: pendingApplications },
+      { stage: 'Under Review', count: pendingApplications },
+      { stage: 'Approved', count: approvedApplications },
+      { stage: 'Active', count: activeInterviewers },
+      { stage: 'Experienced (5+)', count: experiencedInterviewers }
+    ];
+
+    // 8. Repeat Interview Behavior
+    const requesterBehavior = await InterviewRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$requester',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    let oneTimeRequesters = 0, repeatRequesters = 0;
+    requesterBehavior.forEach(req => {
+      if (req.count === 1) oneTimeRequesters++;
+      else repeatRequesters++;
+    });
+
+    const interviewerBehavior = await InterviewRequest.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: start, $lte: end },
+          assignedInterviewer: { $exists: true, $ne: null }
+        } 
+      },
+      {
+        $group: {
+          _id: '$assignedInterviewer',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    let oneTimeInterviewers = 0, repeatInterviewers = 0;
+    interviewerBehavior.forEach(int => {
+      if (int.count === 1) oneTimeInterviewers++;
+      else repeatInterviewers++;
+    });
+
+    // 9. Time-Based Interview Patterns
+    const timePatterns = await InterviewRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $project: {
+          hour: { $hour: { date: '$createdAt', timezone: 'UTC' } },
+          dayOfWeek: { $dayOfWeek: { date: '$createdAt', timezone: 'UTC' } }
+        }
+      },
+      {
+        $group: {
+          _id: { hour: '$hour', day: '$dayOfWeek' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 10. Interview Risk & Alerts
+    const interviewersWithHighExpiry = await InterviewRequest.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: start, $lte: end },
+          assignedInterviewer: { $exists: true, $ne: null }
+        } 
+      },
+      {
+        $group: {
+          _id: '$assignedInterviewer',
+          total: { $sum: 1 },
+          expired: { $sum: { $cond: [{ $eq: ['$status', 'expired'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$expired', '$total'] }, 0.3] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const interviewersWithHighRejection = await InterviewRequest.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: start, $lte: end },
+          assignedInterviewer: { $exists: true, $ne: null }
+        } 
+      },
+      {
+        $group: {
+          _id: '$assignedInterviewer',
+          total: { $sum: 1 },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$rejected', '$total'] }, 0.3] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const requestersWithHighExpiry = await InterviewRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$requester',
+          total: { $sum: 1 },
+          expired: { $sum: { $cond: [{ $eq: ['$status', 'expired'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$expired', '$total'] }, 0.3] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const requestersWithHighRejection = await InterviewRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$requester',
+          total: { $sum: 1 },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$rejected', '$total'] }, 0.3] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const interviewRiskAlerts = {
+      interviewersWithHighExpiry: interviewersWithHighExpiry[0]?.count || 0,
+      interviewersWithHighRejection: interviewersWithHighRejection[0]?.count || 0,
+      requestersWithHighExpiry: requestersWithHighExpiry[0]?.count || 0,
+      requestersWithHighRejection: requestersWithHighRejection[0]?.count || 0,
+      totalAtRisk: (interviewersWithHighExpiry[0]?.count || 0) + (interviewersWithHighRejection[0]?.count || 0) + (requestersWithHighExpiry[0]?.count || 0) + (requestersWithHighRejection[0]?.count || 0)
+    };
 
     res.json({
       summary: {
@@ -537,13 +1390,24 @@ exports.getInterviews = async (req, res) => {
       },
       interviewsOverTime: interviewsData,
       participation,
-      avgRatings: ratingsData,
-      pipeline: {
-        applied,
-        approved,
-        active,
-        experienced
-      }
+      lifecycleFunnel,
+      ratingDistribution: ratingsData,
+      ratingTrend: ratingTrendData,
+      reliabilitySignals,
+      durationAnalysis: durationData,
+      approvalPipeline,
+      repeatBehavior: {
+        requesters: {
+          oneTime: oneTimeRequesters,
+          repeat: repeatRequesters
+        },
+        interviewers: {
+          oneTime: oneTimeInterviewers,
+          repeat: repeatInterviewers
+        }
+      },
+      timePatterns,
+      interviewRiskAlerts
     });
   } catch (error) {
     console.error('Analytics interviews error:', error);
@@ -551,82 +1415,569 @@ exports.getInterviews = async (req, res) => {
   }
 };
 
-// Skills Tab
 exports.getSkills = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
+    const SessionRequest = require('../models/SessionRequest');
+    const TutorApplication = require('../models/TutorApplication');
+    const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    // Get all sessions to analyze skills
-    const sessions = await Session.find({
-      createdAt: { $gte: start, $lte: end }
-    }).select('skillsToLearn status');
-
-    // Count skill occurrences
-    const skillCounts = {};
-    const skillCompletions = {};
-
-    sessions.forEach(session => {
-      if (session.skillsToLearn && Array.isArray(session.skillsToLearn)) {
-        session.skillsToLearn.forEach(skill => {
-          skillCounts[skill] = (skillCounts[skill] || 0) + 1;
+    // ===== SECTION 1: TUTOR SKILLS ANALYTICS =====
+    
+    // 1. Get all APPROVED tutor applications with skills
+    const approvedTutorApps = await TutorApplication.find({ 
+      status: 'approved' 
+    }).populate('user', 'firstName lastName skillsToTeach').select('skills user');
+    
+    // Build tutor skill supply from APPROVED tutor applications
+    const tutorSkillSupply = {};
+    const tutorIdsBySkill = {}; // Track unique tutor IDs per skill
+    
+    approvedTutorApps.forEach(app => {
+      if (!app.user) return; // Skip if user doesn't exist
+      
+      const tutorId = app.user._id.toString();
+      const tutorName = `${app.user.firstName || ''} ${app.user.lastName || ''}`.trim();
+      
+      // Extract skills from TutorApplication.skills array (subject and topic fields)
+      if (Array.isArray(app.skills)) {
+        app.skills.forEach(skillObj => {
+          // Use both subject and topic as skills
+          const skillFields = [skillObj.subject, skillObj.topic].filter(Boolean);
           
-          if (!skillCompletions[skill]) {
-            skillCompletions[skill] = { completed: 0, incomplete: 0 };
-          }
-          
-          if (session.status === 'completed') {
-            skillCompletions[skill].completed++;
-          } else {
-            skillCompletions[skill].incomplete++;
+          skillFields.forEach(skill => {
+            if (skill && typeof skill === 'string') {
+              const normalized = skill.trim().toLowerCase();
+              if (normalized) {
+                if (!tutorSkillSupply[normalized]) {
+                  tutorSkillSupply[normalized] = { 
+                    skill: skill.trim(), 
+                    tutorCount: 0, 
+                    tutorIds: new Set(),
+                    tutors: []
+                  };
+                }
+                
+                // Only count each tutor once per skill
+                if (!tutorSkillSupply[normalized].tutorIds.has(tutorId)) {
+                  tutorSkillSupply[normalized].tutorIds.add(tutorId);
+                  tutorSkillSupply[normalized].tutorCount++;
+                  tutorSkillSupply[normalized].tutors.push(tutorName);
+                }
+              }
+            }
+          });
+        });
+      }
+      
+      // ALSO check user.skillsToTeach (backup/additional skills)
+      if (app.user.skillsToTeach && Array.isArray(app.user.skillsToTeach)) {
+        app.user.skillsToTeach.forEach(skill => {
+          if (skill && typeof skill === 'string') {
+            const normalized = skill.trim().toLowerCase();
+            if (normalized) {
+              if (!tutorSkillSupply[normalized]) {
+                tutorSkillSupply[normalized] = { 
+                  skill: skill.trim(), 
+                  tutorCount: 0, 
+                  tutorIds: new Set(),
+                  tutors: []
+                };
+              }
+              
+              if (!tutorSkillSupply[normalized].tutorIds.has(tutorId)) {
+                tutorSkillSupply[normalized].tutorIds.add(tutorId);
+                tutorSkillSupply[normalized].tutorCount++;
+                tutorSkillSupply[normalized].tutors.push(tutorName);
+              }
+            }
           }
         });
       }
     });
 
-    // Get most requested skills (top 15)
-    const mostRequested = Object.entries(skillCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 15)
-      .map(([skill, count]) => ({ skill, count }));
+    // 2. Get one-on-one session requests (tutor demand)
+    const tutorSessions = await SessionRequest.find({ 
+      sessionType: 'one-on-one',
+      createdAt: { $gte: start, $lte: end }
+    }).select('subject status createdAt');
 
-    // Get least used skills (bottom 10)
-    const leastUsed = Object.entries(skillCounts)
-      .sort((a, b) => a[1] - b[1])
-      .slice(0, 10)
-      .map(([skill, count]) => ({ skill, count }));
+    const tutorSkillDemand = {};
+    tutorSessions.forEach(session => {
+      if (session.subject && typeof session.subject === 'string') {
+        const normalized = session.subject.trim().toLowerCase();
+        if (normalized) {
+          if (!tutorSkillDemand[normalized]) {
+            tutorSkillDemand[normalized] = {
+              skill: session.subject.trim(),
+              requestCount: 0,
+              completed: 0,
+              cancelled: 0,
+              pending: 0,
+              rejected: 0
+            };
+          }
+          tutorSkillDemand[normalized].requestCount++;
+          
+          if (session.status === 'completed') tutorSkillDemand[normalized].completed++;
+          else if (session.status === 'cancelled') tutorSkillDemand[normalized].cancelled++;
+          else if (session.status === 'pending') tutorSkillDemand[normalized].pending++;
+          else if (session.status === 'rejected') tutorSkillDemand[normalized].rejected++;
+        }
+      }
+    });
 
-    // Completion rate by skill (top 10 most used skills)
-    const completionRate = Object.entries(skillCompletions)
-      .sort((a, b) => (b[1].completed + b[1].incomplete) - (a[1].completed + a[1].incomplete))
-      .slice(0, 10)
-      .map(([skill, data]) => ({
-        skill,
-        completed: data.completed,
-        incomplete: data.incomplete
-      }));
+    // 3. Combine tutor supply and demand
+    const allTutorSkills = new Set([
+      ...Object.keys(tutorSkillSupply),
+      ...Object.keys(tutorSkillDemand)
+    ]);
 
-    // Summary
-    const totalSkills = Object.keys(skillCounts).length;
-    const activeSkills = Object.values(skillCounts).filter(count => count > 0).length;
+    const tutorSupply = [];
+    const tutorDemand = [];
+    const tutorGapUndersupplied = [];
+    const tutorGapOversupplied = [];
+    let tutorGapBalanced = 0;
+    const tutorQuality = [];
+    const tutorActivityStatus = [];
+
+    allTutorSkills.forEach(normalizedSkill => {
+      const supply = tutorSkillSupply[normalizedSkill];
+      const demand = tutorSkillDemand[normalizedSkill];
+      
+      const tutorCount = supply?.tutorCount || 0;
+      const requestCount = demand?.requestCount || 0;
+      const displaySkill = supply?.skill || demand?.skill || normalizedSkill;
+
+      // Supply data
+      tutorSupply.push({
+        skill: displaySkill,
+        tutorCount,
+        demand: requestCount,
+        tutorNames: supply?.tutors || [] // Debug info
+      });
+
+      // Demand data
+      if (requestCount > 0) {
+        tutorDemand.push({
+          skill: displaySkill,
+          requestCount,
+          tutorCount
+        });
+      }
+
+      // Gap analysis
+      const gapRatio = tutorCount > 0 ? requestCount / tutorCount : (requestCount > 0 ? 999 : 0);
+      let gapFlag = 'balanced';
+      
+      if (tutorCount === 0 && requestCount > 0) {
+        gapFlag = 'no-supply';
+        tutorGapUndersupplied.push({
+          skill: displaySkill,
+          supply: tutorCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else if (gapRatio > 5) {
+        gapFlag = 'undersupplied';
+        tutorGapUndersupplied.push({
+          skill: displaySkill,
+          supply: tutorCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else if (gapRatio < 0.5 && tutorCount > 0) {
+        gapFlag = 'oversupplied';
+        tutorGapOversupplied.push({
+          skill: displaySkill,
+          supply: tutorCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else {
+        tutorGapBalanced++;
+      }
+
+      // Quality metrics
+      if (demand) {
+        const total = demand.requestCount;
+        tutorQuality.push({
+          skill: displaySkill,
+          completed: demand.completed,
+          cancelled: demand.cancelled,
+          pending: demand.pending,
+          rejected: demand.rejected,
+          completionRate: total > 0 ? Math.round((demand.completed / total) * 100) : 0,
+          cancellationRate: total > 0 ? Math.round((demand.cancelled / total) * 100) : 0
+        });
+      }
+
+      // Activity status
+      const lastSession = tutorSessions
+        .filter(s => s.subject && s.subject.trim().toLowerCase() === normalizedSkill)
+        .sort((a, b) => b.createdAt - a.createdAt)[0];
+      
+      const lastUsed = lastSession ? lastSession.createdAt.toISOString().split('T')[0] : 'Never';
+      const isActive = lastSession && lastSession.createdAt >= thirtyDaysAgo;
+
+      tutorActivityStatus.push({
+        skill: displaySkill,
+        tutorCount,
+        lastUsed,
+        status: isActive ? 'active' : 'dormant'
+      });
+    });
+
+    // Sort arrays
+    tutorSupply.sort((a, b) => b.tutorCount - a.tutorCount);
+    tutorDemand.sort((a, b) => b.requestCount - a.requestCount);
+    tutorGapUndersupplied.sort((a, b) => b.gapRatio - a.gapRatio);
+    tutorGapOversupplied.sort((a, b) => a.gapRatio - b.gapRatio);
+    tutorQuality.sort((a, b) => b.completed - a.completed);
+    tutorActivityStatus.sort((a, b) => b.tutorCount - a.tutorCount);
+
+    // ===== SECTION 2: INTERVIEW SKILLS ANALYTICS =====
     
-    const totalCompletions = Object.values(skillCompletions).reduce((sum, data) => sum + data.completed, 0);
-    const totalSessions = Object.values(skillCompletions).reduce((sum, data) => sum + data.completed + data.incomplete, 0);
-    const avgCompletionRate = totalSessions > 0 
-      ? Math.round((totalCompletions / totalSessions) * 100)
-      : 0;
+    // 1. Get all approved interviewers
+    const approvedInterviewers = await ApprovedInterviewer.find()
+      .populate('user', 'skillsToTeach firstName lastName')
+      .select('profile user');
+    
+    // Build interviewer skill supply from APPROVED interviewers
+    const interviewerSkillSupply = {};
+    
+    approvedInterviewers.forEach(interviewer => {
+      if (!interviewer.user) return;
+      
+      const interviewerId = interviewer._id.toString();
+      const interviewerName = interviewer.profile?.name || 
+        `${interviewer.user.firstName || ''} ${interviewer.user.lastName || ''}`.trim();
+      
+      // From profile.position (primary skill)
+      if (interviewer.profile && interviewer.profile.position && typeof interviewer.profile.position === 'string') {
+        const normalized = interviewer.profile.position.trim().toLowerCase();
+        if (normalized) {
+          if (!interviewerSkillSupply[normalized]) {
+            interviewerSkillSupply[normalized] = {
+              skill: interviewer.profile.position.trim(),
+              interviewerCount: 0,
+              interviewerIds: new Set(),
+              interviewers: []
+            };
+          }
+          
+          if (!interviewerSkillSupply[normalized].interviewerIds.has(interviewerId)) {
+            interviewerSkillSupply[normalized].interviewerIds.add(interviewerId);
+            interviewerSkillSupply[normalized].interviewerCount++;
+            interviewerSkillSupply[normalized].interviewers.push(interviewerName);
+          }
+        }
+      }
+      
+      // From user.skillsToTeach (additional skills)
+      if (interviewer.user.skillsToTeach && Array.isArray(interviewer.user.skillsToTeach)) {
+        interviewer.user.skillsToTeach.forEach(skill => {
+          if (skill && typeof skill === 'string') {
+            const normalized = skill.trim().toLowerCase();
+            if (normalized) {
+              if (!interviewerSkillSupply[normalized]) {
+                interviewerSkillSupply[normalized] = {
+                  skill: skill.trim(),
+                  interviewerCount: 0,
+                  interviewerIds: new Set(),
+                  interviewers: []
+                };
+              }
+              
+              if (!interviewerSkillSupply[normalized].interviewerIds.has(interviewerId)) {
+                interviewerSkillSupply[normalized].interviewerIds.add(interviewerId);
+                interviewerSkillSupply[normalized].interviewerCount++;
+                interviewerSkillSupply[normalized].interviewers.push(interviewerName);
+              }
+            }
+          }
+        });
+      }
+    });
 
-    const mostPopular = mostRequested[0]?.skill || 'N/A';
+    // 2. Get interview requests (interview demand)
+    const interviewRequests = await InterviewRequest.find({
+      createdAt: { $gte: start, $lte: end }
+    }).select('position status createdAt rating');
+
+    const interviewSkillDemand = {};
+    interviewRequests.forEach(interview => {
+      if (interview.position && typeof interview.position === 'string') {
+        const normalized = interview.position.trim().toLowerCase();
+        if (normalized) {
+          if (!interviewSkillDemand[normalized]) {
+            interviewSkillDemand[normalized] = {
+              skill: interview.position.trim(),
+              requestCount: 0,
+              completed: 0,
+              expired: 0,
+              pending: 0,
+              ratings: []
+            };
+          }
+          interviewSkillDemand[normalized].requestCount++;
+          
+          if (interview.status === 'completed') {
+            interviewSkillDemand[normalized].completed++;
+            if (interview.rating) interviewSkillDemand[normalized].ratings.push(interview.rating);
+          } else if (interview.status === 'expired') {
+            interviewSkillDemand[normalized].expired++;
+          } else if (interview.status === 'pending') {
+            interviewSkillDemand[normalized].pending++;
+          }
+        }
+      }
+    });
+
+    // 3. Combine interview supply and demand
+    const allInterviewSkills = new Set([
+      ...Object.keys(interviewerSkillSupply),
+      ...Object.keys(interviewSkillDemand)
+    ]);
+
+    const interviewSupply = [];
+    const interviewDemand = [];
+    const interviewGapUndersupplied = [];
+    let interviewGapBalanced = 0;
+    const interviewQuality = [];
+
+    allInterviewSkills.forEach(normalizedSkill => {
+      const supply = interviewerSkillSupply[normalizedSkill];
+      const demand = interviewSkillDemand[normalizedSkill];
+      
+      const interviewerCount = supply?.interviewerCount || 0;
+      const requestCount = demand?.requestCount || 0;
+      const displaySkill = supply?.skill || demand?.skill || normalizedSkill;
+
+      // Supply data
+      interviewSupply.push({
+        skill: displaySkill,
+        interviewerCount,
+        demand: requestCount,
+        interviewerNames: supply?.interviewers || [] // Debug info
+      });
+
+      // Demand data
+      if (requestCount > 0) {
+        interviewDemand.push({
+          skill: displaySkill,
+          requestCount,
+          interviewerCount
+        });
+      }
+
+      // Gap analysis (interviews use different threshold)
+      const gapRatio = interviewerCount > 0 ? requestCount / interviewerCount : (requestCount > 0 ? 999 : 0);
+      let gapFlag = 'balanced';
+      
+      if (interviewerCount === 0 && requestCount > 0) {
+        gapFlag = 'no-supply';
+        interviewGapUndersupplied.push({
+          skill: displaySkill,
+          supply: interviewerCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else if (gapRatio > 3) {
+        gapFlag = 'undersupplied';
+        interviewGapUndersupplied.push({
+          skill: displaySkill,
+          supply: interviewerCount,
+          demand: requestCount,
+          gapRatio,
+          flag: gapFlag
+        });
+      } else {
+        interviewGapBalanced++;
+      }
+
+      // Quality metrics with ratings
+      if (demand) {
+        const total = demand.requestCount;
+        const avgRating = demand.ratings.length > 0
+          ? (demand.ratings.reduce((sum, r) => sum + r, 0) / demand.ratings.length).toFixed(1)
+          : 0;
+        
+        interviewQuality.push({
+          skill: displaySkill,
+          completed: demand.completed,
+          expired: demand.expired,
+          pending: demand.pending,
+          completionRate: total > 0 ? Math.round((demand.completed / total) * 100) : 0,
+          avgRating: parseFloat(avgRating)
+        });
+      }
+    });
+
+    // Sort arrays
+    interviewSupply.sort((a, b) => b.interviewerCount - a.interviewerCount);
+    interviewDemand.sort((a, b) => b.requestCount - a.requestCount);
+    interviewGapUndersupplied.sort((a, b) => b.gapRatio - a.gapRatio);
+    interviewQuality.sort((a, b) => b.completed - a.completed);
+
+    // ===== SECTION 3: CROSS-SKILL INTELLIGENCE =====
+    
+    const strongInTutoringOnly = [];
+    const strongInInterviewsOnly = [];
+
+    allTutorSkills.forEach(skill => {
+      const tutorCount = tutorSkillSupply[skill]?.tutorCount || 0;
+      const tutorDemandCount = tutorSkillDemand[skill]?.requestCount || 0;
+      const interviewerCount = interviewerSkillSupply[skill]?.interviewerCount || 0;
+      const interviewDemandCount = interviewSkillDemand[skill]?.requestCount || 0;
+
+      if (tutorCount > 0 && tutorDemandCount > 0 && interviewerCount === 0) {
+        strongInTutoringOnly.push({
+          skill: tutorSkillSupply[skill].skill,
+          tutorSupply: tutorCount,
+          tutorDemand: tutorDemandCount,
+          interviewerSupply: 0,
+          interviewDemand: 0
+        });
+      }
+    });
+
+    allInterviewSkills.forEach(skill => {
+      const tutorCount = tutorSkillSupply[skill]?.tutorCount || 0;
+      const tutorDemandCount = tutorSkillDemand[skill]?.requestCount || 0;
+      const interviewerCount = interviewerSkillSupply[skill]?.interviewerCount || 0;
+      const interviewDemandCount = interviewSkillDemand[skill]?.requestCount || 0;
+
+      if (interviewerCount > 0 && interviewDemandCount > 0 && tutorCount === 0) {
+        strongInInterviewsOnly.push({
+          skill: interviewerSkillSupply[skill].skill,
+          tutorSupply: 0,
+          tutorDemand: 0,
+          interviewerSupply: interviewerCount,
+          interviewDemand: interviewDemandCount
+        });
+      }
+    });
+
+    // ===== SECTION 4: AUTO-GENERATED INSIGHTS =====
+    
+    const insights = [];
+
+    // Tutor undersupply insights
+    tutorGapUndersupplied.slice(0, 3).forEach(skill => {
+      insights.push({
+        type: 'warning',
+        category: 'tutor',
+        message: `High tutoring demand for "${skill.skill}" with ${skill.demand} requests but only ${skill.supply} approved tutors`,
+        action: 'Recruit and approve more tutors for this skill'
+      });
+    });
+
+    // Tutor quality insights
+    tutorQuality.filter(s => s.cancellationRate > 30 && s.completed + s.cancelled > 5)
+      .slice(0, 2)
+      .forEach(skill => {
+        insights.push({
+          type: 'warning',
+          category: 'tutor',
+          message: `High cancellation rate (${skill.cancellationRate}%) for tutoring skill "${skill.skill}"`,
+          action: 'Investigate tutor-learner matching quality'
+        });
+      });
+
+    // Interview undersupply insights
+    interviewGapUndersupplied.slice(0, 3).forEach(skill => {
+      insights.push({
+        type: 'warning',
+        category: 'interview',
+        message: `High interview demand for "${skill.skill}" with ${skill.demand} requests but only ${skill.supply} approved interviewers`,
+        action: 'Recruit and approve more interviewers for this role'
+      });
+    });
+
+    // Interview quality insights
+    interviewQuality.filter(s => s.completionRate < 50 && s.completed + s.expired > 5)
+      .slice(0, 2)
+      .forEach(skill => {
+        insights.push({
+          type: 'warning',
+          category: 'interview',
+          message: `Low completion rate (${skill.completionRate}%) for interview skill "${skill.skill}"`,
+          action: 'Review interview scheduling and interviewer availability'
+        });
+      });
+
+    // Cross-skill opportunities
+    if (strongInTutoringOnly.length > 0) {
+      insights.push({
+        type: 'info',
+        category: 'tutor',
+        message: `${strongInTutoringOnly.length} skills have strong tutoring presence but no interview coverage`,
+        action: 'Consider recruiting interviewers from existing tutors'
+      });
+    }
+
+    if (strongInInterviewsOnly.length > 0) {
+      insights.push({
+        type: 'info',
+        category: 'interview',
+        message: `${strongInInterviewsOnly.length} skills have strong interview presence but no tutoring coverage`,
+        action: 'Consider recruiting tutors from existing interviewers'
+      });
+    }
+
+    // Activity status insights
+    const dormantCount = tutorActivityStatus.filter(s => s.status === 'dormant').length;
+    if (dormantCount > 0) {
+      insights.push({
+        type: 'info',
+        category: 'tutor',
+        message: `${dormantCount} tutoring skills have been dormant for 30+ days`,
+        action: 'Review skill relevance and update tutor profiles'
+      });
+    }
 
     res.json({
       summary: {
-        totalSkills,
-        activeSkills,
-        avgCompletionRate,
-        mostPopular
+        totalTutorSkills: allTutorSkills.size,
+        totalInterviewSkills: allInterviewSkills.size,
+        activeTutorSkills: tutorActivityStatus.filter(s => s.status === 'active').length,
+        totalTutors: approvedTutorApps.length,
+        totalInterviewers: approvedInterviewers.length
       },
-      mostRequested,
-      leastUsed,
-      completionRate
+      tutorAnalytics: {
+        supply: tutorSupply.slice(0, 20),
+        demand: tutorDemand.slice(0, 15),
+        gap: {
+          undersupplied: tutorGapUndersupplied.slice(0, 10),
+          oversupplied: tutorGapOversupplied.slice(0, 10),
+          balanced: tutorGapBalanced
+        },
+        quality: tutorQuality.slice(0, 15),
+        activityStatus: tutorActivityStatus.slice(0, 20)
+      },
+      interviewAnalytics: {
+        supply: interviewSupply.slice(0, 20),
+        demand: interviewDemand.slice(0, 15),
+        gap: {
+          undersupplied: interviewGapUndersupplied.slice(0, 10),
+          balanced: interviewGapBalanced
+        },
+        quality: interviewQuality.slice(0, 15)
+      },
+      crossSkillIntelligence: {
+        overlap: {
+          strongInTutoringOnly: strongInTutoringOnly.slice(0, 10),
+          strongInInterviewsOnly: strongInInterviewsOnly.slice(0, 10)
+        }
+      },
+      insights
     });
   } catch (error) {
     console.error('Analytics skills error:', error);
@@ -639,84 +1990,59 @@ exports.getRewards = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
     const dateBuckets = generateDateBuckets(start, end);
+    const SessionRequest = require('../models/SessionRequest');
+    const Contribution = require('../models/Contribution');
+    const now = new Date();
 
     // Get all users with their coins
-    const users = await User.find().select('silverCoins goldCoins firstName lastName email');
+    const allUsers = await User.find().select('coins lastActivityAt createdAt');
+    const totalUsers = allUsers.length;
+    const totalCoins = allUsers.reduce((sum, u) => sum + (u.coins || 0), 0);
+    const avgCoins = totalUsers > 0 ? Math.round(totalCoins / totalUsers) : 0;
 
-    // Calculate totals
-    const totalSilver = users.reduce((sum, user) => sum + (user.silverCoins || 0), 0);
-    const totalGold = users.reduce((sum, user) => sum + (user.goldCoins || 0), 0);
-    const activeEarners = users.filter(user => (user.silverCoins || 0) > 0 || (user.goldCoins || 0) > 0).length;
-    const avgPerUser = users.length > 0 
-      ? Math.round((totalSilver + totalGold * 10) / users.length)
-      : 0;
+    // Get contributions (coin sources)
+    const contributions = await Contribution.find({ createdAt: { $gte: start, $lte: end } });
+    const totalEarned = contributions.reduce((sum, c) => sum + (c.coins || 0), 0);
 
-    // Coins distribution
-    const coinsDistribution = {
-      silver: totalSilver,
-      gold: totalGold
+    // Get sessions (coin spending)
+    const sessions = await SessionRequest.find({ 
+      createdAt: { $gte: start, $lte: end },
+      status: 'completed'
+    }).select('coins');
+    const totalSpent = sessions.reduce((sum, s) => sum + (s.coins || 0), 0);
+
+    // Summary
+    const summary = {
+      totalCoinsInCirculation: totalCoins,
+      avgCoinsPerUser: avgCoins,
+      totalEarned,
+      totalSpent,
+      netFlow: totalEarned - totalSpent
     };
 
-    // Coins over time (using contribution events if available)
-    let coinsOverTime = [];
-    
-    try {
-      const ContributionEvent = require('../models/ContributionEvent');
-      
-      const coinEvents = await ContributionEvent.aggregate([
-        { $match: { createdAt: { $gte: start, $lte: end } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            silver: { $sum: { $cond: [{ $eq: ['$coinType', 'silver'] }, '$amount', 0] } },
-            gold: { $sum: { $cond: [{ $eq: ['$coinType', 'gold'] }, '$amount', 0] } }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]);
-
-      const coinMap = coinEvents.reduce((acc, item) => {
-        acc[item._id] = { silver: item.silver, gold: item.gold };
-        return acc;
-      }, {});
-
-      coinsOverTime = dateBuckets.map(date => ({
-        date,
-        silver: coinMap[date]?.silver || 0,
-        gold: coinMap[date]?.gold || 0
+    // Top earners
+    const topEarners = allUsers
+      .sort((a, b) => (b.coins || 0) - (a.coins || 0))
+      .slice(0, 10)
+      .map(u => ({
+        userId: u._id,
+        coins: u.coins || 0
       }));
-    } catch (err) {
-      // If ContributionEvent model doesn't exist, create mock data
-      coinsOverTime = dateBuckets.map(date => ({
-        date,
-        silver: 0,
-        gold: 0
-      }));
+
+    // Insights
+    const insights = [];
+    if (totalSpent > totalEarned) {
+      insights.push({
+        type: 'warning',
+        message: `Spending (${totalSpent}) exceeds earnings (${totalEarned})`,
+        action: 'Review coin generation mechanisms'
+      });
     }
 
-    // Leaderboard (top 20 earners)
-    const leaderboard = users
-      .map(user => ({
-        _id: user._id,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        silver: user.silverCoins || 0,
-        gold: user.goldCoins || 0,
-        total: (user.silverCoins || 0) + (user.goldCoins || 0) * 10
-      }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 20);
-
     res.json({
-      summary: {
-        totalSilver,
-        totalGold,
-        activeEarners,
-        avgPerUser
-      },
-      coinsDistribution,
-      coinsOverTime,
-      leaderboard
+      summary,
+      topEarners,
+      insights
     });
   } catch (error) {
     console.error('Analytics rewards error:', error);
@@ -741,96 +2067,39 @@ exports.getReports = async (req, res) => {
       ? Math.round((resolvedReports / totalReports) * 100)
       : 0;
 
-    // Reports over time
-    const reportsOverTime = await Report.aggregate([
-      { $match: { createdAt: { $gte: start, $lte: end } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    const reportMap = reportsOverTime.reduce((acc, item) => {
-      acc[item._id] = item.count;
-      return acc;
-    }, {});
-
-    const reportsData = dateBuckets.map(date => ({
-      date,
-      count: reportMap[date] || 0
-    }));
-
-    // Resolution status
-    const resolutionStatus = {
-      resolved: resolvedReports,
-      unresolved: unresolvedReports,
-      inProgress: 0 // Can be enhanced if you have an 'inProgress' status
-    };
-
-    // Users with frequent reports or low ratings
-    const problematicUsers = await Report.aggregate([
-      { $match: { createdAt: { $gte: start, $lte: end } } },
-      {
-        $group: {
-          _id: '$reportedUserId',
-          reportCount: { $sum: 1 }
-        }
-      },
-      { $match: { reportCount: { $gte: 2 } } },
-      { $sort: { reportCount: -1 } },
-      { $limit: 20 },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      { $unwind: '$user' }
-    ]);
-
-    // Get session ratings for these users
-    const problematicUsersWithRatings = await Promise.all(
-      problematicUsers.map(async (item) => {
-        const sessions = await Session.find({
-          $or: [
-            { tutorId: item._id },
-            { studentId: item._id }
-          ],
-          rating: { $exists: true }
-        }).select('rating');
-
-        const avgRating = sessions.length > 0
-          ? sessions.reduce((sum, s) => sum + (s.rating || 0), 0) / sessions.length
-          : null;
-
-        return {
-          _id: item._id,
-          name: `${item.user.firstName} ${item.user.lastName}`,
-          email: item.user.email,
-          reportCount: item.reportCount,
-          avgRating: avgRating ? Math.round(avgRating * 10) / 10 : null
-        };
-      })
-    );
-
     res.json({
       summary: {
-        total: totalReports,
-        resolved: resolvedReports,
-        unresolved: unresolvedReports,
+        totalReports,
+        resolvedReports,
+        unresolvedReports,
         resolutionRate
-      },
-      reportsOverTime: reportsData,
-      resolutionStatus,
-      problematicUsers: problematicUsersWithRatings
+      }
     });
   } catch (error) {
     console.error('Analytics reports error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Anonymous Visitor Analytics (for Overview tab)
+exports.getVisitorAnalytics = async (req, res) => {
+  try {
+    const { start, end } = getDateRange(req);
+    const now = new Date();
+
+    // Define "active" anonymous visitor thresholds
+    const MIN_TIME_SPENT = 15; // seconds
+    const MIN_PAGE_VIEWS = 2;
+
+    const anonymousVisitors = await AnonymousVisitor.find({});
+    
+    res.json({
+      summary: {
+        totalVisitors: anonymousVisitors.length
+      }
+    });
+  } catch (error) {
+    console.error('Analytics visitors error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

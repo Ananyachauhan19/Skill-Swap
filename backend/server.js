@@ -48,6 +48,8 @@ const User = require('./models/User');
 const Notification = require('./models/Notification');
 const { sendMail } = require('./utils/sendMail');
 const emailTemplates = require('./utils/emailTemplates');
+const anonymousVisitorTracking = require('./middleware/anonymousVisitorTracking');
+const { expireOverdueInterviews } = require('./cron/expireInterviews');
 
 const app = express();
 const server = http.createServer(app);
@@ -125,6 +127,7 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(anonymousVisitorTracking);
 require('./socket')(io);
 app.set('io', io);
 app.use('/api/auth', authRoutes);
@@ -178,6 +181,16 @@ app.use((err, req, res, next) => {
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {
     console.log('MongoDB Connected');
+    
+    // Expire overdue interviews immediately on startup
+    try {
+      const expiredCount = await expireOverdueInterviews();
+      if (expiredCount > 0) {
+        console.log(`[Startup] Expired ${expiredCount} overdue interview(s)`);
+      }
+    } catch (err) {
+      console.error('[Startup] Failed to expire overdue interviews:', err);
+    }
     
     // Ensure indexes are created for optimal performance
     try {
@@ -326,6 +339,27 @@ mongoose.connect(process.env.MONGO_URI)
       }
     } else {
       console.log('[SessionReminder] Cron disabled. Set ENABLE_SESSION_REMINDER_CRON=true to enable.');
+    }
+
+    // Interview expiry job - runs every 10 minutes to expire scheduled interviews after 12 hours
+    if (String(process.env.ENABLE_INTERVIEW_EXPIRY_CRON || 'true').toLowerCase() === 'true') {
+      try {
+        cron.schedule('*/10 * * * *', async () => {
+          try {
+            const expiredCount = await expireOverdueInterviews();
+            if (expiredCount > 0) {
+              console.log(`[InterviewExpiry] Expired ${expiredCount} overdue interview(s)`);
+            }
+          } catch (err) {
+            console.error('[InterviewExpiry] Cron tick failed:', err);
+          }
+        });
+        console.log('[InterviewExpiry] Scheduled interview expiry check (every 10 minutes)');
+      } catch (e) {
+        console.error('[InterviewExpiry] Failed to schedule cron job:', e);
+      }
+    } else {
+      console.log('[InterviewExpiry] Cron disabled. Set ENABLE_INTERVIEW_EXPIRY_CRON=true to enable.');
     }
   })
   .catch((err) => console.log(err));

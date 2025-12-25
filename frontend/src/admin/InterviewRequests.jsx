@@ -13,6 +13,8 @@ const STATUS_CONFIG = {
   scheduled: { color: 'bg-purple-50 text-purple-700 border-purple-200', icon: FiCalendar, label: 'Scheduled' },
   completed: { color: 'bg-green-50 text-green-700 border-green-200', icon: FiCheck, label: 'Completed' },
   rejected: { color: 'bg-red-50 text-red-700 border-red-200', icon: FiX, label: 'Rejected' },
+  expired: { color: 'bg-orange-50 text-orange-700 border-orange-200', icon: FiClock, label: 'Expired' },
+  cancelled: { color: 'bg-gray-50 text-gray-700 border-gray-200', icon: FiX, label: 'Cancelled' },
 };
 
 const statusOptions = [
@@ -21,6 +23,8 @@ const statusOptions = [
   { id: 'scheduled', label: 'Scheduled' },
   { id: 'completed', label: 'Completed' },
   { id: 'rejected', label: 'Rejected' },
+  { id: 'expired', label: 'Expired' },
+  { id: 'cancelled', label: 'Cancelled' },
 ];
 
 const dateRangeOptions = [

@@ -7,7 +7,7 @@ const interviewRequestSchema = new mongoose.Schema({
   message: { type: String, default: '' },
   status: {
     type: String,
-    enum: ['pending', 'assigned', 'scheduled', 'completed', 'rejected', 'cancelled'],
+    enum: ['pending', 'assigned', 'scheduled', 'completed', 'rejected', 'cancelled', 'expired'],
     default: 'pending',
   },
   assignedInterviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
