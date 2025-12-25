@@ -589,16 +589,22 @@ exports.getSessions = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
     const dateBuckets = generateDateBuckets(start, end);
+    const SessionRequest = require('../models/SessionRequest');
+    const now = new Date();
 
     // Summary
-    const totalSessions = await Session.countDocuments({ createdAt: { $gte: start, $lte: end } });
-    const completedSessions = await Session.countDocuments({ 
+    const totalSessions = await SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end } });
+    const completedSessions = await SessionRequest.countDocuments({ 
       createdAt: { $gte: start, $lte: end },
       status: 'completed'
     });
+    const cancelledSessions = await SessionRequest.countDocuments({
+      createdAt: { $gte: start, $lte: end },
+      status: 'cancelled'
+    });
 
     // Calculate average duration for completed sessions
-    const durationStats = await Session.aggregate([
+    const durationStats = await SessionRequest.aggregate([
       { 
         $match: { 
           createdAt: { $gte: start, $lte: end },
@@ -621,69 +627,88 @@ exports.getSessions = async (req, res) => {
     const completionRate = totalSessions > 0 
       ? Math.round((completedSessions / totalSessions) * 100)
       : 0;
+    const cancellationRate = totalSessions > 0
+      ? Math.round((cancelledSessions / totalSessions) * 100)
+      : 0;
 
-    // Sessions over time
-    const sessionsOverTime = await Session.aggregate([
+    // 1. Session Activity Trend - completed vs cancelled
+    const sessionsOverTime = await SessionRequest.aggregate([
       { $match: { createdAt: { $gte: start, $lte: end } } },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
+          total: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
         }
       },
       { $sort: { _id: 1 } }
     ]);
 
     const sessionMap = sessionsOverTime.reduce((acc, item) => {
-      acc[item._id] = item.count;
+      acc[item._id] = { total: item.total, completed: item.completed, cancelled: item.cancelled };
       return acc;
     }, {});
 
     const sessionsData = dateBuckets.map(date => ({
       date,
-      count: sessionMap[date] || 0
+      total: sessionMap[date]?.total || 0,
+      completed: sessionMap[date]?.completed || 0,
+      cancelled: sessionMap[date]?.cancelled || 0
     }));
 
-    // Role breakdown - sessions as student vs tutor
-    const roleBreakdown = await Session.aggregate([
+    // 2. Role Participation Insight - aggregated totals
+    const roleParticipation = await SessionRequest.aggregate([
       { $match: { createdAt: { $gte: start, $lte: end } } },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          asStudent: { $sum: { $cond: [{ $ne: ['$studentId', null] }, 1, 0] } },
-          asTutor: { $sum: { $cond: [{ $ne: ['$tutorId', null] }, 1, 0] } }
-        }
-      },
-      { $sort: { _id: 1 } }
-    ]);
-
-    const roleMap = roleBreakdown.reduce((acc, item) => {
-      acc[item._id] = { asStudent: item.asStudent, asTutor: item.asTutor };
-      return acc;
-    }, {});
-
-    const roleData = dateBuckets.map(date => ({
-      date,
-      asStudent: roleMap[date]?.asStudent || 0,
-      asTutor: roleMap[date]?.asTutor || 0
-    }));
-
-    // Status breakdown
-    const statusBreakdown = await Session.aggregate([
-      { $match: { createdAt: { $gte: start, $lte: end } } },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
+          _id: null,
+          asStudent: { $sum: 1 },
+          asTutor: { $sum: 1 }
         }
       }
     ]);
 
-    // Duration distribution
-    const durationDistribution = await Session.aggregate([
+    // 3. Session Lifecycle Funnel
+    const [booked, approved, started, completed, cancelled] = await Promise.all([
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end } }),
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: { $in: ['approved', 'active', 'completed'] } }),
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, startedAt: { $exists: true, $ne: null } }),
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: 'completed' }),
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: 'cancelled' })
+    ]);
+
+    const lifecycleFunnel = [
+      { stage: 'Booked', count: booked },
+      { stage: 'Approved', count: approved },
+      { stage: 'Started', count: started },
+      { stage: 'Completed', count: completed },
+      { stage: 'Cancelled', count: cancelled }
+    ];
+
+    // 4. Session Reliability Metrics with trends
+    const prevPeriodLength = end.getTime() - start.getTime();
+    const prevStart = new Date(start.getTime() - prevPeriodLength);
+    const prevEnd = start;
+
+    const [prevTotal, prevCompleted, prevCancelled] = await Promise.all([
+      SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd } }),
+      SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd }, status: 'completed' }),
+      SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd }, status: 'cancelled' })
+    ]);
+
+    const prevCompletionRate = prevTotal > 0 ? Math.round((prevCompleted / prevTotal) * 100) : 0;
+    const prevCancellationRate = prevTotal > 0 ? Math.round((prevCancelled / prevTotal) * 100) : 0;
+
+    const completionTrend = completionRate - prevCompletionRate;
+    const cancellationTrend = cancellationRate - prevCancellationRate;
+
+    // 5. Session Duration Quality
+    const durationQuality = await SessionRequest.aggregate([
       { 
         $match: { 
           createdAt: { $gte: start, $lte: end },
+          status: 'completed',
           duration: { $exists: true }
         }
       },
@@ -691,9 +716,10 @@ exports.getSessions = async (req, res) => {
         $bucket: {
           groupBy: '$duration',
           boundaries: [0, 15, 30, 45, 60, 90, 120, 999999],
-          default: '120+',
+          default: 'other',
           output: {
-            count: { $sum: 1 }
+            count: { $sum: 1 },
+            avgDuration: { $avg: '$duration' }
           }
         }
       }
@@ -701,24 +727,178 @@ exports.getSessions = async (req, res) => {
 
     const durationLabels = ['0-15 min', '15-30 min', '30-45 min', '45-60 min', '60-90 min', '90-120 min', '120+ min'];
     const durationData = durationLabels.map((label, index) => {
-      const bucket = durationDistribution.find(d => d._id === [0, 15, 30, 45, 60, 90, 120, 999999][index]);
+      const bucket = durationQuality.find(d => d._id === [0, 15, 30, 45, 60, 90, 120, 999999][index]);
       return {
         range: label,
-        count: bucket?.count || 0
+        count: bucket?.count || 0,
+        avgDuration: bucket?.avgDuration || 0
       };
     });
+
+    const shortSessions = await SessionRequest.countDocuments({
+      createdAt: { $gte: start, $lte: end },
+      status: 'completed',
+      duration: { $lt: 15 }
+    });
+
+    // 6. Repeat Session Behavior
+    const userSessionCounts = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: { requester: '$requester', tutor: '$tutor' },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id.requester',
+          uniqueTutors: { $addToSet: '$_id.tutor' },
+          totalSessions: { $sum: '$count' },
+          repeatWithSame: { $sum: { $cond: [{ $gt: ['$count', 1] }, 1, 0] } }
+        }
+      }
+    ]);
+
+    let oneTime = 0, repeatSame = 0, repeatDifferent = 0;
+    userSessionCounts.forEach(user => {
+      if (user.totalSessions === 1) oneTime++;
+      else if (user.repeatWithSame > 0) repeatSame++;
+      else if (user.uniqueTutors.length > 1) repeatDifferent++;
+    });
+
+    // 7. Time-Based Session Patterns
+    const timePatterns = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $project: {
+          hour: { $hour: { date: '$createdAt', timezone: 'UTC' } },
+          dayOfWeek: { $dayOfWeek: { date: '$createdAt', timezone: 'UTC' } }
+        }
+      },
+      {
+        $group: {
+          _id: { hour: '$hour', day: '$dayOfWeek' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 8. Tutor Performance Signals (Aggregated)
+    const tutorMetrics = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$tutor',
+          totalSessions: { $sum: 1 },
+          completedSessions: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          cancelledSessions: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } },
+          avgDuration: { $avg: { $cond: [{ $eq: ['$status', 'completed'] }, '$duration', null] } }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgCompletionRate: { 
+            $avg: { 
+              $multiply: [
+                { $divide: ['$completedSessions', '$totalSessions'] }, 
+                100
+              ] 
+            } 
+          },
+          avgSessionDuration: { $avg: '$avgDuration' },
+          avgCancellationRate: {
+            $avg: {
+              $multiply: [
+                { $divide: ['$cancelledSessions', '$totalSessions'] },
+                100
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const aggregatedTutorPerformance = {
+      avgCompletionRate: tutorMetrics[0]?.avgCompletionRate ? Math.round(tutorMetrics[0].avgCompletionRate) : 0,
+      avgSessionDuration: tutorMetrics[0]?.avgSessionDuration ? Math.round(tutorMetrics[0].avgSessionDuration) : 0,
+      avgCancellationRate: tutorMetrics[0]?.avgCancellationRate ? Math.round(tutorMetrics[0].avgCancellationRate) : 0
+    };
+
+    // 9. Session Risk & Alerts
+    const tutorsWithHighCancellation = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$tutor',
+          total: { $sum: 1 },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$cancelled', '$total'] }, 0.4] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const studentsWithHighNoShow = await SessionRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$requester',
+          total: { $sum: 1 },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$cancelled', '$total'] }, 0.4] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const sessionRiskAlerts = {
+      tutorsWithHighCancellation: tutorsWithHighCancellation[0]?.count || 0,
+      studentsWithHighNoShow: studentsWithHighNoShow[0]?.count || 0,
+      totalAtRisk: (tutorsWithHighCancellation[0]?.count || 0) + (studentsWithHighNoShow[0]?.count || 0)
+    };
 
     res.json({
       summary: {
         total: totalSessions,
         completed: completedSessions,
         avgDuration,
-        completionRate
+        completionRate,
+        cancellationRate
       },
       sessionsOverTime: sessionsData,
-      roleBreakdown: roleData,
-      statusBreakdown,
-      durationDistribution: durationData
+      roleParticipation: roleParticipation[0] || { asStudent: 0, asTutor: 0 },
+      lifecycleFunnel,
+      reliabilityMetrics: {
+        completionRate,
+        cancellationRate,
+        completionTrend,
+        cancellationTrend
+      },
+      durationQuality: {
+        distribution: durationData,
+        shortSessions,
+        avgDuration
+      },
+      repeatBehavior: {
+        oneTime,
+        repeatSame,
+        repeatDifferent
+      },
+      timePatterns,
+      tutorPerformance: aggregatedTutorPerformance,
+      sessionRiskAlerts
     });
   } catch (error) {
     console.error('Analytics sessions error:', error);
