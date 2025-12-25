@@ -157,16 +157,16 @@ const OneOnOne = () => {
             </div>
 
             {/* Right Illustration */}
-<div className="flex-1 relative hidden lg:block">
-  <div className="relative w-full max-w-[480px] mx-auto scale-[1.32]">
-    <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
-    <img
-      src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589368/webimages/expert-connect-illustration.png"
-      alt="Expert Connect"
-      className="relative w-full h-auto object-contain drop-shadow-2xl"
-    />
-  </div>
-</div>
+            <div className="flex-1 relative w-full">
+              <div className="relative w-full max-w-[280px] sm:max-w-[350px] md:max-w-[400px] lg:max-w-[480px] mx-auto scale-100 sm:scale-110 md:scale-125 lg:scale-[1.32]">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 to-blue-900/5 rounded-3xl blur-2xl"></div>
+                <img
+                  src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589368/webimages/expert-connect-illustration.png"
+                  alt="Expert Connect"
+                  className="relative w-full h-auto object-contain drop-shadow-2xl"
+                />
+              </div>
+            </div>
  </div>
 </div>
 

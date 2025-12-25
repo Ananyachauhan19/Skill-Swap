@@ -8,12 +8,11 @@ export default {
     screens: {
       'xs': '475px',
       'sm': '640px',
-      'md': '768px',
-      'tablet': '810px',
-      'lg': '1024px',
-      'ipad-pro': '1024px',
-      'xl': '1280px',
-      '2xl': '1536px',
+      'md': '768px',      // Tablet start
+      'tablet': '820px',   // iPad/Surface
+      'lg': '1024px',      // Desktop start (DO NOT MODIFY)
+      'xl': '1280px',      // Large desktop (DO NOT MODIFY)
+      '2xl': '1536px',     // Extra large (DO NOT MODIFY)
     },
     extend: {
       fontFamily: {
