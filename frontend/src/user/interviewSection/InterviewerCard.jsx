@@ -74,9 +74,7 @@ function InterviewerCard({ interviewer: m, onBookSession, navigate, onModalActio
           <button
             onClick={() => {
               onBookSession({
-                interviewer: m.user,
-                company: m.application?.company,
-                position: m.application?.position,
+                interviewer: m,
               });
               if (onModalAction) onModalAction();
             }}

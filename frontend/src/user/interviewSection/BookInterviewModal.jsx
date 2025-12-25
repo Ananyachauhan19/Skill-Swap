@@ -127,22 +127,52 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
       });
       return;
     }
-    setLoading(true);
+    
+    // Store values before clearing
+    const requestCompany = company;
+    const requestPosition = position;
+    const requestMessage = message;
+    const requestInterviewer = selectedInterviewer;
+    
+    // Close modal immediately for better UX
+    onClose();
+    
+    // Reset form state immediately
+    setCompany('');
+    setPosition('');
+    setMessage('');
+    setMatchedInterviewers([]);
+    setSelectedInterviewer('');
+    
+    // Show immediate feedback that request is being processed
+    addToast({
+      title: 'Submitting Request...',
+      message: `Processing your interview request for ${requestCompany} — ${requestPosition}`,
+      variant: 'info',
+      timeout: 2000,
+    });
+    
+    // Make API call
     try {
       const res = await fetch(`${BACKEND_URL}/api/interview/create`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company, position, message, assignedInterviewer: selectedInterviewer || undefined }),
+        body: JSON.stringify({ 
+          company: requestCompany, 
+          position: requestPosition, 
+          message: requestMessage, 
+          assignedInterviewer: requestInterviewer || undefined 
+        }),
       });
       let json = null;
       try { json = await res.json(); } catch (_) { /* non-json response */ }
       if (!res.ok) throw new Error((json && json.message) || (await res.text()) || 'Failed to request');
 
-      // Success - show immediate feedback to user
+      // Success - show feedback to user
       addToast({
         title: 'Request Sent Successfully',
-        message: `Your mock interview request for ${company} — ${position} was submitted successfully.`,
+        message: `Your mock interview request for ${requestCompany} — ${requestPosition} was submitted successfully.`,
         variant: 'success',
         timeout: 5000,
         actions: [
@@ -153,11 +183,6 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
           },
         ],
       });
-
-      setCompany(''); setPosition(''); setMessage('');
-      setMatchedInterviewers([]);
-      setSelectedInterviewer('');
-      onClose();
     } catch (err) {
       console.error(err);
       addToast({
@@ -166,8 +191,6 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
         variant: 'error',
         timeout: 4500,
       });
-    } finally {
-      setLoading(false);
     }
   };
 
