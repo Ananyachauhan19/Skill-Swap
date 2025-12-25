@@ -911,6 +911,9 @@ exports.getInterviews = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
     const dateBuckets = generateDateBuckets(start, end);
+    const InterviewerApplication = require('../models/InterviewerApplication');
+    const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+    const now = new Date();
 
     // Summary
     const totalInterviews = await InterviewRequest.countDocuments({ 
@@ -930,13 +933,13 @@ exports.getInterviews = async (req, res) => {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          interviewerRating: { $exists: true, $ne: null }
+          rating: { $exists: true, $ne: null }
         }
       },
       {
         $group: {
           _id: null,
-          avgRating: { $avg: '$interviewerRating' }
+          avgRating: { $avg: '$rating' }
         }
       }
     ]);
@@ -945,51 +948,109 @@ exports.getInterviews = async (req, res) => {
       ? Math.round(ratingStats[0].avgRating * 10) / 10
       : 0;
 
-    // Interviews over time
+    // 1. Interview Activity Trend - scheduled, completed, expired, rejected, cancelled
     const interviewsOverTime = await InterviewRequest.aggregate([
       { $match: { createdAt: { $gte: start, $lte: end } } },
       {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-          count: { $sum: 1 }
+          total: { $sum: 1 },
+          scheduled: { $sum: { $cond: [{ $eq: ['$status', 'scheduled'] }, 1, 0] } },
+          completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          expired: { $sum: { $cond: [{ $eq: ['$status', 'expired'] }, 1, 0] } },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
         }
       },
       { $sort: { _id: 1 } }
     ]);
 
     const interviewMap = interviewsOverTime.reduce((acc, item) => {
-      acc[item._id] = item.count;
+      acc[item._id] = { 
+        total: item.total, 
+        scheduled: item.scheduled, 
+        completed: item.completed, 
+        expired: item.expired,
+        rejected: item.rejected,
+        cancelled: item.cancelled
+      };
       return acc;
     }, {});
 
     const interviewsData = dateBuckets.map(date => ({
       date,
-      count: interviewMap[date] || 0
+      total: interviewMap[date]?.total || 0,
+      scheduled: interviewMap[date]?.scheduled || 0,
+      completed: interviewMap[date]?.completed || 0,
+      expired: interviewMap[date]?.expired || 0,
+      rejected: interviewMap[date]?.rejected || 0,
+      cancelled: interviewMap[date]?.cancelled || 0
     }));
 
-    // Participation breakdown
+    // 2. Interview Participation Breakdown
     const participation = {
-      asRequester: await InterviewRequest.countDocuments({
-        createdAt: { $gte: start, $lte: end },
-        requesterId: { $exists: true }
-      }),
+      asRequester: totalInterviews,
       asInterviewer: await InterviewRequest.countDocuments({
         createdAt: { $gte: start, $lte: end },
-        interviewerId: { $exists: true, $ne: null }
+        assignedInterviewer: { $exists: true, $ne: null }
       })
     };
 
-    // Average ratings distribution
-    const avgRatings = await InterviewRequest.aggregate([
+    // 3. Interview Lifecycle Funnel
+    const [requested, assigned, scheduled, conducted, completed, expired, rejected, cancelled] = await Promise.all([
+      InterviewRequest.countDocuments({ createdAt: { $gte: start, $lte: end } }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        assignedInterviewer: { $exists: true, $ne: null } 
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'scheduled' 
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        scheduledAt: { $exists: true, $ne: null } 
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'completed' 
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'expired'
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'rejected'
+      }),
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: start, $lte: end }, 
+        status: 'cancelled'
+      })
+    ]);
+
+    const lifecycleFunnel = [
+      { stage: 'Requested', count: requested },
+      { stage: 'Assigned', count: assigned },
+      { stage: 'Scheduled', count: scheduled },
+      { stage: 'Conducted', count: conducted },
+      { stage: 'Completed', count: completed },
+      { stage: 'Expired (Auto)', count: expired },
+      { stage: 'Rejected', count: rejected },
+      { stage: 'Cancelled', count: cancelled }
+    ];
+
+    // 4. Interview Quality & Ratings
+    const ratingDistribution = await InterviewRequest.aggregate([
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-          interviewerRating: { $exists: true, $ne: null }
+          rating: { $exists: true, $ne: null }
         }
       },
       {
         $bucket: {
-          groupBy: '$interviewerRating',
+          groupBy: '$rating',
           boundaries: [0, 1, 2, 3, 4, 5, 6],
           default: 'other',
           output: {
@@ -1001,31 +1062,162 @@ exports.getInterviews = async (req, res) => {
 
     const ratingsData = [1, 2, 3, 4, 5].map(rating => ({
       rating,
-      count: avgRatings.find(r => r._id === rating)?.count || 0
+      count: ratingDistribution.find(r => r._id === rating)?.count || 0
     }));
 
-    // Interviewer pipeline
-    const [applied, approved, active, experienced] = await Promise.all([
-      InterviewRequest.distinct('requesterId', { createdAt: { $gte: start, $lte: end } }).then(ids => ids.length),
-      InterviewRequest.distinct('interviewerId', { 
-        createdAt: { $gte: start, $lte: end },
-        interviewerId: { $exists: true, $ne: null }
-      }).then(ids => ids.length),
-      InterviewRequest.distinct('interviewerId', {
-        createdAt: { $gte: start, $lte: end },
-        status: 'scheduled',
-        interviewerId: { $exists: true, $ne: null }
-      }).then(ids => ids.length),
+    // Rating trend over time
+    const ratingTrend = await InterviewRequest.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+          rating: { $exists: true, $ne: null }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          avgRating: { $avg: '$rating' }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const ratingTrendMap = ratingTrend.reduce((acc, item) => {
+      acc[item._id] = Math.round(item.avgRating * 10) / 10;
+      return acc;
+    }, {});
+
+    const ratingTrendData = dateBuckets.map(date => ({
+      date,
+      avgRating: ratingTrendMap[date] || 0
+    }));
+
+    // 5. Interviewer Reliability Signals
+    const interviewerMetrics = await InterviewRequest.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: start, $lte: end },
+          assignedInterviewer: { $exists: true, $ne: null }
+        } 
+      },
+      {
+        $group: {
+          _id: '$assignedInterviewer',
+          totalInterviews: { $sum: 1 },
+          completedInterviews: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+          expiredInterviews: { $sum: { $cond: [{ $eq: ['$status', 'expired'] }, 1, 0] } },
+          rejectedInterviews: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
+          cancelledInterviews: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          avgCompletionRate: { 
+            $avg: { 
+              $multiply: [
+                { $divide: ['$completedInterviews', '$totalInterviews'] }, 
+                100
+              ] 
+            } 
+          },
+          avgExpiryRate: {
+            $avg: {
+              $multiply: [
+                { $divide: ['$expiredInterviews', '$totalInterviews'] },
+                100
+              ]
+            }
+          },
+          avgRejectionRate: {
+            $avg: {
+              $multiply: [
+                { $divide: ['$rejectedInterviews', '$totalInterviews'] },
+                100
+              ]
+            }
+          },
+          avgCancellationRate: {
+            $avg: {
+              $multiply: [
+                { $divide: ['$cancelledInterviews', '$totalInterviews'] },
+                100
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const reliabilitySignals = {
+      avgCompletionRate: interviewerMetrics[0]?.avgCompletionRate ? Math.round(interviewerMetrics[0].avgCompletionRate) : 0,
+      avgExpiryRate: interviewerMetrics[0]?.avgExpiryRate ? Math.round(interviewerMetrics[0].avgExpiryRate) : 0,
+      avgRejectionRate: interviewerMetrics[0]?.avgRejectionRate ? Math.round(interviewerMetrics[0].avgRejectionRate) : 0,
+      avgCancellationRate: interviewerMetrics[0]?.avgCancellationRate ? Math.round(interviewerMetrics[0].avgCancellationRate) : 0
+    };
+
+    // 6. Interview Duration & Depth (using scheduledAt and completedAt if available)
+    // Since there's no explicit duration field, we'll estimate based on scheduled slots
+    const durationAnalysis = await InterviewRequest.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: start, $lte: end },
+          status: 'completed',
+          interviewerSuggestedSlots: { $exists: true, $ne: [] }
+        }
+      },
+      {
+        $addFields: {
+          estimatedDuration: {
+            $divide: [
+              { 
+                $subtract: [
+                  { $arrayElemAt: ['$interviewerSuggestedSlots.end', 0] },
+                  { $arrayElemAt: ['$interviewerSuggestedSlots.start', 0] }
+                ]
+              },
+              60000
+            ]
+          }
+        }
+      },
+      {
+        $bucket: {
+          groupBy: '$estimatedDuration',
+          boundaries: [0, 15, 30, 45, 60, 90, 120, 999999],
+          default: 'unknown',
+          output: {
+            count: { $sum: 1 }
+          }
+        }
+      }
+    ]);
+
+    const durationLabels = ['0-15 min', '15-30 min', '30-45 min', '45-60 min', '60-90 min', '90-120 min', '120+ min'];
+    const durationData = durationLabels.map((label, index) => {
+      const bucket = durationAnalysis.find(d => d._id === [0, 15, 30, 45, 60, 90, 120, 999999][index]);
+      return {
+        range: label,
+        count: bucket?.count || 0
+      };
+    });
+
+    // 7. Interviewer Approval Pipeline Health
+    const [pendingApplications, approvedApplications, activeInterviewers, experiencedInterviewers] = await Promise.all([
+      InterviewerApplication.countDocuments({ status: 'pending' }),
+      InterviewerApplication.countDocuments({ status: 'approved' }),
+      ApprovedInterviewer.countDocuments({ isActive: true }),
       InterviewRequest.aggregate([
         {
           $match: {
             createdAt: { $gte: start, $lte: end },
-            interviewerId: { $exists: true, $ne: null }
+            assignedInterviewer: { $exists: true, $ne: null },
+            status: 'completed'
           }
         },
         {
           $group: {
-            _id: '$interviewerId',
+            _id: '$assignedInterviewer',
             count: { $sum: 1 }
           }
         },
@@ -1034,6 +1226,160 @@ exports.getInterviews = async (req, res) => {
         }
       ]).then(result => result.length)
     ]);
+
+    const approvalPipeline = [
+      { stage: 'Applied', count: pendingApplications },
+      { stage: 'Under Review', count: pendingApplications },
+      { stage: 'Approved', count: approvedApplications },
+      { stage: 'Active', count: activeInterviewers },
+      { stage: 'Experienced (5+)', count: experiencedInterviewers }
+    ];
+
+    // 8. Repeat Interview Behavior
+    const requesterBehavior = await InterviewRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$requester',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    let oneTimeRequesters = 0, repeatRequesters = 0;
+    requesterBehavior.forEach(req => {
+      if (req.count === 1) oneTimeRequesters++;
+      else repeatRequesters++;
+    });
+
+    const interviewerBehavior = await InterviewRequest.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: start, $lte: end },
+          assignedInterviewer: { $exists: true, $ne: null }
+        } 
+      },
+      {
+        $group: {
+          _id: '$assignedInterviewer',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    let oneTimeInterviewers = 0, repeatInterviewers = 0;
+    interviewerBehavior.forEach(int => {
+      if (int.count === 1) oneTimeInterviewers++;
+      else repeatInterviewers++;
+    });
+
+    // 9. Time-Based Interview Patterns
+    const timePatterns = await InterviewRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $project: {
+          hour: { $hour: { date: '$createdAt', timezone: 'UTC' } },
+          dayOfWeek: { $dayOfWeek: { date: '$createdAt', timezone: 'UTC' } }
+        }
+      },
+      {
+        $group: {
+          _id: { hour: '$hour', day: '$dayOfWeek' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // 10. Interview Risk & Alerts
+    const interviewersWithHighExpiry = await InterviewRequest.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: start, $lte: end },
+          assignedInterviewer: { $exists: true, $ne: null }
+        } 
+      },
+      {
+        $group: {
+          _id: '$assignedInterviewer',
+          total: { $sum: 1 },
+          expired: { $sum: { $cond: [{ $eq: ['$status', 'expired'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$expired', '$total'] }, 0.3] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const interviewersWithHighRejection = await InterviewRequest.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: start, $lte: end },
+          assignedInterviewer: { $exists: true, $ne: null }
+        } 
+      },
+      {
+        $group: {
+          _id: '$assignedInterviewer',
+          total: { $sum: 1 },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$rejected', '$total'] }, 0.3] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const requestersWithHighExpiry = await InterviewRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$requester',
+          total: { $sum: 1 },
+          expired: { $sum: { $cond: [{ $eq: ['$status', 'expired'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$expired', '$total'] }, 0.3] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const requestersWithHighRejection = await InterviewRequest.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$requester',
+          total: { $sum: 1 },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+        }
+      },
+      {
+        $match: {
+          total: { $gte: 3 },
+          $expr: { $gte: [{ $divide: ['$rejected', '$total'] }, 0.3] }
+        }
+      },
+      { $count: 'count' }
+    ]);
+
+    const interviewRiskAlerts = {
+      interviewersWithHighExpiry: interviewersWithHighExpiry[0]?.count || 0,
+      interviewersWithHighRejection: interviewersWithHighRejection[0]?.count || 0,
+      requestersWithHighExpiry: requestersWithHighExpiry[0]?.count || 0,
+      requestersWithHighRejection: requestersWithHighRejection[0]?.count || 0,
+      totalAtRisk: (interviewersWithHighExpiry[0]?.count || 0) + (interviewersWithHighRejection[0]?.count || 0) + (requestersWithHighExpiry[0]?.count || 0) + (requestersWithHighRejection[0]?.count || 0)
+    };
 
     res.json({
       summary: {
@@ -1044,13 +1390,24 @@ exports.getInterviews = async (req, res) => {
       },
       interviewsOverTime: interviewsData,
       participation,
-      avgRatings: ratingsData,
-      pipeline: {
-        applied,
-        approved,
-        active,
-        experienced
-      }
+      lifecycleFunnel,
+      ratingDistribution: ratingsData,
+      ratingTrend: ratingTrendData,
+      reliabilitySignals,
+      durationAnalysis: durationData,
+      approvalPipeline,
+      repeatBehavior: {
+        requesters: {
+          oneTime: oneTimeRequesters,
+          repeat: repeatRequesters
+        },
+        interviewers: {
+          oneTime: oneTimeInterviewers,
+          repeat: repeatInterviewers
+        }
+      },
+      timePatterns,
+      interviewRiskAlerts
     });
   } catch (error) {
     console.error('Analytics interviews error:', error);

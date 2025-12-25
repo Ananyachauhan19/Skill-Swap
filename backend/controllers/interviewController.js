@@ -11,6 +11,7 @@ const os = require('os');
 const supabase = require('../utils/supabaseClient');
 const { sendMail } = require('../utils/sendMail');
 const T = require('../utils/emailTemplates');
+const { expireOverdueInterviews } = require('../cron/expireInterviews');
 
 // Get single interview request by ID
 exports.getRequestById = async (req, res) => {
@@ -868,6 +869,9 @@ exports.getMyApplication = async (req, res) => {
 // Get requests for the logged-in user (returns { received, sent } for normal users, all for admin)
 exports.getUserRequests = async (req, res) => {
   try {
+    // Expire overdue interviews before fetching
+    await expireOverdueInterviews();
+
     const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
     const isAdmin = req.user && req.user.email && req.user.email.toLowerCase() === adminEmail;
 
@@ -899,6 +903,9 @@ exports.getUserRequests = async (req, res) => {
 // Admin: get all requests (for admin UI)
 exports.getAllRequests = async (req, res) => {
   try {
+    // Expire overdue interviews before fetching
+    await expireOverdueInterviews();
+
     const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
     if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
       return res.status(403).json({ message: 'Forbidden' });
