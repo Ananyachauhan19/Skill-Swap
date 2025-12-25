@@ -257,12 +257,12 @@ const ContributionCalendar = ({ userId: propUserId }) => {
       ) : error ? (
         <p className="text-red-600 text-sm">{error}</p>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sm:p-7">
+        <div className="bg-white rounded-none sm:rounded-2xl border-0 sm:border border-gray-200 shadow-none sm:shadow-sm p-3 sm:p-7">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Contribution Activity</h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-6">
+            <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-gray-900">Contribution Activity</h3>
             <select
-              className="bg-white border border-gray-300 text-gray-700 text-xs px-2.5 py-1.5 rounded-lg hover:border-blue-500 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-white border border-gray-300 text-gray-700 text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg hover:border-blue-500 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
               value={`${currentDate.getFullYear() - 1}-${currentDate.getFullYear()}`}
               onChange={(e) => e.preventDefault()}
             >
@@ -270,76 +270,76 @@ const ContributionCalendar = ({ userId: propUserId }) => {
             </select>
           </div>
 
-          {/* Compact Statistics Grid - Professional Gray Theme */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">Active Days</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.activeDays}</p>
-              <p className="text-[10px] text-gray-500">of {contributionStats.totalDays}</p>
+          {/* Compact Statistics Grid - Professional Gray Theme - Mobile: 5 cols, Tablet: 4 cols, Desktop: 5 cols */}
+          <div className="grid grid-cols-5 sm:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-3 mb-3 sm:mb-6">
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Active Days</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.activeDays}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">of {contributionStats.totalDays}</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">Current Streak</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.currentStreak}</p>
-              <p className="text-[10px] text-gray-500">days</p>
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Current Streak</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.currentStreak}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">days</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">Best Streak</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.maxStreak}</p>
-              <p className="text-[10px] text-gray-500">days</p>
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Best Streak</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.maxStreak}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">days</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">1:1 Sessions</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.oneOnOneSessions}</p>
-              <p className="text-[10px] text-gray-500">completed</p>
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">1:1 Sessions</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.oneOnOneSessions}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">completed</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">Interviews</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.interviewSessions}</p>
-              <p className="text-[10px] text-gray-500">completed</p>
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Interviews</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.interviewSessions}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">completed</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">SkillMates</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.skillMateConnections}</p>
-              <p className="text-[10px] text-gray-500">connections</p>
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">SkillMates</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.skillMateConnections}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">connections</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">Daily Logins</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.dailyLogins}</p>
-              <p className="text-[10px] text-gray-500">days</p>
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Daily Logins</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.dailyLogins}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">days</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">Questions</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.questionsPosted}</p>
-              <p className="text-[10px] text-gray-500">posted</p>
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Questions</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.questionsPosted}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">posted</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">Videos</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.videosUploaded}</p>
-              <p className="text-[10px] text-gray-500">uploaded</p>
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Videos</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.videosUploaded}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">uploaded</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
-              <p className="text-xs text-gray-500 font-medium mb-1">Total</p>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{contributionStats.total}</p>
-              <p className="text-[10px] text-gray-500">contributions</p>
+            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+              <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Total</p>
+              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.total}</p>
+              <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">contributions</p>
             </div>
           </div>
 
           {/* Activity Legend */}
-          <div className="flex items-center justify-center gap-3 mb-5 text-sm font-medium text-gray-600">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-3 mb-3 sm:mb-5 text-[10px] sm:text-sm font-medium text-gray-600">
             <span>Less</span>
-            <div className="flex gap-2">
-              <div className="w-4 h-4 bg-gray-100 rounded"></div>
-              <div className="w-4 h-4 bg-blue-200 rounded"></div>
-              <div className="w-4 h-4 bg-blue-400 rounded"></div>
-              <div className="w-4 h-4 bg-blue-600 rounded"></div>
-              <div className="w-4 h-4 bg-blue-800 rounded"></div>
+            <div className="flex gap-1 sm:gap-2">
+              <div className="w-2.5 h-2.5 sm:w-4 sm:h-4 bg-gray-100 rounded"></div>
+              <div className="w-2.5 h-2.5 sm:w-4 sm:h-4 bg-blue-200 rounded"></div>
+              <div className="w-2.5 h-2.5 sm:w-4 sm:h-4 bg-blue-400 rounded"></div>
+              <div className="w-2.5 h-2.5 sm:w-4 sm:h-4 bg-blue-600 rounded"></div>
+              <div className="w-2.5 h-2.5 sm:w-4 sm:h-4 bg-blue-800 rounded"></div>
             </div>
             <span>More</span>
           </div>
 
           {/* Calendar Grid - Compact & Professional */}
-          <div className="overflow-x-auto bg-gray-50 rounded-xl p-4 border border-gray-200" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
-            <div className="flex gap-2 sm:gap-2.5 py-1" style={{maxWidth: '100%'}}>
+          <div className="overflow-x-auto bg-gray-50 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-gray-200" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+            <div className="flex gap-1 sm:gap-2.5 py-1" style={{maxWidth: '100%'}}>
               {months.map((month, monthIdx) => {
                 const { name, year, days, monthIndex } = month;
 
@@ -358,12 +358,12 @@ const ContributionCalendar = ({ userId: propUserId }) => {
                   grid[dayIndex][weekIndex] = day;
                 }
 
-                const boxClass = "w-3 h-3 rounded transition-all duration-200";
+                const boxClass = "w-2 h-2 sm:w-3 sm:h-3 rounded transition-all duration-200";
 
                 return (
                   <div key={monthIdx} className="flex-shrink-0">
                     {/* Month label */}
-                    <div className="text-xs text-gray-700 font-bold text-center mb-2">
+                    <div className="text-[9px] sm:text-xs text-gray-700 font-bold text-center mb-1 sm:mb-2">
                       {name}
                     </div>
 
@@ -409,12 +409,12 @@ const ContributionCalendar = ({ userId: propUserId }) => {
 
           {/* Hover Tooltip */}
           {hoveredDay && (
-            <div className="mt-5 p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <p className="text-sm font-bold text-gray-900">{hoveredDay.label}</p>
-              <p className="text-xs text-gray-600 mt-1">
-                <span className="font-bold text-base text-blue-600">{hoveredDay.count}</span> contribution{hoveredDay.count !== 1 ? 's' : ''}
+            <div className="mt-3 sm:mt-5 p-2.5 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-200">
+              <p className="text-xs sm:text-sm font-bold text-gray-900">{hoveredDay.label}</p>
+              <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1">
+                <span className="font-bold text-sm sm:text-base text-blue-600">{hoveredDay.count}</span> contribution{hoveredDay.count !== 1 ? 's' : ''}
               </p>
-              <p className="text-xs text-gray-500 mt-1">{getIntensityLabel(hoveredDay.count)}</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{getIntensityLabel(hoveredDay.count)}</p>
             </div>
           )}
         </div>

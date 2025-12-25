@@ -36,13 +36,13 @@ const BioLink = ({ bio = "", links = [] }) => {
   const showViewAll = links.length > 2;
 
   return (
-    <div className="relative w-full max-w-md min-h-[120px] sm:min-h-[140px] bg-white rounded-lg shadow p-3 sm:p-4 border border-blue-100">
+    <div className="relative w-full max-w-md min-h-[100px] sm:min-h-[140px] bg-white rounded-md sm:rounded-lg shadow-sm sm:shadow p-2 sm:p-4 border border-blue-100">
       {/* Bio section */}
-      <div className="mb-6 sm:mb-8 text-gray-800 text-xs sm:text-sm leading-relaxed">
+      <div className="mb-4 sm:mb-8 text-gray-800 text-[10px] sm:text-sm leading-relaxed">
         {shortBio}
         {showReadMore && (
           <button
-            className="ml-2 text-blue-600 underline text-xs hover:text-blue-800 font-medium"
+            className="ml-1 text-blue-600 underline text-[9px] sm:text-xs hover:text-blue-800 font-medium"
             onClick={() => setShowBioPopup(true)}
           >
             Read more
@@ -50,21 +50,21 @@ const BioLink = ({ bio = "", links = [] }) => {
         )}
       </div>
       {/* Links section */}
-      <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center mb-1">
+      <div className="flex flex-wrap gap-1 sm:gap-2 items-center mb-1">
         {visibleLinks.map((l, i) => (
           <a
             key={i}
             href={l.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center px-2 py-1 bg-blue-50 rounded text-blue-700 text-xs hover:bg-blue-100 border border-blue-100"
+            className="flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 bg-blue-50 rounded text-blue-700 text-[9px] sm:text-xs hover:bg-blue-100 border border-blue-100"
           >
             {getIcon(l.type)}{l.type.charAt(0).toUpperCase() + l.type.slice(1)}
           </a>
         ))}
         {showViewAll && (
           <button
-            className="text-blue-600 underline text-xs ml-2"
+            className="text-blue-600 underline text-[9px] sm:text-xs ml-1 sm:ml-2"
             onClick={() => setShowLinksPopup(true)}
           >
             View all

@@ -478,48 +478,24 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 <span className="text-xs text-gray-400">Not added yet</span>
               )}
             </div>
-
-            {/* Report Button */}
-            <div className="mb-7 pt-4 border-t border-gray-200">
-              <button
-                className="w-full flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:shadow-md"
-                onClick={() => {
-                  if (!profile) return;
-                  navigate('/report', {
-                    state: {
-                      reportedUser: {
-                        _id: profile._id,
-                        username: profile.username,
-                        fullName: profile.fullName,
-                        email: profile.email,
-                      },
-                    },
-                  });
-                }}
-                title="Report this profile"
-              >
-                <MdReport className="text-lg" />
-                <span>Report User</span>
-              </button>
-            </div>
           </div>
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-h-screen pt-10 pb-8 px-6 sm:px-10">
+        <main className="flex-1 min-h-screen pt-4 sm:pt-10 pb-4 sm:pb-8 px-0 sm:px-10">
           <div className="max-w-6xl mx-auto">
             {/* Profile Section */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-start mb-10 bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-200">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start mb-4 sm:mb-10 bg-white rounded-none sm:rounded-2xl p-3 sm:p-8 shadow-none sm:shadow-sm border-0 sm:border border-gray-200">
               {loading ? (
-                <div className="w-[100px] h-[100px] sm:w-[180px] sm:h-[180px] mx-auto">
-                  <div className="w-8 h-8 sm:w-12 sm:h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-[60px] h-[60px] sm:w-[180px] sm:h-[180px] mx-auto">
+                  <div className="w-6 h-6 sm:w-12 sm:h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : error ? (
                 <div className="flex flex-col items-center gap-2 mx-auto">
-                  <span className="text-red-500 text-sm">{error}</span>
+                  <span className="text-red-500 text-xs sm:text-sm">{error}</span>
                   <button
                     onClick={() => window.location.reload()}
-                    className="text-dark-blue px-4 py-2 rounded-lg text-sm font-medium bg-blue-50 hover:bg-blue-100"
+                    className="text-dark-blue px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium bg-blue-50 hover:bg-blue-100"
                     aria-label="Retry loading profile"
                   >
                     Retry
@@ -533,22 +509,22 @@ const SideBarPublic = ({ username, setNotFound }) => {
                       "https://placehold.co/100x100?text=User"
                     }
                     alt={`${profile?.fullName || "User"}'s profile picture`}
-                    className="w-[120px] h-[120px] sm:w-[200px] sm:h-[200px] rounded-full object-cover border-4 border-gray-200 shadow-lg mx-auto sm:mx-0"
+                    className="w-[80px] h-[80px] sm:w-[200px] sm:h-[200px] rounded-full object-cover border-2 sm:border-4 border-gray-200 shadow-sm sm:shadow-lg mx-auto sm:mx-0"
                   />
-                  <div className="mt-6 sm:mt-0 sm:ml-8 flex-1 flex flex-col items-center sm:items-start relative">
-                    <h1 className="text-2xl sm:text-4xl font-bold text-gray-900 text-center sm:text-left mb-2">
+                  <div className="mt-3 sm:mt-0 sm:ml-8 flex-1 flex flex-col items-center sm:items-start relative">
+                    <h1 className="text-lg sm:text-4xl font-bold text-gray-900 text-center sm:text-left mb-1 sm:mb-2">
                       {profile?.fullName || "Full Name"}
                     </h1>
-                    <p className="text-base text-blue-600 font-medium text-center sm:text-left mb-3">
+                    <p className="text-sm sm:text-base text-blue-600 font-medium text-center sm:text-left mb-2 sm:mb-3">
                       {profile?.username ? `@${profile.username}` : "@username"}
                     </p>
-                    <p className="text-sm text-gray-600 leading-relaxed mt-1 max-w-xl text-center sm:text-left">
+                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-1 max-w-xl text-center sm:text-left">
                       {profile?.bio ||
                         "Your bio goes here, set it in Setup Profile."}
                     </p>
-                    <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center sm:justify-start relative z-10">
+                    <div className="mt-3 sm:mt-6 flex flex-row gap-2 sm:gap-3 justify-center sm:justify-start relative z-10 w-full sm:w-auto">
                       <button
-                        className={`border px-8 py-3 rounded-xl text-sm font-semibold max-w-xs flex items-center justify-between transition-all duration-200 shadow-sm hover:shadow-md ${
+                        className={`border px-3 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold flex-1 sm:flex-initial sm:max-w-xs flex items-center justify-center sm:justify-between transition-all duration-200 shadow-sm hover:shadow-md ${
                           isSkillMate
                             ? "bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
                             : pendingRequest
@@ -581,7 +557,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                         {requestLoading ? (
                           <span className="flex items-center justify-center w-full">
                             <svg
-                              className="animate-spin -ml-1 mr-2 h-4 w-4"
+                              className="animate-spin h-3 w-3 sm:h-4 sm:w-4"
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
                               viewBox="0 0 24 24"
@@ -600,7 +576,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                               ></path>
                             </svg>
-                            Processing...
+                            <span className="ml-2 hidden sm:inline">Processing...</span>
                           </span>
                         ) : (
                           <span className="flex-1 text-center">
@@ -608,61 +584,94 @@ const SideBarPublic = ({ username, setNotFound }) => {
                               ? "SkillMate"
                               : pendingRequest
                               ? pendingRequest.isRequester
-                                ? "Request Pending"
-                                : "Approve Request"
+                                ? "Pending"
+                                : "Approve"
                               : "Add SkillMate"}
                           </span>
                         )}
-                        {isSkillMate && <FaChevronDown className="text-sm" />}
+                        {isSkillMate && <FaChevronDown className="text-xs sm:text-sm ml-1" />}
                       </button>
                       {showDropdown && (
                         <div
                           ref={dropdownRef}
                           className="absolute z-20 mt-12 w-44 bg-blue-50 border border-blue-200 rounded-lg shadow-lg"
                         >
+                          {isSkillMate && (
+                            <>
+                              <button
+                                className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
+                                onClick={() => {
+                                  addToast({
+                                    title: "Notifications",
+                                    message: "Notifications turned ON",
+                                    variant: "info",
+                                    timeout: 2500,
+                                  });
+                                  setShowDropdown(false);
+                                }}
+                              >
+                                🔔 On Notification
+                              </button>
+                              <button
+                                className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
+                                onClick={() => {
+                                  addToast({
+                                    title: "Notifications",
+                                    message: "Notifications muted",
+                                    variant: "warning",
+                                    timeout: 2500,
+                                  });
+                                  setShowDropdown(false);
+                                }}
+                              >
+                                🔕 Mute Notification
+                              </button>
+                              <button
+                                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-blue-100"
+                                onClick={handleRemoveSkillMate}
+                              >
+                                ❌ Remove SkillMate
+                              </button>
+                              <div className="border-t border-blue-200 my-1"></div>
+                            </>
+                          )}
                           <button
-                            className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
+                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-blue-100 rounded-b-lg"
                             onClick={() => {
-                              addToast({
-                                title: "Notifications",
-                                message: "Notifications turned ON",
-                                variant: "info",
-                                timeout: 2500,
+                              if (!profile) return;
+                              navigate('/report', {
+                                state: {
+                                  reportedUser: {
+                                    _id: profile._id,
+                                    username: profile.username,
+                                    fullName: profile.fullName,
+                                    email: profile.email,
+                                  },
+                                },
                               });
                               setShowDropdown(false);
                             }}
                           >
-                            🔔 On Notification
-                          </button>
-                          <button
-                            className="block w-full text-left px-4 py-2 text-sm text-dark-blue hover:bg-blue-100"
-                            onClick={() => {
-                              addToast({
-                                title: "Notifications",
-                                message: "Notifications muted",
-                                variant: "warning",
-                                timeout: 2500,
-                              });
-                              setShowDropdown(false);
-                            }}
-                          >
-                            🔕 Mute Notification
-                          </button>
-                          <button
-                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-blue-100"
-                            onClick={handleRemoveSkillMate}
-                          >
-                            ❌ Remove SkillMate
+                            🚩 Report User
                           </button>
                         </div>
                       )}
                       {isSkillMate && (
                         <button
-                          className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-8 py-3 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
+                          className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-3 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md flex-1 sm:flex-initial"
                           onClick={() => setActiveChatId(profile?._id)}
                           title="Message"
                         >
                           Message
+                        </button>
+                      )}
+                      {!isSkillMate && (
+                        <button
+                          className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md relative"
+                          onClick={toggleDropdown}
+                          title="More options"
+                        >
+                          ⋮
                         </button>
                       )}
                     </div>
@@ -672,20 +681,20 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
 
             {/* Social Section (Mobile) */}
-            <div className="sm:hidden mb-8">
-              <div className="flex flex-col gap-6 w-full">
+            <div className="sm:hidden mb-4 px-2">
+              <div className="flex flex-col gap-3 w-full">
                 {/* Social Links */}
                 {(profile?.linkedin || profile?.github || profile?.twitter || profile?.website) && (
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-2">
                     {profile?.linkedin && (
                       <a
                         href={`https://linkedin.com/in/${profile.linkedin}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
+                        className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
                       >
-                        <FaLinkedin className="text-xl text-blue-600" />
-                        <span className="text-sm font-medium">LinkedIn</span>
+                        <FaLinkedin className="text-base text-blue-600" />
+                        <span className="text-xs font-medium">LinkedIn</span>
                       </a>
                     )}
                     {profile?.github && (
@@ -693,10 +702,10 @@ const SideBarPublic = ({ username, setNotFound }) => {
                         href={`https://github.com/${profile.github}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
+                        className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
                       >
-                        <FaGithub className="text-xl" />
-                        <span className="text-sm font-medium">GitHub</span>
+                        <FaGithub className="text-base" />
+                        <span className="text-xs font-medium">GitHub</span>
                       </a>
                     )}
                     {profile?.twitter && (
@@ -704,10 +713,10 @@ const SideBarPublic = ({ username, setNotFound }) => {
                         href={`https://twitter.com/${profile.twitter}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
+                        className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
                       >
-                        <FaTwitter className="text-xl text-blue-400" />
-                        <span className="text-sm font-medium">Twitter</span>
+                        <FaTwitter className="text-base text-blue-400" />
+                        <span className="text-xs font-medium">Twitter</span>
                       </a>
                     )}
                     {profile?.website && (
@@ -719,34 +728,34 @@ const SideBarPublic = ({ username, setNotFound }) => {
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
+                        className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-100 text-dark-blue bg-white shadow-sm border border-blue-100"
                       >
-                        <FaGlobe className="text-xl text-green-600" />
-                        <span className="text-sm font-medium">Website</span>
+                        <FaGlobe className="text-base text-green-600" />
+                        <span className="text-xs font-medium">Website</span>
                       </a>
                     )}
                   </div>
                 )}
 
                 {/* Education Section - Mobile */}
-                <div id="education" className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <FaGraduationCap className="text-xl text-blue-600" />
-                    <h3 className="font-semibold text-dark-blue text-base">Education</h3>
+                <div id="education" className="bg-white rounded-md p-2.5 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FaGraduationCap className="text-base text-blue-600" />
+                    <h3 className="font-semibold text-dark-blue text-sm">Education</h3>
                   </div>
                   {loading ? (
-                    <span className="text-gray-600 text-sm">Loading...</span>
+                    <span className="text-gray-600 text-xs">Loading...</span>
                   ) : error ? (
-                    <span className="text-red-500 text-sm">{error}</span>
+                    <span className="text-red-500 text-xs">{error}</span>
                   ) : profile?.education && profile.education.length > 0 ? (
-                    <ul className="flex flex-col gap-3">
+                    <ul className="flex flex-col gap-2">
                       {profile.education.map((edu, i) => (
-                        <li key={i} className="text-sm text-gray-700 bg-blue-50 p-3 rounded-md">
-                          {edu.course && <div className="font-medium">{edu.course}</div>}
-                          {edu.branch && <div className="text-gray-600">{edu.branch}</div>}
-                          {edu.college && <div className="text-gray-600">{edu.college}</div>}
-                          {edu.city && <div className="text-gray-500 text-xs">{edu.city}</div>}
-                          {edu.passingYear && <div className="text-gray-500 text-xs">{edu.passingYear}</div>}
+                        <li key={i} className="text-xs text-gray-700 bg-blue-50 p-2 rounded-md">
+                          {edu.course && <div className="font-medium text-xs">{edu.course}</div>}
+                          {edu.branch && <div className="text-gray-600 text-[10px]">{edu.branch}</div>}
+                          {edu.college && <div className="text-gray-600 text-[10px]">{edu.college}</div>}
+                          {edu.city && <div className="text-gray-500 text-[9px]">{edu.city}</div>}
+                          {edu.passingYear && <div className="text-gray-500 text-[9px]">{edu.passingYear}</div>}
                         </li>
                       ))}
                     </ul>
@@ -756,23 +765,23 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 </div>
 
                 {/* Experience Section - Mobile */}
-                <div id="experience" className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <FaBriefcase className="text-xl text-blue-600" />
-                    <h3 className="font-semibold text-dark-blue text-base">Experience</h3>
+                <div id="experience" className="bg-white rounded-md p-2.5 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FaBriefcase className="text-base text-blue-600" />
+                    <h3 className="font-semibold text-dark-blue text-sm">Experience</h3>
                   </div>
                   {loading ? (
-                    <span className="text-gray-600 text-sm">Loading...</span>
+                    <span className="text-gray-600 text-xs">Loading...</span>
                   ) : error ? (
-                    <span className="text-red-500 text-sm">{error}</span>
+                    <span className="text-red-500 text-xs">{error}</span>
                   ) : profile?.experience && profile.experience.length > 0 ? (
-                    <ul className="flex flex-col gap-3">
+                    <ul className="flex flex-col gap-2">
                       {profile.experience.map((exp, i) => (
-                        <li key={i} className="text-sm text-gray-700 bg-blue-50 p-3 rounded-md">
-                          {exp.position && <div className="font-medium">{exp.position}</div>}
-                          {exp.company && <div className="text-gray-600">{exp.company}</div>}
-                          {exp.duration && <div className="text-gray-500 text-xs">{exp.duration}</div>}
-                          {exp.description && <div className="text-gray-600 text-xs mt-1">{exp.description}</div>}
+                        <li key={i} className="text-xs text-gray-700 bg-blue-50 p-2 rounded-md">
+                          {exp.position && <div className="font-medium text-xs">{exp.position}</div>}
+                          {exp.company && <div className="text-gray-600 text-[10px]">{exp.company}</div>}
+                          {exp.duration && <div className="text-gray-500 text-[9px]">{exp.duration}</div>}
+                          {exp.description && <div className="text-gray-600 text-[10px] mt-0.5">{exp.description}</div>}
                         </li>
                       ))}
                     </ul>
@@ -782,47 +791,47 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 </div>
 
                 {/* Skills Section - Mobile */}
-                <div id="skills" className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <FaCode className="text-xl text-blue-600" />
-                    <h3 className="font-semibold text-dark-blue text-base">Skills</h3>
+                <div id="skills" className="bg-white rounded-md p-2.5 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FaCode className="text-base text-blue-600" />
+                    <h3 className="font-semibold text-dark-blue text-sm">Skills</h3>
                   </div>
                   {loading ? (
-                    <span className="text-gray-600 text-sm">Loading...</span>
+                    <span className="text-gray-600 text-xs">Loading...</span>
                   ) : error ? (
-                    <span className="text-red-500 text-sm">{error}</span>
+                    <span className="text-red-500 text-xs">{error}</span>
                   ) : profile?.skills && profile.skills.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1">
                       {profile.skills.map((skill, i) => (
                         <span
                           key={i}
-                          className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium border border-blue-200"
+                          className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[9px] font-medium border border-blue-200"
                         >
                           {skill}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-500">Not added yet</span>
+                    <span className="text-xs text-gray-500">Not added yet</span>
                   )}
                 </div>
 
                 {/* What I Can Teach Section - Mobile */}
-                <div id="teach" className="bg-white rounded-lg p-4 shadow-sm border border-blue-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <FaChalkboardTeacher className="text-xl text-blue-600" />
-                    <h3 className="font-semibold text-dark-blue text-base">What I Can Teach</h3>
+                <div id="teach" className="bg-white rounded-md p-2.5 shadow-sm border border-blue-100">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <FaChalkboardTeacher className="text-base text-blue-600" />
+                    <h3 className="font-semibold text-dark-blue text-sm">What I Can Teach</h3>
                   </div>
                   {loading ? (
-                    <span className="text-gray-600 text-sm">Loading...</span>
+                    <span className="text-gray-600 text-xs">Loading...</span>
                   ) : error ? (
-                    <span className="text-red-500 text-sm">{error}</span>
+                    <span className="text-red-500 text-xs">{error}</span>
                   ) : profile?.skillsToTeach && profile.skillsToTeach.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1">
                       {profile.skillsToTeach.map((s, i) => (
                         <span
                           key={i}
-                          className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium border border-green-200"
+                          className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[9px] font-medium border border-green-200"
                         >
                           {s.class ? `${s.class} • ` : ""}
                           {s.subject}{" "}
@@ -845,21 +854,21 @@ const SideBarPublic = ({ username, setNotFound }) => {
             {/* Contribution Calendar removed here; appears in Home tab only */}
 
             {/* Tab Navigation */}
-            <div className="px-2 sm:px-0 pt-6 sm:pt-8">
-              <div className="flex items-center gap-2 sm:gap-6 border-b-2 border-gray-200 mb-8">
+            <div className="px-2 sm:px-0 pt-3 sm:pt-8">
+              <div className="flex items-center gap-2 sm:gap-6 border-b border-gray-200 mb-4 sm:mb-8">
                 {/* Back Button - Mobile Only */}
                 <button
                   onClick={() => navigate(-1)}
-                  className="sm:hidden flex items-center gap-1 pb-2 px-2 text-sm font-medium text-blue-600 hover:text-blue-800"
+                  className="sm:hidden flex items-center gap-1 pb-2 px-1 text-xs font-medium text-blue-600 hover:text-blue-800"
                   aria-label="Go back"
                 >
-                  <FaArrowLeft className="text-sm" />
+                  <FaArrowLeft className="text-xs" />
                 </button>
                 
-                <div className="flex flex-wrap gap-4 sm:gap-6">
+                <div className="flex flex-wrap gap-3 sm:gap-6">
                   <button
                     onClick={() => setActiveTab('home')}
-                    className={`pb-3 px-2 text-base ${
+                    className={`pb-2 sm:pb-3 px-1 sm:px-2 text-xs sm:text-base ${
                       activeTab === 'home' ? activeTabStyle : normalTabStyle
                     }`}
                   >
@@ -867,7 +876,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   </button>
                   <button
                     onClick={() => setActiveTab('live')}
-                    className={`pb-3 px-2 text-base ${
+                    className={`pb-2 sm:pb-3 px-1 sm:px-2 text-xs sm:text-base ${
                       activeTab === 'live' ? activeTabStyle : normalTabStyle
                     }`}
                   >
@@ -875,7 +884,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   </button>
                   <button
                     onClick={() => setActiveTab('videos')}
-                    className={`pb-3 px-2 text-base ${
+                    className={`pb-2 sm:pb-3 px-1 sm:px-2 text-xs sm:text-base ${
                       activeTab === 'videos' ? activeTabStyle : normalTabStyle
                     }`}
                   >

@@ -116,14 +116,14 @@ const PublicVideos = () => {
   };
 
   return (
-    <div className="w-full bg-gradient-to-br from-blue-50 to-cream-100 min-h-screen py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
-      <div className="max-w-4xl w-full mx-auto">
-        {loading && <p className="text-gray-600 text-sm py-4">Loading...</p>}
-        {error && <p className="text-red-500 text-sm py-4">{error}</p>}
+    <div className="w-full bg-gradient-to-br from-blue-50 to-cream-100 min-h-screen py-2 sm:py-6 px-0 sm:px-6 lg:px-8">
+      <div className="max-w-4xl w-full mx-auto px-2 sm:px-0">
+        {loading && <p className="text-gray-600 text-xs sm:text-sm py-2 sm:py-4">Loading...</p>}
+        {error && <p className="text-red-500 text-xs sm:text-sm py-2 sm:py-4">{error}</p>}
         {videos.length === 0 && !loading && (
-          <p className="text-gray-600 text-sm py-4">No uploaded videos available.</p>
+          <p className="text-gray-600 text-xs sm:text-sm py-2 sm:py-4">No uploaded videos available.</p>
         )}
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-2 sm:space-y-6">
           {videos.map((video, idx) => (
             <VideoCard
               key={video._id || idx}
