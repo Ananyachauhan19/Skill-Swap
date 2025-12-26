@@ -10,6 +10,7 @@ import {
 
 const STATUS_CONFIG = {
   pending: { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: FiClock, label: 'Pending' },
+  assigned: { color: 'bg-blue-50 text-blue-700 border-blue-200', icon: FiUserCheck, label: 'Assigned' },
   scheduled: { color: 'bg-purple-50 text-purple-700 border-purple-200', icon: FiCalendar, label: 'Scheduled' },
   completed: { color: 'bg-green-50 text-green-700 border-green-200', icon: FiCheck, label: 'Completed' },
   rejected: { color: 'bg-red-50 text-red-700 border-red-200', icon: FiX, label: 'Rejected' },
@@ -20,6 +21,7 @@ const STATUS_CONFIG = {
 const statusOptions = [
   { id: 'all', label: 'All Status' },
   { id: 'pending', label: 'Pending' },
+  { id: 'assigned', label: 'Assigned' },
   { id: 'scheduled', label: 'Scheduled' },
   { id: 'completed', label: 'Completed' },
   { id: 'rejected', label: 'Rejected' },
@@ -46,22 +48,14 @@ export default function InterviewRequests() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [assignInput, setAssignInput] = useState('');
+  const [interviewerSuggestions, setInterviewerSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [detailTab, setDetailTab] = useState('overview');
   const itemsPerPage = 20;
   const { user, loading: authLoading } = useAuth();
 
   const location = useLocation();
-
-  // sync active status with query param (?status=...)
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const s = params.get('status');
-    if (s) setActiveStatus(s);
-    else setActiveStatus('all');
-    setSelectedRequest(null);
-    setDrawerOpen(false);
-  }, [location.search]);
 
   const loadRequests = async () => {
     try {
@@ -71,6 +65,9 @@ export default function InterviewRequests() {
       
       const res = await fetch(`${BACKEND_URL}${endpoint}`, { credentials: 'include' });
       const data = await res.json();
+      
+      console.log('Loaded interview requests:', data);
+      console.log('Total requests:', data?.length || 0);
       
       if (isAdmin) {
         setAllRequests(data || []);
@@ -97,6 +94,34 @@ export default function InterviewRequests() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user]);
 
+  // Search for interviewers as user types
+  useEffect(() => {
+    const searchInterviewers = async () => {
+      if (!assignInput.trim() || assignInput.trim().length < 2) {
+        setInterviewerSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `${BACKEND_URL}/api/interview/search-interviewers?query=${encodeURIComponent(assignInput.trim())}`,
+          { credentials: 'include' }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setInterviewerSuggestions(data || []);
+          setShowSuggestions(true);
+        }
+      } catch (err) {
+        console.error('Failed to search interviewers:', err);
+      }
+    };
+
+    const timer = setTimeout(searchInterviewers, 300);
+    return () => clearTimeout(timer);
+  }, [assignInput]);
+
   const handleAssign = async () => {
     if (!assignInput.trim()) {
       alert('Please enter an interviewer username');
@@ -118,13 +143,21 @@ export default function InterviewRequests() {
       
       alert('Interviewer assigned successfully!');
       setAssignInput('');
+      setInterviewerSuggestions([]);
+      setShowSuggestions(false);
+      setSelectedRequest(null);
+      setDrawerOpen(false);
       await loadRequests();
-      const updated = allRequests.find(r => r._id === selectedRequest._id);
-      if (updated) setSelectedRequest(updated);
     } catch (e) {
       console.error(e);
       alert(e.message || 'Failed to assign interviewer');
     }
+  };
+
+  const selectInterviewer = (interviewer) => {
+    setAssignInput(interviewer.username);
+    setShowSuggestions(false);
+    setInterviewerSuggestions([]);
   };
 
   const getDateRange = () => {
@@ -162,7 +195,7 @@ export default function InterviewRequests() {
     return { start, end };
   };
 
-  // Filter requests with date range
+  // Filter requests with status, search, and date range
   const filteredRequests = allRequests.filter(req => {
     const matchesStatus = activeStatus === 'all' || req.status === activeStatus;
     const matchesSearch = !searchQuery || 
@@ -403,6 +436,66 @@ export default function InterviewRequests() {
                 </div>
               </div>
 
+              {/* Assign Interviewer Section - only show for pending requests without interviewer */}
+              {selectedRequest.status === 'pending' && !selectedRequest.assignedInterviewer && (
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Assign Interviewer</h4>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={assignInput}
+                      onChange={(e) => setAssignInput(e.target.value)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      onFocus={() => {
+                        if (interviewerSuggestions.length > 0) setShowSuggestions(true);
+                      }}
+                      placeholder="Type interviewer username or name..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                    {showSuggestions && interviewerSuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                        {interviewerSuggestions.map((interviewer) => (
+                          <div
+                            key={interviewer.userId}
+                            onMouseDown={() => selectInterviewer(interviewer)}
+                            className="flex items-center gap-3 p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                          >
+                            {interviewer.profilePic ? (
+                              <img
+                                src={interviewer.profilePic}
+                                alt={interviewer.username}
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                                {getInitials(interviewer.username)}
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-900">{interviewer.username}</p>
+                              <p className="text-xs text-gray-600">
+                                {interviewer.firstName} {interviewer.lastName}
+                              </p>
+                              {interviewer.company && (
+                                <p className="text-xs text-gray-500">
+                                  {interviewer.position} at {interviewer.company}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleAssign}
+                    className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Assign Interviewer
+                  </button>
+                </div>
+              )}
+
               {/* Interviewer Requested To */}
               {selectedRequest.assignedInterviewer && (
                 <div className="bg-white rounded-lg p-4 border border-gray-200">
@@ -550,11 +643,47 @@ export default function InterviewRequests() {
       {/* Filter Bar */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
         <div className="px-4 py-3">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-semibold text-gray-900">Interview Requests</h1>
-            <div className="text-sm text-gray-600">
-              <span className="font-medium">{filteredRequests.length}</span> requests
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Interview Requests - Admin Assignment</h1>
+              <p className="text-xs text-gray-500 mt-1">Manage interviews where admin needs to assign or has assigned an interviewer</p>
             </div>
+            <div className="text-sm text-gray-600">
+              <span className="font-medium">{filteredRequests.length}</span> request{filteredRequests.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+
+          {/* Status Filter Buttons */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {statusOptions.map((status) => {
+              const config = STATUS_CONFIG[status.id] || STATUS_CONFIG.pending;
+              const Icon = config.icon;
+              const count = status.id === 'all' 
+                ? allRequests.length 
+                : allRequests.filter(r => r.status === status.id).length;
+              
+              return (
+                <button
+                  key={status.id}
+                  onClick={() => setActiveStatus(status.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    activeStatus === status.id
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {status.id !== 'all' && <Icon size={12} />}
+                  {status.label}
+                  <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                    activeStatus === status.id
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Filters Row */}
@@ -569,22 +698,6 @@ export default function InterviewRequests() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-            </div>
-
-            {/* Status Filter */}
-            <div className="relative">
-              <select
-                value={activeStatus}
-                onChange={(e) => setActiveStatus(e.target.value)}
-                className="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-              >
-                {statusOptions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              <FiFilter className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
             </div>
 
             {/* Date Range Filter */}

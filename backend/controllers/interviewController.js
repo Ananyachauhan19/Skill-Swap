@@ -238,9 +238,10 @@ exports.submitRequest = async (req, res) => {
       company,
       position,
       message: message || '',
-      // Status stays 'pending' even when user selects an interviewer - interviewer must schedule to confirm
-      status: 'pending',
+      // Status 'assigned' when user selects an interviewer, 'pending' when no interviewer (admin will assign later)
+      status: assignedInterviewer ? 'assigned' : 'pending',
       assignedInterviewer: assignedInterviewer || null,
+      assignedByAdmin: false, // User selected interviewer (if any), not admin
       // scheduledAt must only be set by the assigned interviewer via the schedule API
       scheduledAt: null,
     });
@@ -900,7 +901,7 @@ exports.getUserRequests = async (req, res) => {
   }
 };
 
-// Admin: get all requests (for admin UI)
+// Admin: get all requests (for admin UI) - show only requests where admin assigned or needs to assign
 exports.getAllRequests = async (req, res) => {
   try {
     // Expire overdue interviews before fetching
@@ -911,7 +912,18 @@ exports.getAllRequests = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    const all = await InterviewRequest.find().populate('requester', 'username firstName lastName profilePic email').populate('assignedInterviewer', 'username firstName lastName profilePic email experience ratingAverage ratingCount').sort({ createdAt: -1 });
+    // Show requests where:
+    // 1. No interviewer assigned yet (status='pending', assignedInterviewer=null) OR
+    // 2. Interviewer was assigned by admin (assignedByAdmin=true)
+    const all = await InterviewRequest.find({
+      $or: [
+        { status: 'pending', assignedInterviewer: null }, // Needs admin assignment
+        { assignedByAdmin: true } // Was assigned by admin
+      ]
+    })
+      .populate('requester', 'username firstName lastName profilePic email')
+      .populate('assignedInterviewer', 'username firstName lastName profilePic email experience ratingAverage ratingCount')
+      .sort({ createdAt: -1 });
     res.json(all);
   } catch (err) {
     console.error('getAllRequests error', err);
@@ -935,8 +947,9 @@ exports.assignInterviewer = async (req, res) => {
     if (!interviewer) return res.status(404).json({ message: 'Interviewer username not found' });
 
     reqDoc.assignedInterviewer = interviewer._id;
-    // Keep status as 'pending' - interviewer must schedule to confirm
-    reqDoc.status = 'pending';
+    reqDoc.assignedByAdmin = true; // Mark as admin-assigned
+    // Change status to 'assigned' - interviewer must schedule to confirm
+    reqDoc.status = 'assigned';
     await reqDoc.save();
 
     await reqDoc.populate('requester', 'username firstName lastName profilePic');
@@ -958,10 +971,76 @@ exports.assignInterviewer = async (req, res) => {
 
     if (io) io.to(interviewer._id.toString()).emit('notification', notification);
 
+    // Send email to interviewer
+    try {
+      if (interviewer.email) {
+        const tpl = T.interviewAssigned({
+          interviewerName: interviewer.firstName || interviewer.username,
+          company: reqDoc.company,
+          position: reqDoc.position,
+          requesterName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username
+        });
+        await sendMail({ to: interviewer.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send assignment email to interviewer', e);
+    }
+
     res.json({ message: 'Interviewer assigned', request: reqDoc });
   } catch (err) {
     console.error('assignInterviewer error', err);
     res.status(500).json({ message: 'Failed to assign interviewer' });
+  }
+};
+
+// Admin: search for approved interviewers by username or name (for autocomplete)
+exports.searchInterviewers = async (req, res) => {
+  try {
+    const { query } = req.query;
+    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
+    if (!(req.user && req.user.email && req.user.email.toLowerCase() === adminEmail)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    if (!query || query.trim().length < 2) {
+      return res.json([]);
+    }
+
+    // Find approved interviewers whose username or name matches the query
+    const approvedApps = await InterviewerApplication.find({ status: 'approved' })
+      .populate('user', 'username firstName lastName profilePic');
+
+    // Filter by query (case-insensitive search on username, firstName, lastName)
+    const searchTerm = query.toLowerCase().trim();
+    const matches = approvedApps.filter(app => {
+      const user = app.user;
+      if (!user) return false;
+      const username = (user.username || '').toLowerCase();
+      const firstName = (user.firstName || '').toLowerCase();
+      const lastName = (user.lastName || '').toLowerCase();
+      const fullName = `${firstName} ${lastName}`.trim();
+      
+      return username.includes(searchTerm) || 
+             firstName.includes(searchTerm) || 
+             lastName.includes(searchTerm) ||
+             fullName.includes(searchTerm);
+    });
+
+    // Return only the necessary fields
+    const results = matches.slice(0, 10).map(app => ({
+      userId: app.user._id,
+      username: app.user.username,
+      firstName: app.user.firstName,
+      lastName: app.user.lastName,
+      profilePic: app.user.profilePic,
+      company: app.company,
+      position: app.position,
+    }));
+
+    res.json(results);
+  } catch (err) {
+    console.error('searchInterviewers error', err);
+    res.status(500).json({ message: 'Failed to search interviewers' });
   }
 };
 

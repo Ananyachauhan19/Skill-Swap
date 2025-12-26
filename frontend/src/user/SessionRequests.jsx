@@ -1014,6 +1014,9 @@ const SessionRequests = () => {
       request.assignedInterviewer &&
       String(user._id) === String(request.assignedInterviewer._id || request.assignedInterviewer);
 
+    // Check if this is a sent request waiting for admin assignment (status='pending' and no assignedInterviewer)
+    const waitingForAdminAssignment = !isReceived && request.status === 'pending' && !request.assignedInterviewer;
+
     // Check if interview is expired (12 hours after scheduled time)
     let isExpired = false;
     let canJoinInterview = false;
@@ -1030,8 +1033,27 @@ const SessionRequests = () => {
       }
     }
 
-    // Display expired status instead of scheduled
-    const displayStatus = isExpired ? 'expired' : request.status;
+    // Determine display status based on context
+    let displayStatus = request.status;
+    let displayLabel = '';
+    
+    if (isExpired) {
+      displayStatus = 'expired';
+      displayLabel = 'Expired';
+    } else if (waitingForAdminAssignment) {
+      displayStatus = 'pending';
+      displayLabel = 'Waiting for Admin Assignment';
+    } else if (request.status === 'assigned' && isAssignedInterviewer) {
+      // Interviewer sees 'assigned' as 'pending' (waiting for them to schedule)
+      displayStatus = 'pending';
+      displayLabel = 'Pending';
+    } else if (request.status === 'assigned' && !isReceived) {
+      // Requester sees 'assigned' as assigned (admin assigned an interviewer)
+      displayStatus = 'assigned';
+      displayLabel = 'Assigned';
+    } else {
+      displayLabel = displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1);
+    }
 
     return (
       <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-300">
@@ -1053,9 +1075,27 @@ const SessionRequests = () => {
             </div>
           </div>
           <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(displayStatus)}`}>
-            {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+            {displayLabel}
           </span>
         </div>
+
+        {/* Show helper message for requests waiting for admin assignment */}
+        {waitingForAdminAssignment && (
+          <div className="mb-3 p-2.5 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-xs text-blue-700">
+              <strong>Admin Review:</strong> Our admin will assign you a suitable interviewer soon. You'll be notified once an interviewer is assigned.
+            </p>
+          </div>
+        )}
+        
+        {/* Show helper message when assigned by admin, waiting for interviewer to schedule */}
+        {!isReceived && request.status === 'assigned' && request.assignedInterviewer && (
+          <div className="mb-3 p-2.5 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-xs text-green-700">
+              <strong>Interviewer Assigned:</strong> An interviewer has been assigned to your request. They will propose time slots soon.
+            </p>
+          </div>
+        )}
 
         <div className="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
           <div className="flex items-start gap-2 text-xs">
