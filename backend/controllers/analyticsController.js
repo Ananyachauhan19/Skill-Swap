@@ -1,4 +1,4 @@
-﻿const User = require('../models/User');
+const User = require('../models/User');
 const Session = require('../models/Session');
 const InterviewRequest = require('../models/InterviewRequest');
 const Report = require('../models/Report');
