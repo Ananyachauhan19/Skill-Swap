@@ -1232,8 +1232,9 @@ module.exports = (io) => {
         if (sessionRooms.get(sessionId).size === 0) {
           sessionRooms.delete(sessionId);
           stopSessionTimer(sessionId);
-          // Clean up any interview connection state once the room is empty
-          interviewConnectionState.delete(sessionId);
+          // NOTE: We do NOT delete interviewConnectionState here
+          // because we need to track that both participants joined
+          // even after they leave, so end-call can properly mark as completed
         }
       }
       socket.to(sessionId).emit('user-left', { sessionId });
@@ -1438,8 +1439,14 @@ module.exports = (io) => {
         if (!interview) return; // nothing to do
         const joinState = interviewConnectionState.get(sessionId);
         const bothJoined = !!(joinState && joinState.studentJoined && joinState.interviewerJoined);
+        
+        console.log(`[Interview] end-call received for ${sessionId}. joinState:`, joinState, 'bothJoined:', bothJoined);
+        
         if (!bothJoined) {
           console.log(`[Interview] end-call received for ${sessionId} but both participants never joined; leaving status as ${interview.status}`);
+          // Still notify clients so they don't get stuck waiting
+          io.to(sessionId).emit('interview-completed', { sessionId });
+          interviewConnectionState.delete(sessionId);
           return;
         }
 
@@ -1449,6 +1456,12 @@ module.exports = (io) => {
           await interview.save();
           console.log(`[Interview] Marked as completed: ${sessionId}`);
         }
+        
+        // Always notify all participants that processing is complete
+        io.to(sessionId).emit('interview-completed', { sessionId });
+
+        // Clean up the connection state after marking as completed
+        interviewConnectionState.delete(sessionId);
 
         // Award contribution credits for the interviewer only.
         // The requester (student) already gets credit via rating and

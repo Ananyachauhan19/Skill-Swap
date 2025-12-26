@@ -34,31 +34,38 @@ const InterviewSessionRatingModal = ({ isOpen, onClose, interview, onRatingSubmi
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/interview/${interview._id}/rate`, {
+      const response = await fetch(`${BACKEND_URL}/api/interview/rate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
         body: JSON.stringify({
+          requestId: interview._id,
           rating,
           feedback: feedback.trim(),
         }),
       });
 
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (parseErr) {
+        console.error('Failed to parse response:', parseErr);
+        throw new Error('Server returned an invalid response. Please try again.');
+      }
+
       if (!response.ok) {
-        const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to submit rating');
       }
 
-      const data = await response.json();
-      console.log('Rating submitted successfully:', data);
+      console.log('Rating submitted successfully:', errorData);
       
       setSuccess(true);
       
       // Call the callback if provided
       if (onRatingSubmitted) {
-        onRatingSubmitted(data);
+        onRatingSubmitted(errorData);
       }
 
       // Close modal after a short delay to show success message
@@ -88,7 +95,7 @@ const InterviewSessionRatingModal = ({ isOpen, onClose, interview, onRatingSubmi
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -104,13 +111,7 @@ const InterviewSessionRatingModal = ({ isOpen, onClose, interview, onRatingSubmi
                   <h3 className="text-2xl font-bold mb-1">Rate Your Interview</h3>
                   <p className="text-blue-100 text-sm">Share your experience with {interviewerName}</p>
                 </div>
-                <button 
-                  onClick={onClose} 
-                  className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
-                  disabled={isSubmitting}
-                >
-                  <FaTimes size={20} />
-                </button>
+                {/* Removed close button - user must submit rating */}
               </div>
             </div>
 
@@ -200,16 +201,8 @@ const InterviewSessionRatingModal = ({ isOpen, onClose, interview, onRatingSubmi
               {/* Action Buttons */}
               <div className="flex gap-3 pt-2">
                 <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
-                  disabled={isSubmitting || success}
-                >
-                  Cancel
-                </button>
-                <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[rgb(30,58,138)] to-[rgb(37,70,165)] text-white rounded-xl font-semibold hover:shadow-lg transform hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full px-6 py-3 bg-gradient-to-r from-[rgb(30,58,138)] to-[rgb(37,70,165)] text-white rounded-xl font-semibold hover:shadow-lg transform hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   disabled={isSubmitting || success || !feedback.trim()}
                 >
                   {isSubmitting ? (

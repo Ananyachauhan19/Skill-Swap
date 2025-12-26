@@ -11,6 +11,7 @@ const interviewRequestSchema = new mongoose.Schema({
     default: 'pending',
   },
   assignedInterviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  assignedByAdmin: { type: Boolean, default: false }, // Track if interviewer was assigned by admin
   scheduledAt: { type: Date, default: null },
   // Negotiation fields for time-slot suggestions
   negotiationStatus: {

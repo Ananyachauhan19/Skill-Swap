@@ -718,6 +718,52 @@ const SessionRequests = () => {
     }
   };
 
+  const handleRejectInterview = async (requestId) => {
+    if (!window.confirm('Are you sure you want to reject this interview request? This action cannot be undone.')) {
+      return;
+    }
+
+    const reason = window.prompt('Optional: Provide a reason for rejection');
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/interview/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          requestId,
+          reason: reason || '',
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to reject interview');
+      }
+
+      addToast({
+        title: 'Interview Rejected',
+        message: 'The interview request has been rejected.',
+        variant: 'warning',
+        timeout: 3000,
+      });
+
+      // Refresh interview requests
+      fetchInterviewRequests();
+      notifyRequestCountUpdate();
+    } catch (error) {
+      console.error('Error rejecting interview:', error);
+      addToast({
+        title: 'Error',
+        message: error.message || 'Failed to reject interview request.',
+        variant: 'error',
+        timeout: 4000,
+      });
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
@@ -1014,6 +1060,9 @@ const SessionRequests = () => {
       request.assignedInterviewer &&
       String(user._id) === String(request.assignedInterviewer._id || request.assignedInterviewer);
 
+    // Check if this is a sent request waiting for admin assignment (status='pending' and no assignedInterviewer)
+    const waitingForAdminAssignment = !isReceived && request.status === 'pending' && !request.assignedInterviewer;
+
     // Check if interview is expired (12 hours after scheduled time)
     let isExpired = false;
     let canJoinInterview = false;
@@ -1030,8 +1079,27 @@ const SessionRequests = () => {
       }
     }
 
-    // Display expired status instead of scheduled
-    const displayStatus = isExpired ? 'expired' : request.status;
+    // Determine display status based on context
+    let displayStatus = request.status;
+    let displayLabel = '';
+    
+    if (isExpired) {
+      displayStatus = 'expired';
+      displayLabel = 'Expired';
+    } else if (waitingForAdminAssignment) {
+      displayStatus = 'pending';
+      displayLabel = 'Waiting for Admin Assignment';
+    } else if (request.status === 'assigned' && isAssignedInterviewer) {
+      // Interviewer sees 'assigned' as 'pending' (waiting for them to schedule)
+      displayStatus = 'pending';
+      displayLabel = 'Pending';
+    } else if (request.status === 'assigned' && !isReceived) {
+      // Requester sees 'assigned' as assigned (admin assigned an interviewer)
+      displayStatus = 'assigned';
+      displayLabel = 'Assigned';
+    } else {
+      displayLabel = displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1);
+    }
 
     return (
       <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-300">
@@ -1053,9 +1121,27 @@ const SessionRequests = () => {
             </div>
           </div>
           <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(displayStatus)}`}>
-            {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+            {displayLabel}
           </span>
         </div>
+
+        {/* Show helper message for requests waiting for admin assignment */}
+        {waitingForAdminAssignment && (
+          <div className="mb-3 p-2.5 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-xs text-blue-700">
+              <strong>Admin Review:</strong> Our admin will assign you a suitable interviewer soon. You'll be notified once an interviewer is assigned.
+            </p>
+          </div>
+        )}
+        
+        {/* Show helper message when assigned by admin, waiting for interviewer to schedule */}
+        {!isReceived && request.status === 'assigned' && request.assignedInterviewer && (
+          <div className="mb-3 p-2.5 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-xs text-green-700">
+              <strong>Interviewer Assigned:</strong> An interviewer has been assigned to your request. They will propose time slots soon.
+            </p>
+          </div>
+        )}
 
         <div className="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
           <div className="flex items-start gap-2 text-xs">
@@ -1083,13 +1169,25 @@ const SessionRequests = () => {
 
           <div className="flex gap-2">
             {request.status === 'scheduled' && !isExpired ? null : isExpired ? null : (
-              <button
-                onClick={() => setNegotiationModalState({ open: true, request })}
-                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200"
-              >
-                <FaClock size={10} />
-                {isAssignedInterviewer ? 'Suggest / Manage Time' : 'Choose Interview Time'}
-              </button>
+              <>
+                <button
+                  onClick={() => setNegotiationModalState({ open: true, request })}
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200"
+                >
+                  <FaClock size={10} />
+                  {isAssignedInterviewer ? 'Suggest / Manage Time' : 'Choose Interview Time'}
+                </button>
+                {/* Reject button for interviewers */}
+                {isAssignedInterviewer && request.status !== 'rejected' && request.status !== 'completed' && request.status !== 'cancelled' && (
+                  <button
+                    onClick={() => handleRejectInterview(request._id)}
+                    className="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-red-200"
+                  >
+                    <FaTimes size={10} />
+                    Reject
+                  </button>
+                )}
+              </>
             )}
             {request.status === 'scheduled' && !isExpired && (
               <button

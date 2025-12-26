@@ -77,7 +77,9 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [interviewerName, setInterviewerName] = useState('');
   const [interviewData, setInterviewData] = useState(null);
+  const [isWaitingForCompletion, setIsWaitingForCompletion] = useState(false);
   const hasEndedRef = useRef(false);
+  const completionTimeoutRef = useRef(null);
 
   // Constants for whiteboard
   const CANVAS_WIDTH = 2000;
@@ -264,6 +266,34 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
         socket.on('whiteboard-switch-page', handleRemoteSwitchPage);
 
         socket.on('end-call', ({ sessionId: endedSessionId }) => { if (endedSessionId === sessionId) handleEndCall(); });
+        
+        // Listen for interview completion confirmation from server
+        socket.on('interview-completed', async ({ sessionId: completedSessionId }) => {
+          if (completedSessionId === sessionId && userRole === 'student') {
+            console.log('[INTERVIEW] Interview marked as completed, fetching latest data and showing rating modal');
+            
+            // Clear the fallback timeout since we received the event
+            if (completionTimeoutRef.current) {
+              clearTimeout(completionTimeoutRef.current);
+              completionTimeoutRef.current = null;
+            }
+            
+            setIsWaitingForCompletion(false);
+            // Fetch the latest interview data to ensure we have the updated status
+            try {
+              const res = await fetch(`${BACKEND_URL}/api/interview/requests/${sessionId}`, {
+                credentials: 'include'
+              });
+              if (res.ok) {
+                const interview = await res.json();
+                setInterviewData(interview);
+              }
+            } catch (e) {
+              console.error('Failed to fetch updated interview data:', e);
+            }
+            setShowRatingModal(true);
+          }
+        });
 
         socket.on('annotation-draw', handleRemoteDraw);
         socket.on('annotation-clear', handleRemoteClear);
@@ -285,11 +315,19 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
     return () => {
       mounted = false;
       console.info('[DEBUG] Cleanup listeners for session:', sessionId);
+      
+      // Clear completion timeout if exists
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+        completionTimeoutRef.current = null;
+      }
+      
       cleanup();
       localStorage.removeItem('activeSession');
 
       socket.off('end-call');
       socket.off('interview-ready');
+      socket.off('interview-completed');
       socket.off('offer');
       socket.off('answer');
       socket.off('ice-candidate');
@@ -480,38 +518,51 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
       cleanup();
       setCallStartTime(null);
       setElapsedSeconds(0);
-      let allowRating = false;
 
-      // For students, only show the feedback modal after the interview
-      // has actually been marked completed on the backend. This prevents
-      // navigating to feedback when the scheduled interview was never
-      // properly completed (e.g. other side did not join).
+      // For students, the rating modal will be shown when the server
+      // emits 'interview-completed' after marking the interview as completed.
+      // For interviewers, just call onEnd to navigate away.
       if (userRole === 'student') {
-        try {
-          const res = await fetch(`${BACKEND_URL}/api/interview/requests/${sessionId}`, {
-            credentials: 'include',
-          });
-          if (res.ok) {
-            const interview = await res.json();
-            const status = (interview.status || '').toLowerCase();
-            if (status === 'completed') {
-              allowRating = true;
+        setIsWaitingForCompletion(true);
+        
+        // Fallback timeout in case interview-completed event doesn't arrive
+        completionTimeoutRef.current = setTimeout(async () => {
+          console.log('[INTERVIEW] Timeout waiting for interview-completed, checking status manually');
+          try {
+            const res = await fetch(`${BACKEND_URL}/api/interview/requests/${sessionId}`, {
+              credentials: 'include',
+            });
+            if (res.ok) {
+              const interview = await res.json();
+              setInterviewData(interview);
+              const status = (interview.status || '').toLowerCase();
+              if (status === 'completed') {
+                setIsWaitingForCompletion(false);
+                setShowRatingModal(true);
+              } else {
+                // Interview not completed, just navigate away
+                setIsWaitingForCompletion(false);
+                onEnd && onEnd();
+              }
+            } else {
+              // Error fetching, just navigate away
+              setIsWaitingForCompletion(false);
+              onEnd && onEnd();
             }
+          } catch (e) {
+            console.error('Failed to fetch interview status:', e);
+            setIsWaitingForCompletion(false);
+            onEnd && onEnd();
           }
-        } catch (e) {
-          console.error('Failed to verify interview completion before rating:', e);
-        }
-      }
-
-      if (userRole === 'student' && allowRating) {
-        setShowRatingModal(true);
+        }, 3000); // Wait 3 seconds for the socket event
       } else {
-        // Either interviewer, or interview not completed yet for student
         onEnd && onEnd();
       }
+      // Note: Students will see the rating modal via the 'interview-completed' socket event
+      // This eliminates the race condition where we were checking status before it was updated
     } catch (error) {
       console.error('Error ending call:', error);
-      // On error, just end the call; do not force rating
+      // On error, just end the call
       onEnd && onEnd();
     }
   };
@@ -561,7 +612,9 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
     <div className="fixed inset-0 z-[9999] bg-gray-900 text-white flex flex-col h-screen w-screen overflow-hidden font-sans">
       <header className="flex flex-col sm:flex-row justify-between items-center p-2 sm:p-4 bg-gray-800 shadow-md">
         <div className="text-sm sm:text-lg font-semibold mb-2 sm:mb-0">
-          {callStartTime ? (
+          {isWaitingForCompletion ? (
+            <span className="text-blue-400">Interview ended - Processing...</span>
+          ) : callStartTime ? (
             <span aria-live="polite">Call Time: &nbsp; {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:{String(elapsedSeconds % 60).padStart(2, '0')}</span>
           ) : (
             <span>Waiting for connection...</span>
@@ -622,6 +675,22 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
         <button onClick={toggleFullScreen} className={`p-1 sm:p-2 rounded-full transition-colors ${isFullScreen ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={isFullScreen ? 'Exit full screen' : 'Enter full screen'} aria-pressed={isFullScreen} aria-label="Toggle fullscreen"><Icon.Full on={isFullScreen} /></button>
         {userRole === 'tutor' && (<div className="relative"><button onClick={() => imageInputRef.current?.click()} className="p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors" title="Add question image" aria-label="Add question image"><Icon.Question /></button><input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" aria-hidden="true" /></div>)}
       </footer>
+
+      {/* Waiting for completion overlay */}
+      {isWaitingForCompletion && (
+        <div className="fixed inset-0 z-[9998] bg-black/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-gray-800 rounded-2xl p-8 text-center shadow-2xl max-w-md mx-4">
+            <div className="mb-4">
+              <svg className="animate-spin h-12 w-12 mx-auto text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Interview Ended</h3>
+            <p className="text-gray-300">Processing interview completion...</p>
+          </div>
+        </div>
+      )}
 
       {/* Rating Modal for Students */}
       <InterviewSessionRatingModal

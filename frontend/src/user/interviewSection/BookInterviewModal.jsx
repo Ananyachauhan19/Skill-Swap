@@ -332,8 +332,12 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
                   <h4 className="text-sm font-semibold text-slate-900 mb-3">
                     {preSelectedInterviewer ? 'Selected Interviewer' : 'Recommended Interviewers'}
                   </h4>
-                  <div className="space-y-2">
-                    {matchedInterviewers.filter(m => m.user && m.user._id).map((m) => (
+                  {!preSelectedInterviewer && (
+                    <p className="text-xs text-slate-600 mb-3">
+                      💡 <strong>Tip:</strong> If you don't select an interviewer, our admin will assign a suitable expert for you.
+                    </p>
+                  )}
+                  <div className="space-y-2">{matchedInterviewers.filter(m => m.user && m.user._id).map((m) => (
                       <label
                         key={m.application._id}
                         className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
@@ -399,6 +403,15 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
                       </label>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Show message when no interviewers match but company/position entered */}
+              {company && position && (!matchedInterviewers || matchedInterviewers.length === 0) && !preSelectedInterviewer && (
+                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                  <p className="text-sm text-amber-800">
+                    <strong>No interviewers found for this combination.</strong> Don't worry! You can still submit your request, and our admin will assign a suitable interviewer for you.
+                  </p>
                 </div>
               )}
             </div>

@@ -43,6 +43,9 @@ router.get('/all-requests', requireAuth, requireAdmin, ctrl.getAllRequests);
 // Admin assigns an interviewer by username
 router.post('/assign', requireAuth, ctrl.assignInterviewer);
 
+// Admin: search for approved interviewers (for autocomplete)
+router.get('/search-interviewers', requireAuth, requireAdmin, ctrl.searchInterviewers);
+
 // Interviewer schedules assigned interview
 router.post('/schedule', requireAuth, ctrl.scheduleInterview);
 
