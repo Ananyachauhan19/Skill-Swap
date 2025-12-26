@@ -36,7 +36,7 @@ const ReferralProgram = () => {
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 flex flex-col items-center pt-16 md:pt-[72px] lg:pt-20 p-4">
+    <div className="min-h-screen bg-blue-50 flex flex-col items-center pt-16 md:pt-[72px] xl:pt-20 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 border border-blue-100 mt-8">
         <h1 className="text-2xl font-semibold text-blue-900 text-center mb-6">Referral Program</h1>
         <div className="mb-6">

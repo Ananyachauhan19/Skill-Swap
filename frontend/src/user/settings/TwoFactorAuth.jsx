@@ -66,7 +66,7 @@ const TwoFactorAuth = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 md:pt-[72px] lg:pt-20 px-3 sm:px-4">
+    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 md:pt-[72px] xl:pt-20 px-3 sm:px-4">
       <div className="max-w-lg w-full p-4 sm:p-6 bg-white rounded-lg sm:rounded-xl shadow border border-blue-100 mt-6 sm:mt-8 mx-auto">
         <h2 className="text-lg sm:text-xl font-bold mb-4 text-center">Two-Factor Authentication (2FA)</h2>
         {step === "status" && (

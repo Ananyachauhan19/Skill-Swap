@@ -158,7 +158,7 @@ const TeachingHistory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
-      <div className="w-full pt-16 md:pt-[72px] lg:pt-20">
+      <div className="w-full pt-16 md:pt-[72px] xl:pt-20">
         
         {/* Mobile menu toggle */}
         <button 

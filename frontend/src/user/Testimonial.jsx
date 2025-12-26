@@ -164,7 +164,7 @@ const Testimonial = ({ showAll = false }) => {
   const visibleTestimonials = showAll ? safeTestimonials : safeTestimonials.slice(0, 3);
 
   return (
-    <div className="w-full bg-gradient-to-br from-blue-50 to-blue-100 pt-16 md:pt-[72px] lg:pt-20 pb-12 px-4 sm:px-6 lg:px-8 border-t border-blue-300">
+    <div className="w-full bg-gradient-to-br from-blue-50 to-blue-100 pt-16 md:pt-[72px] xl:pt-20 pb-12 px-4 sm:px-6 lg:px-8 border-t border-blue-300">
       <motion.h2
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}

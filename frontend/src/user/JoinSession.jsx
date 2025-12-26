@@ -241,7 +241,7 @@ export default function JoinSession() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] lg:pt-20">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] xl:pt-20">
         <div className="text-center">
           <div className="relative">
             <div className="animate-spin rounded-full h-14 w-14 border-4 border-slate-200 border-t-teal-600 mx-auto shadow-sm"></div>
@@ -258,7 +258,7 @@ export default function JoinSession() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] lg:pt-20 flex">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] xl:pt-20 flex">
         <div className="max-w-3xl w-full mx-auto px-4 py-10">
           <div className="bg-white border border-rose-200 rounded-2xl p-6 shadow-sm">
             <div className="text-rose-700 font-semibold text-lg">Unable to open session</div>
@@ -284,7 +284,7 @@ export default function JoinSession() {
   const title = sessionMeta.sessionType === 'expert' ? 'Expert Session' : 'Join Session';
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] lg:pt-20">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] xl:pt-20">
       <div className="flex-1">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="mb-6 flex items-start justify-between gap-4">

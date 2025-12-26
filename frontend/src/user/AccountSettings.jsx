@@ -109,7 +109,7 @@ const AccountSettings = () => {
   };
 
   return (
-    <div className="min-h-screen pt-16 md:pt-[72px] lg:pt-20 px-3 sm:px-4 lg:px-6 pb-4 bg-gradient-to-b from-[#f0f6ff] to-white font-sans">
+    <div className="min-h-screen pt-16 md:pt-[72px] xl:pt-20 px-3 sm:px-4 lg:px-6 pb-4 bg-gradient-to-b from-[#f0f6ff] to-white font-sans">
       {/* Mobile Header with Menu Toggle */}
       <div className="lg:hidden fixed top-16 left-0 right-0 z-30 bg-white shadow-md p-3 flex items-center justify-between">
         <h1 className="text-lg font-bold text-blue-900">Account Settings</h1>

@@ -39,7 +39,7 @@ const TimeZoneSettings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 pt-16 md:pt-[72px] lg:pt-20">
+    <div className="min-h-screen bg-blue-50 pt-16 md:pt-[72px] xl:pt-20">
       <div className="max-w-lg mx-auto p-4 sm:p-8 bg-white rounded-xl shadow border border-blue-100 mt-8">
       <h1 className="text-2xl font-bold mb-6 text-blue-900 text-center">Time Zone Settings</h1>
       <form onSubmit={handleSubmit} className="space-y-4">

@@ -84,7 +84,7 @@ const GoPro = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-blue-100/20">
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-16 md:pt-[72px] lg:pt-20 pb-8 sm:pb-12 px-3 sm:px-4">
+      <section className="relative overflow-hidden pt-16 md:pt-[72px] xl:pt-20 pb-8 sm:pb-12 px-3 sm:px-4">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-800/5 via-blue-900/5 to-blue-800/5" />
         <div className="relative max-w-6xl mx-auto text-center">
           <motion.div

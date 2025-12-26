@@ -117,7 +117,7 @@ const OneOnOne = () => {
   return (
     <div className="min-h-screen w-full bg-home-bg">
       {/* Hero Section */}
-      <section className="relative w-full flex items-center justify-center overflow-hidden pt-16 md:pt-[72px] lg:pt-20 pb-6 md:pb-8 lg:pb-10 bg-gradient-to-b from-slate-50 to-white xl:min-h-[75vh]">
+      <section className="relative w-full flex items-center justify-center overflow-hidden pt-16 md:pt-[72px] xl:pt-20 pb-6 md:pb-8 lg:pb-10 bg-gradient-to-b from-slate-50 to-white xl:min-h-[75vh]">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-72 h-72 bg-blue-900/5 rounded-full blur-3xl"></div>
@@ -179,7 +179,7 @@ const OneOnOne = () => {
       </section>
 
       {/* Main Content */}
-      <main className="w-full max-w-7xl mx-auto flex flex-col gap-4 sm:gap-6 md:gap-8 lg:gap-10 xl:gap-12 px-3 sm:px-4 lg:px-8 py-4 sm:py-6 md:py-8 lg:py-10 xl:py-12">
+      <main className="w-full max-w-7xl mx-auto flex flex-col gap-4 sm:gap-6 md:gap-8 xl:gap-12 px-3 sm:px-4 lg:px-8 py-4 sm:py-6 md:py-8 xl:py-12">
         {/* Start SkillSwap Search Section */}
         <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-xl sm:rounded-2xl p-4 sm:p-8 lg:p-12 border border-slate-200/50 shadow-sm">
           <div className="mb-6 sm:mb-10">

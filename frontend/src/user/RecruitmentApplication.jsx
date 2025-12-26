@@ -239,7 +239,7 @@ const RecruitmentApplication = () => {
 
   if (existingApplication) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-blue-100/20 pt-16 md:pt-[72px] lg:pt-20 pb-8 sm:pb-12 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-blue-100/20 pt-16 md:pt-[72px] xl:pt-20 pb-8 sm:pb-12 px-4">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 p-6 sm:p-8">
             <div className="text-center">
@@ -267,7 +267,7 @@ const RecruitmentApplication = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-blue-100/20 pt-16 md:pt-[72px] lg:pt-20 pb-4 sm:pb-6 px-3 sm:px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-blue-100/20 pt-16 md:pt-[72px] xl:pt-20 pb-4 sm:pb-6 px-3 sm:px-4">
       <div className="max-w-5xl mx-auto">
         <div className="bg-white rounded-lg sm:rounded-xl shadow-xl border border-gray-200 overflow-hidden">
           <div className="bg-gradient-to-r from-blue-800 to-blue-900 px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 text-white">

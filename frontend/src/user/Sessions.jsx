@@ -302,7 +302,7 @@ const Sessions = () => {
     .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 pt-16 md:pt-[72px] lg:pt-20">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 pt-16 md:pt-[72px] xl:pt-20">
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }

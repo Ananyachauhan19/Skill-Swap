@@ -4,7 +4,6 @@ import Notifications from './Navbar/Notifications';
 const navLinks = [
   { path: '/home', label: 'Home' },
   { path: '/one-on-one', label: '1-on-1' },
-  { path: '/session', label: 'Session' },
   { path: '/session-requests', label: 'Requests' },
   // { path: '/discuss', label: 'Discuss' },
   { path: '/interview', label: 'Interview' },

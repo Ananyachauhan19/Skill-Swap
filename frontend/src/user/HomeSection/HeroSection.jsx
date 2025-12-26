@@ -102,11 +102,11 @@ const HeroSection = ({ exploreRef }) => {
 
 
   return (
-    <section className="relative z-10 w-full bg-home-bg flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden py-8 md:py-10 lg:py-12 xl:min-h-[90vh] xl:py-4">
+    <section className="relative z-10 w-full bg-home-bg flex items-center justify-center px-4 sm:px-6 lg:px-8 overflow-hidden py-8 md:py-10 xl:py-4 xl:min-h-[90vh]">
       <div className="max-w-7xl w-full flex flex-col lg:flex-row gap-6 lg:gap-12 items-center justify-between">
         {/* Hero Text Content */}
         <motion.div
-          className="flex flex-col justify-center space-y-4 md:space-y-5 lg:space-y-6 w-full lg:w-1/2"
+          className="flex flex-col justify-center space-y-4 md:space-y-5 xl:space-y-6 w-full lg:w-1/2"
           initial="hidden"
           animate="visible"
           variants={textVariants}

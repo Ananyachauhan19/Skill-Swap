@@ -74,7 +74,7 @@ const Interview = () => {
   return (
     <div className="min-h-screen w-full bg-home-bg">
       {/* Hero Section */}
-      <section className="relative w-full flex items-center justify-center overflow-hidden pt-16 md:pt-[72px] lg:pt-20 pb-6 md:pb-8 lg:pb-10 bg-gradient-to-b from-slate-50 to-white xl:min-h-[70vh]">
+      <section className="relative w-full flex items-center justify-center overflow-hidden pt-16 md:pt-[72px] xl:pt-20 pb-6 md:pb-8 lg:pb-10 bg-gradient-to-b from-slate-50 to-white xl:min-h-[70vh]">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-72 h-72 bg-blue-900/5 rounded-full blur-3xl"></div>
@@ -84,7 +84,7 @@ const Interview = () => {
         <div className="relative z-10 w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-6 sm:gap-8 lg:gap-12">
             {/* Left Content */}
-            <div className="flex-1 text-center lg:text-left space-y-3 sm:space-y-4 lg:space-y-6">
+            <div className="flex-1 text-center lg:text-left space-y-3 sm:space-y-4 xl:space-y-6">
               <div className="flex gap-2">
                 <span className="px-2.5 py-1 sm:px-3 sm:py-1.5 lg:px-4 lg:py-2 bg-blue-900/10 text-blue-900 rounded-full text-[9px] sm:text-[10px] lg:text-xs font-semibold tracking-wide">
                   Mock Interview Platform
@@ -165,7 +165,7 @@ const Interview = () => {
       </section>
 
       {/* Main Content */}
-      <main className="w-full max-w-7xl mx-auto flex flex-col gap-4 sm:gap-6 md:gap-8 lg:gap-10 xl:gap-12 px-2 sm:px-3 lg:px-6 xl:px-8 py-4 sm:py-6 md:py-8 lg:py-10 xl:py-12">
+      <main className="w-full max-w-7xl mx-auto flex flex-col gap-4 sm:gap-6 md:gap-8 xl:gap-12 px-2 sm:px-3 lg:px-6 xl:px-8 py-4 sm:py-6 md:py-8 xl:py-12">
         <ScheduledInterviewSection />
         
         <BrowseInterviewersSection onBookSession={handleBookSession} />

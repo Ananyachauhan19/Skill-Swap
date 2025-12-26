@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   FaCheck, 
@@ -274,7 +274,7 @@ const SessionRequests = () => {
       switch (data.type) {
         case 'schedule':
         case 'schedule-confirmation':
-          title = '✅ Interview Scheduled';
+          title = '? Interview Scheduled';
           message = data.scheduledAt 
             ? `Your mock interview for ${data.position} at ${data.company} is scheduled for ${new Date(data.scheduledAt).toLocaleString()}`
             : data.message || `Interview scheduled for ${data.position} at ${data.company}`;
@@ -283,7 +283,7 @@ const SessionRequests = () => {
           
         case 'reschedule':
         case 'reschedule-confirmation':
-          title = '🔄 Interview Rescheduled';
+          title = '?? Interview Rescheduled';
           message = data.scheduledAt 
             ? `Your interview for ${data.position} at ${data.company} has been rescheduled to ${new Date(data.scheduledAt).toLocaleString()}`
             : data.message || `Interview rescheduled for ${data.position} at ${data.company}`;
@@ -291,27 +291,27 @@ const SessionRequests = () => {
           break;
           
         case 'slots-suggested':
-          title = '📅 Time Slots Available';
+          title = '?? Time Slots Available';
           const slotsCount = data.slots?.length || 0;
           message = `The interviewer has suggested ${slotsCount} time slot${slotsCount !== 1 ? 's' : ''} for your ${data.position} interview at ${data.company}. Please review and select your preferred time.`;
           variant = 'info';
           break;
           
         case 'alternate-slots-suggested':
-          title = '🔄 Alternate Slots Proposed';
+          title = '?? Alternate Slots Proposed';
           const altSlotsCount = data.slots?.length || 0;
           message = `The candidate has proposed ${altSlotsCount} alternate time slot${altSlotsCount !== 1 ? 's' : ''} for the ${data.position} interview at ${data.company}. ${data.reason ? `Reason: ${data.reason}` : 'Please review and respond.'}`;
           variant = 'warning';
           break;
           
         case 'alternate-rejected':
-          title = '❌ Alternate Slots Declined';
+          title = '? Alternate Slots Declined';
           message = data.message || `Your alternate time slots for ${data.position} at ${data.company} were not available. Please choose from the original suggestions.`;
           variant = 'error';
           break;
           
         default:
-          title = '📢 Interview Update';
+          title = '?? Interview Update';
           message = data.message || `Update for your ${data.position} interview at ${data.company}`;
       }
       
@@ -414,9 +414,9 @@ const SessionRequests = () => {
           userId: user._id,
           counts: counts
         });
-        console.log('[SessionRequests] 📡 Emitted socket event & CustomEvent - Total:', counts.total, 'Details:', counts);
+        console.log('[SessionRequests] ?? Emitted socket event & CustomEvent - Total:', counts.total, 'Details:', counts);
       } else {
-        console.log('[SessionRequests] ✅ Dispatched CustomEvent only - Total:', counts.total, 'Details:', counts);
+        console.log('[SessionRequests] ? Dispatched CustomEvent only - Total:', counts.total, 'Details:', counts);
       }
     } catch (error) {
       console.error('Failed to notify request count update:', error);
@@ -427,7 +427,7 @@ const SessionRequests = () => {
   useEffect(() => {
     // Calculate and send counts immediately whenever ANY request data changes
     notifyRequestCountUpdate();
-    console.log('[SessionRequests] 🔄 Request data changed, updating navbar count...');
+    console.log('[SessionRequests] ?? Request data changed, updating navbar count...');
   }, [requests, expertSessionRequests, skillMateRequests, interviewRequests]);
 
   const fetchSessionRequests = async () => {
@@ -1060,11 +1060,11 @@ const SessionRequests = () => {
         <div className="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
           <div className="flex items-start gap-2 text-xs">
             <span className="font-medium text-amber-700 min-w-[60px]">Company:</span>
-            <span className="text-slate-700 font-medium">{request.company || '—'}</span>
+            <span className="text-slate-700 font-medium">{request.company || '�'}</span>
           </div>
           <div className="flex items-start gap-2 text-xs">
             <span className="font-medium text-amber-700 min-w-[60px]">Position:</span>
-            <span className="text-slate-700 font-medium">{request.position || '—'}</span>
+            <span className="text-slate-700 font-medium">{request.position || '�'}</span>
           </div>
           {request.message && (
             <div className="mt-2 pt-2 border-t border-slate-200">
@@ -1522,7 +1522,7 @@ const SessionRequests = () => {
                   {request.alternateSlotsRejected && (
                     <div className="mt-3 bg-rose-50 border-l-4 border-rose-500 rounded-r-lg px-4 py-3">
                       <p className="text-xs text-rose-700 font-semibold">
-                        ⚠️ Your alternate slots were rejected. Please select from the available options above.
+                        ?? Your alternate slots were rejected. Please select from the available options above.
                       </p>
                     </div>
                   )}
@@ -1613,7 +1613,7 @@ const SessionRequests = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center pt-16 md:pt-[72px] lg:pt-20">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center pt-16 md:pt-[72px] xl:pt-20">
         <div className="text-center">
           <div className="relative">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-200 border-t-teal-600 mx-auto shadow-sm"></div>
@@ -1629,7 +1629,7 @@ const SessionRequests = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] lg:pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] xl:pt-20">
       <div className="flex relative bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 min-h-screen">
         {/* Sidebar - Sticky positioning (scrolls up when footer appears) */}
         <div

@@ -147,7 +147,7 @@ const RegisterInterviewer = () => {
   const invalidClass = (v) => v ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500' : 'border-red-400 focus:ring-red-500 focus:border-red-500';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-white to-gray-100 pt-16 md:pt-[72px] lg:pt-20 pb-10 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-white to-gray-100 pt-16 md:pt-[72px] xl:pt-20 pb-10 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-gray-200 p-8">
           <div className="flex items-start justify-between mb-6">

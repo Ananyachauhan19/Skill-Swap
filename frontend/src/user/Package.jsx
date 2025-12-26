@@ -6,7 +6,7 @@ import { GiTwoCoins } from 'react-icons/gi';
 
 const Package = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-200 pt-16 md:pt-[72px] lg:pt-20 pb-10">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-200 pt-16 md:pt-[72px] xl:pt-20 pb-10">
       {/* Enhanced Hero Section */}
       <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white py-12 sm:py-16 px-4 sm:px-6 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">

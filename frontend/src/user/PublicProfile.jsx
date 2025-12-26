@@ -8,7 +8,7 @@ const PublicProfile = () => {
   const [notFound, setNotFound] = React.useState(false);
 
   return (
-    <div className="min-h-screen flex pt-16 md:pt-[72px] lg:pt-20 pb-8 bg-blue-50">
+    <div className="min-h-screen flex pt-16 md:pt-[72px] xl:pt-20 pb-8 bg-blue-50">
       {notFound
         ? <PageNotFound />
         : <SideBarPublic username={username} setNotFound={setNotFound} />}
