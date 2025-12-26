@@ -152,6 +152,17 @@ const OneOnOne = () => {
                 >
                   Create a Session
                 </button>
+                <button
+                  onClick={() => {
+                    const searchSection = document.getElementById('find-tutor-search');
+                    if (searchSection) {
+                      searchSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                  }}
+                  className="w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 border-2 border-blue-900 text-blue-900 rounded-xl font-semibold text-sm sm:text-base hover:bg-blue-900 hover:text-white transition-all hover:shadow-xl"
+                >
+                  Find Tutor
+                </button>
                 
               </div>
             </div>
@@ -181,7 +192,7 @@ const OneOnOne = () => {
       {/* Main Content */}
       <main className="w-full max-w-7xl mx-auto flex flex-col gap-4 sm:gap-6 md:gap-8 xl:gap-12 px-3 sm:px-4 lg:px-8 py-4 sm:py-6 md:py-8 xl:py-12">
         {/* Start SkillSwap Search Section */}
-        <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-xl sm:rounded-2xl p-4 sm:p-8 lg:p-12 border border-slate-200/50 shadow-sm">
+        <section id="find-tutor-search" className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-xl sm:rounded-2xl p-4 sm:p-8 lg:p-12 border border-slate-200/50 shadow-sm scroll-mt-20">
           <div className="mb-6 sm:mb-10">
             <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-slate-900 text-center mb-2 sm:mb-3 tracking-tight">
               Find Your Perfect Tutor Instantly

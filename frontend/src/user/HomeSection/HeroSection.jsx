@@ -131,12 +131,17 @@ const HeroSection = ({ exploreRef }) => {
               <span >Do!</span>
             </span>
           </motion.h1>
-          <motion.p
-            className="text-xs sm:text-sm lg:text-base text-gray-600 max-w-full sm:max-w-md leading-relaxed text-center lg:text-left mx-auto lg:mx-0 px-2 sm:px-0"
+          <motion.div
+            className="text-xs sm:text-sm lg:text-base text-gray-600 max-w-full sm:max-w-md leading-relaxed text-center lg:text-left mx-auto lg:mx-0 px-2 sm:px-0 space-y-2"
             variants={textVariants}
           >
-            SkillSwap-Hub connects professionals for peer-to-peer learning, enabling you to share expertise, acquire new skills, and advance your career.
-          </motion.p>
+            <p>
+              SkillSwap-Hub connects professionals for peer-to-peer learning,
+            </p>
+            <p>
+              enabling you to share expertise, acquire new skills, and advance your career.
+            </p>
+          </motion.div>
           <motion.div className="flex flex-wrap gap-2 justify-center lg:justify-start px-2 sm:px-0" variants={textVariants}>
             {isLoggedIn ? (
               <motion.button
