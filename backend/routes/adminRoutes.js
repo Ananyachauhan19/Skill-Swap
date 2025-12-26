@@ -221,6 +221,453 @@ router.get('/users/:userId', async (req, res) => {
   }
 });
 
+// Get user profile by username (for admin profile view page)
+router.get('/users/profile/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+
+    // Find user by username
+    const user = await User.findOne({ username })
+      .select('-password -otp -otpExpires')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Return user profile data (same structure as regular profile)
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ message: 'Failed to fetch user profile' });
+  }
+});
+
+// Get user's SkillMates connections
+router.get('/users/:userId/skillmates', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get user's SkillMates from the user document
+    const user = await User.findById(userId)
+      .populate('skillMates', 'username firstName lastName profilePic email country connectedAt')
+      .select('skillMates')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Also get SkillMate relationship documents for connection dates
+    const skillMateRelations = await SkillMate.find({
+      $or: [{ requester: userId }, { recipient: userId }],
+      status: 'accepted'
+    })
+      .populate('requester', 'username firstName lastName profilePic')
+      .populate('recipient', 'username firstName lastName profilePic')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Combine data from both sources
+    const skillMatesWithDates = user.skillMates.map(mate => {
+      const relation = skillMateRelations.find(rel => 
+        String(rel.requester._id) === String(mate._id) || 
+        String(rel.recipient._id) === String(mate._id)
+      );
+      return {
+        ...mate,
+        connectedAt: relation?.createdAt || null
+      };
+    });
+
+    res.json({ skillmates: skillMatesWithDates });
+  } catch (error) {
+    console.error('Error fetching skillmates:', error);
+    res.status(500).json({ message: 'Failed to fetch skillmates' });
+  }
+});
+
+// Get user's session history (one-on-one sessions)
+router.get('/users/:userId/session-history', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get all session requests where user is requester or tutor
+    const sessions = await SessionRequest.find({
+      sessionType: 'one-on-one',
+      $or: [{ requester: userId }, { tutor: userId }]
+    })
+      .populate('requester', 'username firstName lastName profilePic')
+      .populate('tutor', 'username firstName lastName profilePic')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Format the data for frontend
+    const formattedSessions = sessions.map(session => ({
+      _id: session._id,
+      date: session.scheduledDate || session.createdAt,
+      role: String(session.tutor) === String(userId) ? 'tutor' : 'student',
+      topic: session.topic || session.subject || 'N/A',
+      duration: session.duration || 'N/A',
+      rating: session.rating || null,
+      status: session.status || 'pending',
+      partner: String(session.tutor) === String(userId) ? session.requester : session.tutor,
+      createdAt: session.createdAt
+    }));
+
+    res.json({ sessions: formattedSessions });
+  } catch (error) {
+    console.error('Error fetching session history:', error);
+    res.status(500).json({ message: 'Failed to fetch session history' });
+  }
+});
+
+// Get user's interview history
+router.get('/users/:userId/interview-history', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get all interview requests where user is requester or interviewer
+    const interviews = await InterviewRequest.find({
+      $or: [{ requester: userId }, { assignedInterviewer: userId }]
+    })
+      .populate('requester', 'username firstName lastName profilePic')
+      .populate('assignedInterviewer', 'username firstName lastName profilePic')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Format the data for frontend
+    const formattedInterviews = interviews.map(interview => ({
+      _id: interview._id,
+      date: interview.scheduledAt || interview.createdAt,
+      role: String(interview.assignedInterviewer) === String(userId) ? 'interviewer' : 'requester',
+      company: interview.company || 'N/A',
+      position: interview.position || 'N/A',
+      duration: interview.duration || 'N/A',
+      status: interview.status || 'pending',
+      rating: interview.rating || null,
+      partner: String(interview.assignedInterviewer) === String(userId) ? interview.requester : interview.assignedInterviewer,
+      createdAt: interview.createdAt
+    }));
+
+    res.json({ interviews: formattedInterviews });
+  } catch (error) {
+    console.error('Error fetching interview history:', error);
+    res.status(500).json({ message: 'Failed to fetch interview history' });
+  }
+});
+
+// Get user's coin/wallet transaction history
+router.get('/users/:userId/coin-history', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get user's current coin balance
+    const user = await User.findById(userId)
+      .select('goldCoins silverCoins firstName lastName')
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Coin rates for calculation
+    const COIN_RATES = {
+      gold: { spendPerMinute: 2, earnMultiplier: 0.75 },
+      silver: { spendPerMinute: 1, earnMultiplier: 0.75 }
+    };
+
+    // Get completed sessions where user was student (coins spent)
+    const learningTransactions = await SessionRequest.find({
+      requester: userId,
+      status: 'completed'
+    })
+      .populate('tutor', 'firstName lastName profilePic')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    // Get completed sessions where user was teacher (coins earned)
+    const teachingTransactions = await SessionRequest.find({
+      tutor: userId,
+      status: 'completed'
+    })
+      .populate('requester', 'firstName lastName profilePic')
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    // Format learning transactions (spent coins)
+    const formattedLearning = learningTransactions.map(session => {
+      const duration = session.duration || 0;
+      const coinType = (session.coinType || 'silver').toLowerCase();
+      const spendRate = (COIN_RATES[coinType] || COIN_RATES.silver).spendPerMinute;
+      const coinsSpent = duration * spendRate;
+      
+      return {
+        _id: session._id,
+        date: session.createdAt,
+        type: 'debit',
+        description: `Session with ${session.tutor ? `${session.tutor.firstName} ${session.tutor.lastName}` : 'Unknown'}`,
+        subject: session.subject || 'N/A',
+        topic: session.topic || 'N/A',
+        duration: duration,
+        coinType: coinType,
+        amount: coinsSpent,
+        goldAmount: coinType === 'gold' ? coinsSpent : 0,
+        silverAmount: coinType === 'silver' ? coinsSpent : 0,
+        partner: session.tutor ? `${session.tutor.firstName} ${session.tutor.lastName}` : 'Unknown',
+        sessionType: session.sessionType || 'ONE-ON-ONE'
+      };
+    });
+
+    // Format teaching transactions (earned coins)
+    const formattedTeaching = teachingTransactions.map(session => {
+      const duration = session.duration || 0;
+      const coinType = (session.coinType || 'silver').toLowerCase();
+      const spendRate = (COIN_RATES[coinType] || COIN_RATES.silver).spendPerMinute;
+      const earnMultiplier = (COIN_RATES[coinType] || COIN_RATES.silver).earnMultiplier;
+      const baseSpent = duration * spendRate;
+      const coinsEarned = Math.round(baseSpent * earnMultiplier);
+      
+      return {
+        _id: session._id,
+        date: session.createdAt,
+        type: 'credit',
+        description: `Taught ${session.requester ? `${session.requester.firstName} ${session.requester.lastName}` : 'Unknown'}`,
+        subject: session.subject || 'N/A',
+        topic: session.topic || 'N/A',
+        duration: duration,
+        coinType: coinType,
+        amount: coinsEarned,
+        goldAmount: coinType === 'gold' ? coinsEarned : 0,
+        silverAmount: coinType === 'silver' ? coinsEarned : 0,
+        partner: session.requester ? `${session.requester.firstName} ${session.requester.lastName}` : 'Unknown',
+        sessionType: session.sessionType || 'ONE-ON-ONE'
+      };
+    });
+
+    // Combine and sort all transactions by date
+    const allTransactions = [...formattedLearning, ...formattedTeaching]
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    res.json({ 
+      transactions: allTransactions,
+      currentBalance: {
+        gold: user.goldCoins || 0,
+        silver: user.silverCoins || 0
+      },
+      summary: {
+        totalSpent: formattedLearning.reduce((sum, t) => sum + t.amount, 0),
+        totalEarned: formattedTeaching.reduce((sum, t) => sum + t.amount, 0),
+        learningSessionCount: learningTransactions.length,
+        teachingSessionCount: teachingTransactions.length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching coin history:', error);
+    res.status(500).json({ message: 'Failed to fetch coin history' });
+  }
+});
+
+// Get user's activity logs
+router.get('/users/:userId/activity-logs', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const activities = [];
+
+    // Get recent sessions
+    const recentSessions = await SessionRequest.find({
+      $or: [{ requester: userId }, { tutor: userId }]
+    })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    recentSessions.forEach(session => {
+      const role = String(session.tutor) === String(userId) ? 'tutor' : 'student';
+      activities.push({
+        _id: session._id,
+        type: 'session',
+        action: `${session.status === 'completed' ? 'Completed' : 'Scheduled'} a session as ${role}`,
+        details: `Topic: ${session.topic || session.subject || 'N/A'}`,
+        timestamp: session.createdAt,
+        createdAt: session.createdAt
+      });
+    });
+
+    // Get recent interviews
+    const recentInterviews = await InterviewRequest.find({
+      $or: [{ requester: userId }, { assignedInterviewer: userId }]
+    })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    recentInterviews.forEach(interview => {
+      const role = String(interview.assignedInterviewer) === String(userId) ? 'interviewer' : 'candidate';
+      activities.push({
+        _id: interview._id,
+        type: 'interview',
+        action: `${interview.status === 'completed' ? 'Completed' : 'Scheduled'} an interview as ${role}`,
+        details: `${interview.company || 'Company'} - ${interview.position || 'Position'}`,
+        timestamp: interview.createdAt,
+        createdAt: interview.createdAt
+      });
+    });
+
+    // Get recent coin events
+    const ContributionEvent = require('../models/ContributionEvent');
+    const recentCoinEvents = await ContributionEvent.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    recentCoinEvents.forEach(event => {
+      activities.push({
+        _id: event._id,
+        type: 'wallet',
+        action: `${event.goldCoins > 0 || event.silverCoins > 0 ? 'Earned' : 'Spent'} coins`,
+        details: `${event.type || 'Transaction'} - ${Math.abs(event.goldCoins || 0)} gold, ${Math.abs(event.silverCoins || 0)} silver`,
+        timestamp: event.createdAt,
+        createdAt: event.createdAt
+      });
+    });
+
+    // Get recent SkillMate connections
+    const recentSkillMates = await SkillMate.find({
+      $or: [{ requester: userId }, { recipient: userId }],
+      status: 'accepted'
+    })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('requester', 'username firstName lastName')
+      .populate('recipient', 'username firstName lastName')
+      .lean();
+
+    recentSkillMates.forEach(sm => {
+      const partner = String(sm.requester._id) === String(userId) ? sm.recipient : sm.requester;
+      activities.push({
+        _id: sm._id,
+        type: 'skillmate',
+        action: 'Connected with a SkillMate',
+        details: `${partner.firstName || partner.username}`,
+        timestamp: sm.createdAt,
+        createdAt: sm.createdAt
+      });
+    });
+
+    // Sort all activities by timestamp
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    // Limit to most recent 50 activities
+    const limitedActivities = activities.slice(0, 50);
+
+    res.json({ activities: limitedActivities });
+  } catch (error) {
+    console.error('Error fetching activity logs:', error);
+    res.status(500).json({ message: 'Failed to fetch activity logs' });
+  }
+});
+
+// Get user's contribution calendar data
+router.get('/users/:userId/contribution-calendar', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get user to verify existence
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get contribution data from Contribution model
+    const Contribution = require('../models/Contribution');
+    
+    // Get last 365 days of contribution data
+    const oneYearAgo = new Date();
+    oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+    const dateKeyStart = oneYearAgo.toISOString().split('T')[0];
+
+    const contributions = await Contribution.find({
+      userId: userId,
+      dateKey: { $gte: dateKeyStart }
+    })
+      .select('dateKey count breakdown')
+      .sort({ dateKey: 1 })
+      .lean();
+
+    // Calculate summary statistics
+    const totalContributions = contributions.reduce((sum, c) => sum + (c.count || 0), 0);
+    
+    // Calculate current streak
+    const today = new Date().toISOString().split('T')[0];
+    let currentStreak = 0;
+    let checkDate = new Date();
+    
+    const contributionMap = {};
+    contributions.forEach(c => {
+      contributionMap[c.dateKey] = c.count;
+    });
+
+    // Check backwards from today for consecutive days
+    while (currentStreak < 365) {
+      const dateKey = checkDate.toISOString().split('T')[0];
+      if (contributionMap[dateKey] && contributionMap[dateKey] > 0) {
+        currentStreak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else if (dateKey === today) {
+        // If today has no contributions, start from yesterday
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+
+    // Calculate longest streak
+    let longestStreak = 0;
+    let tempStreak = 0;
+    const sortedDates = Object.keys(contributionMap).sort();
+    
+    for (let i = 0; i < sortedDates.length; i++) {
+      const dateKey = sortedDates[i];
+      if (contributionMap[dateKey] > 0) {
+        tempStreak++;
+        
+        // Check if next date is consecutive
+        if (i < sortedDates.length - 1) {
+          const currentDate = new Date(dateKey);
+          const nextDate = new Date(sortedDates[i + 1]);
+          const dayDiff = Math.floor((nextDate - currentDate) / (1000 * 60 * 60 * 24));
+          
+          if (dayDiff > 1) {
+            longestStreak = Math.max(longestStreak, tempStreak);
+            tempStreak = 0;
+          }
+        }
+      } else {
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 0;
+      }
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+
+    res.json({
+      contributions,
+      summary: {
+        total: totalContributions,
+        currentStreak,
+        longestStreak,
+        daysActive: contributions.filter(c => c.count > 0).length
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching contribution calendar:', error);
+    res.status(500).json({ message: 'Failed to fetch contribution calendar' });
+  }
+});
+
 // Delete a user account (admin only) and detach basic relations
 router.delete('/users/:userId', async (req, res) => {
   try {

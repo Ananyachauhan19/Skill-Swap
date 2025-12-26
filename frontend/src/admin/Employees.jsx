@@ -1,18 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BACKEND_URL } from '../config';
 import {
   FiSearch,
   FiUsers,
   FiPlus,
-  FiEdit2,
-  FiTrash2,
   FiToggleLeft,
   FiToggleRight,
-  FiMail,
-  FiKey,
   FiShield,
-  FiX,
 } from 'react-icons/fi';
 
 const ACCESS_OPTIONS = [
@@ -22,98 +18,11 @@ const ACCESS_OPTIONS = [
 ];
 
 const Employees = () => {
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const [tutorOptions, setTutorOptions] = useState({ subjects: [], classes: [], classSubjectMap: {} });
-
   const [searchQuery, setSearchQuery] = useState('');
-
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [resettingPassword, setResettingPassword] = useState(false);
-
-  const [form, setForm] = useState({
-    name: '',
-    employeeId: '',
-    email: '',
-    phone: '',
-    password: '',
-    accessPermissions: 'both',
-    isDisabled: false,
-    // Tutor-approval scope
-    tutorScopeAll: true,
-    allowedClasses: [],
-    allowedSubjects: [],
-  });
-
-  const resetForm = () => {
-    setForm({
-      name: '',
-      employeeId: '',
-      email: '',
-      phone: '',
-      password: '',
-      accessPermissions: 'both',
-      isDisabled: false,
-      tutorScopeAll: true,
-      allowedClasses: [],
-      allowedSubjects: [],
-    });
-    setEditingEmployee(null);
-  };
-
-  // Filter subjects based on selected classes
-  const filteredSubjects = useMemo(() => {
-    if (form.allowedClasses.length === 0) {
-      return tutorOptions.subjects;
-    }
-    const subjectSet = new Set();
-    form.allowedClasses.forEach(cls => {
-      const subjects = tutorOptions.classSubjectMap[cls] || [];
-      console.log(`Subjects for class "${cls}":`, subjects.length, subjects.slice(0, 3));
-      subjects.forEach(subj => subjectSet.add(subj));
-    });
-    const result = Array.from(subjectSet).sort((a, b) => a.localeCompare(b));
-    console.log('Filtered subjects result:', result.length, result.slice(0, 5));
-    return result;
-  }, [form.allowedClasses, tutorOptions.subjects, tutorOptions.classSubjectMap]);
-
-  const openCreate = () => {
-    resetForm();
-    setDrawerOpen(true);
-  };
-
-  const openEdit = (emp) => {
-    setEditingEmployee(emp);
-    const hasTutorAccess = emp.accessPermissions === 'tutor' || emp.accessPermissions === 'both';
-    const allowedClasses = Array.isArray(emp.allowedClasses) ? emp.allowedClasses : [];
-    const allowedSubjects = Array.isArray(emp.allowedSubjects) ? emp.allowedSubjects : [];
-    const tutorScopeAll = !hasTutorAccess || (allowedClasses.length === 0 && allowedSubjects.length === 0);
-    setForm({
-      name: emp.name || '',
-      employeeId: emp.employeeId || '',
-      email: emp.email || '',
-      phone: emp.phone || '',
-      password: '',
-      accessPermissions: emp.accessPermissions || 'both',
-      isDisabled: !!emp.isDisabled,
-      tutorScopeAll,
-      allowedClasses,
-      allowedSubjects,
-    });
-    setDrawerOpen(true);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    setTimeout(() => {
-      resetForm();
-    }, 200);
-  };
 
   const loadEmployees = async () => {
     try {
@@ -134,175 +43,7 @@ const Employees = () => {
 
   useEffect(() => {
     loadEmployees();
-    // Load tutor approval options (subjects and classes)
-    (async () => {
-      try {
-        const res = await axios.get(`${BACKEND_URL}/api/admin/tutor/approval-options`, {
-          withCredentials: true,
-        });
-        const data = res.data || {};
-        console.log('Tutor options received:', {
-          classes: data.classes?.length,
-          subjects: data.subjects?.length,
-          classSubjectMapKeys: Object.keys(data.classSubjectMap || {}).length
-        });
-        console.log('Sample classSubjectMap:', Object.keys(data.classSubjectMap || {}).slice(0, 5));
-        setTutorOptions({
-          subjects: Array.isArray(data.subjects) ? data.subjects : [],
-          classes: Array.isArray(data.classes) ? data.classes : [],
-          classSubjectMap: data.classSubjectMap || {},
-        });
-      } catch (e) {
-        console.error('Failed to load tutor approval options', e);
-      }
-    })();
   }, []);
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
-
-  const handleCheckboxListChange = (name, value) => {
-    setForm((prev) => {
-      const currentValues = prev[name] || [];
-      const newValues = currentValues.includes(value)
-        ? currentValues.filter((v) => v !== value)
-        : [...currentValues, value];
-      return {
-        ...prev,
-        [name]: newValues,
-      };
-    });
-  };
-
-  // Clear invalid subjects when classes change
-  useEffect(() => {
-    if (form.allowedClasses.length > 0 && form.allowedSubjects.length > 0) {
-      const validSubjects = form.allowedSubjects.filter(subj => filteredSubjects.includes(subj));
-      if (validSubjects.length !== form.allowedSubjects.length) {
-        setForm(prev => ({ ...prev, allowedSubjects: validSubjects }));
-      }
-    }
-  }, [form.allowedClasses, form.allowedSubjects, filteredSubjects]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSaving(true);
-    try {
-      if (!form.name || !form.employeeId || !form.email) {
-        throw new Error('Name, Employee ID, and Email are required');
-      }
-
-      if (!editingEmployee && !form.password) {
-        throw new Error('Password is required for new employees');
-      }
-
-      // Validate tutor scope when tutor access is enabled
-      const hasTutorAccess = form.accessPermissions === 'tutor' || form.accessPermissions === 'both';
-      if (hasTutorAccess && !form.tutorScopeAll) {
-        if (!form.allowedClasses.length || !form.allowedSubjects.length) {
-          throw new Error('Select at least one class and one subject, or choose "All classes + all subjects"');
-        }
-      }
-
-      const payloadBase = {
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        accessPermissions: form.accessPermissions,
-      };
-
-      if (hasTutorAccess) {
-        if (form.tutorScopeAll) {
-          payloadBase.allowedClasses = [];
-          payloadBase.allowedSubjects = [];
-        } else {
-          payloadBase.allowedClasses = form.allowedClasses;
-          payloadBase.allowedSubjects = form.allowedSubjects;
-        }
-      }
-
-      if (editingEmployee) {
-        // Update basic fields & access / disabled flag
-        await axios.put(
-          `${BACKEND_URL}/api/admin/employees/${editingEmployee._id}`,
-          {
-            ...payloadBase,
-            isDisabled: form.isDisabled,
-          },
-          { withCredentials: true },
-        );
-      } else {
-        await axios.post(
-          `${BACKEND_URL}/api/admin/employees`,
-          {
-            ...payloadBase,
-            employeeId: form.employeeId,
-            password: form.password,
-          },
-          { withCredentials: true },
-        );
-      }
-
-      await loadEmployees();
-      closeDrawer();
-    } catch (e) {
-      console.error('Failed to save employee', e);
-      setError(e.response?.data?.message || e.message || 'Failed to save employee');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!editingEmployee) return;
-    if (!window.confirm('Delete this employee? This cannot be undone.')) return;
-    setDeleting(true);
-    setError('');
-    try {
-      await axios.delete(`${BACKEND_URL}/api/admin/employees/${editingEmployee._id}`, {
-        withCredentials: true,
-      });
-      await loadEmployees();
-      closeDrawer();
-    } catch (e) {
-      console.error('Failed to delete employee', e);
-      setError(e.response?.data?.message || e.message || 'Failed to delete employee');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!editingEmployee) return;
-    const newPassword = window.prompt('Enter a new temporary password for this employee (they will be forced to change it on next login):');
-    if (!newPassword) return;
-    if (newPassword.length < 6) {
-      window.alert('Password must be at least 6 characters long.');
-      return;
-    }
-    setResettingPassword(true);
-    setError('');
-    try {
-      await axios.post(
-        `${BACKEND_URL}/api/admin/employees/${editingEmployee._id}/reset-password`,
-        { password: newPassword },
-        { withCredentials: true },
-      );
-      window.alert('Password reset successfully. The employee will be asked to change it on their next login.');
-      await loadEmployees();
-    } catch (e) {
-      console.error('Failed to reset employee password', e);
-      setError(e.response?.data?.message || e.message || 'Failed to reset employee password');
-    } finally {
-      setResettingPassword(false);
-    }
-  };
 
   const filteredEmployees = useMemo(() => {
     if (!searchQuery) return employees;
@@ -339,26 +80,26 @@ const Employees = () => {
   }
 
   return (
-    <div className="flex h-full">
-      {/* Main list */}
-      <div className="flex-1 flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div className="flex flex-col h-full bg-gray-50">
+      {/* Main container */}
+      <div className="flex-1 flex flex-col bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden m-4">
         {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between gap-3 bg-gray-50">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-              <FiUsers size={18} />
+        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between gap-3 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
+              <FiUsers size={16} />
             </div>
             <div>
-              <h1 className="text-base sm:text-lg font-semibold text-gray-900">Employees</h1>
-              <p className="text-xs sm:text-sm text-gray-500">Manage approval staff and their access permissions.</p>
+              <h1 className="text-base font-semibold text-gray-900">Employee Management</h1>
+              <p className="text-xs text-gray-600">Manage approval staff and permissions</p>
             </div>
           </div>
           <button
-            onClick={openCreate}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 shadow-sm"
+            onClick={() => navigate('/admin/employees/new')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 shadow-sm transition-all hover:shadow-md"
           >
             <FiPlus size={16} />
-            <span>Add employee</span>
+            Add Employee
           </button>
         </div>
 
@@ -370,37 +111,36 @@ const Employees = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, employee ID, or email"
+              placeholder="Search by name, ID, or email..."
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-          <div className="hidden sm:flex items-center text-xs text-gray-500">
-            <span className="font-medium mr-1">{filteredEmployees.length}</span>
+          <div className="flex items-center gap-2 text-xs text-gray-600 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+            <span className="font-semibold">{filteredEmployees.length}</span>
             <span>employees</span>
           </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Employee ID</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">Access</th>
-                <th className="px-5 py-3 w-64">Tutor Scope</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Created</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+        <div className="flex-1 overflow-auto">
+          <table className="min-w-full text-xs">
+            <thead className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+              <tr className="text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+                <th className="px-4 py-2.5">Employee</th>
+                <th className="px-4 py-2.5">Employee ID</th>
+                <th className="px-4 py-2.5">Email</th>
+                <th className="px-4 py-2.5">Phone</th>
+                <th className="px-4 py-2.5">Access Level</th>
+                <th className="px-4 py-2.5">Tutor Scope</th>
+                <th className="px-4 py-2.5">Status</th>
+                <th className="px-4 py-2.5">Created</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredEmployees.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-gray-500">
-                    No employees found.
+                  <td colSpan={8} className="px-4 py-12 text-center text-sm text-gray-500">
+                    {searchQuery ? 'No employees found matching your search.' : 'No employees yet.'}
                   </td>
                 </tr>
               )}
@@ -416,34 +156,34 @@ const Employees = () => {
                 return (
                   <tr
                     key={emp._id}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => openEdit(emp)}
+                    className="hover:bg-blue-50/50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/admin/employees/${emp._id}`)}
                   >
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-xs font-semibold text-blue-700">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-[11px] font-semibold text-white shadow-sm">
                           {(emp.name || emp.employeeId || '?').charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">{emp.name || '—'}</div>
+                          <div className="font-medium text-gray-900 text-xs">{emp.name || '—'}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-gray-700">{emp.employeeId}</td>
-                    <td className="px-4 py-4 text-gray-700">{emp.email}</td>
-                    <td className="px-4 py-4 text-gray-700">{emp.phone || '—'}</td>
-                    <td className="px-4 py-4">
-                      <span className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
-                        <FiShield className="mr-1.5" size={12} />
+                    <td className="px-4 py-3 text-gray-700 font-mono text-[11px]">{emp.employeeId}</td>
+                    <td className="px-4 py-3 text-gray-700">{emp.email}</td>
+                    <td className="px-4 py-3 text-gray-600">{emp.phone || '—'}</td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700">
+                        <FiShield className="mr-1" size={10} />
                         {accessLabel}
                       </span>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       {hasTutorAccess ? (
                         hasScope ? (
-                          <div className="text-xs space-y-2">
+                          <div className="text-[11px] space-y-1">
                             {allowedClasses.length > 0 && (
-                              <div className="bg-blue-50 rounded px-2 py-1.5 border border-blue-100">
+                              <div className="bg-blue-50 rounded px-2 py-0.5 border border-blue-100">
                                 <span className="font-semibold text-gray-800">Classes: </span>
                                 <span className="text-gray-700">
                                   {allowedClasses.slice(0, 2).join(', ')}
@@ -454,7 +194,7 @@ const Employees = () => {
                               </div>
                             )}
                             {allowedSubjects.length > 0 && (
-                              <div className="bg-purple-50 rounded px-2 py-1.5 border border-purple-100">
+                              <div className="bg-purple-50 rounded px-2 py-0.5 border border-purple-100">
                                 <span className="font-semibold text-gray-800">Subjects: </span>
                                 <span className="text-gray-700">
                                   {allowedSubjects.slice(0, 2).join(', ')}
@@ -466,375 +206,31 @@ const Employees = () => {
                             )}
                           </div>
                         ) : (
-                          <span className="inline-flex items-center text-xs text-gray-600 italic bg-gray-100 px-2.5 py-1 rounded">All classes + subjects</span>
+                          <span className="inline-flex items-center text-[11px] text-gray-600 bg-gray-100 px-2 py-0.5 rounded">All</span>
                         )
                       ) : (
-                        <span className="text-xs text-gray-400">—</span>
+                        <span className="text-[11px] text-gray-400">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-3">
                       {isDisabled ? (
-                        <span className="inline-flex items-center rounded-full border border-gray-300 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-600">
-                          <FiToggleLeft className="mr-1.5" size={12} />
+                        <span className="inline-flex items-center rounded-md border border-gray-300 bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+                          <FiToggleLeft className="mr-1" size={10} />
                           Disabled
                         </span>
                       ) : (
-                        <span className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                          <FiToggleRight className="mr-1.5" size={12} />
+                        <span className="inline-flex items-center rounded-md border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                          <FiToggleRight className="mr-1" size={10} />
                           Active
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-4 text-gray-600">{formatDate(emp.createdAt)}</td>
-                    <td
-                      className="px-4 py-4 text-right"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openEdit(emp)}
-                          className="inline-flex items-center px-3 py-1.5 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
-                        >
-                          <FiEdit2 className="mr-1.5" size={12} /> Edit
-                        </button>
-                        <button
-                          onClick={async () => {
-                            setEditingEmployee(emp);
-                            await handleDelete();
-                          }}
-                          className="inline-flex items-center px-3 py-1.5 text-xs rounded-md border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <FiTrash2 className="mr-1.5" size={12} /> Delete
-                        </button>
-                      </div>
-                    </td>
+                    <td className="px-4 py-3 text-gray-600">{formatDate(emp.createdAt)}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Drawer */}
-      <div
-        className={`fixed inset-y-0 right-0 w-full sm:w-[420px] bg-white border-l border-gray-200 shadow-xl transform transition-transform duration-300 ease-out z-40 ${
-          drawerOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">
-                {editingEmployee ? 'Edit employee' : 'Add employee'}
-              </h2>
-              <p className="text-xs text-gray-500">
-                {editingEmployee
-                  ? 'Update access and status for this employee.'
-                  : 'Create a new approval employee account.'}
-              </p>
-            </div>
-            <button
-              onClick={closeDrawer}
-              className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500"
-            >
-              <FiX size={18} />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-            {error && (
-              <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2 mb-2">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">Full name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g. John Doe"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">Employee ID</label>
-                <input
-                  type="text"
-                  name="employeeId"
-                  value={form.employeeId}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Unique ID used for login"
-                  required
-                  disabled={!!editingEmployee}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">Email</label>
-                <div className="relative">
-                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="employee@example.com"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700">Phone (optional)</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={form.phone}
-                  onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g. +91-9876543210"
-                />
-              </div>
-
-              {!editingEmployee && (
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-700">Password</label>
-                  <div className="relative">
-                    <FiKey className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                    <input
-                      type="password"
-                      name="password"
-                      value={form.password}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Password"
-                      required
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                  <FiShield size={12} /> Access permissions
-                </label>
-                <div className="space-y-1">
-                  {ACCESS_OPTIONS.map((opt) => (
-                    <label
-                      key={opt.id}
-                      className="flex items-start gap-2 text-xs text-gray-700 cursor-pointer"
-                    >
-                      <input
-                        type="radio"
-                        name="accessPermissions"
-                        value={opt.id}
-                        checked={form.accessPermissions === opt.id}
-                        onChange={handleChange}
-                        className="mt-[2px]"
-                      />
-                      <span>{opt.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {(form.accessPermissions === 'tutor' || form.accessPermissions === 'both') && (
-                <div className="space-y-2 border border-indigo-100 rounded-lg px-3 py-2 bg-indigo-50/40">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <div className="text-xs font-semibold text-gray-800">Tutor approval scope</div>
-                      <p className="text-[11px] text-gray-600">
-                        Limit which tutor applications this employee can review by class and subject.
-                      </p>
-                    </div>
-                    <label className="flex items-center gap-1 text-[11px] text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="tutorScopeAll"
-                        checked={form.tutorScopeAll}
-                        onChange={handleChange}
-                      />
-                      All classes + all subjects
-                    </label>
-                  </div>
-
-                  {!form.tutorScopeAll && (
-                    <>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-medium text-gray-700 mb-1 block">
-                            Classes ({form.allowedClasses.length} selected)
-                          </label>
-                          <div className="border border-gray-300 rounded-lg px-2 py-2 bg-white max-h-40 overflow-y-auto space-y-1">
-                            {tutorOptions.classes.length === 0 ? (
-                              <div className="text-[11px] text-gray-400 italic py-1">Loading classes...</div>
-                            ) : (
-                              tutorOptions.classes.map((cls) => (
-                                <label
-                                  key={cls}
-                                  className="flex items-center gap-2 text-xs text-gray-700 hover:bg-gray-50 px-1 py-0.5 rounded cursor-pointer"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={form.allowedClasses.includes(cls)}
-                                    onChange={() => handleCheckboxListChange('allowedClasses', cls)}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span>{cls}</span>
-                                </label>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[11px] font-medium text-gray-700 mb-1 block">
-                            Subjects ({form.allowedSubjects.length} selected)
-                            {form.allowedClasses.length > 0 && (
-                              <span className="text-gray-500 font-normal ml-1">
-                                (filtered by selected classes)
-                              </span>
-                            )}
-                          </label>
-                          <div className="border border-gray-300 rounded-lg px-2 py-2 bg-white max-h-40 overflow-y-auto space-y-1">
-                            {form.allowedClasses.length === 0 ? (
-                              <div className="text-[11px] text-amber-600 italic py-1 px-1 bg-amber-50 rounded border border-amber-200">
-                                Please select at least one class first to see relevant subjects
-                              </div>
-                            ) : filteredSubjects.length === 0 ? (
-                              <div className="text-[11px] text-gray-400 italic py-1">No subjects found for selected classes</div>
-                            ) : (
-                              filteredSubjects.map((subj) => (
-                                <label
-                                  key={subj}
-                                  className="flex items-center gap-2 text-xs text-gray-700 hover:bg-gray-50 px-1 py-0.5 rounded cursor-pointer"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={form.allowedSubjects.includes(subj)}
-                                    onChange={() => handleCheckboxListChange('allowedSubjects', subj)}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span>{subj}</span>
-                                </label>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {form.allowedClasses.length > 0 && form.allowedSubjects.length > 0 && (
-                        <div className="mt-3 border border-indigo-100 bg-white/60 rounded-md p-2">
-                          <div className="text-[11px] font-medium text-gray-700 mb-1">
-                            Effective tutor approval combinations
-                          </div>
-                          <div className="max-h-32 overflow-auto border border-gray-100 rounded">
-                            <table className="w-full text-[11px]">
-                              <thead className="bg-gray-50 text-gray-500">
-                                <tr>
-                                  <th className="px-2 py-1 text-left font-medium">Class</th>
-                                  <th className="px-2 py-1 text-left font-medium">Subject</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {form.allowedClasses.flatMap((cls) =>
-                                  form.allowedSubjects.map((subj) => (
-                                    <tr key={`${cls}::${subj}`} className="border-t border-gray-50">
-                                      <td className="px-2 py-1 text-gray-800">{cls}</td>
-                                      <td className="px-2 py-1 text-gray-800">{subj}</td>
-                                    </tr>
-                                  )),
-                                )}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-
-              {editingEmployee && (
-                <>
-                  <div className="flex items-center justify-between border border-gray-200 rounded-lg px-3 py-2 bg-gray-50">
-                    <div className="text-xs text-gray-700">
-                      <div className="font-medium mb-0.5">Status</div>
-                      <div className="text-gray-500">Toggle to disable or enable this employee.</div>
-                    </div>
-                    <label className="inline-flex items-center gap-1 text-xs text-gray-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="isDisabled"
-                        checked={form.isDisabled}
-                        onChange={handleChange}
-                        className="mr-1"
-                      />
-                      {form.isDisabled ? 'Disabled' : 'Active'}
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between border border-amber-200 rounded-lg px-3 py-2 bg-amber-50 mt-2">
-                    <div className="text-xs text-amber-800">
-                      <div className="font-medium mb-0.5 flex items-center gap-1">
-                        <FiKey size={12} />
-                        Password
-                      </div>
-                      <div className="text-amber-700">Reset to a temporary password; employee must change it on next login.</div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleResetPassword}
-                      disabled={resettingPassword}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-amber-300 text-[11px] font-medium text-amber-900 bg-amber-100 hover:bg-amber-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <FiKey size={12} />
-                      {resettingPassword ? 'Resetting...' : 'Reset password'}
-                    </button>
-                  </div>
-                </>
-              )}
-
-              <div className="pt-2 flex items-center justify-between gap-3">
-                {editingEmployee && (
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    <FiTrash2 size={12} />
-                    {deleting ? 'Deleting...' : 'Delete employee'}
-                  </button>
-                )}
-                <div className="flex-1" />
-                <button
-                  type="button"
-                  onClick={closeDrawer}
-                  className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {saving ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       </div>
     </div>

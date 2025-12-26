@@ -73,6 +73,8 @@ import ForgotPassword from './auth/ForgotPassword.jsx';
 import ResetPassword from './auth/ResetPassword.jsx';
 import Reports from './admin/Reports.jsx';
 import Employees from './admin/Employees.jsx';
+import EmployeeDetail from './admin/EmployeeDetail.jsx';
+import AdminUserProfile from './admin/AdminUserProfile.jsx';
 import EmployeeRoute from './routes/EmployeeRoute.jsx';
 import EmployeeLayout from './employee/EmployeeLayout.jsx';
 import EmployeeDashboard from './employee/EmployeeDashboard.jsx';
@@ -186,7 +188,9 @@ const adminOnlyRoutes = [
           { path: 'session-requests', element: <AdminSessionRequests /> },
           { path: 'skillmate-requests', element: <SkillMateRequests /> },
           { path: 'users', element: <Users /> },
+          { path: 'users/profile/:userId', element: <AdminUserProfile /> },
           { path: 'employees', element: <Employees /> },
+          { path: 'employees/:employeeId', element: <EmployeeDetail /> },
           { path: 'packages', element: <AdminPackages /> },
           { path: 'reports', element: <Reports /> },
           { path: 'help-support', element: <AdminHelpSupport /> },

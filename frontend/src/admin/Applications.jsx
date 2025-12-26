@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext.jsx';
 import {
   FiSearch, FiFilter, FiCalendar, FiUser, FiUsers, FiBriefcase,
   FiAward, FiFileText, FiX, FiCheck, FiClock, FiChevronRight,
-  FiMail, FiMapPin, FiGlobe, FiBook, FiVideo, FiGrid, FiList
+  FiMail, FiMapPin, FiGlobe, FiBook, FiVideo, FiGrid, FiList, FiArrowLeft, FiLoader
 } from 'react-icons/fi';
+import UserDetailTabContent from './UserDetailTabContent.jsx';
 
 const statusOptions = [
   { id: 'all', label: 'All', color: 'gray' },
@@ -45,6 +46,15 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
   const [dateFilter, setDateFilter] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
+  // User details view state
+  const [showingUserDetails, setShowingUserDetails] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [userDetails, setUserDetails] = useState(null);
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
+  const [userTabStates, setUserTabStates] = useState({});
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionAppId, setRejectionAppId] = useState(null);
   useAuth();
 
   const visibleCategoryOptions = useMemo(() => {
@@ -189,29 +199,73 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
     finally { setActionLoading(prev => ({ ...prev, [id]: false })); }
   };
 
-  const reject = async (id) => {
-    const reason = category === 'tutor' ? (prompt('Rejection reason (optional)') || '') : null;
-    if (!category !== 'tutor' && !window.confirm('Reject this application?')) return;
+  const openRejectionModal = (id) => {
+    setRejectionAppId(id);
+    setShowRejectionModal(true);
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      alert('Please provide a rejection reason');
+      return;
+    }
     try {
-      setActionLoading(prev => ({ ...prev, [id]: true }));
+      setActionLoading(prev => ({ ...prev, [rejectionAppId]: true }));
       if (category === 'tutor') {
         const tutorUrl =
           mode === 'employee'
-            ? `${BACKEND_URL}/api/employee/tutor/applications/${id}/reject`
-            : `${BACKEND_URL}/api/admin/tutor/applications/${id}/reject`;
-        await axios.put(tutorUrl, { reason }, { withCredentials: true });
+            ? `${BACKEND_URL}/api/employee/tutor/applications/${rejectionAppId}/reject`
+            : `${BACKEND_URL}/api/admin/tutor/applications/${rejectionAppId}/reject`;
+        await axios.put(tutorUrl, { reason: rejectionReason }, { withCredentials: true });
       } else {
         const baseUrl =
           mode === 'employee'
-            ? `${BACKEND_URL}/api/interview/employee/applications/${id}/reject`
-            : `${BACKEND_URL}/api/interview/applications/${id}/reject`;
-        const res = await fetch(baseUrl, { method: 'POST', credentials: 'include' });
+            ? `${BACKEND_URL}/api/interview/employee/applications/${rejectionAppId}/reject`
+            : `${BACKEND_URL}/api/interview/applications/${rejectionAppId}/reject`;
+        const res = await fetch(baseUrl, { 
+          method: 'POST', 
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: rejectionReason })
+        });
         const json = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(json.message || 'Reject failed');
       }
+      alert('Application rejected successfully');
+      setShowRejectionModal(false);
+      setRejectionReason('');
+      setRejectionAppId(null);
       await fetchApps({});
-    } catch (e) { alert(e.message || 'Failed'); }
-    finally { setActionLoading(prev => ({ ...prev, [id]: false })); }
+    } catch (e) {
+      alert(e.message || 'Failed to reject application');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [rejectionAppId]: false }));
+    }
+  };
+
+  const fetchUserDetails = async (userId) => {
+    try {
+      setLoadingUserDetails(true);
+      const response = await fetch(`${BACKEND_URL}/api/admin/users/${userId}`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails(data);
+        setSelectedUserId(userId);
+        setShowingUserDetails(true);
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    } finally {
+      setLoadingUserDetails(false);
+    }
+  };
+
+  const handleBackToList = () => {
+    setShowingUserDetails(false);
+    setSelectedUserId(null);
+    setUserDetails(null);
   };
 
   const getStatusBadge = (statusValue) => {
@@ -405,9 +459,18 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
         </div>
 
         {/* Drawer Body */}
-        <div className="flex-1 overflow-y-auto p-2 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
           {detailTab === 'overview' && (
             <div className="space-y-4">
+              {/* View User Profile Button */}
+              <button
+                onClick={() => fetchUserDetails(user._id || selected.userId)}
+                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                <FiUser size={16} />
+                View User Profile
+              </button>
+              
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">Contact Information</h4>
                 <div className="space-y-2 text-sm">
@@ -633,7 +696,7 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
           <div className="flex-shrink-0 border-t border-gray-200 p-4 bg-white">
             <div className="flex gap-3">
               <button
-                onClick={() => reject(selected._id)}
+                onClick={() => openRejectionModal(selected._id)}
                 disabled={actionLoading[selected._id]}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-white border-2 border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
@@ -654,6 +717,82 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
       </div>
     );
   };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getInitials = (user) => {
+    if (!user) return '?';
+    const first = user.firstName?.[0] || '';
+    const last = user.lastName?.[0] || '';
+    return (first + last).toUpperCase() || user.username?.[0]?.toUpperCase() || '?';
+  };
+
+  // Show user details view if selected
+  if (showingUserDetails && selectedUserId) {
+    return (
+      <div className="flex flex-col h-full bg-gray-50">
+        {/* Back Button Header */}
+        <div className="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-gray-900">User Profile</h1>
+          <button
+            onClick={handleBackToList}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            <FiArrowLeft size={16} />
+            Back to Applications
+          </button>
+        </div>
+
+        {/* User Detail Content */}
+        <div className="flex-1 overflow-hidden">
+          {loadingUserDetails ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Loading user details...</p>
+              </div>
+            </div>
+          ) : userDetails ? (
+            <UserDetailTabContent
+              userId={selectedUserId}
+              userDetails={userDetails}
+              isLoadingDetails={loadingUserDetails}
+              userTabStates={userTabStates}
+              setUserTabStates={setUserTabStates}
+              formatDate={formatDate}
+              formatDateTime={formatDateTime}
+              getInitials={getInitials}
+              setShowTutorFeedbackModal={() => {}}
+              setShowInterviewerFeedbackModal={() => {}}
+              setModalUserId={() => {}}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500">Failed to load user details</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -830,6 +969,53 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
           </div>
         )}
       </div>
+
+      {/* Rejection Modal */}
+      {showRejectionModal && rejectionAppId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Reject Application</h2>
+            <p className="text-gray-600 mb-6">
+              Provide a brief reason for rejecting this application. This helps maintain transparency in our review process.
+            </p>
+            
+            <div className="mb-6">
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Enter rejection reason (e.g., 'Insufficient experience', 'Does not meet requirements', etc.)..."
+                rows={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none resize-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  setShowRejectionModal(false);
+                  setRejectionReason('');
+                  setRejectionAppId(null);
+                }}
+                disabled={actionLoading[rejectionAppId]}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={actionLoading[rejectionAppId]}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {actionLoading[rejectionAppId] ? (
+                  <><FiLoader className="w-4 h-4 animate-spin" /> Processing...</>
+                ) : (
+                  <><FiX className="w-4 h-4" /> Reject Application</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

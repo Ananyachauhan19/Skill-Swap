@@ -1146,11 +1146,11 @@ const SessionRequests = () => {
         <div className="mb-3 p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1">
           <div className="flex items-start gap-2 text-xs">
             <span className="font-medium text-amber-700 min-w-[60px]">Company:</span>
-            <span className="text-slate-700 font-medium">{request.company || '—'}</span>
+            <span className="text-slate-700 font-medium">{request.company || 'ï¿½'}</span>
           </div>
           <div className="flex items-start gap-2 text-xs">
             <span className="font-medium text-amber-700 min-w-[60px]">Position:</span>
-            <span className="text-slate-700 font-medium">{request.position || '—'}</span>
+            <span className="text-slate-700 font-medium">{request.position || 'ï¿½'}</span>
           </div>
           {request.message && (
             <div className="mt-2 pt-2 border-t border-slate-200">

@@ -13,7 +13,10 @@ import {
   FiLoader,
   FiKey,
   FiFileText,
+  FiArrowLeft,
+  FiUser,
 } from 'react-icons/fi';
+import UserDetailTabContent from './UserDetailTabContent.jsx';
 
 const RecruitmentApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -29,6 +32,12 @@ const RecruitmentApplications = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [search, setSearch] = useState('');
+  // User details view state
+  const [showingUserDetails, setShowingUserDetails] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [userDetails, setUserDetails] = useState(null);
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
+  const [userTabStates, setUserTabStates] = useState({});
 
   useEffect(() => {
     loadApplications();
@@ -113,6 +122,58 @@ const RecruitmentApplications = () => {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const fetchUserDetails = async (userId) => {
+    try {
+      setLoadingUserDetails(true);
+      const response = await fetch(`${BACKEND_URL}/api/admin/users/${userId}`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails(data);
+        setSelectedUserId(userId);
+        setShowingUserDetails(true);
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    } finally {
+      setLoadingUserDetails(false);
+    }
+  };
+
+  const handleBackToList = () => {
+    setShowingUserDetails(false);
+    setSelectedUserId(null);
+    setUserDetails(null);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getInitials = (user) => {
+    if (!user) return '?';
+    const first = user.firstName?.[0] || '';
+    const last = user.lastName?.[0] || '';
+    return (first + last).toUpperCase() || user.username?.[0]?.toUpperCase() || '?';
   };
 
   const filteredApplications = applications.filter(app => {
@@ -220,6 +281,22 @@ const RecruitmentApplications = () => {
         <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
           {detailTab === 'overview' && (
             <div className="space-y-4 text-sm text-gray-800">
+              {/* View User Profile Button */}
+              {app.user && (app.user._id || app.user) ? (
+                <button
+                  onClick={() => fetchUserDetails(typeof app.user === 'object' ? app.user._id : app.user)}
+                  className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <FiUser size={18} />
+                  View User Profile
+                </button>
+              ) : (
+                <div className="w-full py-2.5 px-4 bg-gray-100 text-gray-500 font-medium rounded-lg text-center text-sm border border-gray-200">
+                  <FiUser size={16} className="inline mr-2" />
+                  User profile not available
+                </div>
+              )}
+              
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">Personal & Contact</h4>
                 <div className="space-y-2">
@@ -405,6 +482,55 @@ const RecruitmentApplications = () => {
       </div>
     );
   };
+
+  // Show user details view if selected
+  if (showingUserDetails && selectedUserId) {
+    return (
+      <div className="flex flex-col h-full bg-gray-50">
+        {/* Back Button Header */}
+        <div className="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-gray-900">User Profile</h1>
+          <button
+            onClick={handleBackToList}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            <FiArrowLeft size={16} />
+            Back to Applications
+          </button>
+        </div>
+
+        {/* User Detail Content */}
+        <div className="flex-1 overflow-hidden">
+          {loadingUserDetails ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Loading user details...</p>
+              </div>
+            </div>
+          ) : userDetails ? (
+            <UserDetailTabContent
+              userId={selectedUserId}
+              userDetails={userDetails}
+              isLoadingDetails={loadingUserDetails}
+              userTabStates={userTabStates}
+              setUserTabStates={setUserTabStates}
+              formatDate={formatDate}
+              formatDateTime={formatDateTime}
+              getInitials={getInitials}
+              setShowTutorFeedbackModal={() => {}}
+              setShowInterviewerFeedbackModal={() => {}}
+              setModalUserId={() => {}}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500">Failed to load user details</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pl-8 pr-4 pt-2 pb-6 max-w-7xl mx-auto flex flex-col min-h-screen">

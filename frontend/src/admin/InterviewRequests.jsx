@@ -5,8 +5,9 @@ import { useAuth } from '../context/AuthContext.jsx';
 import {
   FiSearch, FiFilter, FiCalendar, FiUser, FiClock,
   FiCheck, FiX, FiUserCheck, FiStar, FiMessageSquare,
-  FiBriefcase, FiMail, FiPhone, FiMapPin, FiChevronRight
+  FiBriefcase, FiMail, FiPhone, FiMapPin, FiChevronRight, FiArrowLeft
 } from 'react-icons/fi';
+import UserDetailTabContent from './UserDetailTabContent.jsx';
 
 const STATUS_CONFIG = {
   pending: { color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: FiClock, label: 'Pending' },
@@ -48,6 +49,12 @@ export default function InterviewRequests() {
   const [customEndDate, setCustomEndDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [assignInput, setAssignInput] = useState('');
+  // User details view state
+  const [showingUserDetails, setShowingUserDetails] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [userDetails, setUserDetails] = useState(null);
+  const [loadingUserDetails, setLoadingUserDetails] = useState(false);
+  const [userTabStates, setUserTabStates] = useState({});
   const [interviewerSuggestions, setInterviewerSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -93,6 +100,58 @@ export default function InterviewRequests() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user]);
+
+  const fetchUserDetails = async (userId) => {
+    try {
+      setLoadingUserDetails(true);
+      const response = await fetch(`${BACKEND_URL}/api/admin/users/${userId}`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserDetails(data);
+        setSelectedUserId(userId);
+        setShowingUserDetails(true);
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    } finally {
+      setLoadingUserDetails(false);
+    }
+  };
+
+  const handleBackToList = () => {
+    setShowingUserDetails(false);
+    setSelectedUserId(null);
+    setUserDetails(null);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getInitials = (user) => {
+    if (!user) return '?';
+    const first = user.firstName?.[0] || '';
+    const last = user.lastName?.[0] || '';
+    return (first + last).toUpperCase() || user.username?.[0]?.toUpperCase() || '?';
+  };
 
   // Search for interviewers as user types
   useEffect(() => {
@@ -226,31 +285,6 @@ export default function InterviewRequests() {
   useEffect(() => {
     setCurrentPage(1);
   }, [activeStatus, searchQuery, dateFilter, customStartDate, customEndDate]);
-
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
-  const formatDateTime = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const getStatusBadge = (status) => {
     const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
@@ -421,6 +455,17 @@ export default function InterviewRequests() {
         <div className="flex-1 overflow-y-auto p-4 bg-gray-50" style={{ maxHeight: 'calc(100vh - 200px)' }}>
           {detailTab === 'overview' && (
             <div className="space-y-4">
+              {/* View User Profile Button */}
+              {selectedRequest.requester && (
+                <button
+                  onClick={() => fetchUserDetails(selectedRequest.requester._id || selectedRequest.requester)}
+                  className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <FiUser size={16} />
+                  View User Profile
+                </button>
+              )}
+              
               {/* Requested For */}
               <div className="bg-white rounded-lg p-4 border border-gray-200">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">Requested For</h4>
@@ -633,6 +678,55 @@ export default function InterviewRequests() {
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <div className="mt-3 text-sm text-gray-600">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show user details view if selected
+  if (showingUserDetails && selectedUserId) {
+    return (
+      <div className="flex flex-col h-full bg-gray-50">
+        {/* Back Button Header */}
+        <div className="border-b border-gray-200 bg-white px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-gray-900">User Profile</h1>
+          <button
+            onClick={handleBackToList}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
+          >
+            <FiArrowLeft size={16} />
+            Back to Interview Requests
+          </button>
+        </div>
+
+        {/* User Detail Content */}
+        <div className="flex-1 overflow-hidden">
+          {loadingUserDetails ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Loading user details...</p>
+              </div>
+            </div>
+          ) : userDetails ? (
+            <UserDetailTabContent
+              userId={selectedUserId}
+              userDetails={userDetails}
+              isLoadingDetails={loadingUserDetails}
+              userTabStates={userTabStates}
+              setUserTabStates={setUserTabStates}
+              formatDate={formatDate}
+              formatDateTime={formatDateTime}
+              getInitials={getInitials}
+              setShowTutorFeedbackModal={() => {}}
+              setShowInterviewerFeedbackModal={() => {}}
+              setModalUserId={() => {}}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500">Failed to load user details</p>
+            </div>
+          )}
         </div>
       </div>
     );
