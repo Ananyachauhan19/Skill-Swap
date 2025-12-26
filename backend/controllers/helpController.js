@@ -1,6 +1,47 @@
 const HelpMessage = require('../models/HelpMessage');
 const { sendMail } = require('../utils/sendMail');
 
+const getRangeForPeriod = (period, date) => {
+  if (!period || !date) return null;
+
+  const selectedDate = new Date(date);
+  if (Number.isNaN(selectedDate.getTime())) return null;
+  selectedDate.setHours(0, 0, 0, 0);
+
+  let startDate;
+  let endDate;
+
+  switch (period) {
+    case 'daily':
+      startDate = new Date(selectedDate);
+      endDate = new Date(selectedDate);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    case 'weekly': {
+      // Week = Monday..Sunday
+      const dayOfWeek = selectedDate.getDay();
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      startDate = new Date(selectedDate);
+      startDate.setDate(selectedDate.getDate() + daysToMonday);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    }
+    case 'monthly':
+      startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    default:
+      return null;
+  }
+
+  return { startDate, endDate };
+};
+
 // Submit help/support request
 exports.submitHelpRequest = async (req, res) => {
   try {
@@ -59,7 +100,7 @@ exports.submitHelpRequest = async (req, res) => {
 // Get all help messages (Admin only)
 exports.getAllHelpMessages = async (req, res) => {
   try {
-    const { status, search, page = 1, limit = 20 } = req.query;
+    const { status, search, page = 1, limit = 20, period, date } = req.query;
     
     const query = {};
     if (status && status !== 'all') {
@@ -73,19 +114,30 @@ exports.getAllHelpMessages = async (req, res) => {
       ];
     }
 
+    if (period && period !== 'overall' && date) {
+      const range = getRangeForPeriod(period, date);
+      if (!range) {
+        return res.status(400).json({ message: 'Invalid period/date' });
+      }
+      query.createdAt = { $gte: range.startDate, $lte: range.endDate };
+    }
+
+    const safeLimit = Math.min(Number(limit) || 20, 100);
+    const safePage = Math.max(Number(page) || 1, 1);
+
     const messages = await HelpMessage.find(query)
       .populate('userId', 'firstName lastName username email')
       .populate('repliedBy', 'firstName lastName username')
       .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .limit(safeLimit)
+      .skip((safePage - 1) * safeLimit);
 
     const count = await HelpMessage.countDocuments(query);
 
     res.status(200).json({
       messages,
-      totalPages: Math.ceil(count / limit),
-      currentPage: page,
+      totalPages: Math.ceil(count / safeLimit),
+      currentPage: safePage,
       total: count
     });
   } catch (error) {
@@ -218,5 +270,48 @@ exports.getHelpStatistics = async (req, res) => {
   } catch (error) {
     console.error('Error fetching help statistics:', error);
     res.status(500).json({ message: 'Failed to fetch statistics' });
+  }
+};
+
+// Get date-based statistics (Admin only)
+exports.getDateStatistics = async (req, res) => {
+  try {
+    const { period, date } = req.query;
+
+    if (!period || !date) {
+      return res.status(400).json({ message: 'Period and date are required' });
+    }
+
+    const range = getRangeForPeriod(period, date);
+    if (!range) {
+      return res.status(400).json({ message: 'Invalid period/date' });
+    }
+
+    const { startDate, endDate } = range;
+
+    const dateFilter = {
+      createdAt: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    };
+
+    const totalMessages = await HelpMessage.countDocuments(dateFilter);
+    const pendingMessages = await HelpMessage.countDocuments({ ...dateFilter, status: 'pending' });
+    const repliedMessages = await HelpMessage.countDocuments({ ...dateFilter, status: 'replied' });
+    const resolvedMessages = await HelpMessage.countDocuments({ ...dateFilter, status: 'resolved' });
+
+    res.status(200).json({
+      total: totalMessages,
+      pending: pendingMessages,
+      replied: repliedMessages,
+      resolved: resolvedMessages,
+      period,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
+  } catch (error) {
+    console.error('Error fetching date statistics:', error);
+    res.status(500).json({ message: 'Failed to fetch date statistics' });
   }
 };

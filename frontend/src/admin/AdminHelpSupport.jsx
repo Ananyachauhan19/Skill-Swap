@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { BACKEND_URL } from '../config';
-import { FiMail, FiClock, FiCheckCircle, FiAlertCircle, FiSearch, FiSend } from 'react-icons/fi';
+import { FiMail, FiClock, FiCheckCircle, FiAlertCircle, FiSearch, FiSend, FiCalendar, FiTrendingUp } from 'react-icons/fi';
 import { FaReply, FaTimes } from 'react-icons/fa';
 
 const AdminHelpSupport = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
@@ -13,28 +16,63 @@ const AdminHelpSupport = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState({ total: 0, pending: 0, replied: 0, resolved: 0 });
   const [showReplyModal, setShowReplyModal] = useState(false);
+  
+  // New state for date filtering
+  const [timeFilter, setTimeFilter] = useState('overall'); // 'overall', 'daily', 'weekly', 'monthly'
+  const [selectedDate, setSelectedDate] = useState('');
+  const [dateStats, setDateStats] = useState(null);
 
   useEffect(() => {
-    fetchMessages();
-    fetchStats();
-  }, [filter, searchQuery]);
+    // Reset list paging when filters change
+    setMessages([]);
+    setPage(1);
+  }, [filter, searchQuery, timeFilter, selectedDate]);
 
-  const fetchMessages = async () => {
-    setLoading(true);
+  useEffect(() => {
+    fetchMessages(1, { append: false });
+  }, [filter, searchQuery, timeFilter, selectedDate]);
+
+  useEffect(() => {
+    if (timeFilter === 'overall') {
+      fetchStats();
+    } else if (selectedDate) {
+      fetchDateStats();
+    } else {
+      setDateStats(null);
+    }
+  }, [timeFilter, selectedDate]);
+
+  const fetchMessages = async (pageToFetch = 1, { append } = { append: false }) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const params = new URLSearchParams();
       if (filter !== 'all') params.append('status', filter);
       if (searchQuery) params.append('search', searchQuery);
+      params.append('page', String(pageToFetch));
+      params.append('limit', '20');
+
+      if (timeFilter !== 'overall' && selectedDate) {
+        params.append('period', timeFilter);
+        params.append('date', selectedDate);
+      }
       
       const res = await fetch(`${BACKEND_URL}/api/support/messages?${params.toString()}`, {
         credentials: 'include'
       });
       const data = await res.json();
-      setMessages(data.messages || []);
+      const nextMessages = data.messages || [];
+      setTotalPages(Number(data.totalPages) || 1);
+      setPage(Number(data.currentPage) || pageToFetch);
+      setMessages((prev) => (append ? [...prev, ...nextMessages] : nextMessages));
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -45,8 +83,28 @@ const AdminHelpSupport = () => {
       });
       const data = await res.json();
       setStats(data);
+      setDateStats(null); // Clear date stats when showing overall
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchDateStats = async () => {
+    if (!selectedDate) return;
+    
+    try {
+      const params = new URLSearchParams({
+        period: timeFilter,
+        date: selectedDate
+      });
+      
+      const res = await fetch(`${BACKEND_URL}/api/support/date-statistics?${params}`, {
+        credentials: 'include'
+      });
+      const data = await res.json();
+      setDateStats(data);
+    } catch (error) {
+      console.error('Error fetching date statistics:', error);
     }
   };
 
@@ -68,8 +126,11 @@ const AdminHelpSupport = () => {
       setReplyText('');
       setShowReplyModal(false);
       setSelectedMessage(null);
-      fetchMessages();
-      fetchStats();
+      setMessages([]);
+      setPage(1);
+      fetchMessages(1, { append: false });
+      if (timeFilter === 'overall') fetchStats();
+      else if (selectedDate) fetchDateStats();
     } catch (error) {
       console.error('Error sending reply:', error);
       alert('Failed to send reply. Please try again.');
@@ -89,12 +150,24 @@ const AdminHelpSupport = () => {
 
       if (!res.ok) throw new Error('Failed to update status');
 
-      fetchMessages();
-      fetchStats();
+      setMessages([]);
+      setPage(1);
+      fetchMessages(1, { append: false });
+      if (timeFilter === 'overall') fetchStats();
+      else if (selectedDate) fetchDateStats();
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update status');
     }
+  };
+
+  const handleMessagesScroll = (e) => {
+    const el = e.currentTarget;
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 80;
+    if (!nearBottom) return;
+    if (loadingMore || loading) return;
+    if (page >= totalPages) return;
+    fetchMessages(page + 1, { append: true });
   };
 
   const getStatusColor = (status) => {
@@ -124,63 +197,152 @@ const AdminHelpSupport = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-3 sm:p-4 lg:p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Help & Support Messages</h1>
-        <p className="text-gray-600">Manage and respond to user help requests</p>
+      <div className="mb-4">
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Help & Support</h1>
+        <p className="text-sm text-gray-600">Manage and respond to user requests</p>
+      </div>
+
+      {/* Time Period Filter */}
+      <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 mb-4">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <FiCalendar className="text-blue-600" />
+            <h3 className="text-sm font-semibold text-gray-900">Filters</h3>
+          </div>
+
+          <div className="inline-flex bg-gray-100 p-1 rounded-lg border border-gray-200 w-fit">
+            <button
+              onClick={() => {
+                setTimeFilter('overall');
+                setSelectedDate('');
+              }}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                timeFilter === 'overall'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Overall
+            </button>
+            <button
+              onClick={() => setTimeFilter('daily')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                timeFilter === 'daily'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Daily
+            </button>
+            <button
+              onClick={() => setTimeFilter('weekly')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                timeFilter === 'weekly'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Weekly
+            </button>
+            <button
+              onClick={() => setTimeFilter('monthly')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                timeFilter === 'monthly'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Monthly
+            </button>
+          </div>
+
+          {timeFilter !== 'overall' && (
+            <div className="flex items-center gap-2 lg:ml-auto">
+              <span className="text-xs font-medium text-gray-600">Date</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="h-9 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+          )}
+        </div>
+
+        {timeFilter !== 'overall' && selectedDate && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-gray-600">
+            <FiTrendingUp className="text-gray-500" />
+            <span className="font-medium text-gray-800">Active:</span>
+            <span>
+              {timeFilter === 'daily' && new Date(selectedDate).toLocaleDateString()}
+              {timeFilter === 'weekly' && `Week of ${new Date(selectedDate).toLocaleDateString()}`}
+              {timeFilter === 'monthly' && new Date(selectedDate).toLocaleDateString('default', { month: 'long', year: 'numeric' })}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Total Messages</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+              <p className="text-xs text-gray-600">Total</p>
+              <p className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">
+                {dateStats ? dateStats.total : stats.total}
+              </p>
             </div>
-            <FiMail className="text-3xl text-blue-600" />
+            <FiMail className="text-xl text-blue-600" />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Pending</p>
-              <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+              <p className="text-xs text-gray-600">Pending</p>
+              <p className="text-lg sm:text-xl font-bold text-yellow-600 leading-tight">
+                {dateStats ? dateStats.pending : stats.pending}
+              </p>
             </div>
-            <FiClock className="text-3xl text-yellow-600" />
+            <FiClock className="text-xl text-yellow-600" />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Replied</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.replied}</p>
+              <p className="text-xs text-gray-600">Replied</p>
+              <p className="text-lg sm:text-xl font-bold text-blue-600 leading-tight">
+                {dateStats ? dateStats.replied : stats.replied}
+              </p>
             </div>
-            <FaReply className="text-3xl text-blue-600" />
+            <FaReply className="text-xl text-blue-600" />
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Resolved</p>
-              <p className="text-2xl font-bold text-green-600">{stats.resolved}</p>
+              <p className="text-xs text-gray-600">Resolved</p>
+              <p className="text-lg sm:text-xl font-bold text-green-600 leading-tight">
+                {dateStats ? dateStats.resolved : stats.resolved}
+              </p>
             </div>
-            <FiCheckCircle className="text-3xl text-green-600" />
+            <FiCheckCircle className="text-xl text-green-600" />
           </div>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-gray-100 mb-6">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex gap-2 flex-wrap">
+      <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100 mb-4">
+        <div className="flex flex-col lg:flex-row gap-3">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 filter === 'all'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -190,7 +352,7 @@ const AdminHelpSupport = () => {
             </button>
             <button
               onClick={() => setFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 filter === 'pending'
                   ? 'bg-yellow-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -200,7 +362,7 @@ const AdminHelpSupport = () => {
             </button>
             <button
               onClick={() => setFilter('replied')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 filter === 'replied'
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -210,7 +372,7 @@ const AdminHelpSupport = () => {
             </button>
             <button
               onClick={() => setFilter('resolved')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 filter === 'resolved'
                   ? 'bg-green-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -225,7 +387,7 @@ const AdminHelpSupport = () => {
             <input
               type="text"
               placeholder="Search by name, email, or message..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full h-9 pl-10 pr-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -247,7 +409,10 @@ const AdminHelpSupport = () => {
             <p className="text-sm">Try adjusting your filters or search query</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div
+            className="divide-y divide-gray-100 max-h-[62vh] overflow-y-auto"
+            onScroll={handleMessagesScroll}
+          >
             {messages.map((msg) => (
               <div
                 key={msg._id}
@@ -261,14 +426,14 @@ const AdminHelpSupport = () => {
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900 text-lg">{msg.name}</h3>
+                      <h3 className="font-semibold text-gray-900 text-sm">{msg.name}</h3>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1 ${getStatusColor(msg.status)}`}>
                         {getStatusIcon(msg.status)}
                         {msg.status.charAt(0).toUpperCase() + msg.status.slice(1)}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{msg.email}</p>
-                    <p className="text-gray-700 mb-2 line-clamp-2">{msg.message}</p>
+                    <p className="text-xs text-gray-600 mb-1">{msg.email}</p>
+                    <p className="text-sm text-gray-700 mb-2 line-clamp-2">{msg.message}</p>
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <span>📅 {new Date(msg.createdAt).toLocaleString()}</span>
                       {msg.userId && (
@@ -318,6 +483,12 @@ const AdminHelpSupport = () => {
                 )}
               </div>
             ))}
+
+            {loadingMore && (
+              <div className="p-4 text-center text-xs text-gray-500">
+                Loading more...
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -3,6 +3,47 @@ const { sendMail } = require('../utils/sendMail');
 
 const REPORT_EMAIL = process.env.REPORT_EMAIL || 'skillswaphubb@gmail.com';
 
+const getRangeForPeriod = (period, date) => {
+  if (!period || !date) return null;
+
+  const selectedDate = new Date(date);
+  if (Number.isNaN(selectedDate.getTime())) return null;
+  selectedDate.setHours(0, 0, 0, 0);
+
+  let startDate;
+  let endDate;
+
+  switch (period) {
+    case 'daily':
+      startDate = new Date(selectedDate);
+      endDate = new Date(selectedDate);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    case 'weekly': {
+      // Week = Monday..Sunday
+      const dayOfWeek = selectedDate.getDay();
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      startDate = new Date(selectedDate);
+      startDate.setDate(selectedDate.getDate() + daysToMonday);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    }
+    case 'monthly':
+      startDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      endDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    default:
+      return null;
+  }
+
+  return { startDate, endDate };
+};
+
 exports.createReport = async (req, res) => {
   try {
     const {
@@ -76,7 +117,7 @@ exports.createReport = async (req, res) => {
 
 exports.listReports = async (req, res) => {
   try {
-    const { type, status } = req.query;
+    const { type, status, period, date, page = 1, limit = 50 } = req.query;
     const filter = {};
     if (type && ['video', 'account'].includes(type)) {
       filter.type = type;
@@ -86,10 +127,33 @@ exports.listReports = async (req, res) => {
     } else if (status === 'resolved') {
       filter.resolved = true;
     }
-    const reports = await Report.find(filter)
-      .sort({ createdAt: -1 })
-      .lean();
-    return res.status(200).json({ reports });
+
+    if (period && period !== 'overall' && date) {
+      const range = getRangeForPeriod(period, date);
+      if (!range) {
+        return res.status(400).json({ message: 'Invalid period/date' });
+      }
+      filter.createdAt = { $gte: range.startDate, $lte: range.endDate };
+    }
+
+    const safeLimit = Math.min(Number(limit) || 50, 100);
+    const safePage = Math.max(Number(page) || 1, 1);
+
+    const [reports, count] = await Promise.all([
+      Report.find(filter)
+        .sort({ createdAt: -1 })
+        .limit(safeLimit)
+        .skip((safePage - 1) * safeLimit)
+        .lean(),
+      Report.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      reports,
+      totalPages: Math.ceil(count / safeLimit),
+      currentPage: safePage,
+      total: count,
+    });
   } catch (e) {
     console.error('[Report] List error:', e);
     return res.status(500).json({ message: 'Server error', details: e.message });

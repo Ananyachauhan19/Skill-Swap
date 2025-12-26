@@ -1,39 +1,73 @@
 import React, { useEffect, useState } from 'react';
 import { BACKEND_URL } from '../config.js';
+import { FiCalendar } from 'react-icons/fi';
 
 const Reports = () => {
   const [activeTab, setActiveTab] = useState('video');
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('open'); // open | resolved | all
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const params = new URLSearchParams();
-        params.set('type', activeTab);
-        if (statusFilter !== 'all') params.set('status', statusFilter);
+  const [timeFilter, setTimeFilter] = useState('overall'); // overall | daily | weekly | monthly
+  const [selectedDate, setSelectedDate] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-        const res = await fetch(`${BACKEND_URL}/api/admin/reports?${params.toString()}`, {
-          credentials: 'include',
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.message || 'Failed to load reports');
-        }
-        const data = await res.json();
-        setReports(Array.isArray(data.reports) ? data.reports : []);
-      } catch (e) {
-        setError(e.message || 'Failed to load reports');
-      } finally {
-        setLoading(false);
+  const loadReports = async (pageToFetch = 1, { append } = { append: false }) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+    setError('');
+
+    try {
+      const params = new URLSearchParams();
+      params.set('type', activeTab);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      params.set('page', String(pageToFetch));
+      params.set('limit', '20');
+
+      if (timeFilter !== 'overall' && selectedDate) {
+        params.set('period', timeFilter);
+        params.set('date', selectedDate);
       }
-    };
-    load();
-  }, [activeTab, statusFilter]);
+
+      const res = await fetch(`${BACKEND_URL}/api/admin/reports?${params.toString()}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to load reports');
+      }
+      const data = await res.json();
+      const next = Array.isArray(data.reports) ? data.reports : [];
+      const nextPage = Number(data.currentPage) || pageToFetch;
+      setTotalPages(Number(data.totalPages) || 1);
+      setPage(nextPage);
+      setReports((prev) => (append ? [...prev, ...next] : next));
+    } catch (e) {
+      setError(e.message || 'Failed to load reports');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    setReports([]);
+    setPage(1);
+    loadReports(1, { append: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, statusFilter, timeFilter, selectedDate]);
+
+  const handleScroll = (e) => {
+    const el = e.currentTarget;
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 80;
+    if (!nearBottom) return;
+    if (loading || loadingMore) return;
+    if (page >= totalPages) return;
+    loadReports(page + 1, { append: true });
+  };
 
   const handleResolve = async (id) => {
     try {
@@ -93,65 +127,121 @@ const Reports = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6">
-      <h1 className="text-2xl font-bold text-slate-900 mb-4">Reports</h1>
-      <p className="text-sm text-slate-600 mb-4">
+    <div className="p-3 sm:p-4 lg:p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-1">Reports</h1>
+      <p className="text-xs sm:text-sm text-slate-600 mb-3">
         All reports submitted by users are sent to <span className="font-semibold">skillswaphubb@gmail.com</span> and listed here.
       </p>
 
-      <div className="flex flex-wrap gap-2 mb-4">
-        <button
-          className={`px-3 py-1.5 rounded text-sm font-medium border ${
-            activeTab === 'video'
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-slate-700 border-slate-200'
-          }`}
-          onClick={() => setActiveTab('video')}
-        >
-          Video Reports
-        </button>
-        <button
-          className={`px-3 py-1.5 rounded text-sm font-medium border ${
-            activeTab === 'account'
-              ? 'bg-blue-600 text-white border-blue-600'
-              : 'bg-white text-slate-700 border-slate-200'
-          }`}
-          onClick={() => setActiveTab('account')}
-        >
-          Account Reports
-        </button>
-        <div className="ml-auto flex gap-1 text-xs items-center">
-          <span className="text-slate-500 mr-1 hidden sm:inline">Status:</span>
-          <button
-            className={`px-2 py-1 rounded border text-[11px] ${
-              statusFilter === 'open'
-                ? 'bg-emerald-600 text-white border-emerald-600'
-                : 'bg-white text-slate-700 border-slate-200'
-            }`}
-            onClick={() => setStatusFilter('open')}
-          >
-            Open
-          </button>
-          <button
-            className={`px-2 py-1 rounded border text-[11px] ${
-              statusFilter === 'resolved'
-                ? 'bg-slate-700 text-white border-slate-700'
-                : 'bg-white text-slate-700 border-slate-200'
-            }`}
-            onClick={() => setStatusFilter('resolved')}
-          >
-            Resolved
-          </button>
-          <button
-            className={`px-2 py-1 rounded border text-[11px] ${
-              statusFilter === 'all'
-                ? 'bg-slate-200 text-slate-800 border-slate-300'
-                : 'bg-white text-slate-700 border-slate-200'
-            }`}
-            onClick={() => setStatusFilter('all')}
-          >
-            All
-          </button>
+      {/* Filters */}
+      <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-slate-200 mb-3">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit">
+              <button
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  activeTab === 'video' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                onClick={() => setActiveTab('video')}
+              >
+                Video
+              </button>
+              <button
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  activeTab === 'account' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                onClick={() => setActiveTab('account')}
+              >
+                Account
+              </button>
+            </div>
+
+            <div className="inline-flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit">
+              <button
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  timeFilter === 'overall' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                onClick={() => {
+                  setTimeFilter('overall');
+                  setSelectedDate('');
+                }}
+              >
+                Overall
+              </button>
+              <button
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  timeFilter === 'daily' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                onClick={() => setTimeFilter('daily')}
+              >
+                Daily
+              </button>
+              <button
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  timeFilter === 'weekly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                onClick={() => setTimeFilter('weekly')}
+              >
+                Weekly
+              </button>
+              <button
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  timeFilter === 'monthly' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                onClick={() => setTimeFilter('monthly')}
+              >
+                Monthly
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <span className="text-xs text-slate-500 mr-1">Status</span>
+              <button
+                className={`px-2 py-1 rounded border text-[11px] ${
+                  statusFilter === 'open'
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-white text-slate-700 border-slate-200'
+                }`}
+                onClick={() => setStatusFilter('open')}
+              >
+                Open
+              </button>
+              <button
+                className={`px-2 py-1 rounded border text-[11px] ${
+                  statusFilter === 'resolved'
+                    ? 'bg-slate-700 text-white border-slate-700'
+                    : 'bg-white text-slate-700 border-slate-200'
+                }`}
+                onClick={() => setStatusFilter('resolved')}
+              >
+                Resolved
+              </button>
+              <button
+                className={`px-2 py-1 rounded border text-[11px] ${
+                  statusFilter === 'all'
+                    ? 'bg-slate-200 text-slate-800 border-slate-300'
+                    : 'bg-white text-slate-700 border-slate-200'
+                }`}
+                onClick={() => setStatusFilter('all')}
+              >
+                All
+              </button>
+            </div>
+          </div>
+
+          {timeFilter !== 'overall' && (
+            <div className="flex items-center gap-2 lg:ml-auto">
+              <FiCalendar className="text-slate-600" />
+              <span className="text-xs font-medium text-slate-600">Date</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="h-9 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                max={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -172,7 +262,10 @@ const Reports = () => {
           {reports.length === 0 ? (
             <div className="px-3 py-4 text-sm text-slate-500">No reports found.</div>
           ) : (
-            <ul className="divide-y divide-slate-100 text-xs sm:text-sm">
+            <ul
+              className="divide-y divide-slate-100 text-xs sm:text-sm max-h-[62vh] overflow-y-auto"
+              onScroll={handleScroll}
+            >
               {reports.map((r) => (
                 <li key={r._id} className="grid grid-cols-12 gap-2 px-3 py-2">
                   <div className="col-span-3 truncate">
@@ -241,6 +334,10 @@ const Reports = () => {
                   </div>
                 </li>
               ))}
+
+              {loadingMore && (
+                <li className="px-3 py-3 text-xs text-slate-500">Loading more...</li>
+              )}
             </ul>
           )}
         </div>

@@ -13,5 +13,6 @@ router.get('/messages/:id', requireAuth, requireAdmin, helpController.getHelpMes
 router.post('/messages/:id/reply', requireAuth, requireAdmin, helpController.replyToHelpMessage);
 router.patch('/messages/:id/status', requireAuth, requireAdmin, helpController.updateHelpMessageStatus);
 router.get('/statistics', requireAuth, requireAdmin, helpController.getHelpStatistics);
+router.get('/date-statistics', requireAuth, requireAdmin, helpController.getDateStatistics);
 
 module.exports = router;
