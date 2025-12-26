@@ -20,6 +20,7 @@ import InterviewsTab from './analytics/InterviewsTab';
 import SkillsTab from './analytics/SkillsTab';
 import RewardsTab from './analytics/RewardsTab';
 import ReportsTab from './analytics/ReportsTab';
+import VisitorsTab from './analytics/VisitorsTab';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, BarElement, LineElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -34,6 +35,7 @@ export default function Analytics() {
   const tabs = [
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'users', label: 'Users', icon: '👥' },
+    { id: 'visitors', label: 'Visitors', icon: '👀' },
     { id: 'sessions', label: 'Sessions', icon: '📚' },
     { id: 'interviews', label: 'Interviews', icon: '💼' },
     { id: 'skills', label: 'Skills', icon: '🎯' },
@@ -59,6 +61,8 @@ export default function Analytics() {
         return <OverviewTab dateRange={dateRange} />;
       case 'users':
         return <UsersTab dateRange={dateRange} />;
+      case 'visitors':
+        return <VisitorsTab dateRange={dateRange} />;
       case 'sessions':
         return <SessionsTab dateRange={dateRange} />;
       case 'interviews':

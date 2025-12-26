@@ -11,6 +11,7 @@ import {
   FiArrowRight,
   FiFileText,
   FiFilter,
+  FiEye,
 } from 'react-icons/fi';
 import { BACKEND_URL } from '../config';
 
@@ -63,6 +64,8 @@ const NewDashboard = () => {
     employeesHired: 0,
     pendingEmployeeApplications: 0,
     pendingReports: 0,
+    totalVisitors: 0,
+    uniqueVisitors: 0,
     // Trend data (percentage changes)
     usersTrend: 0,
     activeUsersTrend: 0,
@@ -130,6 +133,8 @@ const NewDashboard = () => {
           pendingEmployeeApplications:
             statsData.pendingEmployeeApplications || statsData.pendingRecruitmentApplications || 0,
           pendingReports: statsData.pendingReports || statsData.pendingReportCount || 0,
+          totalVisitors: statsData.totalVisitors || 0,
+          uniqueVisitors: statsData.uniqueVisitors || 0,
           usersTrend: statsData.usersTrend || 0,
           activeUsersTrend: statsData.activeUsersTrend || 0,
           interviewsTrend: statsData.interviewsTrend || 0,
@@ -195,6 +200,14 @@ const NewDashboard = () => {
       color: 'bg-green-500',
       link: '/admin/users',
       change: stats.activeUsersTrend,
+    },
+    {
+      title: 'Website Visitors',
+      value: loading ? '...' : stats.totalVisitors,
+      subtitle: loading ? '' : `Unique visitors: ${stats.uniqueVisitors}`,
+      icon: FiEye,
+      color: 'bg-teal-500',
+      link: '/admin/visitors',
     },
     {
       title: 'Pending Applications',

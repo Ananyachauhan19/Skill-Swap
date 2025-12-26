@@ -8,6 +8,7 @@ const HelpMessage = require('../models/HelpMessage');
 const Report = require('../models/Report');
 const Employee = require('../models/Employee');
 const RecruitmentApplication = require('../models/RecruitmentApplication');
+const Visitor = require('../models/Visitor');
 
 // Helper: build date buckets for last N days
 function buildDateRange(days = 14, endDate) {
@@ -69,6 +70,8 @@ exports.getStats = async (req, res) => {
       totalEmployees,
       pendingRecruitmentApplications,
       pendingReports,
+      totalVisitors,
+      uniqueVisitors,
     ] = await Promise.all([
       User.countDocuments(dateFilter),
       User.countDocuments({ 
@@ -131,6 +134,12 @@ exports.getStats = async (req, res) => {
         ...dateFilter,
         resolved: false 
       }),
+      // Visitor metrics
+      Visitor.countDocuments(dateFilter),
+      Visitor.countDocuments({
+        ...dateFilter,
+        visitCount: 1,
+      }),
     ]);
 
     // Expert users by role (teaching capability) - distinct from applications
@@ -161,6 +170,8 @@ exports.getStats = async (req, res) => {
         employeesHired: totalEmployees,
         pendingEmployeeApplications: pendingRecruitmentApplications,
         pendingReports,
+        totalVisitors,
+        uniqueVisitors,
       },
     });
   } catch (e) {

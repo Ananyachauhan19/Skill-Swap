@@ -14,6 +14,7 @@ import { useAuth } from './context/AuthContext.jsx';
 import { useEmployeeAuth } from './context/EmployeeAuthContext.jsx';
 import RegisterInterviewer from './user/RegisterInterviewer.jsx';
 import LoadingScreen from './components/LoadingScreen.jsx';
+import CookieConsent from './components/CookieConsent.jsx';
 import socket from './socket';
 import visitorTracker from './utils/visitorTracker';
 
@@ -73,6 +74,7 @@ import ForgotPassword from './auth/ForgotPassword.jsx';
 import ResetPassword from './auth/ResetPassword.jsx';
 import Reports from './admin/Reports.jsx';
 import Employees from './admin/Employees.jsx';
+import Visitors from './admin/Visitors.jsx';
 import EmployeeDetail from './admin/EmployeeDetail.jsx';
 import AdminUserProfile from './admin/AdminUserProfile.jsx';
 import EmployeeRoute from './routes/EmployeeRoute.jsx';
@@ -189,6 +191,7 @@ const adminOnlyRoutes = [
           { path: 'skillmate-requests', element: <SkillMateRequests /> },
           { path: 'users', element: <Users /> },
           { path: 'users/profile/:userId', element: <AdminUserProfile /> },
+          { path: 'visitors', element: <Visitors /> },
           { path: 'employees', element: <Employees /> },
           { path: 'employees/:employeeId', element: <EmployeeDetail /> },
           { path: 'packages', element: <AdminPackages /> },
@@ -362,6 +365,7 @@ function App() {
           <ModalBodyScrollLock />
           <GlobalModals />
           <SkillMatesModal />
+          {!isAdminUser && !isEmployeeRoute && <CookieConsent />}
           {/* Main content with fade-in transition */}
           <div
             className={`transition-opacity duration-500 ${

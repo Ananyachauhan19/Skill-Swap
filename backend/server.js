@@ -43,6 +43,7 @@ const packageRoutes = require('./routes/packageRoutes');
 const recruitmentRoutes = require('./routes/recruitmentRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
 const blogRoutes = require('./routes/blogRoutes');
+const visitorRoutes = require('./routes/visitorRoutes');
 const cron = require('node-cron');
 const Session = require('./models/Session');
 const User = require('./models/User');
@@ -156,6 +157,7 @@ app.use('/api', packageRoutes);
 app.use('/api/recruitment', recruitmentRoutes);
 app.use('/api', verificationRoutes);
 app.use('/api/blogs', blogRoutes);
+app.use('/api/visitors', visitorRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');
