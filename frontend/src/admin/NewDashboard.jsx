@@ -10,6 +10,7 @@ import {
   FiTrendingUp,
   FiArrowRight,
   FiFileText,
+  FiFilter,
 } from 'react-icons/fi';
 import { BACKEND_URL } from '../config';
 
@@ -69,11 +70,35 @@ const NewDashboard = () => {
     completedInterviewsTrend: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [dateFilter, setDateFilter] = useState('overall');
+  const [customDateRange, setCustomDateRange] = useState({ startDate: '', endDate: '' });
+  const [showCustomDatePicker, setShowCustomDatePicker] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await fetch(`${BACKEND_URL}/api/admin/stats`, {
+        setLoading(true);
+        
+        // Build query parameters based on filter
+        let queryParams = '';
+        if (dateFilter === 'today') {
+          const today = new Date().toISOString().split('T')[0];
+          queryParams = `?startDate=${today}&endDate=${today}`;
+        } else if (dateFilter === 'weekly') {
+          const today = new Date();
+          const weekAgo = new Date(today);
+          weekAgo.setDate(today.getDate() - 7);
+          queryParams = `?startDate=${weekAgo.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`;
+        } else if (dateFilter === 'monthly') {
+          const today = new Date();
+          const monthAgo = new Date(today);
+          monthAgo.setMonth(today.getMonth() - 1);
+          queryParams = `?startDate=${monthAgo.toISOString().split('T')[0]}&endDate=${today.toISOString().split('T')[0]}`;
+        } else if (dateFilter === 'custom' && customDateRange.startDate && customDateRange.endDate) {
+          queryParams = `?startDate=${customDateRange.startDate}&endDate=${customDateRange.endDate}`;
+        }
+
+        const response = await fetch(`${BACKEND_URL}/api/admin/stats${queryParams}`, {
           credentials: 'include',
         });
 
@@ -118,7 +143,41 @@ const NewDashboard = () => {
     };
 
     fetchStats();
-  }, []);
+  }, [dateFilter, customDateRange]);
+
+  const handleDateFilterChange = (filter) => {
+    setDateFilter(filter);
+    if (filter === 'custom') {
+      setShowCustomDatePicker(true);
+    } else {
+      setShowCustomDatePicker(false);
+    }
+  };
+
+  const handleCustomDateApply = () => {
+    if (customDateRange.startDate && customDateRange.endDate) {
+      setShowCustomDatePicker(false);
+      // Trigger re-fetch by updating the dependency
+      setDateFilter('custom');
+    }
+  };
+
+  const getFilterLabel = () => {
+    switch (dateFilter) {
+      case 'today':
+        return 'Today';
+      case 'weekly':
+        return 'Last 7 Days';
+      case 'monthly':
+        return 'Last 30 Days';
+      case 'custom':
+        return customDateRange.startDate && customDateRange.endDate
+          ? `${customDateRange.startDate} to ${customDateRange.endDate}`
+          : 'Custom Range';
+      default:
+        return 'All Time';
+    }
+  };
 
   const kpiCards = [
     {
@@ -191,9 +250,125 @@ const NewDashboard = () => {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-        <p className="text-gray-600">Welcome back! Here's what's happening today.</p>
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+            <p className="text-gray-600">Welcome back! Here's what's happening.</p>
+          </div>
+        </div>
+
+        {/* Date Filter */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-gray-700">
+              <FiFilter size={16} />
+              <span className="text-xs font-semibold">Filter:</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => handleDateFilterChange('overall')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  dateFilter === 'overall'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All Time
+              </button>
+              <button
+                onClick={() => handleDateFilterChange('today')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  dateFilter === 'today'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => handleDateFilterChange('weekly')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  dateFilter === 'weekly'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Last 7 Days
+              </button>
+              <button
+                onClick={() => handleDateFilterChange('monthly')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  dateFilter === 'monthly'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Last 30 Days
+              </button>
+              <button
+                onClick={() => handleDateFilterChange('custom')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  dateFilter === 'custom'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Custom Range
+              </button>
+            </div>
+            <div className="flex-1" />
+            <div className="text-xs text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
+              <span className="font-semibold">Showing:</span> {getFilterLabel()}
+            </div>
+          </div>
+
+          {/* Custom Date Picker */}
+          {showCustomDatePicker && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={customDateRange.startDate}
+                    onChange={(e) =>
+                      setCustomDateRange({ ...customDateRange, startDate: e.target.value })
+                    }
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={customDateRange.endDate}
+                    onChange={(e) =>
+                      setCustomDateRange({ ...customDateRange, endDate: e.target.value })
+                    }
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={handleCustomDateApply}
+                  disabled={!customDateRange.startDate || !customDateRange.endDate}
+                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Apply
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCustomDatePicker(false);
+                    setDateFilter('overall');
+                  }}
+                  className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-300 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

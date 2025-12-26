@@ -24,6 +24,31 @@ function buildDateRange(days = 14, endDate) {
 exports.getStats = async (req, res) => {
   try {
     const now = new Date();
+    const { startDate, endDate } = req.query;
+
+    // Build date filter for queries
+    let dateFilter = {};
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      
+      // Date filter based on createdAt field (or _id timestamp for older documents)
+      dateFilter = {
+        $or: [
+          { createdAt: { $gte: start, $lte: end } },
+          { 
+            createdAt: { $exists: false },
+            _id: { 
+              $gte: Math.floor(start.getTime() / 1000).toString(16) + '0000000000000000',
+              $lte: Math.floor(end.getTime() / 1000).toString(16) + 'ffffffffffffffff'
+            }
+          }
+        ]
+      };
+    }
+
     const [
       totalUsers,
       activeUsers,
@@ -45,31 +70,74 @@ exports.getStats = async (req, res) => {
       pendingRecruitmentApplications,
       pendingReports,
     ] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ socketId: { $exists: true, $ne: null } }),
+      User.countDocuments(dateFilter),
+      User.countDocuments({ 
+        ...dateFilter,
+        socketId: { $exists: true, $ne: null } 
+      }),
       // Heuristic: user has an OTP not expired => pending verification
-      User.countDocuments({ otp: { $exists: true, $ne: null }, otpExpires: { $gt: now } }),
-      Session.countDocuments(),
-      Session.countDocuments({ status: 'pending' }),
-      Session.countDocuments({ status: 'active' }),
-      InterviewRequest.countDocuments(),
-      InterviewRequest.countDocuments({ status: 'pending' }),
-      InterviewRequest.countDocuments({ status: 'assigned' }),
-      InterviewerApplication.countDocuments(),
-      InterviewerApplication.countDocuments({ status: 'approved' }),
-      InterviewerApplication.countDocuments({ status: 'pending' }),
-      TutorApplication.countDocuments(),
-      TutorApplication.countDocuments({ status: 'pending' }),
-      Package.countDocuments({ isActive: true }),
-      HelpMessage.countDocuments({ status: 'pending' }),
+      User.countDocuments({ 
+        ...dateFilter,
+        otp: { $exists: true, $ne: null }, 
+        otpExpires: { $gt: now } 
+      }),
+      Session.countDocuments(dateFilter),
+      Session.countDocuments({ 
+        ...dateFilter,
+        status: 'pending' 
+      }),
+      Session.countDocuments({ 
+        ...dateFilter,
+        status: 'active' 
+      }),
+      InterviewRequest.countDocuments(dateFilter),
+      InterviewRequest.countDocuments({ 
+        ...dateFilter,
+        status: 'pending' 
+      }),
+      InterviewRequest.countDocuments({ 
+        ...dateFilter,
+        status: 'assigned' 
+      }),
+      InterviewerApplication.countDocuments(dateFilter),
+      InterviewerApplication.countDocuments({ 
+        ...dateFilter,
+        status: 'approved' 
+      }),
+      InterviewerApplication.countDocuments({ 
+        ...dateFilter,
+        status: 'pending' 
+      }),
+      TutorApplication.countDocuments(dateFilter),
+      TutorApplication.countDocuments({ 
+        ...dateFilter,
+        status: 'pending' 
+      }),
+      Package.countDocuments({ 
+        ...dateFilter,
+        isActive: true 
+      }),
+      HelpMessage.countDocuments({ 
+        ...dateFilter,
+        status: 'pending' 
+      }),
       // Newly added metrics
-      Employee.countDocuments(), // employees hired
-      RecruitmentApplication.countDocuments({ status: 'pending' }),
-      Report.countDocuments({ resolved: false }),
+      Employee.countDocuments(dateFilter), // employees hired
+      RecruitmentApplication.countDocuments({ 
+        ...dateFilter,
+        status: 'pending' 
+      }),
+      Report.countDocuments({ 
+        ...dateFilter,
+        resolved: false 
+      }),
     ]);
 
     // Expert users by role (teaching capability) - distinct from applications
-    const expertUsers = await User.countDocuments({ role: { $in: ['teacher', 'both'] } });
+    const expertUsers = await User.countDocuments({ 
+      ...dateFilter,
+      role: { $in: ['teacher', 'both'] } 
+    });
 
     res.json({
       stats: {
