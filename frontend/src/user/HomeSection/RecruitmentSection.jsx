@@ -136,6 +136,14 @@ const RecruitmentSection = () => {
     checkVerificationStatus();
   }, [user]);
 
+  const handleRoleClick = (path) => {
+    if (!user) {
+      navigate('/login', { state: { from: path } });
+      return;
+    }
+    navigate(path);
+  };
+
   const roles = [
     {
       title: 'Apply as Tutor',
@@ -246,7 +254,7 @@ const RecruitmentSection = () => {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
                   whileHover={isClickable ? { y: -6, scale: 1.02, transition: { duration: 0.25 } } : {}}
-                  onClick={() => isClickable && navigate(role.path)}
+                  onClick={() => isClickable && handleRoleClick(role.path)}
                   className={`group relative ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
                 >
                   <div className={`relative rounded-xl p-6 transition-all duration-300 border-2 overflow-hidden h-full flex flex-col
@@ -336,7 +344,7 @@ const RecruitmentSection = () => {
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: index * 0.05 }}
                     whileTap={isClickable ? { scale: 0.98 } : {}}
-                    onClick={() => isClickable && navigate(role.path)}
+                    onClick={() => isClickable && handleRoleClick(role.path)}
                     className={`group relative ${isClickable ? 'cursor-pointer' : 'cursor-default'} flex-shrink-0`}
                     style={{ width: '240px' }}
                   >
@@ -415,7 +423,13 @@ const RecruitmentSection = () => {
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate('/career')}
+            onClick={() => {
+              if (!user) {
+                navigate('/login', { state: { from: '/career' } });
+                return;
+              }
+              navigate('/career');
+            }}
             className="relative bg-gradient-to-r from-blue-800 to-blue-900 rounded-2xl p-6 sm:p-8 cursor-pointer overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 group"
           >
             {/* Background Pattern */}
