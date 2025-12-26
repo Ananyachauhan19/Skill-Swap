@@ -718,6 +718,52 @@ const SessionRequests = () => {
     }
   };
 
+  const handleRejectInterview = async (requestId) => {
+    if (!window.confirm('Are you sure you want to reject this interview request? This action cannot be undone.')) {
+      return;
+    }
+
+    const reason = window.prompt('Optional: Provide a reason for rejection');
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/interview/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          requestId,
+          reason: reason || '',
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to reject interview');
+      }
+
+      addToast({
+        title: 'Interview Rejected',
+        message: 'The interview request has been rejected.',
+        variant: 'warning',
+        timeout: 3000,
+      });
+
+      // Refresh interview requests
+      fetchInterviewRequests();
+      notifyRequestCountUpdate();
+    } catch (error) {
+      console.error('Error rejecting interview:', error);
+      addToast({
+        title: 'Error',
+        message: error.message || 'Failed to reject interview request.',
+        variant: 'error',
+        timeout: 4000,
+      });
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
@@ -1123,13 +1169,25 @@ const SessionRequests = () => {
 
           <div className="flex gap-2">
             {request.status === 'scheduled' && !isExpired ? null : isExpired ? null : (
-              <button
-                onClick={() => setNegotiationModalState({ open: true, request })}
-                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200"
-              >
-                <FaClock size={10} />
-                {isAssignedInterviewer ? 'Suggest / Manage Time' : 'Choose Interview Time'}
-              </button>
+              <>
+                <button
+                  onClick={() => setNegotiationModalState({ open: true, request })}
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200"
+                >
+                  <FaClock size={10} />
+                  {isAssignedInterviewer ? 'Suggest / Manage Time' : 'Choose Interview Time'}
+                </button>
+                {/* Reject button for interviewers */}
+                {isAssignedInterviewer && request.status !== 'rejected' && request.status !== 'completed' && request.status !== 'cancelled' && (
+                  <button
+                    onClick={() => handleRejectInterview(request._id)}
+                    className="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-red-200"
+                  >
+                    <FaTimes size={10} />
+                    Reject
+                  </button>
+                )}
+              </>
             )}
             {request.status === 'scheduled' && !isExpired && (
               <button
