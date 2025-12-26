@@ -10,7 +10,7 @@ import Blog from '../user/company/Blog';
 import socket from '../socket';
 
 const HowItWorks = () => (
-  <section className="py-16 bg-gradient-to-b from-blue-50 to-blue-100">
+  <section className="py-8 sm:py-10 lg:py-12 bg-gradient-to-b from-blue-50 to-blue-100">
     <div className="max-w-7xl mx-auto px-4 sm:px-6">
       <motion.h2
         className="text-3xl md:text-4xl font-bold text-blue-900 text-center mb-16"
@@ -302,7 +302,7 @@ const Sessions = () => {
     .slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 pt-16 sm:pt-20">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 pt-16 md:pt-[72px] lg:pt-20">
       <style jsx>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
@@ -401,7 +401,7 @@ const Sessions = () => {
       `}</style>
 
       {/* Hero Section */}
-      <section className="relative w-full px-4 sm:px-6 lg:px-16 py-12 sm:py-16 md:py-24 bg-gradient-to-b from-blue-50 to-blue-100 overflow-hidden">
+      <section className="relative w-full px-4 sm:px-6 lg:px-16 py-8 sm:py-10 md:py-14 lg:py-16 bg-gradient-to-b from-blue-50 to-blue-100 overflow-hidden">
         <motion.div
           className="relative grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-center max-w-7xl mx-auto"
           initial={{ opacity: 0 }}
@@ -443,7 +443,7 @@ const Sessions = () => {
       <HowItWorks />
 
       {/* Search Bar Section */}
-      <section className="py-12 sm:py-16 bg-gradient-to-b from-blue-50 to-blue-100">
+      <section className="py-8 sm:py-10 lg:py-12 bg-gradient-to-b from-blue-50 to-blue-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.h2
             className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900 text-center mb-8 sm:mb-12"
@@ -486,7 +486,7 @@ const Sessions = () => {
       </section>
 
       {/* Search Results Section */}
-      <section className="py-12 sm:py-16 bg-gradient-to-b from-blue-50 to-blue-100">
+      <section className="py-8 sm:py-10 lg:py-12 bg-gradient-to-b from-blue-50 to-blue-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.h2
             className="text-2xl sm:text-3xl md:text-4xl font-bold text-blue-900 mb-8 sm:mb-12"

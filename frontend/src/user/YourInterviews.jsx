@@ -192,7 +192,7 @@ const YourInterviews = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-20">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] lg:pt-20">
       <div className="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-5rem)]">
         {/* Sidebar */}
         <aside className="w-full lg:w-60 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 flex-shrink-0 lg:sticky lg:top-16 md:lg:top-20 lg:h-[calc(100vh-4rem)] md:lg:h-[calc(100vh-5rem)] lg:overflow-y-auto shadow-sm">

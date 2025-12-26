@@ -506,8 +506,8 @@ const CreateSessionNew = () => {
 
   if (nonTutorBlocked) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 pt-20 pb-8 px-4">
-        <div className="max-w-2xl mx-auto text-center mt-20">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 pt-12 sm:pt-14 md:pt-16 lg:pt-20 pb-8 px-4">
+        <div className="max-w-2xl mx-auto text-center mt-8 sm:mt-10">
           <p className="text-red-600 text-lg font-semibold">Only verified tutors can create sessions. Please add skills to your profile.</p>
         </div>
       </div>
@@ -516,8 +516,8 @@ const CreateSessionNew = () => {
 
   if (noSkillmatesBlocked) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 pt-20 pb-8 px-4">
-        <div className="max-w-2xl mx-auto text-center mt-20">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-slate-50 to-blue-100 pt-12 sm:pt-14 md:pt-16 lg:pt-20 pb-8 px-4">
+        <div className="max-w-2xl mx-auto text-center mt-8 sm:mt-10">
           <p className="text-[#1e40af] text-lg font-semibold">Create Session is available only for SkillMates.</p>
           <p className="text-gray-600 text-sm mt-2">Add SkillMates first, then create a session by inviting one SkillMate.</p>
         </div>
@@ -528,7 +528,7 @@ const CreateSessionNew = () => {
   const username = currentUser ? currentUser.username || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'User' : 'User';
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 font-inter">
+    <div className="min-h-screen bg-gray-50 pt-16 md:pt-[72px] lg:pt-20 font-inter">
       {/* Two-Panel Layout Container */}
       <div className="flex flex-col lg:flex-row h-screen overflow-hidden">
         

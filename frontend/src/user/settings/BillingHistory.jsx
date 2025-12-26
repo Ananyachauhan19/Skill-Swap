@@ -27,7 +27,7 @@ const BillingHistory = () => {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 sm:pt-20">
+    <div className="min-h-screen w-full bg-blue-50 flex flex-col items-center pt-16 md:pt-[72px] lg:pt-20">
       <div className="max-w-2xl w-full p-6 bg-white rounded-xl shadow border border-blue-100 mt-8 mx-auto">
         <h2 className="text-xl font-bold mb-4 text-center">Billing History</h2>
         {error && <div className="text-red-600 text-sm mb-2 text-center">{error}</div>}

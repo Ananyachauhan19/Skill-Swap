@@ -167,7 +167,7 @@ const Blog = () => {
     );
 
   return (
-    <div className="min-h-screen bg-[#e6f0ff] flex flex-col pt-16 sm:pt-20">
+    <div className="min-h-screen bg-[#e6f0ff] flex flex-col pt-16 md:pt-[72px] lg:pt-20">
       <div className="container mx-auto px-4 pb-8 md:pb-12 max-w-7xl flex-grow">
         {!showForm ? (
           <>

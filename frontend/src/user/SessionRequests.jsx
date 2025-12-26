@@ -1613,7 +1613,7 @@ const SessionRequests = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center pt-20">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex items-center justify-center pt-16 md:pt-[72px] lg:pt-20">
         <div className="text-center">
           <div className="relative">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-200 border-t-teal-600 mx-auto shadow-sm"></div>
@@ -1629,7 +1629,7 @@ const SessionRequests = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] lg:pt-20">
       <div className="flex relative bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 min-h-screen">
         {/* Sidebar - Sticky positioning (scrolls up when footer appears) */}
         <div

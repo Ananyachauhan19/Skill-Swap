@@ -1,7 +1,7 @@
 import React from "react";
 
 const PrivacyPolicy = () => (
-  <div className="max-w-3xl mx-auto px-4 pt-16 sm:pt-20 pb-10 text-gray-800">
+  <div className="max-w-3xl mx-auto px-4 pt-16 md:pt-[72px] lg:pt-20 pb-10 text-gray-800">
     <h1 className="text-3xl font-bold mb-4">SkillSwap Hub – Privacy Policy</h1>
     <p className="text-sm text-gray-500 mb-6">Last Updated: August 2025</p>
     <p className="mb-4">

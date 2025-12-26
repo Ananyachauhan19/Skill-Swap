@@ -678,7 +678,7 @@ const TutorApplication = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-16 sm:pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 pt-16 md:pt-[72px] lg:pt-20">
       <div className="max-w-5xl mx-auto px-6 pb-12">
         {/* Header */}
         <div className="text-center mb-12">

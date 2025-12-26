@@ -161,7 +161,7 @@ const LearningHistory = () => {
 
   try {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-20">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 pt-16 md:pt-[72px] lg:pt-20">
         <div className="w-full flex flex-col lg:flex-row gap-0">
         
         {/* Left Sidebar - Sticky */}
@@ -422,7 +422,7 @@ const LearningHistory = () => {
   } catch (err) {
     console.error('Error rendering LearningHistory:', err);
     return (
-      <div className="min-h-screen bg-slate-50 pt-20 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 pt-16 md:pt-[72px] lg:pt-20 flex items-center justify-center">
         <div className="bg-rose-50 border border-rose-200 rounded-lg p-4 max-w-md">
           <h2 className="text-rose-600 font-semibold text-base mb-1">Rendering Error</h2>
           <p className="text-rose-600 text-sm">{err.message}</p>

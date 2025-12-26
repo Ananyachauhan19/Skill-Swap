@@ -74,7 +74,7 @@ const Interview = () => {
   return (
     <div className="min-h-screen w-full bg-home-bg">
       {/* Hero Section */}
-      <section className="relative min-h-[65vh] sm:min-h-[75vh] w-full flex items-center justify-center overflow-hidden pt-12 sm:pt-16 lg:pt-20 pb-4 sm:pb-6 lg:pb-8 bg-gradient-to-b from-slate-50 to-white">
+      <section className="relative w-full flex items-center justify-center overflow-hidden pt-16 md:pt-[72px] lg:pt-20 pb-6 md:pb-8 lg:pb-10 bg-gradient-to-b from-slate-50 to-white xl:min-h-[70vh]">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-20 left-10 w-72 h-72 bg-blue-900/5 rounded-full blur-3xl"></div>
@@ -165,7 +165,7 @@ const Interview = () => {
       </section>
 
       {/* Main Content */}
-      <main className="w-full max-w-7xl mx-auto flex flex-col gap-4 sm:gap-8 lg:gap-12 xl:gap-16 px-2 sm:px-3 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-12 xl:py-16">
+      <main className="w-full max-w-7xl mx-auto flex flex-col gap-4 sm:gap-6 md:gap-8 lg:gap-10 xl:gap-12 px-2 sm:px-3 lg:px-6 xl:px-8 py-4 sm:py-6 md:py-8 lg:py-10 xl:py-12">
         <ScheduledInterviewSection />
         
         <BrowseInterviewersSection onBookSession={handleBookSession} />

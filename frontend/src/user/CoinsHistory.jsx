@@ -157,7 +157,7 @@ const CoinsHistory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100">
-      <div className="w-full pt-20">
+      <div className="w-full pt-16 md:pt-[72px] lg:pt-20">
         
         {/* Mobile menu toggle */}
         <button 

@@ -1,7 +1,7 @@
 import React from "react";
 
 const Community = () => (
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-6 sm:pb-10 text-gray-800">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-[72px] lg:pt-20 pb-6 sm:pb-10 text-gray-800">
     <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 text-center lg:text-left">Welcome to the SkillSwap Hub Community</h1>
     <p className="mb-4 text-sm sm:text-base leading-relaxed">
       At SkillSwap Hub, we believe that learning doesn’t happen in isolation—it grows when people connect, share, and inspire each other. Our community is not just a group of users; it’s a family of dreamers, doers, and changemakers.
