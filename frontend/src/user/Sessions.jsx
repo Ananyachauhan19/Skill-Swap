@@ -6,7 +6,7 @@ import ScheduledSessions from "./SessionsFolder/Scheduled";
 import Testimonial from "./Testimonial";
 import { useNavigate } from "react-router-dom";
 import TopPerformersSection from "./HomeSection/TopPerformersSection";
-import Blog from '../user/company/Blog';
+import Blog from '../components/footer/Blog';
 import socket from '../socket';
 
 const HowItWorks = () => (

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useRoutes, Navigate, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import Footer from './components/footer/Footer';
 import { ModalProvider } from './context/ModalContext';
 import { SkillMatesProvider } from './context/SkillMatesContext.jsx';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
@@ -29,7 +29,7 @@ import Testimonial from './user/Testimonial';
 import Profile from './user/Profile';
 import CreateSession from './user/createSession';
 import LearningHistory from './user/LearningHistory';
-import HelpSupportPage from './user/HelpSupportPage';
+import HelpSupportPage from './components/footer/HelpSupportPage';
 import GoPro from './user/HomeSection/GoPro';
 import AccountSettings from './user/AccountSettings';
 import privateProfileRoutes from './user/privateProfile/privateProfileRoutes';
@@ -42,7 +42,7 @@ import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
 import CoinsHistory from './user/CoinsHistory';
-import Blog from './user/company/Blog';
+import Blog from './components/footer/Blog';
 import AdminPanel from './admin/adminpanel';
 import AdminRoute from './routes/AdminRoute';
 import Applications from './admin/Applications.jsx';
@@ -56,13 +56,14 @@ import Analytics from './admin/Analytics.jsx';
 import AdminHelpSupport from './admin/AdminHelpSupport.jsx';
 import AdminPackages from './admin/AdminPackages.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
-import PrivacyPolicy from './PrivacyPolicy.jsx';
-import Community from './Community.jsx';
-import FAQ from './FAQ.jsx';
-import TermsConditions from './TermsConditions.jsx';
-import CookiesPolicy from './CookiesPolicy.jsx';
-import About from './About.jsx';
-import Career from './Career.jsx';
+import PrivacyPolicy from './components/footer/PrivacyPolicy.jsx';
+import Community from './components/footer/Community.jsx';
+import FAQ from './components/footer/FAQ.jsx';
+import ContactUs from './components/footer/ContactUs.jsx';
+import TermsConditions from './components/footer/TermsConditions.jsx';
+import CookiesPolicy from './components/footer/CookiesPolicy.jsx';
+import About from './components/footer/About.jsx';
+import Career from './components/footer/Career.jsx';
 import YourInterviews from './user/YourInterviews';
 import RatingPage from './user/RatingPage.jsx';
 import TutorApplication from './tutor/TutorApplication.jsx';
@@ -95,6 +96,7 @@ const appRoutes = [
   { path: '/community', element: <Community /> },
   { path: '/about', element: <About /> },
   { path: '/faq', element: <FAQ /> },
+  { path: '/contact-us', element: <ContactUs /> },
   { path: '/terms-conditions', element: <TermsConditions /> },
   { path: '/cookies', element: <CookiesPolicy /> },
   { path: '/career', element: <Career /> },

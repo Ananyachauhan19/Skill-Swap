@@ -129,7 +129,7 @@ const Footer = () => {
                     </a>
                   </li>
                   <li>
-                    <a href="/help" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
+                    <a href="/contact-us" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
                       <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Contact Us
                     </a>

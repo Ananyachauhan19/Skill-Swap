@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./context/AuthContext";
-import { BACKEND_URL } from "./config";
+import { useAuth } from "../../context/AuthContext";
+import { BACKEND_URL } from "../../config";
 import { 
   FiUsers, FiTrendingUp, FiAward, FiHeart, 
   FiTarget, FiZap, FiGlobe, FiCode, FiBriefcase,
   FiBook, FiTrendingDown, FiUserPlus, FiUserCheck, FiClipboard
 } from "react-icons/fi";
-import RecruitmentApplication from "./user/RecruitmentApplication";
+import RecruitmentApplication from "../../user/RecruitmentApplication";
 
 const Career = () => {
   const navigate = useNavigate();
