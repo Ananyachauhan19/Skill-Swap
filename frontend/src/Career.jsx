@@ -204,13 +204,17 @@ const Career = () => {
 
   if (showRecruitmentForm) {
     return (
-      <div className="relative">
-        <button
-          onClick={() => setShowRecruitmentForm(false)}
-          className="fixed top-20 left-4 z-50 px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors shadow-lg"
-        >
-          ← Back to Careers
-        </button>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-blue-100/20">
+        <div className="pt-16 md:pt-[72px] xl:pt-20 px-3 sm:px-4">
+          <div className="max-w-5xl mx-auto pb-3 sm:pb-4">
+            <button
+              onClick={() => setShowRecruitmentForm(false)}
+              className="px-4 py-2 bg-white border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg"
+            >
+              ← Back to Careers
+            </button>
+          </div>
+        </div>
         <RecruitmentApplication />
       </div>
     );
