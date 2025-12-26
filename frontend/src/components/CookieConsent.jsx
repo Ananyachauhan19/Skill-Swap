@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BACKEND_URL } from '../config';
 
 const CookieConsent = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check if user has already made a choice
@@ -190,7 +192,16 @@ const CookieConsent = () => {
         </div>
 
         <p className="mt-3 text-[10px] text-gray-500 text-center">
-          You can change your preferences anytime.
+          By continuing, you agree to our{' '}
+          <button
+            onClick={() => {
+              hideModal();
+              navigate('/terms-conditions');
+            }}
+            className="text-blue-600 hover:text-blue-700 underline font-medium"
+          >
+            Terms &amp; Conditions
+          </button>
         </p>
       </div>
     </div>
