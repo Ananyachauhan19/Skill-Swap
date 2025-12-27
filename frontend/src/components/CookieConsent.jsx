@@ -102,15 +102,15 @@ const CookieConsent = () => {
 
   return (
     <div
-      className={`fixed bottom-6 right-6 z-50 w-96 bg-white rounded-lg shadow-2xl border border-gray-200 transition-all duration-300 transform ${
+      className={`fixed bottom-3 sm:bottom-6 left-3 right-3 sm:left-auto sm:right-6 z-50 w-auto sm:w-96 max-w-[calc(100vw-24px)] sm:max-w-96 bg-white rounded-lg sm:rounded-xl shadow-2xl border border-gray-200 transition-all duration-300 transform ${
         isAnimating ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
       }`}
     >
-      <div className="p-6">
-        <div className="flex items-start mb-4">
+      <div className="p-4 sm:p-6">
+        <div className="flex items-start mb-3 sm:mb-4">
           <div className="flex-shrink-0">
             <svg
-              className="h-6 w-6 text-blue-600"
+              className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -123,47 +123,55 @@ const CookieConsent = () => {
               />
             </svg>
           </div>
-          <div className="ml-3 flex-1">
-            <h3 className="text-sm font-semibold text-gray-900">
+          <div className="ml-2 sm:ml-3 flex-1">
+            <h3 className="text-xs sm:text-sm font-semibold text-gray-900">
               Cookie Consent
             </h3>
-            <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-              We use essential cookies to run the site, analytics
-              cookies to understand usage, and optional enhanced
-              cookies for deeper insights and personalization.
-              You can choose recommended (essential + analytics)
-              or allow all cookies.
+            <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-gray-600 leading-relaxed">
+              We use cookies to enhance your experience. Choose recommended (essential + analytics) or accept all cookies for full personalization.
             </p>
           </div>
         </div>
 
-        <div className="flex gap-3 mt-4">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4">
           <button
             onClick={handleAllow}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-4 py-2.5 rounded-md transition-colors duration-200"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-md transition-colors duration-200"
           >
-            Accept Recommended Cookies
+            Accept Recommended
           </button>
           <button
             onClick={handleDecline}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-4 py-2.5 rounded-md transition-colors duration-200"
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] sm:text-xs font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-md transition-colors duration-200"
           >
-            Accept All Cookies
+            Accept All
           </button>
         </div>
 
-        <p className="mt-3 text-[10px] text-gray-500 text-center">
-          By continuing, you agree to our{' '}
-          <button
-            onClick={() => {
-              hideModal();
-              navigate('/terms-conditions');
-            }}
-            className="text-blue-600 hover:text-blue-700 underline font-medium"
-          >
-            Terms &amp; Conditions
-          </button>
-        </p>
+        <div className="mt-2.5 sm:mt-3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-[9px] sm:text-[10px] text-gray-500">
+          <span className="text-center">By continuing, you agree to our</span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => {
+                hideModal();
+                navigate('/cookies-policy');
+              }}
+              className="text-blue-600 hover:text-blue-700 underline font-medium"
+            >
+              Cookies Policy
+            </button>
+            <span className="text-gray-400">•</span>
+            <button
+              onClick={() => {
+                hideModal();
+                navigate('/terms-conditions');
+              }}
+              className="text-blue-600 hover:text-blue-700 underline font-medium"
+            >
+              Terms &amp; Conditions
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
