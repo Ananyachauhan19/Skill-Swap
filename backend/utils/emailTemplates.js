@@ -22,7 +22,7 @@ exports.passwordReset = ({ resetLink, fallbackLink }) => ({
     <p>We received a request to reset the password for your Skill‑Swap account. To proceed, please click the button below. For your security, this link will expire in 30 minutes.</p>
     <p style="margin:24px 0">
       <a href="${resetLink}" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Reset Password</a>
-    </p
+    </p>
     <p>If you did not request a password reset, no further action is required.</p>
   `)
 });

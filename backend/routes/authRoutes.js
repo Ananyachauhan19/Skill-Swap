@@ -239,10 +239,12 @@ router.post('/password/forgot', async (req, res) => {
     user.resetPasswordExpires = expires;
     await user.save();
 
-    // Prefer configured frontend URL; otherwise use request Origin header (so dev/mobile click works), fallback by env
+    // Prefer configured FRONTEND_URL, then request Origin header (so dev/mobile click works),
+    // finally fall back to the public web app domain (prod) or localhost (dev).
     const originHeader = (req.headers.origin || '').replace(/\/+$/, '');
-    const defaultFrontend = isProd ? 'http://www.skillswaphub.in' : 'http://localhost:5173';
-    const frontendUrl = (process.env.FRONTEND_URL || originHeader || defaultFrontend).replace(/\/+$/, '');
+    const envFrontend = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+    const defaultFrontend = isProd ? 'https://skillswaphub.in' : 'http://localhost:5173';
+    const frontendUrl = (envFrontend || originHeader || defaultFrontend).replace(/\/+$/, '');
     const link = `${frontendUrl}/reset-password?token=${token}`;
     const fallbackFrontendUrl = defaultFrontend; // explicit fallback to prod domain or localhost
     const fallbackLink = `${fallbackFrontendUrl}/reset-password?token=${token}`;
