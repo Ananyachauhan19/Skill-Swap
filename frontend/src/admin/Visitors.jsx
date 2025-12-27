@@ -352,7 +352,7 @@ const Visitors = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
-                      IP Address
+                      Visitor Identifier
                     </th>
                     <th className="px-4 py-2 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
                       Device
@@ -384,7 +384,12 @@ const Visitors = () => {
                       className="hover:bg-gray-50 transition-colors duration-150"
                     >
                       <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-900">
-                        {visitor.ipAddress || 'N/A'}
+                        {/* Never display raw IP. If enhanced consent is enabled
+                           and an ipHash is available, show a masked prefix; 
+                           otherwise just indicate the visitor is anonymous. */}
+                        {visitor.consentEnhanced && visitor.ipHash
+                          ? `hash:${String(visitor.ipHash).slice(0, 6)}…`
+                          : 'Anonymous'}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-600 capitalize">
                         {visitor.device}

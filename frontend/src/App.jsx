@@ -17,6 +17,7 @@ import LoadingScreen from './components/LoadingScreen.jsx';
 import CookieConsent from './components/CookieConsent.jsx';
 import socket from './socket';
 import visitorTracker from './utils/visitorTracker';
+import { BACKEND_URL } from './config';
 
 // Pages
 import Home from './user/Home';
@@ -84,6 +85,78 @@ import EmployeeApplicationsPage from './employee/EmployeeApplicationsPage.jsx';
 import EmployeeResetPassword from './employee/EmployeeResetPassword.jsx';
 import RecruitmentApplication from './user/RecruitmentApplication.jsx';
 import RecruitmentApplications from './admin/RecruitmentApplications.jsx';
+
+const collectVisitorData = () => {
+  const getDeviceType = () => {
+    const ua = navigator.userAgent;
+    if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
+      return 'tablet';
+    }
+    if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
+      return 'mobile';
+    }
+    return 'desktop';
+  };
+
+  const getBrowserInfo = () => {
+    const ua = navigator.userAgent;
+    let browserName = 'Unknown';
+    let browserVersion = 'Unknown';
+
+    if (ua.indexOf('Firefox') > -1) {
+      browserName = 'Firefox';
+      browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)?.[1] || 'Unknown';
+    } else if (ua.indexOf('SamsungBrowser') > -1) {
+      browserName = 'Samsung Browser';
+      browserVersion = ua.match(/SamsungBrowser\/(\d+\.\d+)/)?.[1] || 'Unknown';
+    } else if (ua.indexOf('Opera') > -1 || ua.indexOf('OPR') > -1) {
+      browserName = 'Opera';
+      browserVersion = ua.match(/(?:Opera|OPR)\/(\d+\.\d+)/)?.[1] || 'Unknown';
+    } else if (ua.indexOf('Trident') > -1) {
+      browserName = 'Internet Explorer';
+      browserVersion = ua.match(/rv:(\d+\.\d+)/)?.[1] || 'Unknown';
+    } else if (ua.indexOf('Edge') > -1) {
+      browserName = 'Edge';
+      browserVersion = ua.match(/Edge\/(\d+\.\d+)/)?.[1] || 'Unknown';
+    } else if (ua.indexOf('Edg') > -1) {
+      browserName = 'Edge Chromium';
+      browserVersion = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown';
+    } else if (ua.indexOf('Chrome') > -1) {
+      browserName = 'Chrome';
+      browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown';
+    } else if (ua.indexOf('Safari') > -1) {
+      browserName = 'Safari';
+      browserVersion = ua.match(/Version\/(\d+\.\d+)/)?.[1] || 'Unknown';
+    }
+
+    return { name: browserName, version: browserVersion };
+  };
+
+  const getOS = () => {
+    const ua = navigator.userAgent;
+    if (ua.indexOf('Win') > -1) return 'Windows';
+    if (ua.indexOf('Mac') > -1) return 'MacOS';
+    if (ua.indexOf('Linux') > -1) return 'Linux';
+    if (ua.indexOf('Android') > -1) return 'Android';
+    if (ua.indexOf('like Mac') > -1) return 'iOS';
+    return 'Unknown';
+  };
+
+  const browser = getBrowserInfo();
+
+  return {
+    device: getDeviceType(),
+    browser: browser.name,
+    browserVersion: browser.version,
+    os: getOS(),
+    screenResolution: `${window.screen.width}x${window.screen.height}`,
+    language: navigator.language,
+    referrer: document.referrer || 'Direct',
+    userAgent: navigator.userAgent,
+    currentPage: window.location.pathname,
+    consentGiven: true,
+  };
+};
 
 // Define full (regular user) routes
 const appRoutes = [
@@ -267,6 +340,106 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [loading]);
+
+  // Normalize legacy/local cookie consent and send a
+  // single tracking ping once per browser session with full metadata.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const controller = new AbortController();
+
+    const getNormalizedConsent = () => {
+      const rawConsent =
+        window.localStorage.getItem('cookieConsent') ||
+        window.localStorage.getItem('visitorConsent');
+
+      if (!rawConsent) return null;
+
+      // Newer deployments store a JSON object
+      try {
+        const parsed = JSON.parse(rawConsent);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            analytics: parsed.analytics === true,
+            enhanced: parsed.enhanced === true,
+          };
+        }
+      } catch {
+        // Legacy string values from older builds
+        const legacy = String(rawConsent).trim();
+        if (legacy === 'accepted') {
+          return { analytics: true, enhanced: false };
+        }
+        if (legacy === 'declined') {
+          return { analytics: true, enhanced: true };
+        }
+      }
+
+      return null;
+    };
+
+    const trackVisitor = async (normalized, storedVisitorId) => {
+      const response = await fetch(`${BACKEND_URL}/api/visitors/track`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          visitorId: storedVisitorId,
+          analytics: normalized.analytics,
+          enhanced: normalized.enhanced,
+          ...collectVisitorData(),
+        }),
+        signal: controller.signal,
+      });
+
+      return response;
+    };
+
+    const trackIfAllowed = async () => {
+      try {
+        const normalized = getNormalizedConsent();
+        if (!normalized || normalized.analytics !== true) return;
+
+        const storedVisitorId = window.localStorage.getItem('visitorId');
+        if (!storedVisitorId) return; // We only track visitors we can de-duplicate
+
+        // Allow one ping per visitor + consent level (basic vs enhanced)
+        const guardKey = `visitorTrackingPingSent:${storedVisitorId}:${normalized.enhanced ? 'enhanced' : 'basic'}`;
+        if (window.sessionStorage.getItem(guardKey) === 'true') {
+          return;
+        }
+
+        try {
+          const response = await trackVisitor(normalized, storedVisitorId);
+          if (response && response.ok) {
+            try {
+              window.sessionStorage.setItem(guardKey, 'true');
+            } catch {
+              /* ignore storage errors (e.g. private mode) */
+            }
+          } else {
+            console.error('[App] Visitor tracking ping failed with status:', response?.status);
+          }
+        } catch (err) {
+          // Analytics must never affect main UX
+          console.error('[App] Visitor tracking ping failed:', err);
+        }
+      } catch (err) {
+        console.error('[App] Visitor tracking bootstrap failed:', err);
+      }
+    };
+
+    // Run once on mount
+    trackIfAllowed();
+
+    // Also run whenever cookie consent is granted while the app is open
+    window.addEventListener('visitor-consent-granted', trackIfAllowed);
+
+    return () => {
+      window.removeEventListener('visitor-consent-granted', trackIfAllowed);
+      controller.abort();
+    };
+  }, []);
 
   // Enforce redirect for admin to /admin regardless of prior location
   // But allow access to public profiles

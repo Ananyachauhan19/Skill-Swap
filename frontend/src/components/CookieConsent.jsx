@@ -1,16 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { BACKEND_URL } from '../config';
 
 const CookieConsent = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const navigate = useNavigate();
 
+  const ensureVisitorId = () => {
+    try {
+      let visitorId = localStorage.getItem('visitorId');
+      if (!visitorId && typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        visitorId = crypto.randomUUID();
+        localStorage.setItem('visitorId', visitorId);
+      }
+      return visitorId;
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     // Check if user has already made a choice
-    const consentStatus = localStorage.getItem('visitorConsent');
+    const consentStatus =
+      localStorage.getItem('cookieConsent') ||
+      localStorage.getItem('visitorConsent');
     
     if (!consentStatus) {
       // Show modal after 5 seconds
@@ -23,116 +36,60 @@ const CookieConsent = () => {
     }
   }, []);
 
-  const collectVisitorData = () => {
-    // Get device type
-    const getDeviceType = () => {
-      const ua = navigator.userAgent;
-      if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) {
-        return 'tablet';
-      }
-      if (/Mobile|Android|iP(hone|od)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/.test(ua)) {
-        return 'mobile';
-      }
-      return 'desktop';
-    };
-
-    // Get browser info
-    const getBrowserInfo = () => {
-      const ua = navigator.userAgent;
-      let browserName = 'Unknown';
-      let browserVersion = 'Unknown';
-
-      if (ua.indexOf('Firefox') > -1) {
-        browserName = 'Firefox';
-        browserVersion = ua.match(/Firefox\/(\d+\.\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('SamsungBrowser') > -1) {
-        browserName = 'Samsung Browser';
-        browserVersion = ua.match(/SamsungBrowser\/(\d+\.\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('Opera') > -1 || ua.indexOf('OPR') > -1) {
-        browserName = 'Opera';
-        browserVersion = ua.match(/(?:Opera|OPR)\/(\d+\.\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('Trident') > -1) {
-        browserName = 'Internet Explorer';
-        browserVersion = ua.match(/rv:(\d+\.\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('Edge') > -1) {
-        browserName = 'Edge';
-        browserVersion = ua.match(/Edge\/(\d+\.\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('Edg') > -1) {
-        browserName = 'Edge Chromium';
-        browserVersion = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('Chrome') > -1) {
-        browserName = 'Chrome';
-        browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown';
-      } else if (ua.indexOf('Safari') > -1) {
-        browserName = 'Safari';
-        browserVersion = ua.match(/Version\/(\d+\.\d+)/)?.[1] || 'Unknown';
-      }
-
-      return { name: browserName, version: browserVersion };
-    };
-
-    // Get OS info
-    const getOS = () => {
-      const ua = navigator.userAgent;
-      if (ua.indexOf('Win') > -1) return 'Windows';
-      if (ua.indexOf('Mac') > -1) return 'MacOS';
-      if (ua.indexOf('Linux') > -1) return 'Linux';
-      if (ua.indexOf('Android') > -1) return 'Android';
-      if (ua.indexOf('like Mac') > -1) return 'iOS';
-      return 'Unknown';
-    };
-
-    const browser = getBrowserInfo();
-
-    return {
-      device: getDeviceType(),
-      browser: browser.name,
-      browserVersion: browser.version,
-      os: getOS(),
-      screenResolution: `${window.screen.width}x${window.screen.height}`,
-      language: navigator.language,
-      referrer: document.referrer || 'Direct',
-      userAgent: navigator.userAgent,
-      currentPage: window.location.pathname,
-      consentGiven: true,
-    };
-  };
-
   const handleAllow = async () => {
+    console.error("[CookieConsent] CLICK HANDLER FIRED");
     try {
-      const visitorData = collectVisitorData();
-      console.log('[CookieConsent] Collected visitor data:', visitorData);
-      
-      // Check if visitor already exists (returning visitor)
-      const existingVisitorId = localStorage.getItem('visitorId');
-      if (existingVisitorId) {
-        visitorData.visitorId = existingVisitorId;
-        console.log('[CookieConsent] Found existing visitorId:', existingVisitorId);
-      }
+      const consent = {
+        analytics: true,
+        enhanced: false,
+      };
 
-      console.log('[CookieConsent] Sending data to:', `${BACKEND_URL}/api/visitors/track`);
-      const response = await axios.post(`${BACKEND_URL}/api/visitors/track`, visitorData);
-      console.log('[CookieConsent] Response received:', response.data);
-      
-      if (response.data.visitorId) {
-        localStorage.setItem('visitorId', response.data.visitorId);
-        console.log('[CookieConsent] VisitorId stored in localStorage:', response.data.visitorId);
-      }
-
+      // New-style structured consent; legacy string kept for
+      // backwards compatibility with older builds.
+      localStorage.setItem('cookieConsent', JSON.stringify(consent));
       localStorage.setItem('visitorConsent', 'accepted');
-      console.log('[CookieConsent] Consent accepted and stored');
+      console.log('[CookieConsent] Recommended cookies accepted and stored');
+      ensureVisitorId();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('visitor-consent-granted'));
+      }
       hideModal();
     } catch (error) {
-      console.error('[CookieConsent] Failed to track visitor:', error);
-      console.error('[CookieConsent] Error response:', error.response?.data);
-      // Still save consent even if tracking fails
+      // Still save consent even if anything goes wrong here
+      const consent = {
+        analytics: true,
+        enhanced: false,
+      };
+      localStorage.setItem('cookieConsent', JSON.stringify(consent));
       localStorage.setItem('visitorConsent', 'accepted');
+      ensureVisitorId();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('visitor-consent-granted'));
+      }
       hideModal();
     }
   };
 
   const handleDecline = () => {
+    console.error("[CookieConsent] CLICK HANDLER FIRED");
+    // "Accept All Cookies" – full analytics + enhanced tracking.
+    const consent = {
+      analytics: true,
+      enhanced: true,
+    };
+
+    // No network call here; App.jsx will send a
+    // lightweight tracking ping on next load using
+    // the stored consent and visitorId.
+    localStorage.setItem('cookieConsent', JSON.stringify(consent));
+    // Legacy value retained so old builds can still
+    // interpret the stored choice.
     localStorage.setItem('visitorConsent', 'declined');
+
+    ensureVisitorId();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('visitor-consent-granted'));
+    }
     hideModal();
   };
 
@@ -171,7 +128,11 @@ const CookieConsent = () => {
               Cookie Consent
             </h3>
             <p className="mt-2 text-xs text-gray-600 leading-relaxed">
-              Do you want to allow cookies?
+              We use essential cookies to run the site, analytics
+              cookies to understand usage, and optional enhanced
+              cookies for deeper insights and personalization.
+              You can choose recommended (essential + analytics)
+              or allow all cookies.
             </p>
           </div>
         </div>
@@ -181,13 +142,13 @@ const CookieConsent = () => {
             onClick={handleAllow}
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium px-4 py-2.5 rounded-md transition-colors duration-200"
           >
-            Allow
+            Accept Recommended Cookies
           </button>
           <button
             onClick={handleDecline}
             className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium px-4 py-2.5 rounded-md transition-colors duration-200"
           >
-            Decline
+            Accept All Cookies
           </button>
         </div>
 
