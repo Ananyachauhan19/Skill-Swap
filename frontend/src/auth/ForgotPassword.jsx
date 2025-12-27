@@ -96,7 +96,7 @@ const ForgotPassword = () => {
       } else {
         toast.error('Failed to send reset email');
       }
-    } catch (e) {
+    } catch {
       toast.error('Network error');
     } finally {
       setIsLoading(false);
@@ -166,7 +166,7 @@ const ForgotPassword = () => {
                 </div>
                 <button
                   onClick={() => navigate('/login')}
-                  className="w-full py-2 sm:py-3 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 rounded-lg font-semibold text-white text-sm sm:text-base"
+                  className="w-full py-2 sm:py-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg font-semibold text-white text-sm sm:text-base hover:opacity-90 transition-all"
                 >
                   Back to Login
                 </button>
@@ -197,7 +197,7 @@ const ForgotPassword = () => {
                   disabled={isLoading || !email}
                   className={`w-full py-2 sm:py-3 rounded-lg font-semibold text-white flex justify-center items-center text-sm sm:text-base ${
                     email
-                      ? 'bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700'
                       : 'bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700'
                   } ${isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:opacity-90'}`}
                 >
