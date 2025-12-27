@@ -7,10 +7,14 @@ const visitorSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  // IP Address
+  // IP handling: raw IP is no longer stored for
+  // new/updated records; a salted hash is used
+  // instead when enhanced analytics are enabled.
   ipAddress: {
     type: String,
-    required: true,
+  },
+  ipHash: {
+    type: String,
   },
   // Device information
   device: {
@@ -53,6 +57,12 @@ const visitorSchema = new mongoose.Schema({
   consentGiven: {
     type: Boolean,
     default: true,
+  },
+  // Whether user has opted into enhanced analytics
+  // (mapped from the frontend "enhanced" flag).
+  consentEnhanced: {
+    type: Boolean,
+    default: false,
   },
   consentDate: {
     type: Date,

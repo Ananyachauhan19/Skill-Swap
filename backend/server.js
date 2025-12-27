@@ -63,13 +63,13 @@ if (process.env.NODE_ENV === 'production') {
 
 const io = socketIO(server, {
   cors: { 
-    origin: ['http://localhost:5173', 'http://localhost:5174','https://www.skillswaphub.in', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:4173', 'https://www.skillswaphub.in', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
     credentials: true 
   },
 });
 
 app.use(cors({ 
-  origin: ['http://localhost:5173', 'http://localhost:5174','https://www.skillswaphub.in', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
+  origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:4173', 'https://www.skillswaphub.in', 'https://skillswaphub.in', 'https://skill-swap-69nw.onrender.com'],
   credentials: true 
 }));
 app.use(express.json());

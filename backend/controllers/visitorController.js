@@ -34,17 +34,29 @@ exports.trackVisitor = async (req, res) => {
       referrer,
       currentPage,
       consentGiven,
+      analytics,
+      enhanced,
     } = req.body;
 
     const ipAddress = getClientIp(req);
     const userAgent = req.headers['user-agent'] || '';
+    const isEnhanced = enhanced === true;
+    const hashSalt =
+      process.env.IP_HASH_SALT ||
+      process.env.VISITOR_IP_SALT ||
+      'change-this-salt-in-production';
     
-    console.log('[VisitorController] Extracted data:', { device, browser, os, ipAddress });
+    console.log('[VisitorController] Extracted data:', { device, browser, os, hasIp: Boolean(ipAddress), isEnhanced });
 
     let visitor;
     let newVisitorId = visitorId;
 
     // Check if visitor exists
+    console.log("[TRACK] saving visitor", {
+      visitorId,
+      analytics,
+      enhanced
+    });
     if (visitorId) {
       visitor = await Visitor.findOne({ visitorId });
     }
@@ -53,8 +65,30 @@ exports.trackVisitor = async (req, res) => {
     if (visitor) {
       console.log('[VisitorController] Existing visitor found, updating...');
       await visitor.recordVisit();
-      visitor.ipAddress = ipAddress;
+      // Do not persist raw IPs for new updates. Use a
+      // salted hash only when enhanced analytics are on.
+      if (isEnhanced && ipAddress) {
+        const hash = crypto.createHash('sha256');
+        hash.update(ipAddress + hashSalt);
+        visitor.ipHash = hash.digest('hex');
+      }
       visitor.userAgent = userAgent;
+      // Keep device/browser/OS info fresh for analytics.
+      if (device) visitor.device = device;
+      if (browser) visitor.browser = browser;
+      if (browserVersion) visitor.browserVersion = browserVersion;
+      if (os) visitor.os = os;
+      if (location) visitor.location = location;
+      if (screenResolution) visitor.screenResolution = screenResolution;
+      if (language) visitor.language = language;
+      if (referrer) visitor.referrer = referrer;
+      if (currentPage) visitor.currentPage = currentPage;
+      if (typeof consentGiven === 'boolean') {
+        visitor.consentGiven = consentGiven;
+      }
+      if (typeof isEnhanced === 'boolean') {
+        visitor.consentEnhanced = isEnhanced;
+      }
       visitor.lastVisit = new Date();
       visitor.updatedAt = new Date();
       await visitor.save();
@@ -63,10 +97,19 @@ exports.trackVisitor = async (req, res) => {
       // Create new visitor record
       newVisitorId = generateVisitorId(ipAddress, userAgent);
       console.log('[VisitorController] Creating new visitor with ID:', newVisitorId);
-      
+
+      let ipHash;
+      if (isEnhanced && ipAddress) {
+        const hash = crypto.createHash('sha256');
+        hash.update(ipAddress + hashSalt);
+        ipHash = hash.digest('hex');
+      }
+
       visitor = new Visitor({
         visitorId: newVisitorId,
-        ipAddress,
+        // Raw IP is intentionally not persisted; only
+        // a salted hash is stored when enhanced is on.
+        ipHash,
         device,
         browser,
         browserVersion,
@@ -78,6 +121,7 @@ exports.trackVisitor = async (req, res) => {
         currentPage,
         userAgent,
         consentGiven,
+        consentEnhanced: isEnhanced,
         consentDate: new Date(),
       });
 
@@ -85,6 +129,7 @@ exports.trackVisitor = async (req, res) => {
       console.log('[VisitorController] New visitor saved successfully');
     }
 
+    console.log("[TRACK] saved visitor", visitor);
     console.log('[VisitorController] Sending response with visitorId:', newVisitorId);
     
     res.json({
@@ -252,7 +297,10 @@ exports.getAllVisitors = async (req, res) => {
         .sort(sortBy)
         .skip(skip)
         .limit(limit)
-        .select('-sessions -userAgent')
+        // Never expose raw IPs to the admin UI. Historical
+        // documents may still have ipAddress populated, but
+        // it is excluded at query time.
+        .select('-sessions -userAgent -ipAddress')
         .lean(),
       Visitor.countDocuments(dateFilter),
     ]);
