@@ -226,8 +226,8 @@ exports.getUsers = async (req, res) => {
       count: registrationMap[date] || 0
     }));
 
-    // Role distribution
-    const roleDistribution = await User.aggregate([
+    // Role distribution (treat 'both' as part of tutor/teacher)
+    const roleDistributionRaw = await User.aggregate([
       { $match: { createdAt: { $lte: end } } },
       {
         $group: {
@@ -236,6 +236,24 @@ exports.getUsers = async (req, res) => {
         }
       }
     ]);
+
+    const roleCounts = roleDistributionRaw.reduce((acc, item) => {
+      const role = item._id || 'unknown';
+      acc[role] = (acc[role] || 0) + (item.count || 0);
+      return acc;
+    }, {});
+
+    const roleDistribution = [];
+    const combinedTutorCount = (roleCounts.teacher || 0) + (roleCounts.both || 0);
+
+    Object.entries(roleCounts).forEach(([role, count]) => {
+      if (role === 'both') return; // hide explicit 'both' bucket
+      if (role === 'teacher') {
+        roleDistribution.push({ _id: 'teacher', count: combinedTutorCount });
+      } else {
+        roleDistribution.push({ _id: role, count });
+      }
+    });
 
     // Activity frequency
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -255,10 +273,16 @@ exports.getUsers = async (req, res) => {
     // 1. Role Engagement Matrix - actual behavior by role
     const SessionRequest = require('../models/SessionRequest');
     const ApprovedInterviewer = require('../models/ApprovedInterviewer');
-    
+
+    // Group roles so that tutor metrics include users with role 'both'.
+    const roleGroups = [
+      { role: 'learner', roles: ['learner'] },
+      { role: 'teacher', roles: ['teacher', 'both'] },
+    ];
+
     const roleEngagement = await Promise.all(
-      ['learner', 'teacher', 'both'].map(async (role) => {
-        const usersInRole = await User.find({ role }).select('_id');
+      roleGroups.map(async (group) => {
+        const usersInRole = await User.find({ role: { $in: group.roles } }).select('_id');
         const userIds = usersInRole.map(u => u._id);
 
         const [sessionsAttended, sessionsConducted, interviewsRequested, interviewsConducted] = await Promise.all([
@@ -284,7 +308,7 @@ exports.getUsers = async (req, res) => {
         ]);
 
         return {
-          role,
+          role: group.role,
           userCount: userIds.length,
           sessionsAttended,
           sessionsConducted,
@@ -401,6 +425,7 @@ exports.getUsers = async (req, res) => {
 
     const studentToTutor = roleTransitions.find(r => r._id.isTutor && !r._id.isBoth)?.count || 0;
     const studentToBoth = roleTransitions.find(r => r._id.isBoth)?.count || 0;
+    const combinedStudentToTutor = studentToTutor + studentToBoth;
     const tutorToInterviewer = await ApprovedInterviewer.countDocuments({
       user: { $in: (await User.find({ isTutor: true }).select('_id')).map(u => u._id) }
     });
@@ -424,8 +449,8 @@ exports.getUsers = async (req, res) => {
 
     // 6. User Reliability & Quality Signals by role
     const reliabilityMetrics = await Promise.all(
-      ['learner', 'teacher', 'both'].map(async (role) => {
-        const usersInRole = await User.find({ role }).select('_id');
+      roleGroups.map(async (group) => {
+        const usersInRole = await User.find({ role: { $in: group.roles } }).select('_id');
         const userIds = usersInRole.map(u => u._id);
 
         const [total, completed, cancelled, noShow] = await Promise.all([
@@ -455,7 +480,7 @@ exports.getUsers = async (req, res) => {
         const noShowRate = total > 0 ? Math.round((noShow / total) * 100) : 0;
 
         return {
-          role,
+          role: group.role,
           completionRate,
           cancellationRate,
           noShowRate,
@@ -554,8 +579,9 @@ exports.getUsers = async (req, res) => {
         noActivity
       },
       roleTransitions: {
-        studentToTutor,
-        studentToBoth,
+        // Treat tutor as tutor+both in analytics views
+        studentToTutor: combinedStudentToTutor,
+        studentToBoth: 0,
         tutorToInterviewer
       },
       timePatterns,

@@ -90,12 +90,11 @@ export default function UsersTab({ dateRange }) {
   };
 
   const transitionsData = {
-    labels: ['Student → Tutor', 'Student → Both', 'Tutor → Interviewer'],
+    labels: ['Student  Tutor', 'Tutor  Interviewer'],
     datasets: [{
       label: 'Transitions',
       data: [
         data?.roleTransitions?.studentToTutor || 0,
-        data?.roleTransitions?.studentToBoth || 0,
         data?.roleTransitions?.tutorToInterviewer || 0
       ],
       backgroundColor: 'rgba(139, 92, 246, 0.8)'
