@@ -122,15 +122,32 @@ const CookieConsent = () => {
             </svg>
           </div>
           <div className="ml-2 sm:ml-3 flex-1">
-            <h3 className="text-xs sm:text-sm font-semibold text-gray-900">
-              Cookie Consent
-            </h3>
-            <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-gray-600 leading-relaxed">
-              We use cookies to enhance your experience. Choose recommended (essential + analytics) or accept all cookies for full personalization.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900">Cookie Consent</h3>
+              <div className="hidden sm:flex items-center gap-2 text-[10px] text-gray-500">
+                <button
+                  onClick={() => {
+                    hideModal();
+                    navigate('/cookies-policy');
+                  }}
+                  className="text-blue-600 hover:text-blue-700 underline font-medium"
+                >
+                  Cookies Policy
+                </button>
+                <span className="text-gray-300">•</span>
+                <button
+                  onClick={() => {
+                    hideModal();
+                    navigate('/terms-conditions');
+                  }}
+                  className="text-blue-600 hover:text-blue-700 underline font-medium"
+                >
+                  Terms &amp; Conditions
+                </button>
+              </div>
+            </div>
 
-            <div className="mt-2 sm:mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] sm:text-[10px] text-gray-500">
-              <span>Learn more:</span>
+            <div className="mt-1.5 sm:hidden flex items-center gap-2 text-[10px] text-gray-500">
               <button
                 onClick={() => {
                   hideModal();
@@ -140,7 +157,7 @@ const CookieConsent = () => {
               >
                 Cookies Policy
               </button>
-              <span className="text-gray-400">•</span>
+              <span className="text-gray-300">•</span>
               <button
                 onClick={() => {
                   hideModal();
@@ -151,15 +168,25 @@ const CookieConsent = () => {
                 Terms &amp; Conditions
               </button>
             </div>
+
+            <p className="mt-2 text-[10px] sm:text-xs text-gray-600 leading-relaxed">
+              We use cookies to enhance your experience. Choose recommended (essential + analytics) or accept all cookies for full personalization.
+            </p>
           </div>
         </div>
 
-        <div className="mt-4 sm:mt-5">
+        <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100 flex flex-col sm:flex-row gap-2 sm:gap-3">
           <button
             onClick={handleAllow}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-md transition-colors duration-200"
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-md transition-colors duration-200"
           >
-            Allow
+            Accept Recommended
+          </button>
+          <button
+            onClick={handleDecline}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] sm:text-xs font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-md transition-colors duration-200"
+          >
+            Accept All
           </button>
         </div>
       </div>
