@@ -123,6 +123,57 @@ router.get('/history/:skillMateId', auth, async (req, res) => {
   }
 });
 
+// Get chat threads for current user (SkillMates list + last message + unread count)
+router.get('/threads', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select('skillMates');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const skillMateIds = Array.isArray(user.skillMates) ? user.skillMates : [];
+    if (!skillMateIds.length) return res.json([]);
+
+    const skillMates = await User.find({ _id: { $in: skillMateIds } })
+      .select('firstName lastName username profilePic isOnline lastSeenAt')
+      .lean();
+
+    const threads = await Promise.all(
+      skillMates.map(async (sm) => {
+        const [lastMessage, unreadCount] = await Promise.all([
+          ChatMessage.findOne({
+            $or: [
+              { senderId: userId, recipientId: sm._id },
+              { senderId: sm._id, recipientId: userId }
+            ]
+          })
+            .sort({ createdAt: -1 })
+            .select('senderId recipientId content createdAt read')
+            .lean(),
+          ChatMessage.countDocuments({ senderId: sm._id, recipientId: userId, read: false }),
+        ]);
+
+        return {
+          skillMate: sm,
+          lastMessage: lastMessage || null,
+          unreadCount: unreadCount || 0,
+        };
+      })
+    );
+
+    threads.sort((a, b) => {
+      const at = a.lastMessage?.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
+      const bt = b.lastMessage?.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+      return bt - at;
+    });
+
+    res.json(threads);
+  } catch (error) {
+    console.error('Error fetching chat threads:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get unread message count
 router.get('/unread', auth, async (req, res) => {
   try {

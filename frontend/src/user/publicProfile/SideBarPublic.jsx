@@ -18,7 +18,7 @@ import {
 import { MdReport } from "react-icons/md";
 import { useNavigate, useParams } from "react-router-dom";
 import ContributionCalendar from "../myprofile/ContributionCalendar";
-import Chat from "../../components/Chat";
+// Chat is now a full-page experience at /chat
 import SearchBar from "../privateProfile/SearchBar";
 import { BACKEND_URL } from "../../config.js";
 import { useToast } from "../../components/ToastContext.js";
@@ -104,7 +104,6 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
-  const [activeChatId, setActiveChatId] = useState(null);
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -659,7 +658,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                       {isSkillMate && (
                         <button
                           className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-3 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md flex-1 sm:flex-initial"
-                          onClick={() => setActiveChatId(profile?._id)}
+                          onClick={() => navigate('/chat', { state: { skillMateId: profile?._id } })}
                           title="Message"
                         >
                           Message
@@ -923,12 +922,6 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
           </div>
         </main>
-        {activeChatId && (
-          <Chat
-            skillMateId={activeChatId}
-            onClose={() => setActiveChatId(null)}
-          />
-        )}
       </div>
     </ProfileContext.Provider>
   );

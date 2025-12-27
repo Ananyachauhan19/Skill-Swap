@@ -139,7 +139,7 @@ const fetchUserProfile = async () => {
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { open: openSkillMates, count: skillMateCount } = useSkillMates();
+  const { count: skillMateCount } = useSkillMates();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -361,9 +361,9 @@ const Sidebar = () => {
                 
                 <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-3 w-full">
                   <button
-                    onClick={openSkillMates}
+                    onClick={() => navigate('/chat')}
                     className="flex items-center gap-2 text-blue-900 text-base font-medium bg-transparent hover:text-blue-700 shadow-[0_2px_6px_rgba(0,0,139,0.2)] px-4 py-2 rounded-lg transition-all duration-300 w-full sm:w-auto justify-center"
-                    aria-label="Open SkillMates"
+                    aria-label="Open chats"
                   >
                     <FaUsers className="text-blue-900 text-lg" />
                     <span>SkillMates ({typeof skillMateCount === 'number' ? skillMateCount : (user?.skillMatesCount || 0)})</span>

@@ -128,7 +128,8 @@ module.exports = (io) => {
           io.emit('user-online-status-changed', {
             userId: user._id.toString(),
             isOnline: true,
-            lastLogin: new Date()
+            lastLogin: user.lastLogin || new Date(),
+            lastSeenAt: user.lastSeenAt || null
           });
           
           console.log(`[Socket Register] Registered socket ${socket.id} for user ${userId}`, {
@@ -1597,12 +1598,14 @@ module.exports = (io) => {
         console.log(`[Socket Disconnect] User ${userData.firstName} went offline`);
         
         // Update user's online status in database
-        await User.findByIdAndUpdate(userData.userId, { isOnline: false });
+        const lastSeenAt = new Date();
+        await User.findByIdAndUpdate(userData.userId, { isOnline: false, lastSeenAt });
         
         // Broadcast offline status change to admin users
         io.emit('user-online-status-changed', {
           userId: userData.userId.toString(),
-          isOnline: false
+          isOnline: false,
+          lastSeenAt
         });
         
         onlineUsers.delete(socket.id);

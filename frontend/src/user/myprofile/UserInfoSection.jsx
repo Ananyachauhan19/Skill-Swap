@@ -4,15 +4,17 @@ import { Edit2, Save, XCircle, Plus, Trash2 } from 'lucide-react';
 import { STATIC_COURSES, STATIC_UNITS } from '../../constants/teachingData';
 import { BACKEND_URL } from '../../config.js';
 import { useSkillMates } from '../../context/SkillMatesContext.jsx';
+import { useNavigate } from 'react-router-dom';
 
 const SkillMateHeaderAction = () => {
-  const { count, open } = useSkillMates();
+  const { count } = useSkillMates();
+  const navigate = useNavigate();
   return (
     <div className="w-full flex justify-end -mt-2">
       <button
-        onClick={open}
+        onClick={() => navigate('/chat')}
         className="inline-flex items-center gap-2 bg-blue-700 text-white px-3 py-1.5 rounded-md hover:bg-blue-800 shadow-sm"
-        aria-label="Open SkillMates"
+        aria-label="Open chats"
       >
         <span>SkillMates</span>
         <span className="text-xs bg-white/10 px-1.5 py-0.5 rounded">{count}</span>

@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import socket from '../socket';
 import { BACKEND_URL } from '../config.js';
 import SessionRequestNotification from './SessionRequestNotification';
+import { isChatMuted } from '../utils/chatMute.js';
+import { getMutedChatUserIds } from '../utils/chatMute.js';
 
 // Helper: Remove notifications older than 12 hours or completed
 function filterNotifications(notifications) {
@@ -20,10 +22,17 @@ const NotificationSection = ({ userId }) => {
   const [show, setShow] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState({});
+  const [, setChatMuteVersion] = useState(0);
   const dropdownRef = useRef();
   const showRef = useRef(show);
   const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const onMutedChanged = () => setChatMuteVersion((v) => v + 1);
+    window.addEventListener('chat-muted-changed', onMutedChanged);
+    return () => window.removeEventListener('chat-muted-changed', onMutedChanged);
+  }, []);
   
   // Keep showRef in sync with show state
   useEffect(() => {
@@ -39,6 +48,15 @@ const NotificationSection = ({ userId }) => {
         });
         if (!response.ok) throw new Error('Failed to fetch notifications');
         let data = await response.json();
+
+        // Hide muted chat-message notifications client-side
+        data = (Array.isArray(data) ? data : []).filter((n) => {
+          if (n?.type !== 'chat-message') return true;
+          const senderId = (typeof n.requesterId === 'object'
+            ? (n.requesterId?._id || n.requesterId?.toString())
+            : n.requesterId) || n.senderId;
+          return senderId ? !isChatMuted(senderId) : true;
+        });
 
         // Fetch SessionRequest details for session-requested notifications
         const sessionRequests = await Promise.all(
@@ -96,12 +114,17 @@ const NotificationSection = ({ userId }) => {
           data
             .filter((n) => n.type === 'chat-message' && n.messageId)
             .map(async (n) => {
-              const res = await fetch(`${BACKEND_URL}/api/chat/history/${n.senderId}`, {
+              const senderId = (typeof n.requesterId === 'object'
+                ? (n.requesterId?._id || n.requesterId?.toString())
+                : n.requesterId) || n.senderId;
+              if (!senderId) return n;
+
+              const res = await fetch(`${BACKEND_URL}/api/chat/history/${senderId}`, {
                 credentials: 'include',
               });
               if (res.ok) {
                 const chatData = await res.json();
-                return { ...n, chatMessage: chatData.messages.find((m) => m._id === n.messageId) };
+                return { ...n, chatMessage: chatData.messages.find((m) => m._id === n.messageId), chatSenderId: senderId };
               }
               return n;
             })
@@ -141,6 +164,14 @@ const NotificationSection = ({ userId }) => {
     const handleSocketNotification = async (event) => {
       const notification = event.detail;
       if (!notification) return;
+
+      // Chat messages: respect per-user mute
+      if (notification.type === 'chat-message') {
+        const senderId = (typeof notification.requesterId === 'object'
+          ? (notification.requesterId?._id || notification.requesterId?.toString())
+          : notification.requesterId) || notification.senderId;
+        if (senderId && isChatMuted(senderId)) return;
+      }
       
       // Fetch additional details for specific notification types
       if (notification.type === 'session-requested' && notification.sessionId) {
@@ -353,6 +384,9 @@ const NotificationSection = ({ userId }) => {
       
       setNotifications((prev) => prev.filter((_, i) => i !== index));
       localStorage.setItem('notifications', JSON.stringify(notifications.filter((_, i) => i !== index)));
+
+      // Let other UI (e.g., ProfileDropdown badge) refresh SkillMates count
+      window.dispatchEvent(new Event('skillmates-changed'));
     } catch (error) {
       console.error('Error approving SkillMate:', error);
       alert('Failed to approve SkillMate request. Please try again.');
@@ -398,6 +432,23 @@ const NotificationSection = ({ userId }) => {
   // Filter notifications based on tab
   const getFilteredNotifications = () => {
     let filtered = filterNotifications(notifications);
+    const mutedIds = new Set(getMutedChatUserIds());
+
+    const normalizeId = (value) => {
+      if (!value) return null;
+      if (typeof value === 'object') return value?._id || value?.id || value?.toString?.() || null;
+      return value;
+    };
+    const getChatSenderId = (n) =>
+      normalizeId(n?.chatSenderId) || normalizeId(n?.senderId) || normalizeId(n?.requesterId);
+
+    filtered = filtered.filter((n) => {
+      if (!n) return false;
+      if (n.type !== 'chat-message') return true;
+      const senderId = getChatSenderId(n);
+      if (!senderId) return true;
+      return !mutedIds.has(String(senderId));
+    });
 
     if (activeTab === 'session') {
       filtered = filtered.filter(
@@ -1216,12 +1267,34 @@ const NotificationSection = ({ userId }) => {
                       <p className="text-sm text-gray-700 mb-3 line-clamp-2">
                         {n.chatMessage.content}
                       </p>
-                      <button
-                        onClick={() => handleNotificationRead(n._id, idx)}
-                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                      >
-                        Mark as Read
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => {
+                            const normalizeId = (value) => {
+                              if (!value) return null;
+                              if (typeof value === 'object') return value?._id || value?.id || value?.toString?.() || null;
+                              return value;
+                            };
+                            const senderId =
+                              normalizeId(n?.chatSenderId) ||
+                              normalizeId(n?.senderId) ||
+                              normalizeId(n?.requesterId);
+                            handleNotificationRead(n._id, idx);
+                            if (senderId) {
+                              navigate('/chat', { state: { skillMateId: senderId } });
+                            }
+                          }}
+                          className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                        >
+                          Open Chat
+                        </button>
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                        >
+                          Mark as Read
+                        </button>
+                      </div>
                     </div>
                   ) : n.type?.includes('interview') ? (
                     // Interview-related notifications with detailed information

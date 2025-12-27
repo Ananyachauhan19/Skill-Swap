@@ -47,8 +47,13 @@ body {
   display: none;
 }
 .scrollbar-hidden {
-  scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+@supports (scrollbar-width: none) {
+  .scrollbar-hidden {
+    scrollbar-width: none;
+  }
 }
 
 /* Scrollbar Hide Utility */
@@ -57,7 +62,42 @@ body {
 }
 .scrollbar-hide {
   -ms-overflow-style: none;
-  scrollbar-width: none;
+}
+
+@supports (scrollbar-width: none) {
+  .scrollbar-hide {
+    scrollbar-width: none;
+  }
+}
+
+/* Thin Scrollbar Utility */
+.scrollbar-thin {
+}
+
+@supports (scrollbar-width: thin) {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225) transparent; /* slate-300 */
+  }
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225); /* slate-300 */
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(148 163 184); /* slate-400 */
 }
 
 /* Animations */

@@ -7,7 +7,7 @@ const SkillMatesContext = createContext(null);
 export const useSkillMates = () => useContext(SkillMatesContext);
 
 export const SkillMatesProvider = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, setUser } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,7 +25,14 @@ export const SkillMatesProvider = ({ children }) => {
     setError(null);
     try {
 	  const res = await api.get('/api/skillmates/list');
-      setList(Array.isArray(res.data) ? res.data : []);
+      const nextList = Array.isArray(res.data) ? res.data : [];
+      setList(nextList);
+
+      // Keep AuthContext user.skillMates consistent for badges/UI
+      setUser((prev) => {
+        if (!prev) return prev;
+        return { ...prev, skillMates: nextList.map((u) => u?._id).filter(Boolean) };
+      });
     } catch (e) {
       // For 401, treat it as "no SkillMates because not logged in" without surfacing an error
       if (e?.response?.status === 401) {
@@ -50,10 +57,23 @@ export const SkillMatesProvider = ({ children }) => {
     try {
       await api.post(`/api/skillmates/remove/${skillMateUserId}`);
       setList((prev) => prev.filter((u) => u._id !== skillMateUserId));
+
+      setUser((prev) => {
+        if (!prev) return prev;
+        if (!Array.isArray(prev.skillMates)) return prev;
+        return { ...prev, skillMates: prev.skillMates.filter((id) => String(id) !== String(skillMateUserId)) };
+      });
     } catch (e) {
       throw new Error(e?.response?.data?.message || e?.message || 'Failed to remove SkillMate');
     }
   }, []);
+
+  // Refresh when other parts of the app change SkillMates
+  useEffect(() => {
+    const onChanged = () => fetchList();
+    window.addEventListener('skillmates-changed', onChanged);
+    return () => window.removeEventListener('skillmates-changed', onChanged);
+  }, [fetchList]);
 
   // Optionally prefetch count once on mount for badge/button
   useEffect(() => {

@@ -22,10 +22,18 @@ const LoginIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColo
 const ProfileDropdown = ({ show, onClose, menuRef }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { open: openSkillMates, count: skillMateCount } = useSkillMates();
+  const { count: skillMateCount, refresh: refreshSkillMates } = useSkillMates();
 
   useEffect(() => {
     if (!show) return;
+
+    // Refresh SkillMates so the badge stays accurate
+    try {
+      refreshSkillMates?.();
+    } catch {
+      /* ignore */
+    }
+
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         onClose();
@@ -41,6 +49,14 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
     onClose();
     navigate(path);
   };
+
+  const userSkillMatesCount = Array.isArray(user?.skillMates) ? user.skillMates.length : undefined;
+  const displaySkillMateCount =
+    typeof skillMateCount === 'number' && typeof userSkillMatesCount === 'number'
+      ? Math.max(skillMateCount, userSkillMatesCount)
+      : typeof skillMateCount === 'number'
+        ? skillMateCount
+        : userSkillMatesCount;
 
   const handleLogout = async () => {
     try {
@@ -115,8 +131,8 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
             <MenuItem 
               icon={SkillMatesIcon} 
               label="SkillMates" 
-              onClick={() => { onClose(); openSkillMates(); }} 
-              count={typeof skillMateCount === 'number' ? skillMateCount : undefined}
+              onClick={() => go('/chat')} 
+              count={typeof displaySkillMateCount === 'number' ? displaySkillMateCount : undefined}
             />
             <MenuItem icon={InterviewIcon} label="Your Interviews" onClick={() => go('/your-interviews')} />
             <MenuItem icon={LearningIcon} label="Learning History" onClick={() => go('/learning-history')} />

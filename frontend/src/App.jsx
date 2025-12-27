@@ -6,7 +6,6 @@ import { ModalProvider } from './context/ModalContext';
 import { SkillMatesProvider } from './context/SkillMatesContext.jsx';
 import ModalBodyScrollLock from './ModalBodyScrollLock';
 import GlobalModals from './GlobalModals';
-import SkillMatesModal from './components/SkillMatesModal.jsx';
 import { ToastProvider } from './components/ToastProvider.jsx';
 import ToastSocketBridge from './components/ToastSocketBridge.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -181,8 +180,8 @@ const appRoutes = [
   { path: '/profile/:username', element: <PublicProfile /> },
   // Protected routes (require authentication)
   { path: '/one-on-one', element: <ProtectedRoute><OneOnOne /></ProtectedRoute> },
-  { path: '/discuss', element: <ProtectedRoute><Discuss /></ProtectedRoute> },
   { path: '/chat', element: <ProtectedRoute><ChatPage /></ProtectedRoute> },
+  { path: '/discuss', element: <ProtectedRoute><Discuss /></ProtectedRoute> },
   { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
   { path: '/your-interviews', element: <ProtectedRoute><YourInterviews /></ProtectedRoute> },
   { path: '/session', element: <ProtectedRoute><Sessions /></ProtectedRoute> },
@@ -539,7 +538,6 @@ function App() {
         <SkillMatesProvider>
           <ModalBodyScrollLock />
           <GlobalModals />
-          <SkillMatesModal />
           {!isAdminUser && !isEmployeeRoute && <CookieConsent />}
           {/* Main content with fade-in transition */}
           <div

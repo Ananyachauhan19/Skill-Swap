@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { X, Trash2, MoreVertical, Search, UserX, Users, Loader2, MessageCircle } from 'lucide-react';
+import { X, Trash2, MoreVertical, Search, UserX, Users, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSkillMates } from '../context/SkillMatesContext';
 import Fuse from 'fuse.js';
@@ -84,11 +84,6 @@ const SkillMatesModal = () => {
   const gotoProfile = (username) => {
     close();
     navigate(`/profile/${username}`);
-  };
-
-  const gotoChat = (userId) => {
-    close();
-    navigate('/chat', { state: { skillMateId: userId } });
   };
 
   const handleKeyDown = (e) => {
@@ -274,20 +269,11 @@ const SkillMatesModal = () => {
                             </button>
                           </div>
 
-                          {/* Action Buttons - Always visible with Message icon */}
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => gotoChat(u._id)}
-                              className="p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-200 shadow-sm hover:shadow group/msg"
-                              title="Send Message"
-                              aria-label="Send message"
-                            >
-                              <MessageCircle className="w-4 h-4 group-hover/msg:scale-110 transition-transform" />
-                            </button>
-                            
+                          {/* Action Buttons - Show on hover */}
+                          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             <button
                               onClick={() => gotoProfile(u.username)}
-                              className="px-3 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 whitespace-nowrap shadow-sm"
+                              className="px-4 py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors duration-200 whitespace-nowrap"
                             >
                               View Profile
                             </button>

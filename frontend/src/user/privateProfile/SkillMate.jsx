@@ -1,13 +1,12 @@
 import React from 'react';
-import { useSkillMates } from '../../context/SkillMatesContext.jsx';
+import { useNavigate } from 'react-router-dom';
 
-// This component is deprecated in favor of the global SkillMates modal.
-// Keep it as a tiny bridge so any legacy links just open the modal.
+// Deprecated: redirect legacy SkillMate routes to the full chat page.
 const SkillMate = () => {
-  const { open } = useSkillMates();
+  const navigate = useNavigate();
   React.useEffect(() => {
-    open();
-  }, [open]);
+    navigate('/chat', { replace: true });
+  }, [navigate]);
   return null;
 };
 

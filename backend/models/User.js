@@ -82,6 +82,8 @@ const userSchema = new mongoose.Schema({
   // Online status
   isOnline: { type: Boolean, default: false },
   lastLogin: { type: Date, required: false },
+  // Last seen for chat/presence UI
+  lastSeenAt: { type: Date, required: false },
   // Unified activity marker for DAU/WAU/MAU and realtime analytics
   lastActivityAt: { type: Date, required: false },
 }, {

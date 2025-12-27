@@ -4,6 +4,7 @@ import socket from '../socket';
 import { useAuth } from '../context/AuthContext.jsx';
 import { BACKEND_URL } from '../config.js';
 import { useToast } from './ToastContext.js';
+import { isChatMuted } from '../utils/chatMute.js';
 
 // Listens to realtime notifications and raises context toasts
 const ToastSocketBridge = () => {
@@ -36,6 +37,14 @@ const ToastSocketBridge = () => {
 
     const onNotification = (n) => {
       if (!n || !n.type) return;
+
+      // Chat messages: respect per-user mute (hide toast + notification entry in UI)
+      if (n.type === 'chat-message') {
+        const senderId = n.requesterId || n.senderId;
+        if (senderId && isChatMuted(senderId)) {
+          return;
+        }
+      }
       
       // Re-emit for other components like NotificationSection
       window.dispatchEvent(new CustomEvent('socket-notification', { detail: n }));
@@ -79,6 +88,28 @@ const ToastSocketBridge = () => {
 
       if (n.type === 'skillmate-rejected') {
         addToast({ title: 'SkillMate Rejected', message: n.message || 'Your SkillMate request was rejected.', variant: 'error' });
+        return;
+      }
+
+      if (n.type === 'chat-message') {
+        const senderId = n.requesterId || n.senderId;
+        const senderName = n.requesterName || 'SkillMate';
+        const msg = sanitizeToastText(n.message || 'New message');
+        addToast({
+          title: senderName,
+          message: msg,
+          variant: 'info',
+          timeout: 6000,
+          actions: [
+            senderId
+              ? {
+                  label: 'Open',
+                  variant: 'primary',
+                  onClick: () => navigate('/chat', { state: { skillMateId: senderId } }),
+                }
+              : { label: 'OK', variant: 'primary' },
+          ],
+        });
         return;
       }
       // Handle session request to tutor
