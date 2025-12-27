@@ -94,8 +94,12 @@ exports.trackVisitor = async (req, res) => {
       await visitor.save();
       console.log('[VisitorController] Visitor updated successfully');
     } else {
-      // Create new visitor record
-      newVisitorId = generateVisitorId(ipAddress, userAgent);
+      // Create new visitor record. If the frontend already
+      // generated a stable visitorId (stored in localStorage),
+      // reuse that so we can reliably de-duplicate visits for
+      // the same browser. Only fall back to a server-generated
+      // ID when none was provided.
+      newVisitorId = visitorId || generateVisitorId(ipAddress, userAgent);
       console.log('[VisitorController] Creating new visitor with ID:', newVisitorId);
 
       let ipHash;
