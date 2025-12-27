@@ -2,6 +2,7 @@ const multer = require('multer');
 const path = require('path');
 const TutorApplication = require('../models/TutorApplication');
 const User = require('../models/User');
+const EmployeeActivity = require('../models/EmployeeActivity');
 const supabase = require('../utils/supabaseClient');
 
 // Helper: check whether a tutor application is within an employee's
@@ -28,6 +29,37 @@ const isApplicationAllowedForEmployee = (employee, app) => {
     const subjOk = allowAllSubjects || allowedSubjects.includes(s.subject);
     return clsOk && subjOk;
   });
+};
+
+// Lightweight logger for employee tutor-approval actions
+const logEmployeeTutorAction = async ({ employee, application, status }) => {
+  if (!employee || !application) return;
+
+  try {
+    const firstSkill = Array.isArray(application.skills) && application.skills.length > 0
+      ? application.skills[0]
+      : null;
+
+    await EmployeeActivity.findOneAndUpdate(
+      {
+        employee: employee._id,
+        applicationId: application._id,
+        applicationType: 'tutor',
+      },
+      {
+        employee: employee._id,
+        applicationId: application._id,
+        applicationType: 'tutor',
+        roleType: employee.accessPermissions || 'tutor',
+        class: firstSkill ? firstSkill.class : undefined,
+        subject: firstSkill ? firstSkill.subject : undefined,
+        status,
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+  } catch (err) {
+    console.error('[EmployeeActivity] Failed to log tutor action:', err.message);
+  }
 };
 
 // Multer memory storage (we upload directly to Supabase; no local persistence needed)
@@ -272,9 +304,16 @@ exports.approve = async (req, res) => {
     app.approvedAt = new Date();
     if (req.employee) {
       app.approvedByEmployee = req.employee._id;
+      app.approvedActionTimestamp = new Date();
       app.rejectedByEmployee = undefined;
+      app.rejectedActionTimestamp = undefined;
     }
     await app.save();
+
+    // Log employee approval
+    if (req.employee) {
+      await logEmployeeTutorAction({ employee: req.employee, application: app, status: 'approved' });
+    }
 
     // Activate tutor features immediately upon approval
     const userDoc = await User.findById(app.user._id);
@@ -328,9 +367,16 @@ exports.reject = async (req, res) => {
     app.rejectionReason = reason || 'Not specified';
     if (req.employee) {
       app.rejectedByEmployee = req.employee._id;
+      app.rejectedActionTimestamp = new Date();
       app.approvedByEmployee = undefined;
+      app.approvedActionTimestamp = undefined;
     }
     await app.save();
+
+    // Log employee rejection
+    if (req.employee) {
+      await logEmployeeTutorAction({ employee: req.employee, application: app, status: 'rejected' });
+    }
 
     await User.findByIdAndUpdate(app.user, { tutorActivationAt: undefined, isTutor: false });
 

@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const InterviewerApplication = require('../models/InterviewerApplication');
 const ApprovedInterviewer = require('../models/ApprovedInterviewer');
+const EmployeeActivity = require('../models/EmployeeActivity');
 const UserInterviewSnapshot = require('../models/UserInterviewSnapshot');
 const multer = require('multer');
 const path = require('path');
@@ -539,9 +540,34 @@ exports.approveApplication = async (req, res) => {
     app.status = 'approved';
     if (req.employee) {
       app.approvedByEmployee = req.employee._id;
+      app.approvedActionTimestamp = new Date();
       app.rejectedByEmployee = undefined;
+      app.rejectedActionTimestamp = undefined;
     }
     await app.save();
+
+    // Log employee approval for interviewer application
+    if (req.employee) {
+      try {
+        await EmployeeActivity.findOneAndUpdate(
+          {
+            employee: req.employee._id,
+            applicationId: app._id,
+            applicationType: 'interview',
+          },
+          {
+            employee: req.employee._id,
+            applicationId: app._id,
+            applicationType: 'interview',
+            roleType: req.employee.accessPermissions || 'interview',
+            status: 'approved',
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      } catch (err) {
+        console.error('[EmployeeActivity] Failed to log interviewer approve action:', err.message);
+      }
+    }
 
     // Mark user as interviewer by adding their expertise into profile.
     // We only update the Experience section, not "What I Can Teach".
@@ -630,9 +656,34 @@ exports.rejectApplication = async (req, res) => {
     app.status = 'rejected';
     if (req.employee) {
       app.rejectedByEmployee = req.employee._id;
+      app.rejectedActionTimestamp = new Date();
       app.approvedByEmployee = undefined;
+      app.approvedActionTimestamp = undefined;
     }
     await app.save();
+
+    // Log employee rejection for interviewer application
+    if (req.employee) {
+      try {
+        await EmployeeActivity.findOneAndUpdate(
+          {
+            employee: req.employee._id,
+            applicationId: app._id,
+            applicationType: 'interview',
+          },
+          {
+            employee: req.employee._id,
+            applicationId: app._id,
+            applicationType: 'interview',
+            roleType: req.employee.accessPermissions || 'interview',
+            status: 'rejected',
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+      } catch (err) {
+        console.error('[EmployeeActivity] Failed to log interviewer reject action:', err.message);
+      }
+    }
 
     const io = req.app.get('io');
     try {

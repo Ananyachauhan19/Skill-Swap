@@ -12,6 +12,7 @@ const InterviewRequest = require('../models/InterviewRequest');
 const ApprovedInterviewer = require('../models/ApprovedInterviewer');
 const InterviewerApplication = require('../models/InterviewerApplication');
 const Employee = require('../models/Employee');
+const employeeActivityController = require('../controllers/employeeActivityController');
 const Report = require('../models/Report');
 const supabase = require('../utils/supabaseClient');
 const adminStatsController = require('../controllers/adminStatsController');
@@ -19,6 +20,9 @@ const analyticsController = require('../controllers/analyticsController');
 
 // Protect all routes in this file with both authentication and admin authorization
 router.use(requireAuth, requireAdmin);
+
+// Employee activity profile (admin view)
+router.get('/employees/:id/activity', employeeActivityController.getEmployeeActivityForAdmin);
 
 // Example route to get admin dashboard data
 // New consolidated stats route
@@ -286,6 +290,9 @@ router.get('/users/:userId/skillmates', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch skillmates' });
   }
 });
+
+// Employee activity profile (admin view)
+router.get('/employees/:id/activity', requireAuth, requireAdmin, employeeActivityController.getEmployeeActivityForAdmin);
 
 // Get user's session history (one-on-one sessions)
 router.get('/users/:userId/session-history', async (req, res) => {

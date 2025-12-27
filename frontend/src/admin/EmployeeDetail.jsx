@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { BACKEND_URL } from '../config';
 import {
@@ -14,6 +14,7 @@ import {
   FiCalendar,
   FiUser,
 } from 'react-icons/fi';
+import { ActivityProfileView } from '../employee/EmployeeActivity.jsx';
 
 const ACCESS_OPTIONS = [
   { id: 'interviewer', label: 'Interview Expert approvals only' },
@@ -23,6 +24,7 @@ const ACCESS_OPTIONS = [
 
 const EmployeeDetail = () => {
   const { employeeId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,12 @@ const EmployeeDetail = () => {
   const [resettingPassword, setResettingPassword] = useState(false);
   const [error, setError] = useState('');
   const [tutorOptions, setTutorOptions] = useState({ subjects: [], classes: [], classSubjectMap: {} });
+  const [activityData, setActivityData] = useState(null);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState('');
+  const [activityRange, setActivityRange] = useState('30d');
+  const [activityApplicationType, setActivityApplicationType] = useState('interview');
+  const [activeTab, setActiveTab] = useState('details');
 
   const [form, setForm] = useState({
     name: '',
@@ -48,8 +56,39 @@ const EmployeeDetail = () => {
   useEffect(() => {
     loadEmployee();
     loadTutorOptions();
+    const params = new URLSearchParams(location.search);
+    if (params.get('view') === 'activity') {
+      setActiveTab('activity');
+      if (!isNewEmployee) {
+        loadActivity('30d');
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [employeeId]);
+
+  const loadActivity = async (range = activityRange, applicationType = activityApplicationType) => {
+    try {
+      setActivityLoading(true);
+      setActivityError('');
+      setActivityRange(range);
+      setActivityApplicationType(applicationType);
+      const params = { range };
+      if (applicationType) {
+        params.applicationType = applicationType;
+      }
+      const res = await axios.get(`${BACKEND_URL}/api/admin/employees/${employeeId}/activity`, {
+        params,
+        withCredentials: true,
+      });
+      setActivityData(res.data);
+    } catch (e) {
+      console.error('Failed to load employee activity', e);
+      setActivityError(e.response?.data?.message || 'Failed to load employee activity');
+      setActivityData(null);
+    } finally {
+      setActivityLoading(false);
+    }
+  };
 
   const loadEmployee = async () => {
     if (isNewEmployee) {
@@ -284,25 +323,84 @@ const EmployeeDetail = () => {
 
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
           {/* Page Title */}
-          <div className="px-5 py-4 border-b border-gray-200">
-            <h1 className="text-lg font-semibold text-gray-900">
-              {isNewEmployee ? 'Add New Employee' : 'Employee Details'}
-            </h1>
-            <p className="text-xs text-gray-500 mt-0.5">
-              {isNewEmployee
-                ? 'Create a new employee account with approval permissions'
-                : 'Update employee information and access permissions'}
-            </p>
+          <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">
+                {isNewEmployee ? 'Add New Employee' : 'Employee Details'}
+              </h1>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {isNewEmployee
+                  ? 'Create a new employee account with approval permissions'
+                  : 'Update employee information and access permissions'}
+              </p>
+            </div>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mx-5 mt-4 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-              {error}
+          {/* Tabs */}
+          {!isNewEmployee && (
+            <div className="px-5 border-b border-gray-200 bg-gray-50/60 flex items-center justify-between">
+              <div className="flex gap-4 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('details')}
+                  className={`py-3 border-b-2 -mb-px transition-colors ${
+                    activeTab === 'details'
+                      ? 'border-blue-600 text-blue-700 font-medium'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Details
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('activity');
+                    if (!activityData) {
+                      loadActivity(activityRange || '30d');
+                    }
+                  }}
+                  className={`py-3 border-b-2 -mb-px transition-colors ${
+                    activeTab === 'activity'
+                      ? 'border-blue-600 text-blue-700 font-medium'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Activity profile
+                </button>
+              </div>
+              {activeTab === 'activity' && (
+                <p className="text-[11px] text-gray-500">
+                  Viewing read-only analytics for this employee
+                </p>
+              )}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="p-5">
+          {activeTab === 'activity' && !isNewEmployee ? (
+            <div className="p-5">
+              <ActivityProfileView
+                title="Employee Activity"
+                loading={activityLoading}
+                error={activityError}
+                stats={activityData?.stats}
+                access={activityData?.access}
+                lists={activityData?.lists}
+                range={activityRange}
+                applicationType={activityApplicationType}
+                onRangeChange={(value) => loadActivity(value, activityApplicationType)}
+                onApplicationTypeChange={(value) => loadActivity(activityRange, value)}
+              />
+            </div>
+          ) : (
+            <>
+              {/* Error Message */}
+              {error && (
+                <div className="mx-5 mt-4 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="p-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Basic Information */}
               <div className="space-y-4">
@@ -554,50 +652,52 @@ const EmployeeDetail = () => {
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-between gap-3 pt-6 mt-6 border-t border-gray-200">
-              <div className="flex gap-3">
-                {!isNewEmployee && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleResetPassword}
-                      disabled={resettingPassword}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs font-medium hover:bg-amber-100 disabled:opacity-50"
-                    >
-                      <FiKey size={14} />
-                      {resettingPassword ? 'Resetting...' : 'Reset Password'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-red-300 bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 disabled:opacity-50"
-                    >
-                      <FiTrash2 size={14} />
-                      {deleting ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </>
-                )}
+              {/* Actions */}
+              <div className="flex items-center justify-between gap-3 pt-6 mt-6 border-t border-gray-200">
+                <div className="flex gap-3">
+                  {!isNewEmployee && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleResetPassword}
+                        disabled={resettingPassword}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs font-medium hover:bg-amber-100 disabled:opacity-50"
+                      >
+                        <FiKey size={14} />
+                        {resettingPassword ? 'Resetting...' : 'Reset Password'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-red-300 bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 disabled:opacity-50"
+                      >
+                        <FiTrash2 size={14} />
+                        {deleting ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/employees')}
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-6 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin/employees')}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-6 py-2 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </div>
-          </form>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </div>

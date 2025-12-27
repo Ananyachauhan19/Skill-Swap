@@ -9,6 +9,7 @@ import {
   FiClock,
   FiArrowRight,
   FiTrendingUp,
+  FiBarChart2,
 } from 'react-icons/fi';
 import api from '../lib/api';
 
@@ -198,6 +199,13 @@ export default function EmployeeDashboard() {
               <span className="text-xs font-semibold text-indigo-700">Access:</span>
               <span className="text-xs font-medium text-indigo-900 capitalize">{access}</span>
             </div>
+            <Link
+              to="/employee/activity"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium shadow-sm hover:bg-blue-700"
+            >
+              <FiBarChart2 size={14} />
+              My Activity
+            </Link>
           </div>
         </div>
       </div>

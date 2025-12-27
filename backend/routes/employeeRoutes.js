@@ -6,6 +6,7 @@ const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
 const requireAdmin = require('../middleware/requireAdmin');
 const { requireEmployee } = require('../middleware/requireEmployee');
+const employeeActivityController = require('../controllers/employeeActivityController');
 const { sendOtpEmail } = require('../utils/sendMail');
 const fetch = require('node-fetch');
 const csv = require('csvtojson');
@@ -79,6 +80,14 @@ router.get('/admin/employees', requireAuth, requireAdmin, async (_req, res) => {
     return res.status(500).json({ message: 'Failed to fetch employees' });
   }
 });
+
+// Admin-only: employee activity profile
+router.get(
+  '/admin/employees/:id/activity',
+  requireAuth,
+  requireAdmin,
+  employeeActivityController.getEmployeeActivityForAdmin
+);
 
 // Admin-only: update/disable employee
 router.put('/admin/employees/:id', requireAuth, requireAdmin, async (req, res) => {
@@ -325,6 +334,9 @@ router.get('/employee/me', requireEmployee, (req, res) => {
     mustChangePassword: e.mustChangePassword,
   });
 });
+
+// Employee activity profile
+router.get('/employee/me/activity', requireEmployee, employeeActivityController.getMyActivity);
 
 // Employee: change password (used after first login when mustChangePassword is true,
 // but can also be used later to rotate password)

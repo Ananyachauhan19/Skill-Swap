@@ -22,7 +22,9 @@ const tutorApplicationSchema = new mongoose.Schema({
   submittedAt: { type: Date, default: Date.now },
   approvedAt: { type: Date },
   approvedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+  approvedActionTimestamp: { type: Date },
   rejectedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+  rejectedActionTimestamp: { type: Date },
   rejectionReason: { type: String },
 });
 

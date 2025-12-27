@@ -9,6 +9,7 @@ import {
   FiToggleLeft,
   FiToggleRight,
   FiShield,
+  FiBarChart2,
 } from 'react-icons/fi';
 
 const ACCESS_OPTIONS = [
@@ -134,6 +135,7 @@ const Employees = () => {
                 <th className="px-4 py-2.5">Tutor Scope</th>
                 <th className="px-4 py-2.5">Status</th>
                 <th className="px-4 py-2.5">Created</th>
+                <th className="px-4 py-2.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -226,6 +228,18 @@ const Employees = () => {
                       )}
                     </td>
                     <td className="px-4 py-3 text-gray-600">{formatDate(emp.createdAt)}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/admin/employees/${emp._id}?view=activity`);
+                        }}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-blue-200 text-[11px] font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 hover:border-blue-300 transition-colors"
+                      >
+                        <FiBarChart2 size={12} />
+                        View Details
+                      </button>
+                    </td>
                   </tr>
                 );
               })}

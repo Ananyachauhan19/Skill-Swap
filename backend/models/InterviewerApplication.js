@@ -15,7 +15,9 @@ const interviewerAppSchema = new mongoose.Schema({
   totalRatings: { type: Number, default: 0 },
   conductedInterviews: { type: Number, default: 0 }, // Actual interviews conducted
   approvedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+  approvedActionTimestamp: { type: Date },
   rejectedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+  rejectedActionTimestamp: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('InterviewerApplication', interviewerAppSchema);

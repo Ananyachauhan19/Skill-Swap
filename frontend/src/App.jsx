@@ -82,6 +82,7 @@ import EmployeeLayout from './employee/EmployeeLayout.jsx';
 import EmployeeDashboard from './employee/EmployeeDashboard.jsx';
 import EmployeeApplicationsPage from './employee/EmployeeApplicationsPage.jsx';
 import EmployeeResetPassword from './employee/EmployeeResetPassword.jsx';
+import EmployeeActivity from './employee/EmployeeActivity.jsx';
 import RecruitmentApplication from './user/RecruitmentApplication.jsx';
 import RecruitmentApplications from './admin/RecruitmentApplications.jsx';
 import ChatPage from './user/ChatPage.jsx';
@@ -212,6 +213,7 @@ const appRoutes = [
           { index: true, element: <EmployeeDashboard /> },
           { path: 'dashboard', element: <EmployeeDashboard /> },
           { path: 'applications/:category', element: <EmployeeApplicationsPage /> },
+          { path: 'activity', element: <EmployeeActivity /> },
           { path: 'reset-password', element: <EmployeeResetPassword /> },
         ],
       },
