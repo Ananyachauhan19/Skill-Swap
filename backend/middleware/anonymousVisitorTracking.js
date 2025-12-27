@@ -15,9 +15,9 @@ function parseDeviceInfo(userAgent) {
   // Simple platform detection
   if (/Windows/.test(ua)) platform = 'Windows';
   else if (/Mac OS/.test(ua)) platform = 'MacOS';
-  else if (/Linux/.test(ua)) platform = 'Linux';
   else if (/Android/.test(ua)) platform = 'Android';
   else if (/iPhone|iPad/.test(ua)) platform = 'iOS';
+  else if (/Linux/.test(ua)) platform = 'Linux';
 
   // Simple browser detection
   if (/Chrome/.test(ua) && !/Edge/.test(ua)) browser = 'Chrome';
