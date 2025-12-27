@@ -298,10 +298,17 @@ router.post('/password/reset', async (req, res) => {
 // Public Stats Endpoint
 router.get('/stats/public', async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
+    // Active users = users who logged in within last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const totalUsers = await User.countDocuments({
+      lastActivityAt: { $gte: thirtyDaysAgo }
+    });
     const totalSessions = await Session.countDocuments();
     const expertUsers = await User.countDocuments({
-      skillsToTeach: { $exists: true, $ne: [], $not: { $size: 0 } }
+      skillsToTeach: { $exists: true, $ne: [], $not: { $size: 0 } },
+      lastActivityAt: { $gte: thirtyDaysAgo }
     });
     
     // Count approved expert interviewers

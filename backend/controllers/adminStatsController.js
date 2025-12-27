@@ -50,6 +50,10 @@ exports.getStats = async (req, res) => {
       };
     }
 
+    // Define active user threshold (users active in last 30 days)
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     const [
       totalUsers,
       activeUsers,
@@ -74,9 +78,10 @@ exports.getStats = async (req, res) => {
       uniqueVisitors,
     ] = await Promise.all([
       User.countDocuments(dateFilter),
+      // Active users = users who logged in within last 30 days
       User.countDocuments({ 
         ...dateFilter,
-        socketId: { $exists: true, $ne: null } 
+        lastActivityAt: { $gte: thirtyDaysAgo }
       }),
       // Heuristic: user has an OTP not expired => pending verification
       User.countDocuments({ 
