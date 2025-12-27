@@ -1,7 +1,7 @@
 const getBackendUrl = () => {
   // Primary source: unified API base URL for both
   // preview/localhost and production deployments.
-  const explicitBase = import.meta.env.VITE_API_BASE_URL;
+  const explicitBase = import.meta.env.VITE_BACKEND_URL;
   if (explicitBase) return explicitBase;
 
   // Backwards-compatible fallbacks for existing env vars
