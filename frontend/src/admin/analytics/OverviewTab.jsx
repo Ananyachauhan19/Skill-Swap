@@ -463,16 +463,24 @@ export default function OverviewTab({ dateRange }) {
               </div>
               <div className="text-[11px] text-gray-500">
                 {visitorData?.summary ? (
-                  <>
-                    <span className="text-green-600 font-semibold">
-                      {visitorData.summary.activeVisitors || 0}
-                    </span>{' '}
-                    active ·{' '}
-                    <span className="text-gray-400">
-                      {visitorData.summary.inactiveVisitors || 0}
-                    </span>{' '}
-                    bounce
-                  </>
+                  <div className="space-y-0.5">
+                    <div>
+                      <span className="text-green-600 font-semibold">
+                        {visitorData.summary.activeVisitors || 0}
+                      </span>{' '}
+                      active ·{' '}
+                      <span className="text-gray-400">
+                        {visitorData.summary.inactiveVisitors || 0}
+                      </span>{' '}
+                      bounce
+                    </div>
+                    <div>
+                      <span className="text-indigo-600 font-semibold">
+                        {visitorData.summary.uniqueVisitors || 0}
+                      </span>{' '}
+                      unique visitors
+                    </div>
+                  </div>
                 ) : (
                   'No data yet'
                 )}

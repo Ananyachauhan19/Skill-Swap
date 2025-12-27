@@ -4,6 +4,7 @@ const InterviewRequest = require('../models/InterviewRequest');
 const Report = require('../models/Report');
 const Contribution = require('../models/Contribution');
 const AnonymousVisitor = require('../models/AnonymousVisitor');
+const Visitor = require('../models/Visitor');
 
 // Helper: Get date range based on query params
 function getDateRange(req) {
@@ -624,9 +625,10 @@ exports.getSessions = async (req, res) => {
       createdAt: { $gte: start, $lte: end },
       status: 'completed'
     });
+    // Treat tutor rejections as the primary negative outcome
     const cancelledSessions = await SessionRequest.countDocuments({
       createdAt: { $gte: start, $lte: end },
-      status: 'cancelled'
+      status: 'rejected'
     });
 
     // Calculate average duration for completed sessions
@@ -657,7 +659,7 @@ exports.getSessions = async (req, res) => {
       ? Math.round((cancelledSessions / totalSessions) * 100)
       : 0;
 
-    // 1. Session Activity Trend - completed vs cancelled
+    // 1. Session Activity Trend - completed vs rejected
     const sessionsOverTime = await SessionRequest.aggregate([
       { $match: { createdAt: { $gte: start, $lte: end } } },
       {
@@ -665,14 +667,14 @@ exports.getSessions = async (req, res) => {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
           total: { $sum: 1 },
           completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
-          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
         }
       },
       { $sort: { _id: 1 } }
     ]);
 
     const sessionMap = sessionsOverTime.reduce((acc, item) => {
-      acc[item._id] = { total: item.total, completed: item.completed, cancelled: item.cancelled };
+      acc[item._id] = { total: item.total, completed: item.completed, rejected: item.rejected };
       return acc;
     }, {});
 
@@ -680,7 +682,7 @@ exports.getSessions = async (req, res) => {
       date,
       total: sessionMap[date]?.total || 0,
       completed: sessionMap[date]?.completed || 0,
-      cancelled: sessionMap[date]?.cancelled || 0
+      rejected: sessionMap[date]?.rejected || 0
     }));
 
     // 2. Role Participation Insight - aggregated totals
@@ -701,7 +703,7 @@ exports.getSessions = async (req, res) => {
       SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: { $in: ['approved', 'active', 'completed'] } }),
       SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, startedAt: { $exists: true, $ne: null } }),
       SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: 'completed' }),
-      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: 'cancelled' })
+      SessionRequest.countDocuments({ createdAt: { $gte: start, $lte: end }, status: 'rejected' })
     ]);
 
     const lifecycleFunnel = [
@@ -709,7 +711,7 @@ exports.getSessions = async (req, res) => {
       { stage: 'Approved', count: approved },
       { stage: 'Started', count: started },
       { stage: 'Completed', count: completed },
-      { stage: 'Cancelled', count: cancelled }
+      { stage: 'Rejected', count: cancelled }
     ];
 
     // 4. Session Reliability Metrics with trends
@@ -720,7 +722,7 @@ exports.getSessions = async (req, res) => {
     const [prevTotal, prevCompleted, prevCancelled] = await Promise.all([
       SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd } }),
       SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd }, status: 'completed' }),
-      SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd }, status: 'cancelled' })
+      SessionRequest.countDocuments({ createdAt: { $gte: prevStart, $lt: prevEnd }, status: 'rejected' })
     ]);
 
     const prevCompletionRate = prevTotal > 0 ? Math.round((prevCompleted / prevTotal) * 100) : 0;
@@ -818,7 +820,7 @@ exports.getSessions = async (req, res) => {
           _id: '$tutor',
           totalSessions: { $sum: 1 },
           completedSessions: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
-          cancelledSessions: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } },
+          cancelledSessions: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
           avgDuration: { $avg: { $cond: [{ $eq: ['$status', 'completed'] }, '$duration', null] } }
         }
       },
@@ -859,7 +861,7 @@ exports.getSessions = async (req, res) => {
         $group: {
           _id: '$tutor',
           total: { $sum: 1 },
-          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] } }
+          cancelled: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
         }
       },
       {
@@ -2111,18 +2113,35 @@ exports.getReports = async (req, res) => {
 exports.getVisitorAnalytics = async (req, res) => {
   try {
     const { start, end } = getDateRange(req);
-    const now = new Date();
+    // Overview should focus on visitors who accepted cookies
+    // and are tracked via the Visitor model.
+    const baseFilter = {
+      createdAt: { $gte: start, $lte: end },
+      consentGiven: true,
+    };
 
-    // Define "active" anonymous visitor thresholds
-    const MIN_TIME_SPENT = 15; // seconds
-    const MIN_PAGE_VIEWS = 2;
+    const [
+      totalVisitors,
+      uniqueVisitors,
+      returningVisitors,
+    ] = await Promise.all([
+      Visitor.countDocuments(baseFilter),
+      Visitor.countDocuments({ ...baseFilter, visitCount: 1 }),
+      Visitor.countDocuments({ ...baseFilter, visitCount: { $gt: 1 } }),
+    ]);
 
-    const anonymousVisitors = await AnonymousVisitor.find({});
-    
+    // Treat returning visitors as "active" and first-time as bounce
+    const activeVisitors = returningVisitors;
+    const inactiveVisitors = Math.max(totalVisitors - activeVisitors, 0);
+
     res.json({
       summary: {
-        totalVisitors: anonymousVisitors.length
-      }
+        totalVisitors,
+        uniqueVisitors,
+        returningVisitors,
+        activeVisitors,
+        inactiveVisitors,
+      },
     });
   } catch (error) {
     console.error('Analytics visitors error:', error);

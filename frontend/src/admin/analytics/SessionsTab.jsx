@@ -55,8 +55,8 @@ export default function SessionsTab({ dateRange }) {
         borderWidth: 2
       },
       {
-        label: 'Cancelled',
-        data: data?.sessionsOverTime?.map(d => d.cancelled) || [],
+        label: 'Rejected',
+        data: data?.sessionsOverTime?.map(d => d.rejected) || [],
         borderColor: 'rgba(239, 68, 68, 1)',
         backgroundColor: 'rgba(239, 68, 68, 0.1)',
         tension: 0.4,
@@ -224,7 +224,7 @@ export default function SessionsTab({ dateRange }) {
                 </div>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-600">Cancellation Rate:</span>
+                <span className="text-xs text-gray-600">Rejection Rate:</span>
                 <div className="flex items-center">
                   <span className="text-2xl font-bold text-orange-600">{data?.reliabilityMetrics?.cancellationRate || 0}%</span>
                   <span className={`ml-2 text-sm ${data?.reliabilityMetrics?.cancellationTrend <= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -317,7 +317,7 @@ export default function SessionsTab({ dateRange }) {
                 <span className="text-2xl font-bold text-indigo-600">{data?.tutorPerformance?.avgSessionDuration || 0}m</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-xs text-gray-600">Avg Cancellation Rate:</span>
+                <span className="text-xs text-gray-600">Avg Rejection Rate:</span>
                 <span className="text-2xl font-bold text-orange-600">{data?.tutorPerformance?.avgCancellationRate || 0}%</span>
               </div>
             </div>
@@ -331,7 +331,7 @@ export default function SessionsTab({ dateRange }) {
           </h3>
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-xs text-gray-600 mb-1">Tutors with High Cancellation (40%+)</div>
+              <div className="text-xs text-gray-600 mb-1">Tutors with High Rejection (40%+)</div>
               <div className="text-3xl font-bold text-orange-600">{data?.sessionRiskAlerts?.tutorsWithHighCancellation || 0}</div>
             </div>
             <div className="text-center">
