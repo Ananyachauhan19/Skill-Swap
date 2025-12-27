@@ -271,19 +271,8 @@ exports.submitRequest = async (req, res) => {
       if (io && admin._id) io.to(admin._id.toString()).emit('notification', notification);
     }
 
-    // Send confirmation notification and email to candidate (requester)
+    // Send confirmation email to candidate (requester) - NO notification stored, only toaster via API response
     try {
-      const candidateNotification = await Notification.create({
-        userId: requester,
-        type: 'interview-request-submitted',
-        message: `Your mock interview request for ${company} — ${position} has been submitted successfully.`,
-        requestId: reqDoc._id,
-        company,
-        position,
-        timestamp: Date.now(),
-      });
-      if (io) io.to(requester.toString()).emit('notification', candidateNotification);
-
       // Send email confirmation to candidate
       if (req.user.email) {
         const tpl = T.interviewRequestConfirmation({
@@ -294,7 +283,7 @@ exports.submitRequest = async (req, res) => {
         await sendMail({ to: req.user.email, subject: tpl.subject, html: tpl.html });
       }
     } catch (e) {
-      console.error('Failed to send candidate confirmation notification/email', e);
+      console.error('Failed to send candidate confirmation email', e);
     }
 
     // Email and notify interviewer if pre-assigned
