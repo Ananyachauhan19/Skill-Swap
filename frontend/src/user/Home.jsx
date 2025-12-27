@@ -5,7 +5,7 @@ import ExploreOpportunitiesSection from "./HomeSection/ExploreOpportunitiesSecti
 import ActivityStatsSection from "./HomeSection/ActivityStatsSection";
 import TopPerformersSection from "./HomeSection/TopPerformersSection";
 import WhoAreWeSection from "./HomeSection/WhoAreWeSection";
-import WhyChooseSection from "./HomeSection/WhyChooseSection";
+import UserTestimonials from "./HomeSection/UserTestimonials";
 import RecruitmentSection from "./HomeSection/RecruitmentSection";
 import LetsStartSection from "./HomeSection/LetsStartSection";
 
@@ -14,11 +14,12 @@ const Home = () => {
     <main className="bg-home-bg text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] pt-16 md:pt-[72px] xl:pt-20">
       <motion.div initial="visible" animate="visible">
         <HeroSection />
+        <WhoAreWeSection />
         <ExploreOpportunitiesSection />
         <ActivityStatsSection />
         <TopPerformersSection />
-        <WhyChooseSection />
-        <WhoAreWeSection />
+        <UserTestimonials />
+        
         <RecruitmentSection />
         <LetsStartSection />
       </motion.div>

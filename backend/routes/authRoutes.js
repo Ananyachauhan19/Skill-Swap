@@ -318,6 +318,89 @@ router.get('/stats/public', async (req, res) => {
   }
 });
 
+// Live Activity Stats Endpoint (Today's data)
+router.get('/stats/live-activity', async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    // Sessions conducted today
+    const SessionRequest = require('../models/SessionRequest');
+    const InterviewRequest = require('../models/InterviewRequest');
+    const SkillMate = require('../models/SkillMate');
+    const Visitor = require('../models/Visitor');
+
+    const [
+      sessionsToday,
+      activeUsersToday,
+      visitorsToday,
+      interviewsToday,
+      skillMatesCreatedToday,
+      activeSessions
+    ] = await Promise.all([
+      // Sessions created today
+      Session.countDocuments({ 
+        createdAt: { $gte: startOfToday, $lte: endOfToday } 
+      }),
+      // Users active today (based on lastActivityAt)
+      User.countDocuments({ 
+        lastActivityAt: { $gte: startOfToday, $lte: endOfToday } 
+      }),
+      // Visitors today
+      Visitor.countDocuments({ 
+        createdAt: { $gte: startOfToday, $lte: endOfToday } 
+      }),
+      // Interviews today
+      InterviewRequest.countDocuments({ 
+        createdAt: { $gte: startOfToday, $lte: endOfToday } 
+      }),
+      // SkillMates created today
+      SkillMate.countDocuments({ 
+        createdAt: { $gte: startOfToday, $lte: endOfToday } 
+      }),
+      // Active sessions now (pending or active status)
+      Session.countDocuments({ 
+        status: { $in: ['pending', 'active'] } 
+      })
+    ]);
+
+    // Calculate earnings today (from completed sessions)
+    const completedSessionsToday = await SessionRequest.find({
+      status: 'completed',
+      createdAt: { $gte: startOfToday, $lte: endOfToday }
+    }).select('amount');
+
+    const earningsToday = completedSessionsToday.reduce((sum, session) => {
+      return sum + (session.amount || 0);
+    }, 0);
+
+    // Calculate time spent on platform today (approximate from session durations)
+    const sessionsWithDuration = await Session.find({
+      createdAt: { $gte: startOfToday, $lte: endOfToday },
+      duration: { $exists: true }
+    }).select('duration');
+
+    const timeSpentToday = sessionsWithDuration.reduce((sum, session) => {
+      return sum + (session.duration || 0);
+    }, 0);
+
+    res.json({
+      sessionsToday,
+      activeUsersToday,
+      visitorsToday,
+      interviewsToday,
+      skillMatesCreatedToday,
+      earningsToday,
+      timeSpentToday, // in minutes
+      activeSessions
+    });
+  } catch (error) {
+    console.error('Error fetching live activity stats:', error);
+    res.status(500).json({ error: 'Failed to fetch live activity stats' });
+  }
+});
+
 // Search users for SkillMate (navbar search) - requires authentication
 router.get('/search/users', requireAuth, async (req, res) => {
   try {
