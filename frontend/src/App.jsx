@@ -137,9 +137,9 @@ const collectVisitorData = () => {
     const ua = navigator.userAgent;
     if (ua.indexOf('Win') > -1) return 'Windows';
     if (ua.indexOf('Mac') > -1) return 'MacOS';
-    if (ua.indexOf('Linux') > -1) return 'Linux';
     if (ua.indexOf('Android') > -1) return 'Android';
     if (ua.indexOf('like Mac') > -1) return 'iOS';
+    if (ua.indexOf('Linux') > -1) return 'Linux';
     return 'Unknown';
   };
 
