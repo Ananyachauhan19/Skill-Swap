@@ -37,7 +37,6 @@ const CookieConsent = () => {
   }, []);
 
   const handleAllow = async () => {
-    console.error("[CookieConsent] CLICK HANDLER FIRED");
     try {
       const consent = {
         analytics: true,
@@ -71,7 +70,6 @@ const CookieConsent = () => {
   };
 
   const handleDecline = () => {
-    console.error("[CookieConsent] CLICK HANDLER FIRED");
     // "Accept All Cookies" – full analytics + enhanced tracking.
     const consent = {
       analytics: true,
@@ -130,47 +128,39 @@ const CookieConsent = () => {
             <p className="mt-1.5 sm:mt-2 text-[10px] sm:text-xs text-gray-600 leading-relaxed">
               We use cookies to enhance your experience. Choose recommended (essential + analytics) or accept all cookies for full personalization.
             </p>
+
+            <div className="mt-2 sm:mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] sm:text-[10px] text-gray-500">
+              <span>Learn more:</span>
+              <button
+                onClick={() => {
+                  hideModal();
+                  navigate('/cookies-policy');
+                }}
+                className="text-blue-600 hover:text-blue-700 underline font-medium"
+              >
+                Cookies Policy
+              </button>
+              <span className="text-gray-400">•</span>
+              <button
+                onClick={() => {
+                  hideModal();
+                  navigate('/terms-conditions');
+                }}
+                className="text-blue-600 hover:text-blue-700 underline font-medium"
+              >
+                Terms &amp; Conditions
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-4">
+        <div className="mt-4 sm:mt-5">
           <button
             onClick={handleAllow}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-md transition-colors duration-200"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white text-[10px] sm:text-xs font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-md transition-colors duration-200"
           >
-            Accept Recommended
+            Allow
           </button>
-          <button
-            onClick={handleDecline}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] sm:text-xs font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-md transition-colors duration-200"
-          >
-            Accept All
-          </button>
-        </div>
-
-        <div className="mt-2.5 sm:mt-3 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 text-[9px] sm:text-[10px] text-gray-500">
-          <span className="text-center">By continuing, you agree to our</span>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              onClick={() => {
-                hideModal();
-                navigate('/cookies-policy');
-              }}
-              className="text-blue-600 hover:text-blue-700 underline font-medium"
-            >
-              Cookies Policy
-            </button>
-            <span className="text-gray-400">•</span>
-            <button
-              onClick={() => {
-                hideModal();
-                navigate('/terms-conditions');
-              }}
-              className="text-blue-600 hover:text-blue-700 underline font-medium"
-            >
-              Terms &amp; Conditions
-            </button>
-          </div>
         </div>
       </div>
     </div>
