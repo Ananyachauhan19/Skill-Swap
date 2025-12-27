@@ -20,7 +20,8 @@ function parseDeviceInfo(userAgent) {
   else if (/Linux/.test(ua)) platform = 'Linux';
 
   // Simple browser detection
-  if (/Chrome/.test(ua) && !/Edge/.test(ua)) browser = 'Chrome';
+  if (/Brave/.test(ua) || (/Chrome/.test(ua) && /Brave/.test(ua))) browser = 'Brave';
+  else if (/Chrome/.test(ua) && !/Edge/.test(ua)) browser = 'Chrome';
   else if (/Safari/.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
   else if (/Firefox/.test(ua)) browser = 'Firefox';
   else if (/Edge/.test(ua)) browser = 'Edge';

@@ -122,6 +122,9 @@ const collectVisitorData = () => {
     } else if (ua.indexOf('Edg') > -1) {
       browserName = 'Edge Chromium';
       browserVersion = ua.match(/Edg\/(\d+\.\d+)/)?.[1] || 'Unknown';
+    } else if (ua.indexOf('Brave') > -1 || (navigator.brave && typeof navigator.brave.isBrave === 'function')) {
+      browserName = 'Brave';
+      browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown';
     } else if (ua.indexOf('Chrome') > -1) {
       browserName = 'Chrome';
       browserVersion = ua.match(/Chrome\/(\d+\.\d+)/)?.[1] || 'Unknown';
