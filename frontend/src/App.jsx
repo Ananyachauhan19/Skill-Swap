@@ -85,6 +85,7 @@ import EmployeeApplicationsPage from './employee/EmployeeApplicationsPage.jsx';
 import EmployeeResetPassword from './employee/EmployeeResetPassword.jsx';
 import RecruitmentApplication from './user/RecruitmentApplication.jsx';
 import RecruitmentApplications from './admin/RecruitmentApplications.jsx';
+import ChatPage from './user/ChatPage.jsx';
 
 const collectVisitorData = () => {
   const getDeviceType = () => {
@@ -181,6 +182,7 @@ const appRoutes = [
   // Protected routes (require authentication)
   { path: '/one-on-one', element: <ProtectedRoute><OneOnOne /></ProtectedRoute> },
   { path: '/discuss', element: <ProtectedRoute><Discuss /></ProtectedRoute> },
+  { path: '/chat', element: <ProtectedRoute><ChatPage /></ProtectedRoute> },
   { path: '/interview', element: <ProtectedRoute><Interview /></ProtectedRoute> },
   { path: '/your-interviews', element: <ProtectedRoute><YourInterviews /></ProtectedRoute> },
   { path: '/session', element: <ProtectedRoute><Sessions /></ProtectedRoute> },
