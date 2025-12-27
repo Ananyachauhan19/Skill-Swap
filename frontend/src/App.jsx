@@ -179,7 +179,7 @@ const appRoutes = [
   { path: '/faq', element: <FAQ /> },
   { path: '/contact-us', element: <ContactUs /> },
   { path: '/terms-conditions', element: <TermsConditions /> },
-  { path: '/cookies', element: <CookiesPolicy /> },
+  { path: '/cookies-policy', element: <CookiesPolicy /> },
   { path: '/career', element: <Career /> },
   { path: '/profile/:username', element: <PublicProfile /> },
   // Protected routes (require authentication)
