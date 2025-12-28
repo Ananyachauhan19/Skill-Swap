@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import HeroSection from "./HomeSection/HeroSection";
 import ExploreOpportunitiesSection from "./HomeSection/ExploreOpportunitiesSection";
 import ActivityStatsSection from "./HomeSection/ActivityStatsSection";
@@ -10,6 +11,12 @@ import RecruitmentSection from "./HomeSection/RecruitmentSection";
 import LetsStartSection from "./HomeSection/LetsStartSection";
 
 const Home = () => {
+  const navigate = useNavigate();
+
+  const handleJoinCampusDashboard = () => {
+    navigate('/campus-dashboard');
+  };
+
   return (
     <main className="bg-home-bg text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] pt-16 md:pt-[72px] xl:pt-20">
       <div>
@@ -24,6 +31,7 @@ const Home = () => {
           totalCampusCollaborations={0}
           totalStudentsOnDashboard={0}
           imageSrc="/images/campus-dashboard.png"
+          onJoin={handleJoinCampusDashboard}
         />
           <UserTestimonials />
         <RecruitmentSection />
