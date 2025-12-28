@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import axios from 'axios';
 import TestimonialCard from './TestimonialCard';
 
@@ -7,9 +7,13 @@ const UserTestimonials = () => {
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scrollSpeed, setScrollSpeed] = useState(1);
+  const [isPaused, setIsPaused] = useState(false);
   const scrollContainerRef = useRef(null);
   const animationRef = useRef(null);
   const lastTapRef = useRef(0);
+  const scrollPositionRef = useRef(0);
+  const clickTimeoutRef = useRef(null);
+  const tapTimeoutRef = useRef(null);
 
   // Fetch testimonials from backend
   useEffect(() => {
@@ -32,23 +36,22 @@ const UserTestimonials = () => {
 
   // Auto-scroll animation (RIGHT to LEFT continuously)
   useEffect(() => {
-    if (!loading && testimonials.length > 0 && scrollContainerRef.current) {
+    if (!loading && testimonials.length > 0 && scrollContainerRef.current && !isPaused) {
       const container = scrollContainerRef.current;
-      let scrollPosition = 0;
       const baseSpeed = 0.5; // Base pixels per frame
       
       const animate = () => {
-        scrollPosition += baseSpeed * scrollSpeed;
+        scrollPositionRef.current += baseSpeed * scrollSpeed;
         
         // Get the width of one complete set of testimonials
         const singleSetWidth = container.scrollWidth / 2;
         
         // Reset position when first set is completely out of view
-        if (scrollPosition >= singleSetWidth) {
-          scrollPosition = 0;
+        if (scrollPositionRef.current >= singleSetWidth) {
+          scrollPositionRef.current = 0;
         }
         
-        container.style.transform = `translateX(-${scrollPosition}px)`;
+        container.style.transform = `translateX(-${scrollPositionRef.current}px)`;
         animationRef.current = requestAnimationFrame(animate);
       };
 
@@ -57,30 +60,80 @@ const UserTestimonials = () => {
       return () => {
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
+          animationRef.current = null;
         }
       };
     }
-  }, [loading, testimonials, scrollSpeed]);
+  }, [loading, testimonials, scrollSpeed, isPaused]);
+
+  // Ensure RAF is stopped while paused, and timeouts are cleaned up on unmount.
+  useEffect(() => {
+    if (isPaused && animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+
+    return () => {
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+        clickTimeoutRef.current = null;
+      }
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = null;
+      }
+    };
+  }, [isPaused]);
 
   // Handle double-click to increase scroll speed
   const handleDoubleClick = () => {
+    // Prevent the single-click pause toggle from firing.
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+
     setScrollSpeed((prev) => {
       const newSpeed = prev === 1 ? 2 : prev === 2 ? 3 : 1;
       return newSpeed;
     });
   };
 
+  // Handle single click to pause/resume (with a small delay to avoid fighting double-click)
+  const handleClick = () => {
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+    clickTimeoutRef.current = setTimeout(() => {
+      setIsPaused((prev) => !prev);
+      clickTimeoutRef.current = null;
+    }, 220);
+  };
+
   // Handle touch events for mobile (double-tap)
-  const handleTouchEnd = (e) => {
+  const handleTouchEnd = () => {
     const currentTime = new Date().getTime();
     const tapLength = currentTime - lastTapRef.current;
     
     // Double tap detected (within 300ms)
     if (tapLength < 300 && tapLength > 0) {
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+        tapTimeoutRef.current = null;
+      }
       setScrollSpeed((prev) => {
         const newSpeed = prev === 1 ? 2 : prev === 2 ? 3 : 1;
         return newSpeed;
       });
+    } else {
+      // Single tap: pause/resume (delay to avoid toggling on first tap of a double-tap)
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+      }
+      tapTimeoutRef.current = setTimeout(() => {
+        setIsPaused((prev) => !prev);
+        tapTimeoutRef.current = null;
+      }, 260);
     }
     
     lastTapRef.current = currentTime;
@@ -133,7 +186,7 @@ const UserTestimonials = () => {
     <section className="py-12 sm:py-16 bg-gray-50 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
         {/* Header */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -146,14 +199,15 @@ const UserTestimonials = () => {
             Real feedback from learners and mentors on SkillSwap
           </p>
           <p className="text-sm text-gray-500 italic">
-            💡 Tip: Tap twice on testimonials to speed up scrolling
+            💡 Tip: Tap/click once to pause/resume, twice to speed up
           </p>
-        </motion.div>
+        </Motion.div>
       </div>
 
       {/* Scrolling Testimonials Container */}
       <div 
         className="relative"
+        onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         onTouchEnd={handleTouchEnd}
         style={{ cursor: 'pointer' }}
