@@ -3,7 +3,7 @@ import React from 'react';
 const CampusDashboardSection = ({
   totalCampusCollaborations = 0,
   totalStudentsOnDashboard = 0,
-  imageSrc,
+  imageSrc = 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766937373/campusdashboard_n0ammq.png',
   imageAlt = 'Campus Dashboard illustration',
   onJoin,
 }) => {
@@ -141,180 +141,17 @@ const CampusDashboardSection = ({
 
           {/* Right Visual Area */}
           <div className="relative">
-            {/* Main Image Container */}
-            <div className="relative z-10">
-              {imageSrc ? (
-                <div className="rounded-3xl overflow-hidden border border-slate-200/60 bg-white shadow-2xl shadow-slate-900/10">
-                  <img
-                    src={imageSrc}
-                    alt={imageAlt}
-                    className="w-full h-[360px] sm:h-[420px] lg:h-[500px] object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="rounded-3xl overflow-hidden border border-slate-200/60 bg-white shadow-2xl shadow-slate-900/10">
-                  <div className="w-full h-[360px] sm:h-[420px] lg:h-[500px] bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-8">
-                    {/* Placeholder Visual Grid */}
-                    <div className="w-full max-w-sm space-y-4">
-                      {/* Header bar */}
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
-                        <div className="h-8 w-8 rounded-lg bg-blue-100" />
-                        <div className="flex-1 space-y-1.5">
-                          <div className="h-2.5 w-24 rounded bg-slate-200" />
-                          <div className="h-2 w-16 rounded bg-slate-100" />
-                        </div>
-                        <div className="h-6 w-6 rounded-full bg-green-100" />
-                      </div>
-
-                      {/* Content rows */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
-                          <div className="h-6 w-6 rounded bg-blue-100 mb-2" />
-                          <div className="h-2 w-full rounded bg-slate-200 mb-1" />
-                          <div className="h-2 w-3/4 rounded bg-slate-100" />
-                        </div>
-                        <div className="p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
-                          <div className="h-6 w-6 rounded bg-indigo-100 mb-2" />
-                          <div className="h-2 w-full rounded bg-slate-200 mb-1" />
-                          <div className="h-2 w-2/3 rounded bg-slate-100" />
-                        </div>
-                      </div>
-
-                      {/* Progress section */}
-                      <div className="p-4 rounded-xl bg-white border border-slate-100 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="h-2.5 w-20 rounded bg-slate-200" />
-                          <div className="h-2 w-8 rounded bg-blue-100" />
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
-                          <div className="h-full w-3/5 rounded-full bg-gradient-to-r from-blue-400 to-blue-500" />
-                        </div>
-                      </div>
-
-                      {/* Bottom cards */}
-                      <div className="grid grid-cols-3 gap-2">
-                        {[1, 2, 3].map((i) => (
-                          <div
-                            key={i}
-                            className="p-2.5 rounded-lg bg-white border border-slate-100 shadow-sm text-center"
-                          >
-                            <div className="h-5 w-5 mx-auto rounded bg-blue-50 mb-1.5" />
-                            <div className="h-1.5 w-full rounded bg-slate-100" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Floating Visual Elements */}
-            <div className="absolute -top-4 -right-4 w-24 h-24 bg-blue-100/50 rounded-full blur-2xl" />
-            <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-indigo-100/50 rounded-full blur-2xl" />
-
-            {/* Floating Cards (Visual Promotion) */}
-            <div className="hidden lg:block absolute -left-8 top-1/4 z-20">
-              <div className="p-3 rounded-xl bg-white/95 backdrop-blur border border-slate-100 shadow-lg animate-float-slow">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center text-white">
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-800">Syllabus</div>
-                    <div className="text-[10px] text-slate-500">Aligned</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden lg:block absolute -right-6 top-12 z-20">
-              <div className="p-3 rounded-xl bg-white/95 backdrop-blur border border-slate-100 shadow-lg animate-float-delayed">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center text-white">
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path d="M5.127 3.502L5.25 3.5h9.5c.041 0 .082 0 .123.002A2.251 2.251 0 0012.75 2h-5.5a2.25 2.25 0 00-2.123 1.502zM1 10.25A2.25 2.25 0 013.25 8h13.5A2.25 2.25 0 0119 10.25v5.5A2.25 2.25 0 0116.75 18H3.25A2.25 2.25 0 011 15.75v-5.5zM3.25 6.5c-.04 0-.082 0-.123.002A2.25 2.25 0 015.25 5h9.5c.98 0 1.814.627 2.123 1.502a3.819 3.819 0 00-.123-.002H3.25z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-800">Weekly</div>
-                    <div className="text-[10px] text-slate-500">Structured</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden lg:block absolute -left-4 bottom-16 z-20">
-              <div className="p-3 rounded-xl bg-white/95 backdrop-blur border border-slate-100 shadow-lg animate-float">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-400 to-violet-500 flex items-center justify-center text-white">
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path d="M12.577 4.878a.75.75 0 01.919-.53l4.78 1.281a.75.75 0 01.531.919l-1.281 4.78a.75.75 0 01-1.449-.387l.81-3.022a19.407 19.407 0 00-5.594 5.203.75.75 0 01-1.139.093L7 10.06l-4.72 4.72a.75.75 0 01-1.06-1.061l5.25-5.25a.75.75 0 011.06 0l3.074 3.073a20.923 20.923 0 015.545-4.931l-3.042-.815a.75.75 0 01-.53-.919z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-800">Progress</div>
-                    <div className="text-[10px] text-slate-500">Tracking</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden lg:block absolute right-8 bottom-8 z-20">
-              <div className="p-3 rounded-xl bg-white/95 backdrop-blur border border-slate-100 shadow-lg animate-float-slow">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-white">
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                      <path
-                        fillRule="evenodd"
-                        d="M9.664 1.319a.75.75 0 01.672 0 41.059 41.059 0 018.198 5.424.75.75 0 01-.254 1.285 31.372 31.372 0 00-7.86 3.83.75.75 0 01-.84 0 31.508 31.508 0 00-7.86-3.83.75.75 0 01-.254-1.285 41.059 41.059 0 018.198-5.424zM6.303 10.104a31.994 31.994 0 015.697 3.28.75.75 0 001 0 32.058 32.058 0 015.697-3.28.75.75 0 01.553 1.392 30.565 30.565 0 00-5.697 3.281.75.75 0 01-1.106 0 30.565 30.565 0 00-5.697-3.281.75.75 0 01.553-1.392z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-slate-800">Institution</div>
-                    <div className="text-[10px] text-slate-500">Insights</div>
-                  </div>
-                </div>
-              </div>
+            <div className="relative z-10 rounded-3xl overflow-hidden">
+              <img
+                src={imageSrc}
+                alt={imageAlt}
+                className="w-full h-[360px] sm:h-[420px] lg:h-[560px] object-contain"
+                loading="lazy"
+              />
             </div>
           </div>
         </div>
       </div>
-
-      {/* Custom Animation Styles */}
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-8px); }
-        }
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-6px); }
-        }
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
-        }
-        .animate-float-slow {
-          animation: float-slow 4s ease-in-out infinite;
-          animation-delay: 0.5s;
-        }
-        .animate-float-delayed {
-          animation: float-delayed 3.5s ease-in-out infinite;
-          animation-delay: 1s;
-        }
-      `}</style>
     </section>
   );
 };

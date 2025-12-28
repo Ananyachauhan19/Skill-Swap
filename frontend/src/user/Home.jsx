@@ -30,7 +30,7 @@ const Home = () => {
          <CampusDashboardSection
           totalCampusCollaborations={0}
           totalStudentsOnDashboard={0}
-          imageSrc="/images/campus-dashboard.png"
+          imageSrc="https://res.cloudinary.com/dbltazdsa/image/upload/v1766937373/campusdashboard_n0ammq.png"
           onJoin={handleJoinCampusDashboard}
         />
           <UserTestimonials />
