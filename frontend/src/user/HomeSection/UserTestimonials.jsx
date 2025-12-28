@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import axios from 'axios';
 import TestimonialCard from './TestimonialCard';
 
@@ -186,7 +186,7 @@ const UserTestimonials = () => {
     <section className="py-12 sm:py-16 bg-gray-50 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
         {/* Header */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -201,7 +201,7 @@ const UserTestimonials = () => {
           <p className="text-sm text-gray-500 italic">
             💡 Tip: Tap/click once to pause/resume, twice to speed up
           </p>
-        </motion.div>
+        </Motion.div>
       </div>
 
       {/* Scrolling Testimonials Container */}

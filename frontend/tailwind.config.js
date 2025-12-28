@@ -169,6 +169,117 @@ export default {
         'whiteboard-bg': '#ffffff',           // Whiteboard background
         'whiteboard-border': '#374151',       // Whiteboard border (gray-700)
         'whiteboard-pen': '#22c55e',          // Whiteboard pen color
+        
+        // ============================================
+        // RECRUITMENT SECTION COLORS
+        // ============================================
+        
+        // Recruitment Role Cards - Default State
+        'role-card-bg-start': '#eff6ff',      // Role card gradient start (blue-50)
+        'role-card-bg-end': '#dbeafe',        // Role card gradient end (blue-100)
+        'role-card-border': '#bfdbfe',        // Role card border (blue-200)
+        'role-card-border-hover': '#93c5fd',  // Role card hover border (blue-300)
+        'role-card-icon-bg-start': '#3b82f6', // Role icon gradient start (blue-500)
+        'role-card-icon-bg-end': '#2563eb',   // Role icon gradient end (blue-600)
+        
+        // Recruitment Role Cards - Verified State
+        'role-verified-bg-start': '#dcfce7',  // Verified gradient start (green-100)
+        'role-verified-bg-end': '#bbf7d0',    // Verified gradient end (green-200)
+        'role-verified-border': '#86efac',    // Verified border (green-300)
+        'role-verified-icon-bg-start': '#10b981', // Verified icon start (green-500)
+        'role-verified-icon-bg-end': '#059669',   // Verified icon end (green-600)
+        'role-verified-text': '#14532d',      // Verified text (green-900)
+        'role-verified-button': '#10b981',    // Verified button bg (green-500)
+        
+        // Recruitment Role Cards - Pending State
+        'role-pending-bg-start': '#fef3c7',   // Pending gradient start (amber-100)
+        'role-pending-bg-end': '#fde68a',     // Pending gradient end (amber-200)
+        'role-pending-border': '#fcd34d',     // Pending border (amber-300)
+        'role-pending-icon-bg-start': '#f59e0b', // Pending icon start (amber-500)
+        'role-pending-icon-bg-end': '#d97706',   // Pending icon end (amber-600)
+        'role-pending-text': '#78350f',       // Pending text (amber-900)
+        'role-pending-button': '#f59e0b',     // Pending button bg (amber-500)
+        
+        // Recruitment CTA Section
+        'recruitment-cta-bg-start': '#1e40af', // CTA gradient start (blue-800)
+        'recruitment-cta-bg-end': '#1e3a8a',   // CTA gradient end (blue-900)
+        'recruitment-cta-text': '#dbeafe',     // CTA text (blue-100)
+        'recruitment-badge-bg': '#1e3a8a',     // Badge bg (blue-900)
+        
+        // ============================================
+        // CAMPUS DASHBOARD COLORS
+        // ============================================
+        
+        // Campus Section Backgrounds
+        'campus-bg-gradient-start': '#f8fafc', // Campus gradient start (slate-50)
+        'campus-bg-gradient-end': '#e0f2fe',   // Campus gradient end (sky-100)
+        'campus-accent-overlay': 'rgba(59, 130, 246, 0.06)', // Campus radial overlay
+        
+        // Campus Badge
+        'campus-badge-border': '#bfdbfe',      // Badge border (blue-200)
+        'campus-badge-bg': 'rgba(255, 255, 255, 0.8)', // Badge background
+        'campus-badge-text': '#1e3a8a',        // Badge text (blue-900)
+        'campus-badge-dot': '#2563eb',         // Badge animated dot (blue-600)
+        
+        // Campus Title & Content
+        'campus-title': '#0f172a',             // Main title (slate-900)
+        'campus-title-accent': '#1d4ed8',      // Title accent (blue-700)
+        'campus-body-text': '#475569',         // Body text (slate-600)
+        
+        // Campus Stat Cards
+        'campus-stat-bg': 'rgba(255, 255, 255, 0.9)', // Stat card background
+        'campus-stat-border': '#cbd5e1',       // Stat card border (slate-300)
+        'campus-stat-border-hover': '#93c5fd', // Stat card hover border (blue-300)
+        'campus-stat-icon-1-start': '#3b82f6', // First stat icon gradient start (blue-500)
+        'campus-stat-icon-1-end': '#2563eb',   // First stat icon gradient end (blue-600)
+        'campus-stat-icon-2-start': '#6366f1', // Second stat icon gradient start (indigo-500)
+        'campus-stat-icon-2-end': '#4f46e5',   // Second stat icon gradient end (indigo-600)
+        'campus-stat-label': '#64748b',        // Stat label text (slate-500)
+        'campus-stat-value': '#0f172a',        // Stat value text (slate-900)
+        
+        // Campus CTA Button
+        'campus-cta-bg-start': '#2563eb',      // CTA gradient start (blue-600)
+        'campus-cta-bg-end': '#1d4ed8',        // CTA gradient end (blue-700)
+        'campus-cta-bg-hover-start': '#1d4ed8', // CTA hover start (blue-700)
+        'campus-cta-bg-hover-end': '#1e40af',  // CTA hover end (blue-800)
+        'campus-cta-shadow': 'rgba(37, 99, 235, 0.25)', // CTA shadow color
+        
+        // Campus Floating Cards
+        'campus-float-card-bg': 'rgba(255, 255, 255, 0.95)', // Floating card bg
+        'campus-float-card-border': '#e2e8f0', // Floating card border (slate-200)
+        'campus-float-icon-1': '#10b981',      // Syllabus icon (emerald-500)
+        'campus-float-icon-2': '#3b82f6',      // Weekly icon (blue-500)
+        'campus-float-icon-3': '#8b5cf6',      // Progress icon (violet-500)
+        'campus-float-icon-4': '#f59e0b',      // Institution icon (amber-500)
+        
+        // Campus Image Container
+        'campus-image-border': '#cbd5e1',      // Image container border (slate-300)
+        'campus-placeholder-bg-start': '#eff6ff', // Placeholder gradient start (blue-50)
+        'campus-placeholder-bg-end': '#e0e7ff',   // Placeholder gradient end (indigo-50)
+        
+        // ============================================
+        // TESTIMONIALS SECTION COLORS
+        // ============================================
+        
+        'testimonial-section-bg': '#f9fafb',   // Section background (gray-50)
+        'testimonial-gradient-fade': '#f9fafb', // Fade gradient (gray-50)
+        'testimonial-card-bg': '#ffffff',      // Card background
+        'testimonial-card-border': '#e5e7eb',  // Card border (gray-200)
+        'testimonial-card-hover': '#f3f4f6',   // Card hover bg (gray-100)
+        'testimonial-title': '#111827',        // Title text (gray-900)
+        'testimonial-body': '#4b5563',         // Body text (gray-600)
+        'testimonial-stars': '#fbbf24',        // Star color (amber-400)
+        'testimonial-name': '#1f2937',         // Name text (gray-800)
+        'testimonial-role': '#6b7280',         // Role text (gray-500)
+        
+        // ============================================
+        // HOME SECTION BACKGROUNDS
+        // ============================================
+        
+        'home-bg': '#f8fafc',                  // Main home background (slate-50)
+        'home-section-alt': '#ffffff',         // Alternate section background
+        'home-gradient-start': '#f1f5f9',      // Home gradient start (slate-100)
+        'home-gradient-end': '#e0f2fe',        // Home gradient end (sky-100)
       },
       spacing: {
         '18': '4.5rem',
