@@ -1,7 +1,7 @@
 const Institute = require('../models/Institute');
 const User = require('../models/User');
 const xlsx = require('xlsx');
-const supabase = require('../utils/supabaseClient');
+const cloudinary = require('../utils/cloudinary');
 const bcrypt = require('bcryptjs');
 const { sendMail } = require('../utils/sendMail');
 const emailTemplates = require('../utils/emailTemplates');
@@ -39,31 +39,37 @@ exports.createInstitute = async (req, res) => {
 
     let campusBackgroundImageUrl = null;
 
-    // Handle campus background image upload to Supabase bucket "institute"
+    // Handle campus background image upload to Cloudinary
     if (req.file) {
       try {
-        const fileExt = (req.file.originalname || 'image').split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-        const filePath = `${instituteId.toUpperCase()}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('institute')
-          .upload(filePath, req.file.buffer, {
-            contentType: req.file.mimetype || 'image/jpeg',
-            upsert: false,
+        const uploadFolder = process.env.CLOUDINARY_INSTITUTE_FOLDER || 'SkillSwaphub/institutes';
+        
+        const streamUpload = () => {
+          return new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              {
+                folder: uploadFolder,
+                resource_type: 'image',
+                public_id: `${instituteId.toUpperCase()}_${Date.now()}`,
+                transformation: [
+                  { width: 1920, height: 1080, crop: 'fill', gravity: 'auto' },
+                  { quality: 'auto' },
+                ],
+              },
+              (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+              }
+            );
+            stream.end(req.file.buffer);
           });
+        };
 
-        if (uploadError) {
-          console.error('[Supabase] Institute image upload failed:', uploadError.message || uploadError);
-        } else {
-          const { data: publicUrlData } = supabase.storage
-            .from('institute')
-            .getPublicUrl(filePath);
-
-          campusBackgroundImageUrl = publicUrlData?.publicUrl || null;
-        }
+        const result = await streamUpload();
+        campusBackgroundImageUrl = result.secure_url;
+        console.log('[Cloudinary] Institute image uploaded:', result.secure_url);
       } catch (e) {
-        console.error('[Supabase] Unexpected error uploading institute image:', e.message || e);
+        console.error('[Cloudinary] Unexpected error uploading institute image:', e.message || e);
       }
     }
 
@@ -155,31 +161,37 @@ exports.updateInstitute = async (req, res) => {
       }
     }
 
-    // Handle image update (upload to Supabase "institute" bucket)
+    // Handle image update (upload to Cloudinary)
     if (req.file) {
       try {
-        const fileExt = (req.file.originalname || 'image').split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
-        const filePath = `${institute.instituteId}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('institute')
-          .upload(filePath, req.file.buffer, {
-            contentType: req.file.mimetype || 'image/jpeg',
-            upsert: false,
+        const uploadFolder = process.env.CLOUDINARY_INSTITUTE_FOLDER || 'SkillSwaphub/institutes';
+        
+        const streamUpload = () => {
+          return new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              {
+                folder: uploadFolder,
+                resource_type: 'image',
+                public_id: `${institute.instituteId}_${Date.now()}`,
+                transformation: [
+                  { width: 1920, height: 1080, crop: 'fill', gravity: 'auto' },
+                  { quality: 'auto' },
+                ],
+              },
+              (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+              }
+            );
+            stream.end(req.file.buffer);
           });
+        };
 
-        if (uploadError) {
-          console.error('[Supabase] Institute image update failed:', uploadError.message || uploadError);
-        } else {
-          const { data: publicUrlData } = supabase.storage
-            .from('institute')
-            .getPublicUrl(filePath);
-
-          institute.campusBackgroundImage = publicUrlData?.publicUrl || institute.campusBackgroundImage;
-        }
+        const result = await streamUpload();
+        institute.campusBackgroundImage = result.secure_url;
+        console.log('[Cloudinary] Institute image updated:', result.secure_url);
       } catch (e) {
-        console.error('[Supabase] Unexpected error updating institute image:', e.message || e);
+        console.error('[Cloudinary] Unexpected error updating institute image:', e.message || e);
       }
     }
 
