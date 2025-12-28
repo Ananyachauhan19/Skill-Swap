@@ -6,7 +6,8 @@ const {
   register,
   login,
   verifyOtp,
-  logout
+  logout,
+  changeFirstLoginPassword
 } = require('../controllers/authController');
 const User = require('../models/User');
 const Session = require('../models/Session');
@@ -45,6 +46,7 @@ const cookieBase = {
 router.post('/register', register);
 router.post('/login', login);
 router.post('/verify-otp', verifyOtp);
+router.post('/change-first-login-password', requireAuth, changeFirstLoginPassword);
 
 // Toggle availability for session requests (teachers/tutors only)
 router.post('/toggle-availability', requireAuth, async (req, res) => {
@@ -1190,6 +1192,16 @@ router.get('/me', async (req, res) => {
     const user = await User.findById(decoded.id).select('-password');
     if (!user) {
       return res.status(200).json({ user: null });
+    }
+
+    // Attach campus ambassador flags from dedicated collection
+    try {
+      const CampusAmbassador = require('../models/CampusAmbassador');
+      const ambassador = await CampusAmbassador.findOne({ user: user._id }).lean();
+      user.isCampusAmbassador = !!ambassador;
+      user.isFirstLogin = ambassador ? !!ambassador.isFirstLogin : false;
+    } catch (e) {
+      console.error('[AUTH] Failed to augment /me with CampusAmbassador flags:', e.message || e);
     }
 
     return res.json({ user });

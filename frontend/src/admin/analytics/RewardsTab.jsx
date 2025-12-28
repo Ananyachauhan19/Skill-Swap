@@ -34,7 +34,6 @@ export default function RewardsTab({ dateRange }) {
       setLoading(false);
     }
   };
-
   if (loading || !data) {
     return <div className="text-center py-8 text-gray-500">Loading rewards analytics...</div>;
   }

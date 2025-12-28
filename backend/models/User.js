@@ -18,10 +18,17 @@ const userSchema = new mongoose.Schema({
   resetPasswordExpires: { type: Date, required: false },
   role: {
     type: String,
-    enum: ['teacher', 'learner', 'both'],
+    enum: ['teacher', 'learner', 'both', 'campus_ambassador'],
     default: 'learner',
     required: false,
   },
+  studentId: { type: String, required: false }, // Format: SSH-<instituteId>-<8-digit-random>
+  instituteId: { type: String, required: false },
+  instituteName: { type: String, required: false },
+  // Student specific fields
+  class: { type: String, required: false }, // For school students
+  course: { type: String, required: false }, // For college students
+  semester: { type: String, required: false }, // For college students
   skillsToTeach: [
     {
       class: { type: String, required: false },

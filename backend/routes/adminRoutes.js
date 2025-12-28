@@ -4,6 +4,7 @@ const router = express.Router();
 const requireAuth = require('../middleware/requireAuth');
 const requireAdmin = require('../middleware/requireAdmin');
 const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 const Session = require('../models/Session');
 const SkillMate = require('../models/SkillMate');
 const Video = require('../models/Video');
@@ -726,6 +727,170 @@ router.delete('/users/:userId', async (req, res) => {
   } catch (error) {
     console.error('Error deleting user account:', error);
     res.status(500).json({ message: 'Failed to delete user account' });
+  }
+});
+
+// Update user role (admin only)
+router.put('/users/:userId/role', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    const validRoles = ['teacher', 'learner', 'both', 'campus_ambassador'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ 
+        message: `Invalid role. Valid roles are: ${validRoles.join(', ')}` 
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.role = role;
+
+    await user.save();
+
+    res.json({ 
+      message: 'User role updated successfully',
+      user: {
+        _id: user._id,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    res.status(500).json({ message: 'Failed to update user role' });
+  }
+});
+
+// Create new Campus Ambassador (admin only)
+router.post('/create-campus-ambassador', async (req, res) => {
+  console.log('[CREATE CAMPUS AMBASSADOR] Route hit');
+  console.log('[CREATE CAMPUS AMBASSADOR] Request body:', req.body);
+  console.log('[CREATE CAMPUS AMBASSADOR] User:', req.user ? req.user._id : 'No user');
+  
+  try {
+    const { firstName, lastName, email, password } = req.body;
+
+    // Validation
+    if (!firstName || !lastName || !email || !password) {
+      console.log('[CREATE CAMPUS AMBASSADOR] Validation failed: Missing fields');
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    if (password.length < 6) {
+      console.log('[CREATE CAMPUS AMBASSADOR] Validation failed: Password too short');
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      console.log('[CREATE CAMPUS AMBASSADOR] User already exists:', email);
+      console.log('[CREATE CAMPUS AMBASSADOR] Existing user details:', {
+        _id: existingUser._id,
+        email: existingUser.email,
+        username: existingUser.username,
+        role: existingUser.role
+      });
+      return res.status(400).json({ 
+        message: 'User with this email already exists',
+        details: 'This email is already registered in the system'
+      });
+    }
+
+    // Generate unique username
+    const baseUsername = email.split('@')[0].toLowerCase();
+    let username = baseUsername;
+    let counter = 1;
+    while (await User.findOne({ username })) {
+      username = `${baseUsername}${counter}`;
+      counter++;
+    }
+
+    console.log('[CREATE CAMPUS AMBASSADOR] Generated username:', username);
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    console.log('[CREATE CAMPUS AMBASSADOR] About to create user with:', {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.toLowerCase().trim(),
+      username,
+      role: 'learner'
+    });
+
+    // Create new user (credentials only; ambassador profile stored separately)
+    const newUser = new User({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.toLowerCase().trim(),
+      username,
+      password: hashedPassword,
+      role: 'learner'
+    });
+
+    await newUser.save();
+    console.log('[CREATE CAMPUS AMBASSADOR] User created successfully:', newUser._id);
+
+    // Create CampusAmbassador profile document
+    const CampusAmbassador = require('../models/CampusAmbassador');
+    const ambassador = await CampusAmbassador.create({
+      user: newUser._id,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      email: newUser.email,
+      isFirstLogin: true,
+      createdBy: req.user ? req.user._id : null,
+    });
+
+    const responseData = {
+      message: 'Campus Ambassador created successfully',
+      ambassador: {
+        _id: ambassador._id,
+        userId: newUser._id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        username: newUser.username,
+        isFirstLogin: ambassador.isFirstLogin,
+      }
+    };
+
+    console.log('[CREATE CAMPUS AMBASSADOR] Sending response:', responseData);
+    res.status(201).json(responseData);
+  } catch (error) {
+    console.error('[CREATE CAMPUS AMBASSADOR] Error:', error);
+    res.status(500).json({ message: 'Failed to create campus ambassador' });
+  }
+});
+
+// List all campus ambassadors (admin only)
+router.get('/campus-ambassadors', async (req, res) => {
+  try {
+    const CampusAmbassador = require('../models/CampusAmbassador');
+    const ambassadors = await CampusAmbassador.find()
+      .populate('user', 'firstName lastName email username')
+      .lean();
+
+    const result = ambassadors.map(a => ({
+      _id: a._id,
+      userId: a.user && a.user._id,
+      firstName: a.user ? a.user.firstName : a.firstName,
+      lastName: a.user ? a.user.lastName : a.lastName,
+      email: a.user ? a.user.email : a.email,
+      username: a.user ? a.user.username : undefined,
+      isFirstLogin: a.isFirstLogin,
+      createdAt: a.createdAt,
+    }));
+
+    res.json({ ambassadors: result });
+  } catch (error) {
+    console.error('[LIST CAMPUS AMBASSADORS] Error:', error);
+    res.status(500).json({ message: 'Failed to fetch campus ambassadors' });
   }
 });
 

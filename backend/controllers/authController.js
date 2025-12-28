@@ -173,6 +173,20 @@ exports.verifyOtp = async (req, res) => {
     maxAge: 24 * 60 * 60 * 1000, // 1 day
   });
 
+  // Determine campus ambassador status from dedicated collection
+  let isCampusAmbassador = false;
+  let isFirstLogin = false;
+  try {
+    const CampusAmbassador = require('../models/CampusAmbassador');
+    const ambassador = await CampusAmbassador.findOne({ user: user._id }).lean();
+    if (ambassador) {
+      isCampusAmbassador = true;
+      isFirstLogin = !!ambassador.isFirstLogin;
+    }
+  } catch (e) {
+    console.error('[AUTH] Failed to load CampusAmbassador status during verifyOtp:', e.message || e);
+  }
+
   // Explicitly select fields to ensure role is included
   const userPayload = {
     _id: user._id,
@@ -182,6 +196,8 @@ exports.verifyOtp = async (req, res) => {
     email: user.email,
     role: user.role,
     isTutor: user.isTutor || false,
+    isCampusAmbassador,
+    isFirstLogin,
     skillsToTeach: user.skillsToTeach,
     skillsToLearn: user.skillsToLearn,
     silverCoins: user.silverCoins,
@@ -264,6 +280,64 @@ exports.profile = async (req, res) => {
   } catch (error) {
     console.error('Error in profile route:', error);
     return res.status(500).json({ message: 'Server error', details: error.message });
+  }
+};
+
+// Change password for first-time campus ambassadors
+exports.changeFirstLoginPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Validation
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Both current and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+
+    // Get user from database
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    // Check if new password is same as old password
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: 'New password must be different from current password' });
+    }
+
+    // Hash new password and update user
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    // Update CampusAmbassador profile to clear first-login flag
+    try {
+      const CampusAmbassador = require('../models/CampusAmbassador');
+      await CampusAmbassador.findOneAndUpdate(
+        { user: user._id },
+        { isFirstLogin: false }
+      );
+    } catch (e) {
+      console.error('Error updating CampusAmbassador isFirstLogin flag:', e.message || e);
+    }
+
+    res.status(200).json({
+      message: 'Password changed successfully',
+      isFirstLogin: false,
+    });
+  } catch (error) {
+    console.error('Error changing first login password:', error);
+    res.status(500).json({ message: 'Server error', details: error.message });
   }
 };
 

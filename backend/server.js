@@ -11,8 +11,6 @@ const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const path = require('path');
 
-// Load environment variables FIRST before any other imports that use them
-// Use an explicit path to avoid CWD issues in PM2/systemd
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 require('./config/passport');
 
@@ -44,6 +42,7 @@ const recruitmentRoutes = require('./routes/recruitmentRoutes');
 const verificationRoutes = require('./routes/verificationRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const visitorRoutes = require('./routes/visitorRoutes');
+const campusAmbassadorRoutes = require('./routes/campusAmbassadorRoutes');
 const cron = require('node-cron');
 const Session = require('./models/Session');
 const User = require('./models/User');
@@ -158,6 +157,8 @@ app.use('/api/recruitment', recruitmentRoutes);
 app.use('/api', verificationRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/visitors', visitorRoutes);
+app.use('/api/campus-ambassador', campusAmbassadorRoutes);
+app.use('/api/campus-ambassador', campusAmbassadorRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');

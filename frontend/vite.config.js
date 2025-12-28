@@ -14,5 +14,12 @@ export default defineConfig({
   server: {
     host: true, // listen on 0.0.0.0 for LAN access
     port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   },
 });

@@ -171,6 +171,15 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
         }, { withCredentials: true });
 
         const { user } = res.data;
+        console.log('[LOGIN] User data after OTP verification:', {
+          role: user.role,
+          isCampusAmbassador: user.isCampusAmbassador,
+          isFirstLogin: user.isFirstLogin,
+          email: user.email
+        });
+        console.log('[LOGIN] Is campus ambassador?', user.role === 'campus_ambassador' || user.isCampusAmbassador);
+        console.log('[LOGIN] isModal?', isModal);
+        
         Cookies.set('user', JSON.stringify(user), { expires: 1 });
         localStorage.setItem('user', JSON.stringify(user));
         Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
@@ -178,8 +187,33 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
         setUser(user);
         window.dispatchEvent(new Event("authChanged"));
         if (onLoginSuccess) onLoginSuccess(user);
-        if (isModal && onClose) onClose();
-        else navigate("/home");
+        
+        // Close modal first if in modal mode
+        const wasModal = isModal;
+        if (isModal && onClose) {
+          console.log('[LOGIN] Closing modal');
+          onClose();
+        }
+        
+        // Redirect based on user role (only if not in modal)
+        if (!wasModal) {
+          console.log('[LOGIN] Not in modal, proceeding with redirect logic');
+          if (user.role === 'campus_ambassador' || user.isCampusAmbassador) {
+            console.log('[LOGIN] Detected campus ambassador, isFirstLogin:', user.isFirstLogin);
+            if (user.isFirstLogin) {
+              console.log('[LOGIN] Redirecting to change-password');
+              navigate("/change-password");
+            } else {
+              console.log('[LOGIN] Redirecting to campus-ambassador dashboard');
+              navigate("/campus-ambassador");
+            }
+          } else {
+            console.log('[LOGIN] Regular user, redirecting to home');
+            navigate("/home");
+          }
+        } else {
+          console.log('[LOGIN] Modal mode, skipping navigation');
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || "OTP verification failed.");

@@ -9,6 +9,7 @@ import GlobalModals from './GlobalModals';
 import { ToastProvider } from './components/ToastProvider.jsx';
 import ToastSocketBridge from './components/ToastSocketBridge.jsx';
 import ProtectedRoute from './components/ProtectedRoute';
+import RootRedirect from './components/RootRedirect';
 import { useAuth } from './context/AuthContext.jsx';
 import { useEmployeeAuth } from './context/EmployeeAuthContext.jsx';
 import RegisterInterviewer from './user/RegisterInterviewer.jsx';
@@ -86,6 +87,11 @@ import EmployeeActivity from './employee/EmployeeActivity.jsx';
 import RecruitmentApplication from './user/RecruitmentApplication.jsx';
 import RecruitmentApplications from './admin/RecruitmentApplications.jsx';
 import ChatPage from './user/ChatPage.jsx';
+import CampusAmbassadorDashboard from './campus-ambassador/CampusAmbassadorDashboard.jsx';
+import ChangePassword from './campus-ambassador/ChangePassword.jsx';
+import StudentCampusDashboard from './student/StudentCampusDashboard.jsx';
+import CampusAmbassadors from './admin/CampusAmbassadors.jsx';
+import { CampusAmbassadorProvider } from './context/CampusAmbassadorContext.jsx';
 
 const collectVisitorData = () => {
   const getDeviceType = () => {
@@ -165,7 +171,7 @@ const collectVisitorData = () => {
 // Define full (regular user) routes
 const appRoutes = [
   // Public routes (accessible without authentication)
-  { path: '/', element: <Navigate to="/home" replace /> },
+  { path: '/', element: <RootRedirect /> },
   { path: '/home', element: <Home /> },
   { path: '/login', element: <Login /> },
   { path: '/forgot-password', element: <ForgotPassword /> },
@@ -206,6 +212,9 @@ const appRoutes = [
   { path: '/report', element: <ProtectedRoute><ReportPage /></ProtectedRoute> },
   { path: '/teaching-history', element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> },
   { path: '/blog', element: <ProtectedRoute><Blog /></ProtectedRoute> },
+  { path: '/change-password', element: <ProtectedRoute><ChangePassword /></ProtectedRoute> },
+  { path: '/campus-ambassador', element: <ProtectedRoute><CampusAmbassadorDashboard /></ProtectedRoute> },
+  { path: '/campus-dashboard', element: <ProtectedRoute><StudentCampusDashboard /></ProtectedRoute> },
   {
     path: '/employee',
     element: <EmployeeRoute />,
@@ -270,6 +279,7 @@ const adminOnlyRoutes = [
           { path: 'skillmate-requests', element: <SkillMateRequests /> },
           { path: 'users', element: <Users /> },
           { path: 'users/profile/:userId', element: <AdminUserProfile /> },
+          { path: 'campus-ambassadors', element: <CampusAmbassadors /> },
           { path: 'visitors', element: <Visitors /> },
           { path: 'employees', element: <Employees /> },
           { path: 'employees/:employeeId', element: <EmployeeDetail /> },
@@ -502,6 +512,29 @@ function App() {
     };
   }, [user]);
 
+  // Enforce campus ambassador routing after login
+  useEffect(() => {
+    if (loading || !user || isAdminUser) return;
+
+    const isCampusAmbassador =
+      user.role === 'campus_ambassador' || user.isCampusAmbassador;
+
+    if (!isCampusAmbassador) return;
+
+    // First login: always force change-password page
+    if (user.isFirstLogin) {
+      if (location.pathname !== '/change-password') {
+        navigate('/change-password', { replace: true });
+      }
+      return;
+    }
+
+    // After password change: if on home/root, send to ambassador dashboard
+    if (location.pathname === '/' || location.pathname === '/home') {
+      navigate('/campus-ambassador', { replace: true });
+    }
+  }, [loading, user, isAdminUser, location.pathname, navigate]);
+
   // Handle logout only
   useEffect(() => {
     const handleLogout = () => {
@@ -541,19 +574,21 @@ function App() {
       <ToastSocketBridge />
       <ModalProvider>
         <SkillMatesProvider>
-          <ModalBodyScrollLock />
-          <GlobalModals />
-          {!isAdminUser && !isEmployeeRoute && <CookieConsent />}
-          {/* Main content with fade-in transition */}
-          <div
-            className={`transition-opacity duration-500 ${
-              showContent ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && <Navbar />}
-            {element}
-            {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && <Footer />}
-          </div>
+          <CampusAmbassadorProvider>
+            <ModalBodyScrollLock />
+            <GlobalModals />
+            {!isAdminUser && !isEmployeeRoute && <CookieConsent />}
+            {/* Main content with fade-in transition */}
+            <div
+              className={`transition-opacity duration-500 ${
+                showContent ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && <Navbar />}
+              {element}
+              {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && <Footer />}
+            </div>
+          </CampusAmbassadorProvider>
         </SkillMatesProvider>
       </ModalProvider>
     </ToastProvider>
