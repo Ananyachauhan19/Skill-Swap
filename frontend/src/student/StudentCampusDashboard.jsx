@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { School, Users, BookOpen, Award, ArrowRight } from 'lucide-react';
+import { School, Users, BookOpen, Award, ArrowRight, Video } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
 import { useAuth } from '../context/AuthContext';
@@ -686,6 +686,48 @@ const StudentCampusDashboard = () => {
           <div className="space-y-6">
             <h3 className="text-2xl font-bold text-gray-800">Dashboard</h3>
             <p className="text-gray-600">Campus dashboard content will appear here.</p>
+            
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+              <button
+                onClick={() => navigate('/campus/one-on-one')}
+                className="bg-white p-6 rounded-xl border border-blue-200 hover:border-blue-400 hover:shadow-lg transition-all group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition">
+                    <Video className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">Campus One-on-One</p>
+                    <p className="text-sm text-gray-600">Find campus tutors</p>
+                  </div>
+                </div>
+              </button>
+
+              <button className="bg-white p-6 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <Users className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">Campus Students</p>
+                    <p className="text-sm text-gray-600">View all students</p>
+                  </div>
+                </div>
+              </button>
+
+              <button className="bg-white p-6 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Award className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">Campus Rewards</p>
+                    <p className="text-sm text-gray-600">View rewards</p>
+                  </div>
+                </div>
+              </button>
+            </div>
           </div>
         )}
 

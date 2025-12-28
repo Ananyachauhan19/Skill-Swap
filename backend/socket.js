@@ -985,6 +985,115 @@ module.exports = (io) => {
       }
     });
 
+    // Campus-specific tutor search - filters by institute
+    socket.on('find-campus-tutors', async (searchCriteria) => {
+      try {
+        const { subject: classValue, topic: subjectValue, subtopic: topicValue, instituteId } = searchCriteria;
+        
+        if (!instituteId) {
+          socket.emit('campus-tutors-found', { error: 'Institute ID required for campus search', tutors: [] });
+          return;
+        }
+
+        const matchingTutors = [];
+        const norm = (s) => (s || '').trim().toLowerCase();
+
+        console.log('[Find Campus Tutors] Search criteria:', { classValue, subjectValue, topicValue, instituteId });
+        console.log('[Find Campus Tutors] Online users count:', onlineUsers.size);
+        
+        for (const [socketId, userData] of onlineUsers.entries()) {
+          if (socketId === socket.id) continue;
+
+          // Check availability status
+          const isAvailable = userData.isAvailableForSessions ?? true;
+          if (!isAvailable) {
+            console.log(`[Find Campus Tutors] Skipping ${userData.firstName} ${userData.lastName} - unavailable for sessions`);
+            continue;
+          }
+
+          // Fetch user from DB to check instituteId
+          let userDoc = await User.findById(userData.userId).select('skillsToTeach isAvailableForSessions instituteId instituteName');
+          if (!userDoc) continue;
+
+          // Filter by institute - CRITICAL for campus filtering
+          if (!userDoc.instituteId || userDoc.instituteId.toString() !== instituteId.toString()) {
+            console.log(`[Find Campus Tutors] Skipping ${userData.firstName} ${userData.lastName} - different institute (${userDoc.instituteId} vs ${instituteId})`);
+            continue;
+          }
+
+          // Re-check availability from DB
+          if (userDoc.isAvailableForSessions === false) {
+            console.log(`[Find Campus Tutors] Skipping ${userData.firstName} ${userData.lastName} - unavailable (from DB)`);
+            continue;
+          }
+
+          let userSkills = Array.isArray(userDoc.skillsToTeach) ? userDoc.skillsToTeach : [];
+
+          // Match skills
+          const hasMatchingSkill = userSkills.some(skill => {
+            const classMatch = !classValue || norm(skill.class) === norm(classValue);
+            const subjectMatch = !subjectValue || norm(skill.subject) === norm(subjectValue);
+            
+            const tutorTopic = norm(skill.topic);
+            const isAllTopics = tutorTopic === 'all' || 
+                               tutorTopic === 'all topics' || 
+                               tutorTopic === 'all topic' ||
+                               tutorTopic === '' ||
+                               /\ball\b/.test(tutorTopic);
+            const topicMatch = !topicValue || isAllTopics || tutorTopic === norm(topicValue);
+            
+            console.log(`[Find Campus Tutors] Checking ${userData.firstName} - Skill:`, skill, 
+              `\n  Class match: ${classMatch}`,
+              `\n  Subject match: ${subjectMatch}`,
+              `\n  Topic match: ${topicMatch}`,
+              `\n  Institute: ${userDoc.instituteName}`);
+            
+            return classMatch && subjectMatch && topicMatch;
+          });
+
+          if (hasMatchingSkill) {
+            matchingTutors.push({
+              userId: userData.userId,
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+              profilePic: userData.profilePic,
+              rating: userData.rating,
+              status: userData.status,
+              socketId: userData.socketId,
+              instituteName: userDoc.instituteName
+            });
+          }
+        }
+
+        socket.emit('campus-tutors-found', { tutors: matchingTutors, searchCriteria });
+        console.log(`[Find Campus Tutors] Found ${matchingTutors.length} tutors from same institute`);
+
+        // Send email notifications to matching campus tutors
+        try {
+          const requester = await User.findById(socket.userId).select('firstName lastName username instituteName');
+          const requesterName = `${requester?.firstName || requester?.username || 'User'} ${requester?.lastName || ''}`.trim();
+          for (const t of matchingTutors) {
+            const tutorDoc = await User.findById(t.userId).select('email firstName username role');
+            if (tutorDoc?.email && (tutorDoc.role === 'teacher' || tutorDoc.role === 'both')) {
+              const tpl = T.sessionRequested({
+                tutorName: tutorDoc.firstName || tutorDoc.username,
+                requesterName: `${requesterName} (${requester?.instituteName || 'Campus Student'})`,
+                subject: subjectValue || '',
+                topic: topicValue || ''
+              });
+              console.info('[MAIL] Campus session request email', { to: tutorDoc.email, requesterName, institute: requester?.instituteName });
+              await sendMail({ to: tutorDoc.email, subject: tpl.subject, html: tpl.html });
+            }
+          }
+        } catch (e) {
+          console.error('[Find Campus Tutors] Failed to send emails', e);
+        }
+      } catch (error) {
+        console.error('[Find Campus Tutors] Error finding tutors:', error);
+        socket.emit('campus-tutors-found', { error: 'Failed to find campus tutors. Please try again.', tutors: [] });
+      }
+    });
+
     // Update user status
     socket.on('update-status', (status) => {
       const userData = onlineUsers.get(socket.id);
