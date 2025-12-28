@@ -15,17 +15,19 @@ const Home = () => {
       <div>
         <HeroSection />
         <WhoAreWeSection />
-        <CampusDashboardSection
+       
+        <ExploreOpportunitiesSection />
+        <ActivityStatsSection />
+        <TopPerformersSection />
+      
+         <CampusDashboardSection
           totalCampusCollaborations={0}
           totalStudentsOnDashboard={0}
           imageSrc="/images/campus-dashboard.png"
         />
-        <ExploreOpportunitiesSection />
-        <ActivityStatsSection />
-        <TopPerformersSection />
-        <UserTestimonials />
-        
+          <UserTestimonials />
         <RecruitmentSection />
+
         <LetsStartSection />
       </div>
     </main>

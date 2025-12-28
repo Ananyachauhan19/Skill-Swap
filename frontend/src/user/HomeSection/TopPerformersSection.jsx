@@ -206,7 +206,7 @@ const TopPerformersSection = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.id
                 ? 'bg-blue-900 text-white shadow-md'
-                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                : 'bg-white/70 backdrop-blur text-gray-700 hover:bg-white border border-blue-100'
                 }`}
             >
               {tab.label}
@@ -223,7 +223,7 @@ const TopPerformersSection = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 min-w-0 flex flex-col items-center justify-center py-2.5 px-1.5 rounded-lg text-[9px] font-semibold transition-all duration-200 ${activeTab === tab.id
                   ? 'bg-blue-900 text-white shadow-md scale-105'
-                  : 'bg-white text-gray-700 border border-gray-200'
+                  : 'bg-white/70 backdrop-blur text-gray-800 border border-blue-100'
                   }`}
               >
                 <span className="text-sm mb-1">{tab.icon}</span>
@@ -267,8 +267,12 @@ const TopPerformersSection = () => {
                     variants={cardVariants}
                     whileHover="hover"
                     onClick={() => handleNavigate(`/profile/${card.username}`)}
-                    className="bg-white rounded-xl p-4 border border-gray-200 relative overflow-hidden group shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+                    className="rounded-xl p-4 border border-blue-100/80 bg-gradient-to-br from-white via-blue-50/40 to-white relative overflow-hidden group shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
                   >
+                    {/* Soft bluish fade / glow */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-transparent to-indigo-600/5 pointer-events-none" />
+                    <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-blue-200/30 blur-2xl pointer-events-none" />
+
                     {/* Rank Badge - Top Left */}
                     <div className="absolute top-3 left-3 z-20">
                       <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${rankBadge.color} flex items-center justify-center shadow-md`}>
@@ -300,7 +304,7 @@ const TopPerformersSection = () => {
 
                       {/* Stats / Metrics */}
                       {card.type === 'all' ? (
-                        <div className="pt-3 border-t border-gray-100">
+                        <div className="pt-3 border-t border-blue-100/70">
                           <div className="grid grid-cols-3 gap-2">
                             {card.metrics.map(m => (
                               <div key={m.label} className="text-center">
@@ -311,7 +315,7 @@ const TopPerformersSection = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="pt-3 border-t border-gray-100">
+                        <div className="pt-3 border-t border-blue-100/70">
                           <div className="text-center">
                             <span className="text-2xl font-bold text-[#0A2540]">
                               {card.stat}
@@ -341,8 +345,11 @@ const TopPerformersSection = () => {
                       viewport={{ once: true }}
                       transition={{ delay: index * 0.1 }}
                       onClick={() => handleNavigate(`/profile/${card.username}`)}
-                      className="bg-white rounded-lg p-3 border border-gray-200 relative overflow-hidden shadow-sm cursor-pointer"
+                      className="rounded-lg p-3 border border-blue-100/80 bg-gradient-to-br from-white via-blue-50/40 to-white relative overflow-hidden shadow-sm cursor-pointer"
                     >
+                      {/* Soft bluish fade */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-transparent to-indigo-600/5 pointer-events-none" />
+
                       {/* Rank Badge */}
                       <div className="absolute top-2 left-2 z-20">
                         <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${rankBadge.color} flex items-center justify-center shadow-sm`}>
@@ -373,7 +380,7 @@ const TopPerformersSection = () => {
 
                         {/* Stats - Compact */}
                         {card.type === 'all' ? (
-                          <div className="text-center pt-2 border-t border-gray-100">
+                          <div className="text-center pt-2 border-t border-blue-100/70">
                             <div className="grid grid-cols-3 gap-1">
                               {card.metrics.map(m => (
                                 <div key={m.label} className="text-center">
@@ -384,7 +391,7 @@ const TopPerformersSection = () => {
                             </div>
                           </div>
                         ) : (
-                          <div className="text-center pt-2 border-t border-gray-100">
+                          <div className="text-center pt-2 border-t border-blue-100/70">
                             <span className="text-base font-bold text-[#0A2540] block">
                               {card.stat}
                             </span>

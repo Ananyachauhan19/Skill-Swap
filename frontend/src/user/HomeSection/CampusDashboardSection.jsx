@@ -17,24 +17,24 @@ const CampusDashboardSection = ({
           {/* Left Content */}
           <div className="space-y-8">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 rounded-full border border-campus-badge-border bg-campus-badge-bg backdrop-blur-sm px-4 py-1.5 shadow-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-white/80 backdrop-blur-sm px-4 py-1.5 shadow-sm">
               <span className="flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-campus-badge-dot opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-campus-badge-dot" />
+                <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600" />
               </span>
-              <span className="text-xs font-semibold text-campus-badge-text tracking-wide uppercase">
+              <span className="text-xs font-semibold text-blue-900 tracking-wide uppercase">
                 Campus Dashboard
               </span>
             </div>
 
             {/* Title */}
             <div className="space-y-5">
-              <h2 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-campus-title leading-[1.15] tracking-tight">
+              <h2 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-slate-900 leading-[1.15] tracking-tight">
                 Structured Academic{' '}
                 <span className="relative">
-                  <span className="text-campus-title-accent">Collaboration</span>
+                  <span className="text-blue-700">Collaboration</span>
                   <svg
-                    className="absolute -bottom-1 left-0 w-full h-2 text-campus-badge-border"
+                    className="absolute -bottom-1 left-0 w-full h-2 text-blue-200"
                     viewBox="0 0 200 8"
                     preserveAspectRatio="none"
                   >
@@ -50,7 +50,7 @@ const CampusDashboardSection = ({
                 for Institutions
               </h2>
 
-              <p className="text-base sm:text-lg text-campus-body-text leading-relaxed max-w-lg">
+              <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-lg">
                 The Campus Dashboard enables schools and universities to centralize
                 student learning through coordinated one-on-one sessions, structured
                 assignments, and institution-aligned academic progress tracking.
@@ -60,9 +60,9 @@ const CampusDashboardSection = ({
             {/* Stats Cards */}
             <div className="flex flex-wrap gap-4">
               {/* Stat 1 */}
-              <div className="group flex-1 min-w-[180px] rounded-2xl border border-campus-stat-border bg-campus-stat-bg backdrop-blur-sm p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-campus-stat-border-hover">
+              <div className="group flex-1 min-w-[180px] rounded-2xl border border-blue-100/80 bg-white/90 backdrop-blur-sm p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-blue-200">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-campus-stat-icon-1-start to-campus-stat-icon-1-end text-text-inverted shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm">
                     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
                       <path
                         d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2m-16 0H3m5-12h6m-6 4h6m-6 4h4"
@@ -73,11 +73,11 @@ const CampusDashboardSection = ({
                       />
                     </svg>
                   </div>
-                  <span className="text-xs font-medium text-campus-stat-label uppercase tracking-wider">
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Institutions
                   </span>
                 </div>
-                <div className="text-3xl sm:text-4xl font-bold text-campus-stat-value tabular-nums">
+                <div className="text-3xl sm:text-4xl font-bold text-slate-900 tabular-nums">
                   {Number.isFinite(totalCampusCollaborations)
                     ? totalCampusCollaborations.toLocaleString()
                     : totalCampusCollaborations}
@@ -88,9 +88,9 @@ const CampusDashboardSection = ({
               </div>
 
               {/* Stat 2 */}
-              <div className="group flex-1 min-w-[180px] rounded-2xl border border-campus-stat-border bg-campus-stat-bg backdrop-blur-sm p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-campus-stat-border-hover">
+              <div className="group flex-1 min-w-[180px] rounded-2xl border border-blue-100/80 bg-white/90 backdrop-blur-sm p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:border-blue-200">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-campus-stat-icon-2-start to-campus-stat-icon-2-end text-text-inverted shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-sm">
                     <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
                       <path
                         d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"
@@ -121,7 +121,7 @@ const CampusDashboardSection = ({
               <button
                 type="button"
                 onClick={() => (typeof onJoin === 'function' ? onJoin() : undefined)}
-                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-campus-cta-bg-start to-campus-cta-bg-end px-6 py-3.5 text-base font-semibold text-text-inverted shadow-lg shadow-campus-cta-shadow transition-all duration-300 hover:shadow-xl hover:shadow-campus-cta-shadow hover:from-campus-cta-bg-hover-start hover:to-campus-cta-bg-hover-end"
+                className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:from-blue-700 hover:to-blue-800"
               >
                 Join Campus Dashboard
                 <svg
@@ -152,8 +152,8 @@ const CampusDashboardSection = ({
                   />
                 </div>
               ) : (
-                <div className="rounded-3xl overflow-hidden border border-campus-image-border bg-bg-card shadow-2xl shadow-shadow-strong">
-                  <div className="w-full h-[360px] sm:h-[420px] lg:h-[500px] bg-gradient-to-br from-campus-placeholder-bg-start via-bg-card to-campus-placeholder-bg-end flex items-center justify-center p-8">
+                <div className="rounded-3xl overflow-hidden border border-slate-200/60 bg-white shadow-2xl shadow-slate-900/10">
+                  <div className="w-full h-[360px] sm:h-[420px] lg:h-[500px] bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-8">
                     {/* Placeholder Visual Grid */}
                     <div className="w-full max-w-sm space-y-4">
                       {/* Header bar */}
@@ -215,9 +215,9 @@ const CampusDashboardSection = ({
 
             {/* Floating Cards (Visual Promotion) */}
             <div className="hidden lg:block absolute -left-8 top-1/4 z-20">
-                <div className="p-3 rounded-xl bg-campus-float-card-bg backdrop-blur border border-campus-float-card-border shadow-lg animate-float-slow">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-campus-float-icon-1 to-status-success-icon flex items-center justify-center text-text-inverted">
+              <div className="p-3 rounded-xl bg-white/95 backdrop-blur border border-slate-100 shadow-lg animate-float-slow">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-400 to-emerald-500 flex items-center justify-center text-white">
                     <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
                       <path
                         fillRule="evenodd"
