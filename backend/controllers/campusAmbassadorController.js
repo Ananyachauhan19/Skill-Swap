@@ -25,7 +25,11 @@ const generatePassword = () => {
 // Create Institute
 exports.createInstitute = async (req, res) => {
   try {
-    const { instituteName, instituteId, goldCoins, silverCoins, instituteType } = req.body;
+    const { instituteName, instituteId, perStudentGoldCoins, perStudentSilverCoins, instituteType } = req.body;
+    
+    // Parse numeric values from FormData (they come as strings)
+    const parsedGoldCoins = parseInt(perStudentGoldCoins) || 0;
+    const parsedSilverCoins = parseInt(perStudentSilverCoins) || 0;
     
     // Check if institute ID already exists
     const existingInstitute = await Institute.findOne({ instituteId: instituteId.toUpperCase() });
@@ -66,8 +70,10 @@ exports.createInstitute = async (req, res) => {
     const institute = new Institute({
       instituteName,
       instituteId: instituteId.toUpperCase(),
-      goldCoins: goldCoins || 0,
-      silverCoins: silverCoins || 0,
+      perStudentGoldCoins: parsedGoldCoins,
+      perStudentSilverCoins: parsedSilverCoins,
+      goldCoins: 0, // Will be calculated during Excel upload
+      silverCoins: 0, // Will be calculated during Excel upload
       campusBackgroundImage: campusBackgroundImageUrl,
       instituteType,
       campusAmbassador: req.user._id,
@@ -119,7 +125,7 @@ exports.getInstituteById = async (req, res) => {
 exports.updateInstitute = async (req, res) => {
   try {
     const { id } = req.params;
-    const { instituteName, goldCoins, silverCoins } = req.body;
+    const { instituteName, perStudentGoldCoins, perStudentSilverCoins } = req.body;
 
     const institute = await Institute.findOne({
       _id: id,
@@ -132,8 +138,22 @@ exports.updateInstitute = async (req, res) => {
 
     // Update fields
     if (instituteName) institute.instituteName = instituteName;
-    if (goldCoins !== undefined) institute.goldCoins = goldCoins;
-    if (silverCoins !== undefined) institute.silverCoins = silverCoins;
+    if (perStudentGoldCoins !== undefined) {
+      const parsedGoldCoins = parseInt(perStudentGoldCoins) || 0;
+      institute.perStudentGoldCoins = parsedGoldCoins;
+      // Recalculate total if students already exist
+      if (institute.studentsCount > 0) {
+        institute.goldCoins = parsedGoldCoins * institute.studentsCount;
+      }
+    }
+    if (perStudentSilverCoins !== undefined) {
+      const parsedSilverCoins = parseInt(perStudentSilverCoins) || 0;
+      institute.perStudentSilverCoins = parsedSilverCoins;
+      // Recalculate total if students already exist
+      if (institute.studentsCount > 0) {
+        institute.silverCoins = parsedSilverCoins * institute.studentsCount;
+      }
+    }
 
     // Handle image update (upload to Supabase "institute" bucket)
     if (req.file) {
@@ -208,10 +228,14 @@ exports.uploadStudents = async (req, res) => {
     const studentIds = new Set((institute.students || []).map(id => id.toString()));
     const emailQueue = []; // Store email tasks
 
-    // Calculate reward per student
+    // Use per-student coin values from institute
     const totalStudents = data.length;
-    const goldCoinsPerStudent = Math.floor(institute.goldCoins / totalStudents);
-    const silverCoinsPerStudent = Math.floor(institute.silverCoins / totalStudents);
+    const goldCoinsPerStudent = institute.perStudentGoldCoins || 0;
+    const silverCoinsPerStudent = institute.perStudentSilverCoins || 0;
+    
+    // Calculate total coins
+    const totalGoldCoins = goldCoinsPerStudent * totalStudents;
+    const totalSilverCoins = silverCoinsPerStudent * totalStudents;
 
     for (const row of data) {
       try {
@@ -227,8 +251,12 @@ exports.uploadStudents = async (req, res) => {
         let user = await User.findOne({ email });
         let isNewUser = false;
         let generatedPassword = null;
+        let isFirstTimeOnCampusDashboard = false;
 
         if (user) {
+          // Check if user already had a studentId (was already on campus dashboard)
+          const hadStudentId = !!user.studentId;
+          
           // Update existing user
           user.instituteId = institute.instituteId;
           user.instituteName = institute.instituteName;
@@ -242,9 +270,10 @@ exports.uploadStudents = async (req, res) => {
             if (row.semester) user.semester = row.semester;
           }
 
-          // Generate student ID if not exists
+          // Generate student ID if not exists (first time on any campus dashboard)
           if (!user.studentId) {
             user.studentId = generateStudentId(institute.instituteId);
+            isFirstTimeOnCampusDashboard = true;
           }
 
           // Add reward coins to existing user's wallet
@@ -294,24 +323,28 @@ exports.uploadStudents = async (req, res) => {
           studentIds.add(newUser._id.toString());
         }
 
-        // Queue email notification
-        emailQueue.push({
-          user,
-          isNewUser,
-          generatedPassword,
-          instituteName: institute.instituteName,
-          goldCoins: goldCoinsPerStudent,
-          silverCoins: silverCoinsPerStudent
-        });
+        // Queue email notification only for first-time additions
+        if (isNewUser || isFirstTimeOnCampusDashboard) {
+          emailQueue.push({
+            user,
+            isNewUser,
+            generatedPassword,
+            instituteName: institute.instituteName,
+            goldCoins: goldCoinsPerStudent,
+            silverCoins: silverCoinsPerStudent
+          });
+        }
 
       } catch (error) {
         results.errors.push({ row, error: error.message });
       }
     }
 
-    // Update student references and count on the institute document
+    // Update student references, count, and total coins on the institute document
     institute.students = Array.from(studentIds);
     institute.studentsCount = await User.countDocuments({ instituteId: institute.instituteId });
+    institute.goldCoins = totalGoldCoins;
+    institute.silverCoins = totalSilverCoins;
     await institute.save();
 
     // Send emails asynchronously
@@ -415,10 +448,10 @@ exports.uploadStudents = async (req, res) => {
       results,
       rewardDistribution: {
         totalStudents,
-        goldCoinsPerStudent,
-        silverCoinsPerStudent,
-        totalGoldDistributed: goldCoinsPerStudent * totalStudents,
-        totalSilverDistributed: silverCoinsPerStudent * totalStudents
+        perStudentGoldCoins: goldCoinsPerStudent,
+        perStudentSilverCoins: silverCoinsPerStudent,
+        totalGoldCoins: totalGoldCoins,
+        totalSilverCoins: totalSilverCoins
       }
     });
   } catch (error) {

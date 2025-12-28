@@ -173,12 +173,14 @@ const CampusAmbassadorDashboard = () => {
                       <p className="font-bold text-gray-800">{institute.studentsCount || 0}</p>
                     </div>
                     <div className="bg-yellow-50 p-2 rounded text-center">
-                      <p className="text-xs text-yellow-700">Gold</p>
-                      <p className="font-bold text-yellow-700">{institute.goldCoins}</p>
+                      <p className="text-xs text-yellow-700">🏆 Gold</p>
+                      <p className="text-[10px] text-yellow-600">Per student: {institute.perStudentGoldCoins || 0}</p>
+                      <p className="font-bold text-yellow-700">Total: {institute.goldCoins > 0 ? institute.goldCoins : '-'}</p>
                     </div>
                     <div className="bg-gray-100 p-2 rounded text-center">
-                      <p className="text-xs text-gray-700">Silver</p>
-                      <p className="font-bold text-gray-700">{institute.silverCoins}</p>
+                      <p className="text-xs text-gray-700">🥈 Silver</p>
+                      <p className="text-[10px] text-gray-600">Per student: {institute.perStudentSilverCoins || 0}</p>
+                      <p className="font-bold text-gray-700">Total: {institute.silverCoins > 0 ? institute.silverCoins : '-'}</p>
                     </div>
                   </div>
 

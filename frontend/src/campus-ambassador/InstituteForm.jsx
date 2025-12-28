@@ -5,8 +5,8 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
   const [formData, setFormData] = useState({
     instituteName: initialData?.instituteName || '',
     instituteId: initialData?.instituteId || '',
-    goldCoins: initialData?.goldCoins || 0,
-    silverCoins: initialData?.silverCoins || 0,
+    perStudentGoldCoins: initialData?.perStudentGoldCoins || 0,
+    perStudentSilverCoins: initialData?.perStudentSilverCoins || 0,
     instituteType: initialData?.instituteType || 'college',
     campusBackgroundImage: null
   });
@@ -47,11 +47,11 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
     if (!formData.instituteId.trim()) {
       newErrors.instituteId = 'Institute ID is required';
     }
-    if (formData.goldCoins < 0) {
-      newErrors.goldCoins = 'Gold coins cannot be negative';
+    if (formData.perStudentGoldCoins < 0) {
+      newErrors.perStudentGoldCoins = 'Gold coins cannot be negative';
     }
-    if (formData.silverCoins < 0) {
-      newErrors.silverCoins = 'Silver coins cannot be negative';
+    if (formData.perStudentSilverCoins < 0) {
+      newErrors.perStudentSilverCoins = 'Silver coins cannot be negative';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -64,8 +64,8 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
     const submitData = new FormData();
     submitData.append('instituteName', formData.instituteName);
     submitData.append('instituteId', formData.instituteId.toUpperCase());
-    submitData.append('goldCoins', formData.goldCoins);
-    submitData.append('silverCoins', formData.silverCoins);
+    submitData.append('perStudentGoldCoins', formData.perStudentGoldCoins);
+    submitData.append('perStudentSilverCoins', formData.perStudentSilverCoins);
     submitData.append('instituteType', formData.instituteType);
     
     if (formData.campusBackgroundImage) {
@@ -146,39 +146,39 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
             </select>
           </div>
 
-          {/* Gold Coins */}
+          {/* Gold Coins Per Student */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Gold Coins
+              Gold Coins Per Student
             </label>
             <input
               type="number"
-              name="goldCoins"
-              value={formData.goldCoins}
+              name="perStudentGoldCoins"
+              value={formData.perStudentGoldCoins}
               onChange={handleChange}
               min="0"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            {errors.goldCoins && (
-              <p className="text-red-500 text-sm mt-1">{errors.goldCoins}</p>
+            {errors.perStudentGoldCoins && (
+              <p className="text-red-500 text-sm mt-1">{errors.perStudentGoldCoins}</p>
             )}
           </div>
 
-          {/* Silver Coins */}
+          {/* Silver Coins Per Student */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Silver Coins
+              Silver Coins Per Student
             </label>
             <input
               type="number"
-              name="silverCoins"
-              value={formData.silverCoins}
+              name="perStudentSilverCoins"
+              value={formData.perStudentSilverCoins}
               onChange={handleChange}
               min="0"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            {errors.silverCoins && (
-              <p className="text-red-500 text-sm mt-1">{errors.silverCoins}</p>
+            {errors.perStudentSilverCoins && (
+              <p className="text-red-500 text-sm mt-1">{errors.perStudentSilverCoins}</p>
             )}
           </div>
 

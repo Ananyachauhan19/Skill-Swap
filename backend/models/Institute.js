@@ -23,6 +23,16 @@ const instituteSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  perStudentGoldCoins: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  perStudentSilverCoins: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   campusBackgroundImage: {
     type: String,
     default: null
