@@ -1,8 +1,91 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useModal } from '../context/ModalContext';
 import { BookOpen, Users, Video, TrendingUp } from 'lucide-react';
+import Cookies from 'js-cookie';
+import { BACKEND_URL } from '../config.js';
+import socket from '../socket.js';
 import CampusStartSkillSwapSearchForm from './CampusStartSkillSwapSearchForm';
+import CampusDashboardNavbar from './CampusDashboardNavbar';
+
+const CampusOneOnOne = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { openLogin } = useModal();
+  const { user: authUser } = useAuth();
+  const [activeTab, setActiveTab] = useState('oneonone');
+  
+  // Navbar states
+  const [isLoggedIn] = useState(!!Cookies.get('user'));
+  const [showCoinsDropdown, setShowCoinsDropdown] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [goldenCoins, setGoldenCoins] = useState(0);
+  const [silverCoins, setSilverCoins] = useState(0);
+  
+  const coinsRef = useRef(null);
+
+  const fetchCoins = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/coins`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setGoldenCoins(data.golden || 0);
+        setSilverCoins(data.silver || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch coins:', error);
+    }
+  };
+
+  const handleLoginClick = () => {
+    openLogin();
+    setTimeout(() => {
+      window.dispatchEvent(new Event('authChanged'));
+    }, 100);
+  };
+
+  const isActive = (tab) => activeTab === tab;
+
+  useEffect(() => {
+    const savedNotifications = localStorage.getItem('notifications');
+    if (savedNotifications) {
+      try {
+        setNotifications(JSON.parse(savedNotifications));
+      } catch {
+        localStorage.removeItem('notifications');
+      }
+    }
+    
+    const userCookie = Cookies.get('user');
+    const userData = userCookie ? JSON.parse(userCookie) : null;
+    if (userData && userData._id) {
+      socket.emit('register', userData._id);
+      fetchCoins();
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!showCoinsDropdown) return;
+    const handleClickOutside = (event) => {
+      if (coinsRef.current && !coinsRef.current.contains(event.target)) {
+        setShowCoinsDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCoinsDropdown]);
 
 const HowItWorks = () => {
   const steps = [
@@ -100,18 +183,14 @@ const HowItWorks = () => {
   );
 };
 
-const CampusOneOnOne = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
   // Redirect if user doesn't have institute info
   useEffect(() => {
-    if (!user?.instituteId) {
+    if (!authUser?.instituteId) {
       navigate('/campus-dashboard');
     }
-  }, [user, navigate]);
+  }, [authUser, navigate]);
 
-  if (!user?.instituteId) {
+  if (!authUser?.instituteId) {
     return (
       <div className="min-h-screen bg-home-bg flex items-center justify-center p-4">
         <div className="text-center">
@@ -129,6 +208,26 @@ const CampusOneOnOne = () => {
   }
 
   return (
+    <>
+      <CampusDashboardNavbar
+        navigate={navigate}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isActive={isActive}
+        isLoggedIn={isLoggedIn}
+        handleLoginClick={handleLoginClick}
+        goldenCoins={goldenCoins}
+        silverCoins={silverCoins}
+        showCoinsDropdown={showCoinsDropdown}
+        setShowCoinsDropdown={setShowCoinsDropdown}
+        fetchCoins={fetchCoins}
+        coinsRef={coinsRef}
+        notifications={notifications}
+        setNotifications={setNotifications}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+      />
+
     <main className="min-h-screen bg-home-bg text-gray-900 font-[Inter,Poppins,sans-serif] pt-16 md:pt-[72px] xl:pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header */}
@@ -246,6 +345,7 @@ const CampusOneOnOne = () => {
         </div>
       </div>
     </main>
+    </>
   );
 };
 

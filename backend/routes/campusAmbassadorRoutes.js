@@ -25,11 +25,20 @@ router.post('/institutes/:instituteId/upload-students', requireAuth, requireCamp
 // Campus ID validation (can be accessed by any authenticated user)
 router.post('/validate-campus-id', requireAuth, campusAmbassadorController.validateCampusId);
 
+// Get student's institute data (for students viewing their campus dashboard)
+router.get('/my-institute', requireAuth, campusAmbassadorController.getStudentInstitute);
+
+// Get student dashboard statistics
+router.get('/dashboard-stats', requireAuth, campusAmbassadorController.getStudentDashboardStats);
+
 // Get institute students (for filtering in campus dashboard)
 router.get('/institutes/:instituteId/students', requireAuth, campusAmbassadorController.getInstituteStudents);
 
 // Reward distribution routes
 router.post('/institutes/:instituteId/distribute-coins', requireAuth, requireCampusAmbassador, campusAmbassadorController.distributeCoinsToInstitute);
 router.get('/institutes/:instituteId/reward-history', requireAuth, requireCampusAmbassador, campusAmbassadorController.getInstituteRewardHistory);
+
+// Public campus statistics (no auth required)
+router.get('/public-stats', campusAmbassadorController.getPublicCampusStats);
 
 module.exports = router;

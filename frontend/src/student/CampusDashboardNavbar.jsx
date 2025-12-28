@@ -44,11 +44,11 @@ const CampusDashboardNavbar = ({
           {/* Desktop Navigation - Different tabs (Hidden on mobile/tablet) */}
           <div className="hidden lg:flex items-center gap-1.5 lg:gap-3 xl:gap-4">
             {[
-              { id: 'dashboard', label: 'Dashboard' },
-              { id: 'oneonone', label: 'One on One' },
-              { id: 'assessment', label: 'Assessment' },
-              { id: 'requests', label: 'Requests' },
-            ].map(({ id, label }) => (
+              { id: 'dashboard', label: 'Dashboard', path: '/campus-dashboard' },
+              { id: 'oneonone', label: 'One on One', path: '/campus/one-on-one' },
+              { id: 'assessment', label: 'Assessment', path: '/campus/assessment' },
+              { id: 'requests', label: 'Requests', path: '/campus/requests' },
+            ].map(({ id, label, path }) => (
               <button
                 key={id}
                 className={`text-[11px] lg:text-xs xl:text-sm font-bold px-2 md:px-2.5 lg:px-3 py-1.5 rounded-full text-blue-900 bg-blue-100/50 shadow-sm transition-all duration-300 whitespace-nowrap ${
@@ -56,7 +56,10 @@ const CampusDashboardNavbar = ({
                     ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md'
                     : 'hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105'
                 } touch-manipulation`}
-                onClick={() => setActiveTab(id)}
+                onClick={() => {
+                  setActiveTab(id);
+                  navigate(path);
+                }}
               >
                 {label}
               </button>
@@ -164,7 +167,7 @@ const CampusDashboardNavbar = ({
                   }}
                 >
                   <span className="text-[11px] sm:text-xs font-bold text-blue-900 whitespace-nowrap">
-                    Back to SkillSwap
+                    Back to SkillSwaphub
                   </span>
                   <span
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
@@ -300,11 +303,11 @@ const CampusDashboardNavbar = ({
               </button>
 
               {[
-                { id: 'dashboard', label: 'Dashboard' },
-                { id: 'oneonone', label: 'One on One' },
-                { id: 'assessment', label: 'Assessment' },
-                { id: 'requests', label: 'Requests' },
-              ].map(({ id, label }) => (
+                { id: 'dashboard', label: 'Dashboard', path: '/campus-dashboard' },
+                { id: 'oneonone', label: 'One on One', path: '/campus/one-on-one' },
+                { id: 'assessment', label: 'Assessment', path: '/campus/assessment' },
+                { id: 'requests', label: 'Requests', path: '/campus/requests' },
+              ].map(({ id, label, path }) => (
                 <button
                   key={id}
                   className={`w-full text-left text-sm font-bold px-4 py-3 rounded-xl transition-all ${
@@ -314,6 +317,7 @@ const CampusDashboardNavbar = ({
                   }`}
                   onClick={() => {
                     setActiveTab(id);
+                    navigate(path);
                     setMenuOpen(false);
                   }}
                 >

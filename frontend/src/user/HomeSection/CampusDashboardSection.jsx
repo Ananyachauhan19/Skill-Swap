@@ -1,10 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const CampusDashboardSection = ({
-  totalCampusCollaborations = 0,
-  totalStudentsOnDashboard = 0,
   imageSrc = 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766937373/campusdashboard_n0ammq.png',
   imageAlt = 'Campus Dashboard illustration',
   onJoin,
@@ -12,6 +10,34 @@ const CampusDashboardSection = ({
   const navigate = useNavigate();
   const { user } = useAuth();
   const hasJoinedCampusDashboard = Boolean(user?.instituteId);
+  
+  const [stats, setStats] = useState({
+    totalCampusCollaborations: 0,
+    totalStudentsOnDashboard: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Fetch campus statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/campus-ambassador/public-stats`);
+        if (response.ok) {
+          const data = await response.json();
+          setStats({
+            totalCampusCollaborations: data.totalCampusCollaborations || 0,
+            totalStudentsOnDashboard: data.totalStudentsOnDashboard || 0
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch campus stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const handleCtaClick = () => {
     if (hasJoinedCampusDashboard) {
@@ -96,9 +122,13 @@ const CampusDashboardSection = ({
                   </span>
                 </div>
                 <div className="text-3xl sm:text-4xl font-bold text-slate-900 tabular-nums">
-                  {Number.isFinite(totalCampusCollaborations)
-                    ? totalCampusCollaborations.toLocaleString()
-                    : totalCampusCollaborations}
+                  {loading ? (
+                    <div className="animate-pulse h-10 bg-slate-200 rounded w-20"></div>
+                  ) : (
+                    Number.isFinite(stats.totalCampusCollaborations)
+                      ? stats.totalCampusCollaborations.toLocaleString()
+                      : stats.totalCampusCollaborations
+                  )}
                 </div>
                 <div className="mt-1 text-sm text-slate-600 font-medium">
                   Total Campus Collaborations
@@ -124,9 +154,13 @@ const CampusDashboardSection = ({
                   </span>
                 </div>
                 <div className="text-3xl sm:text-4xl font-bold text-slate-900 tabular-nums">
-                  {Number.isFinite(totalStudentsOnDashboard)
-                    ? totalStudentsOnDashboard.toLocaleString()
-                    : totalStudentsOnDashboard}
+                  {loading ? (
+                    <div className="animate-pulse h-10 bg-slate-200 rounded w-20"></div>
+                  ) : (
+                    Number.isFinite(stats.totalStudentsOnDashboard)
+                      ? stats.totalStudentsOnDashboard.toLocaleString()
+                      : stats.totalStudentsOnDashboard
+                  )}
                 </div>
                 <div className="mt-1 text-sm text-slate-600 font-medium">
                   Total Students on Dashboard

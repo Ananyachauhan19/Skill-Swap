@@ -73,33 +73,33 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess }) => {
   const totalGolden = formData.perStudentGolden * (institute.studentsCount || 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-white">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Distribute Coins</h2>
-            <p className="text-sm text-gray-600 mt-1">{institute.instituteName}</p>
+            <h2 className="text-xl font-bold text-gray-900">Distribute Coins</h2>
+            <p className="text-xs text-gray-600 mt-0.5">{institute.instituteName}</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
-              <p className="text-red-700 text-sm">{error}</p>
+              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+              <p className="text-red-700 text-xs">{error}</p>
             </div>
           )}
 
           {/* Institute Info */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-2">
-              <Coins className="text-blue-600" size={20} />
+              <Coins className="text-blue-600" size={18} />
               <p className="text-sm font-semibold text-blue-900">Institute Summary</p>
             </div>
-            <div className="space-y-1 text-sm text-blue-800">
+            <div className="space-y-1 text-xs text-blue-800">
               <p>Active Students: <span className="font-semibold">{institute.studentsCount || 0}</span></p>
               <p className="text-xs text-blue-600 mt-2">
                 💡 Coins will be <span className="font-bold">added</span> to each student's current wallet balance
@@ -109,7 +109,7 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess }) => {
 
           {/* Silver Coins */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Silver Coins per Student
             </label>
             <input
@@ -118,7 +118,7 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess }) => {
               value={formData.perStudentSilver}
               onChange={handleChange}
               min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter silver coins"
             />
             {formData.perStudentSilver > 0 && (
@@ -130,7 +130,7 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess }) => {
 
           {/* Golden Coins */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Golden Coins per Student
             </label>
             <input
@@ -139,7 +139,7 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess }) => {
               value={formData.perStudentGolden}
               onChange={handleChange}
               min="0"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter golden coins"
             />
             {formData.perStudentGolden > 0 && (
@@ -151,24 +151,24 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess }) => {
 
           {/* Remarks */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Remarks (Optional)
             </label>
             <textarea
               name="remarks"
               value={formData.remarks}
               onChange={handleChange}
-              rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows="2"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="E.g., Monthly rewards for December 2025"
             />
           </div>
 
           {/* Distribution Summary */}
           {(formData.perStudentSilver > 0 || formData.perStudentGolden > 0) && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm font-semibold text-green-900 mb-2">Distribution Summary</p>
-              <div className="space-y-1 text-sm text-green-800">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-sm font-semibold text-green-900 mb-1.5">Distribution Summary</p>
+              <div className="space-y-1 text-xs text-green-800">
                 {formData.perStudentSilver > 0 && (
                   <p>Silver: {formData.perStudentSilver} × {institute.studentsCount || 0} = <span className="font-bold">{totalSilver.toLocaleString()}</span></p>
                 )}
@@ -180,18 +180,18 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess }) => {
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-2 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+              className="flex-1 px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
               disabled={loading || (formData.perStudentSilver === 0 && formData.perStudentGolden === 0)}
             >
               {loading ? 'Distributing...' : 'Distribute Coins'}

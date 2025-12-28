@@ -334,36 +334,36 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-800">Upload Students</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-200">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-white">
+          <h2 className="text-xl font-bold text-gray-900">Upload Students</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={20} />
           </button>
         </div>
 
         <div className="p-6">
           <div className="mb-4">
-            <h3 className="font-semibold text-lg text-gray-700 mb-2">
+            <h3 className="font-semibold text-base text-gray-700 mb-1">
               {instituteName}
             </h3>
-            <p className="text-gray-600 text-sm">
+            <p className="text-gray-600 text-xs">
               Upload an Excel file with student information to onboard them to the platform.
             </p>
           </div>
 
           {/* Excel Format Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <h4 className="font-semibold text-blue-800 mb-2">Excel Format:</h4>
-            <div className="space-y-2 text-sm text-blue-700">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <h4 className="font-semibold text-sm text-blue-900 mb-2">Excel Format:</h4>
+            <div className="space-y-1.5 text-xs text-blue-700">
               <p className="font-medium">For Schools:</p>
               <ul className="list-disc list-inside ml-2">
                 <li>name (required)</li>
                 <li>email (required)</li>
                 <li>class (required)</li>
               </ul>
-              <p className="font-medium mt-2">For Colleges:</p>
+              <p className="font-medium mt-1.5">For Colleges:</p>
               <ul className="list-disc list-inside ml-2">
                 <li>name (required)</li>
                 <li>email (required)</li>
@@ -374,17 +374,17 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
           </div>
 
           {/* Coin Distribution Inputs */}
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Coins className="text-yellow-700" size={20} />
-              <h4 className="font-semibold text-yellow-900">Reward Coins (Optional)</h4>
+          <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Coins className="text-yellow-700" size={18} />
+              <h4 className="font-semibold text-sm text-yellow-900">Reward Coins (Optional)</h4>
             </div>
-            <p className="text-sm text-yellow-800 mb-3">
+            <p className="text-xs text-yellow-800 mb-3">
               Coins will be <span className="font-bold">added</span> to each student's wallet incrementally
             </p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Silver Coins per Student
                 </label>
                 <input
@@ -393,11 +393,11 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
                   value={coinInputs.perStudentSilver}
                   onChange={handleCoinChange}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
                   Golden Coins per Student
                 </label>
                 <input
@@ -406,47 +406,47 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
                   value={coinInputs.perStudentGolden}
                   onChange={handleCoinChange}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
                 />
               </div>
             </div>
           </div>
 
           {/* File Upload */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
               Select Excel File
             </label>
             {loadingStudents && (
-              <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <p className="text-sm text-blue-700">Loading existing student data...</p>
+              <div className="mb-2 bg-blue-50 border border-blue-200 rounded-lg p-2 flex items-center gap-2">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                <p className="text-xs text-blue-700">Loading existing student data...</p>
               </div>
             )}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-2">
               <input
                 type="file"
                 accept=".xlsx,.xls"
                 onChange={handleFileChange}
                 disabled={loadingStudents}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
               <button
                 onClick={handleUpload}
                 disabled={!file || uploading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2"
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium"
               >
-                <Upload size={20} />
+                <Upload size={16} />
                 <span>{uploading ? 'Uploading...' : 'Upload'}</span>
               </button>
             </div>
             {file && (
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-xs text-gray-600 mt-1.5">
                 Selected: {file.name}
               </p>
             )}
             {!loadingStudents && existingStudents.length > 0 && !file && (
-              <p className="text-xs text-green-600 mt-2">
+              <p className="text-xs text-green-600 mt-1.5">
                 ✓ Ready to validate ({existingStudents.length} existing students loaded)
               </p>
             )}

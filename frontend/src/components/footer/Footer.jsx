@@ -84,6 +84,12 @@ const Footer = () => {
                       Learning Sessions
                     </a>
                   </li>
+                  <li>
+                    <a href="/campus-dashboard" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                      Campus Dashboard
+                    </a>
+                  </li>
                 </ul>
               </div>
 

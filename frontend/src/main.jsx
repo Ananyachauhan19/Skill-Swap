@@ -7,13 +7,16 @@ import 'flatpickr/dist/flatpickr.min.css';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import { EmployeeAuthProvider } from './context/EmployeeAuthContext.jsx';
+import { CampusAmbassadorProvider } from './context/CampusAmbassadorContext.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <GoogleOAuthProvider clientId="98535489065-jgkc5i63dm0jjm4ac1fq4ngc42etcitk.apps.googleusercontent.com">
     <AuthProvider>
       <EmployeeAuthProvider>
         <BrowserRouter>
-          <App />
+          <CampusAmbassadorProvider>
+            <App />
+          </CampusAmbassadorProvider>
         </BrowserRouter>
       </EmployeeAuthProvider>
     </AuthProvider>

@@ -125,7 +125,7 @@ exports.getMyInstitutes = async (req, res) => {
   }
 };
 
-// Get institute by ID
+// Get institute by ID (for campus ambassadors)
 exports.getInstituteById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -139,6 +139,39 @@ exports.getInstituteById = async (req, res) => {
   } catch (error) {
     console.error('Get institute error:', error);
     res.status(500).json({ message: 'Error fetching institute', error: error.message });
+  }
+};
+
+// Get student's institute data (for students to view their campus info)
+exports.getStudentInstitute = async (req, res) => {
+  try {
+    // Get institute ID from authenticated user
+    const studentInstituteId = req.user.instituteId;
+    
+    if (!studentInstituteId) {
+      return res.status(404).json({ message: 'Student is not associated with any institute' });
+    }
+
+    // Find institute by instituteId (the unique string identifier, not MongoDB _id)
+    const institute = await Institute.findOne({ instituteId: studentInstituteId });
+    
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found' });
+    }
+
+    // Return only necessary public information
+    res.status(200).json({ 
+      institute: {
+        _id: institute._id,
+        instituteName: institute.instituteName,
+        instituteId: institute.instituteId,
+        campusBackgroundImage: institute.campusBackgroundImage,
+        instituteType: institute.instituteType
+      }
+    });
+  } catch (error) {
+    console.error('Get student institute error:', error);
+    res.status(500).json({ message: 'Error fetching institute data', error: error.message });
   }
 };
 
@@ -886,5 +919,185 @@ exports.getInstituteRewardHistory = async (req, res) => {
   } catch (error) {
     console.error('Get reward history error:', error);
     res.status(500).json({ message: 'Error fetching reward history', error: error.message });
+  }
+};
+
+// Get student dashboard statistics
+exports.getStudentDashboardStats = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const instituteId = req.user.instituteId;
+
+    if (!instituteId) {
+      return res.status(404).json({ message: 'Student is not associated with any institute' });
+    }
+
+    // Import required models
+    const Session = require('../models/Session');
+    const SessionRequest = require('../models/SessionRequest');
+
+    // Get institute info
+    const institute = await Institute.findOne({ instituteId });
+
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found' });
+    }
+
+    // Count total students from the same institute
+    const totalStudents = await User.countDocuments({ 
+      instituteId,
+      studentId: { $exists: true, $ne: null }
+    });
+
+    // Get active students (logged in last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const activeStudents = await User.countDocuments({
+      instituteId,
+      studentId: { $exists: true, $ne: null },
+      lastActivityAt: { $gte: sevenDaysAgo }
+    });
+
+    // Get student's sessions (created or participated)
+    const mySessions = await Session.countDocuments({
+      $or: [
+        { creator: studentId },
+        { requester: studentId }
+      ]
+    });
+
+    // Get student's completed sessions
+    const completedSessions = await Session.countDocuments({
+      $or: [
+        { creator: studentId },
+        { requester: studentId }
+      ],
+      status: 'completed'
+    });
+
+    // Get pending session requests for this student
+    const pendingRequests = await SessionRequest.countDocuments({
+      $or: [
+        { sender: studentId, status: 'pending' },
+        { receiver: studentId, status: 'pending' }
+      ]
+    });
+
+    // Get top tutors from the institute (by session count)
+    const topTutors = await Session.aggregate([
+      {
+        $match: {
+          status: 'completed'
+        }
+      },
+      {
+        $group: {
+          _id: '$creator',
+          sessionCount: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { sessionCount: -1 }
+      },
+      {
+        $limit: 5
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'tutorInfo'
+        }
+      },
+      {
+        $unwind: '$tutorInfo'
+      },
+      {
+        $match: {
+          'tutorInfo.instituteId': instituteId
+        }
+      },
+      {
+        $project: {
+          name: {
+            $concat: ['$tutorInfo.firstName', ' ', { $ifNull: ['$tutorInfo.lastName', ''] }]
+          },
+          sessionCount: 1,
+          ratingAverage: '$tutorInfo.ratingAverage',
+          profilePic: { $ifNull: ['$tutorInfo.profileImageUrl', '$tutorInfo.profilePic'] }
+        }
+      }
+    ]);
+
+    // Get recent activity from institute (last 5 sessions)
+    const recentSessions = await Session.find({})
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('creator', 'firstName lastName instituteId')
+      .populate('requester', 'firstName lastName instituteId')
+      .lean();
+
+    const recentInstituteActivity = recentSessions
+      .filter(s => s.creator?.instituteId === instituteId || s.requester?.instituteId === instituteId)
+      .map(s => ({
+        subject: s.subject,
+        topic: s.topic,
+        status: s.status,
+        date: s.date,
+        createdAt: s.createdAt
+      }));
+
+    res.status(200).json({
+      institute: {
+        name: institute.instituteName,
+        type: institute.instituteType,
+        totalStudents,
+        activeStudents
+      },
+      studentStats: {
+        totalSessions: mySessions,
+        completedSessions,
+        pendingRequests,
+        coins: {
+          gold: req.user.goldCoins || 0,
+          silver: req.user.silverCoins || 0
+        }
+      },
+      topTutors,
+      recentActivity: recentInstituteActivity
+    });
+  } catch (error) {
+    console.error('Get student dashboard stats error:', error);
+    res.status(500).json({ message: 'Error fetching dashboard statistics', error: error.message });
+  }
+};
+
+// Get public campus statistics (no auth required)
+exports.getPublicCampusStats = async (req, res) => {
+  try {
+    // Count total institutes
+    const totalInstitutes = await Institute.countDocuments({ isActive: true });
+
+    // Count total students with instituteId
+    const totalStudents = await User.countDocuments({ 
+      studentId: { $exists: true, $ne: null },
+      instituteId: { $exists: true, $ne: null }
+    });
+
+    res.status(200).json({
+      totalCampusCollaborations: totalInstitutes,
+      totalStudentsOnDashboard: totalStudents
+    });
+  } catch (error) {
+    console.error('Get public campus stats error:', error);
+    res.status(500).json({ 
+      message: 'Error fetching campus statistics', 
+      error: error.message,
+      // Return default values on error
+      totalCampusCollaborations: 0,
+      totalStudentsOnDashboard: 0
+    });
   }
 };

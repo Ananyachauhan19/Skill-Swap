@@ -62,81 +62,81 @@ const InstituteRewardsDashboard = ({ institute, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200 flex flex-col">
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b sticky top-0 bg-white z-10">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white flex-shrink-0">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Rewards Dashboard</h2>
-            <p className="text-sm text-gray-600 mt-1">{institute.instituteName}</p>
+            <h2 className="text-xl font-bold text-gray-900">Rewards Dashboard</h2>
+            <p className="text-xs text-gray-600 mt-0.5">{institute.instituteName}</p>
           </div>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X size={20} />
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="flex-1 overflow-y-auto p-6">
           {/* Info Banner */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <ArrowUp className="text-blue-600 flex-shrink-0 mt-1" size={20} />
-            <div className="text-sm text-blue-800">
-              <p className="font-semibold mb-1">Wallet Balance Increments</p>
-              <p>Each coin distribution <span className="font-bold">adds coins</span> to students' existing wallet balances. Coins are not replaced.</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+            <ArrowUp className="text-blue-600 flex-shrink-0 mt-0.5" size={16} />
+            <div className="text-xs text-blue-800">
+              <p className="font-semibold mb-0.5">Wallet Balance Increments</p>
+              <p>Each coin distribution <span className="font-bold">adds coins</span> to students' existing wallet balances.</p>
             </div>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-5 border border-gray-200">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gray-200 rounded-lg">
-                  <Coins className="text-gray-700" size={20} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="p-1.5 bg-gray-200 rounded-lg">
+                  <Coins className="text-gray-700" size={16} />
                 </div>
-                <p className="text-sm font-medium text-gray-600">Total Silver Distributed</p>
+                <p className="text-xs font-medium text-gray-600">Total Silver</p>
               </div>
-              <p className="text-3xl font-bold text-gray-800">
+              <p className="text-2xl font-bold text-gray-800">
                 {totals.totalSilverDistributed.toLocaleString()}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-5 border border-yellow-200">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-yellow-200 rounded-lg">
-                  <Award className="text-yellow-700" size={20} />
+            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg p-4 border border-yellow-200">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="p-1.5 bg-yellow-200 rounded-lg">
+                  <Award className="text-yellow-700" size={16} />
                 </div>
-                <p className="text-sm font-medium text-yellow-700">Total Golden Distributed</p>
+                <p className="text-xs font-medium text-yellow-700">Total Golden</p>
               </div>
-              <p className="text-3xl font-bold text-yellow-800">
+              <p className="text-2xl font-bold text-yellow-800">
                 {totals.totalGoldenDistributed.toLocaleString()}
               </p>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-5 border border-blue-200">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-200 rounded-lg">
-                  <TrendingUp className="text-blue-700" size={20} />
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="p-1.5 bg-blue-200 rounded-lg">
+                  <TrendingUp className="text-blue-700" size={16} />
                 </div>
-                <p className="text-sm font-medium text-blue-600">Total Events</p>
+                <p className="text-xs font-medium text-blue-600">Total Events</p>
               </div>
-              <p className="text-3xl font-bold text-blue-800">{totals.totalTransactions}</p>
+              <p className="text-2xl font-bold text-blue-800">{totals.totalTransactions}</p>
             </div>
           </div>
 
           {/* Loading State */}
           {loading && (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-              <p className="text-gray-600 mt-4">Loading reward history...</p>
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+              <p className="text-sm text-gray-600 mt-3">Loading reward history...</p>
             </div>
           )}
 
           {/* Error State */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+              <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
               <div>
-                <p className="text-red-800 font-semibold">Error Loading Data</p>
-                <p className="text-red-700 text-sm mt-1">{error}</p>
+                <p className="text-sm text-red-800 font-semibold">Error Loading Data</p>
+                <p className="text-xs text-red-700 mt-0.5">{error}</p>
               </div>
             </div>
           )}
@@ -145,40 +145,40 @@ const InstituteRewardsDashboard = ({ institute, onClose }) => {
           {!loading && !error && (
             <>
               {rewardHistory.length === 0 ? (
-                <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-                  <Coins className="mx-auto text-gray-400 mb-3" size={48} />
-                  <p className="text-gray-600 font-medium">No reward distributions yet</p>
-                  <p className="text-gray-500 text-sm mt-1">
+                <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                  <Coins className="mx-auto text-gray-400 mb-2" size={40} />
+                  <p className="text-sm text-gray-600 font-medium">No reward distributions yet</p>
+                  <p className="text-xs text-gray-500 mt-1">
                     Start distributing coins to your students!
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+                <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                           Date
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                           Source
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                           Distributed By
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                           Students
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
                           Per Student
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total Distributed
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                          Total
                         </th>
-                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Cumulative Total
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                          Cumulative
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                           Remarks
                         </th>
                       </tr>
@@ -186,53 +186,53 @@ const InstituteRewardsDashboard = ({ institute, onClose }) => {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {rewardHistory.map((transaction, index) => (
                         <tr key={transaction._id} className="hover:bg-gray-50 transition">
-                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div className="flex items-center gap-2">
-                              <Calendar size={14} className="text-gray-400" />
+                          <td className="px-3 py-3 whitespace-nowrap text-xs text-gray-900">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar size={12} className="text-gray-400" />
                               <span>{formatDate(transaction.distributionDate)}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-4 whitespace-nowrap text-sm">
+                          <td className="px-3 py-3 whitespace-nowrap text-xs">
                             {transaction.source === 'EXCEL_UPLOAD' ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                📊 Excel Upload
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                📊 Excel
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                                 🎁 Distribute
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-4 text-sm text-gray-900">
-                            <div className="flex items-center gap-2">
-                              <User size={14} className="text-gray-400" />
+                          <td className="px-3 py-3 text-xs text-gray-900">
+                            <div className="flex items-center gap-1.5">
+                              <User size={12} className="text-gray-400" />
                               <div>
                                 <p className="font-medium">{transaction.ambassadorName}</p>
                                 <p className="text-xs text-gray-500">{transaction.ambassadorEmail}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center text-sm font-semibold text-gray-900">
+                          <td className="px-3 py-3 text-center text-xs font-semibold text-gray-900">
                             {transaction.totalStudentsCount}
                           </td>
-                          <td className="px-4 py-4 text-center text-sm">
-                            <div className="space-y-1">
+                          <td className="px-3 py-3 text-center text-xs">
+                            <div className="space-y-0.5">
                               {transaction.perStudentSilver > 0 && (
                                 <div className="flex items-center justify-center gap-1">
-                                  <Coins size={14} className="text-gray-600" />
+                                  <Coins size={12} className="text-gray-600" />
                                   <span className="text-gray-700 font-medium">{transaction.perStudentSilver}</span>
                                 </div>
                               )}
                               {transaction.perStudentGolden > 0 && (
                                 <div className="flex items-center justify-center gap-1">
-                                  <Award size={14} className="text-yellow-600" />
+                                  <Award size={12} className="text-yellow-600" />
                                   <span className="text-yellow-700 font-medium">{transaction.perStudentGolden}</span>
                                 </div>
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center text-sm">
-                            <div className="space-y-1">
+                          <td className="px-3 py-3 text-center text-xs">
+                            <div className="space-y-0.5">
                               {transaction.totalSilverDistributed > 0 && (
                                 <p className="text-gray-800 font-semibold">
                                   {transaction.totalSilverDistributed.toLocaleString()} 🪙
@@ -245,21 +245,21 @@ const InstituteRewardsDashboard = ({ institute, onClose }) => {
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-center text-sm">
-                            <div className="bg-blue-50 rounded-lg p-2 space-y-1">
+                          <td className="px-3 py-3 text-center text-xs">
+                            <div className="bg-blue-50 rounded px-2 py-1 space-y-0.5">
                               {transaction.cumulativeSilver > 0 && (
-                                <p className="text-gray-800 font-bold text-xs">
+                                <p className="text-gray-800 font-bold">
                                   🪙 {transaction.cumulativeSilver.toLocaleString()}
                                 </p>
                               )}
                               {transaction.cumulativeGolden > 0 && (
-                                <p className="text-yellow-700 font-bold text-xs">
+                                <p className="text-yellow-700 font-bold">
                                   🏆 {transaction.cumulativeGolden.toLocaleString()}
                                 </p>
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-4 text-sm text-gray-600 max-w-xs">
+                          <td className="px-3 py-3 text-xs text-gray-600 max-w-xs">
                             {transaction.remarks || (
                               <span className="text-gray-400 italic">No remarks</span>
                             )}
