@@ -1,4 +1,6 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const CampusDashboardSection = ({
   totalCampusCollaborations = 0,
@@ -7,6 +9,22 @@ const CampusDashboardSection = ({
   imageAlt = 'Campus Dashboard illustration',
   onJoin,
 }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const hasJoinedCampusDashboard = Boolean(user?.instituteId);
+
+  const handleCtaClick = () => {
+    if (hasJoinedCampusDashboard) {
+      navigate('/campus-dashboard');
+      return;
+    }
+    if (typeof onJoin === 'function') {
+      onJoin();
+      return;
+    }
+    navigate('/campus-dashboard');
+  };
+
   return (
     <section className="relative py-16 sm:py-20 lg:py-28 overflow-hidden bg-home-bg">
       {/* Background Accent */}
@@ -120,10 +138,10 @@ const CampusDashboardSection = ({
             <div className="pt-2">
               <button
                 type="button"
-                onClick={() => (typeof onJoin === 'function' ? onJoin() : undefined)}
+                onClick={handleCtaClick}
                 className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-blue-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:from-blue-700 hover:to-blue-800"
               >
-                Join Campus Dashboard
+                {hasJoinedCampusDashboard ? 'Visit Campus Dashboard' : 'Join Campus Dashboard'}
                 <svg
                   viewBox="0 0 20 20"
                   fill="currentColor"
