@@ -5,8 +5,6 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
   const [formData, setFormData] = useState({
     instituteName: initialData?.instituteName || '',
     instituteId: initialData?.instituteId || '',
-    perStudentGoldCoins: initialData?.perStudentGoldCoins || 0,
-    perStudentSilverCoins: initialData?.perStudentSilverCoins || 0,
     instituteType: initialData?.instituteType || 'college',
     campusBackgroundImage: null
   });
@@ -47,12 +45,6 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
     if (!formData.instituteId.trim()) {
       newErrors.instituteId = 'Institute ID is required';
     }
-    if (formData.perStudentGoldCoins < 0) {
-      newErrors.perStudentGoldCoins = 'Gold coins cannot be negative';
-    }
-    if (formData.perStudentSilverCoins < 0) {
-      newErrors.perStudentSilverCoins = 'Silver coins cannot be negative';
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -64,8 +56,6 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
     const submitData = new FormData();
     submitData.append('instituteName', formData.instituteName);
     submitData.append('instituteId', formData.instituteId.toUpperCase());
-    submitData.append('perStudentGoldCoins', formData.perStudentGoldCoins);
-    submitData.append('perStudentSilverCoins', formData.perStudentSilverCoins);
     submitData.append('instituteType', formData.instituteType);
     
     if (formData.campusBackgroundImage) {
@@ -93,6 +83,18 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Info Banner */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-semibold text-blue-800 mb-2">📋 Institute Creation</h4>
+            <p className="text-sm text-blue-700">
+              Create your institute with basic information only. Coin assignment happens separately through:
+            </p>
+            <ul className="list-disc list-inside text-sm text-blue-700 mt-2 ml-2">
+              <li><strong>Excel Upload:</strong> Onboard students with optional coin assignment</li>
+              <li><strong>Distribute Coins:</strong> Assign coins to all current students</li>
+            </ul>
+          </div>
+
           {/* Institute Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -144,42 +146,6 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
               <option value="college">College</option>
               <option value="school">School</option>
             </select>
-          </div>
-
-          {/* Gold Coins Per Student */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Gold Coins Per Student
-            </label>
-            <input
-              type="number"
-              name="perStudentGoldCoins"
-              value={formData.perStudentGoldCoins}
-              onChange={handleChange}
-              min="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            {errors.perStudentGoldCoins && (
-              <p className="text-red-500 text-sm mt-1">{errors.perStudentGoldCoins}</p>
-            )}
-          </div>
-
-          {/* Silver Coins Per Student */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Silver Coins Per Student
-            </label>
-            <input
-              type="number"
-              name="perStudentSilverCoins"
-              value={formData.perStudentSilverCoins}
-              onChange={handleChange}
-              min="0"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            {errors.perStudentSilverCoins && (
-              <p className="text-red-500 text-sm mt-1">{errors.perStudentSilverCoins}</p>
-            )}
           </div>
 
           {/* Campus Background Image */}

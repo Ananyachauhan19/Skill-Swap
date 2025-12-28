@@ -28,4 +28,8 @@ router.post('/validate-campus-id', requireAuth, campusAmbassadorController.valid
 // Get institute students (for filtering in campus dashboard)
 router.get('/institutes/:instituteId/students', requireAuth, campusAmbassadorController.getInstituteStudents);
 
+// Reward distribution routes
+router.post('/institutes/:instituteId/distribute-coins', requireAuth, requireCampusAmbassador, campusAmbassadorController.distributeCoinsToInstitute);
+router.get('/institutes/:instituteId/reward-history', requireAuth, requireCampusAmbassador, campusAmbassadorController.getInstituteRewardHistory);
+
 module.exports = router;

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Upload, School, Users, Trash2, Edit } from 'lucide-react';
+import { Plus, Upload, School, Users, Trash2, Edit, Coins, TrendingUp } from 'lucide-react';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
 import { useAuth } from '../context/AuthContext';
 import InstituteForm from './InstituteForm';
 import ExcelUpload from './ExcelUpload';
+import DistributeCoinsModal from './DistributeCoinsModal';
+import InstituteRewardsDashboard from './InstituteRewardsDashboard';
 
 const CampusAmbassadorDashboard = () => {
   const navigate = useNavigate();
@@ -23,6 +25,9 @@ const CampusAmbassadorDashboard = () => {
   const [showExcelUpload, setShowExcelUpload] = useState(false);
   const [editingInstitute, setEditingInstitute] = useState(null);
   const [selectedInstituteForUpload, setSelectedInstituteForUpload] = useState(null);
+  const [showDistributeCoins, setShowDistributeCoins] = useState(false);
+  const [selectedInstituteForRewards, setSelectedInstituteForRewards] = useState(null);
+  const [showRewardsDashboard, setShowRewardsDashboard] = useState(false);
 
   // Check if campus ambassador needs to change password
   useEffect(() => {
@@ -77,6 +82,21 @@ const CampusAmbassadorDashboard = () => {
     setShowExcelUpload(false);
     setSelectedInstituteForUpload(null);
     fetchInstitutes();
+  };
+
+  const handleDistributeCoinsClick = (institute) => {
+    setSelectedInstituteForRewards(institute);
+    setShowDistributeCoins(true);
+  };
+
+  const handleDistributeSuccess = (data) => {
+    alert(`Successfully distributed coins to ${data.transaction.totalStudents} students!`);
+    fetchInstitutes();
+  };
+
+  const handleViewRewardsClick = (institute) => {
+    setSelectedInstituteForRewards(institute);
+    setShowRewardsDashboard(true);
   };
 
   return (
@@ -173,38 +193,58 @@ const CampusAmbassadorDashboard = () => {
                       <p className="font-bold text-gray-800">{institute.studentsCount || 0}</p>
                     </div>
                     <div className="bg-yellow-50 p-2 rounded text-center">
-                      <p className="text-xs text-yellow-700">🏆 Gold</p>
-                      <p className="text-[10px] text-yellow-600">Per student: {institute.perStudentGoldCoins || 0}</p>
-                      <p className="font-bold text-yellow-700">Total: {institute.goldCoins > 0 ? institute.goldCoins : '-'}</p>
+                      <p className="text-xs text-yellow-700">🏆 Gold Assigned</p>
+                      <p className="font-bold text-yellow-700">{institute.totalGoldenAssigned || 0}</p>
+                      <p className="text-[10px] text-yellow-600">Till date</p>
                     </div>
                     <div className="bg-gray-100 p-2 rounded text-center">
-                      <p className="text-xs text-gray-700">🥈 Silver</p>
-                      <p className="text-[10px] text-gray-600">Per student: {institute.perStudentSilverCoins || 0}</p>
-                      <p className="font-bold text-gray-700">Total: {institute.silverCoins > 0 ? institute.silverCoins : '-'}</p>
+                      <p className="text-xs text-gray-700">🥈 Silver Assigned</p>
+                      <p className="font-bold text-gray-700">{institute.totalSilverAssigned || 0}</p>
+                      <p className="text-[10px] text-gray-600">Till date</p>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleUploadClick(institute)}
-                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm"
-                    >
-                      <Upload size={16} />
-                      <span>Upload</span>
-                    </button>
-                    <button
-                      onClick={() => handleEditClick(institute)}
-                      className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteInstitute(institute._id)}
-                      className="flex items-center justify-center px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  <div className="space-y-2">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleUploadClick(institute)}
+                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm"
+                      >
+                        <Upload size={16} />
+                        <span>Upload</span>
+                      </button>
+                      <button
+                        onClick={() => handleEditClick(institute)}
+                        className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteInstitute(institute._id)}
+                        className="flex items-center justify-center px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleDistributeCoinsClick(institute)}
+                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition text-sm"
+                        title="Distribute coins to all students"
+                      >
+                        <Coins size={16} />
+                        <span>Distribute</span>
+                      </button>
+                      <button
+                        onClick={() => handleViewRewardsClick(institute)}
+                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition text-sm"
+                        title="View rewards history"
+                      >
+                        <TrendingUp size={16} />
+                        <span>History</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -228,11 +268,33 @@ const CampusAmbassadorDashboard = () => {
           <ExcelUpload
             instituteId={selectedInstituteForUpload._id}
             instituteName={selectedInstituteForUpload.instituteName}
+            instituteType={selectedInstituteForUpload.instituteType}
             onClose={() => {
               setShowExcelUpload(false);
               setSelectedInstituteForUpload(null);
             }}
             onSuccess={handleUploadSuccess}
+          />
+        )}
+
+        {showDistributeCoins && selectedInstituteForRewards && (
+          <DistributeCoinsModal
+            institute={selectedInstituteForRewards}
+            onClose={() => {
+              setShowDistributeCoins(false);
+              setSelectedInstituteForRewards(null);
+            }}
+            onSuccess={handleDistributeSuccess}
+          />
+        )}
+
+        {showRewardsDashboard && selectedInstituteForRewards && (
+          <InstituteRewardsDashboard
+            institute={selectedInstituteForRewards}
+            onClose={() => {
+              setShowRewardsDashboard(false);
+              setSelectedInstituteForRewards(null);
+            }}
           />
         )}
       </div>

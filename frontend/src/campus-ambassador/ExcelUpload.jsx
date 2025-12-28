@@ -1,22 +1,297 @@
 import React, { useState } from 'react';
-import { Upload, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, X, CheckCircle, AlertCircle, Coins, Info } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
-const ExcelUpload = ({ instituteId, instituteName, onClose, onSuccess }) => {
+const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuccess }) => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [validationPreview, setValidationPreview] = useState(null);
+  const [existingStudents, setExistingStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+  const [coinInputs, setCoinInputs] = useState({
+    perStudentSilver: 0,
+    perStudentGolden: 0
+  });
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
-        setError('Please upload an Excel file (.xlsx or .xls)');
-        return;
+  // Fetch existing students when component mounts
+  React.useEffect(() => {
+    fetchExistingStudents();
+  }, [instituteId]);
+
+  const fetchExistingStudents = async () => {
+    try {
+      setLoadingStudents(true);
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/campus-ambassador/institutes/${instituteId}/students`,
+        {
+          method: 'GET',
+          credentials: 'include'
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setExistingStudents(data.students || []);
+      } else {
+        setExistingStudents([]);
       }
-      setFile(selectedFile);
-      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch existing students:', err);
+      setExistingStudents([]);
+    } finally {
+      setLoadingStudents(false);
     }
+  };
+
+  const validateExcelFile = async (selectedFile) => {
+    try {
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      if (data.length === 0) {
+        return {
+          valid: false,
+          error: 'Excel file is empty',
+          data: []
+        };
+      }
+
+      // Validate required columns
+      const firstRow = data[0];
+      const hasEmail = 'email' in firstRow;
+      const hasName = 'name' in firstRow;
+      
+      if (!hasEmail || !hasName) {
+        return {
+          valid: false,
+          error: 'Missing required columns: email and name are mandatory',
+          data: []
+        };
+      }
+
+      // Check for institute type-specific columns
+      if (instituteType === 'school' && !('class' in firstRow)) {
+        return {
+          valid: false,
+          error: 'Missing required column: class (required for schools)',
+          data: []
+        };
+      }
+
+      if (instituteType === 'college') {
+        if (!('course' in firstRow) || !('semester' in firstRow)) {
+          return {
+            valid: false,
+            error: 'Missing required columns: course and semester (required for colleges)',
+            data: []
+          };
+        }
+      }
+
+      // Validate data quality
+      const issues = {
+        missingEmail: [],
+        missingName: [],
+        duplicateEmails: [],
+        duplicateEmailRows: new Set(),
+        existingUnchanged: [],
+        existingWillUpdate: []
+      };
+
+      const emailMap = new Map(); // Track all occurrences of each email
+      
+      // First pass: collect all emails and their row numbers
+      data.forEach((row, idx) => {
+        const email = row.email?.toLowerCase().trim();
+        if (email) {
+          if (!emailMap.has(email)) {
+            emailMap.set(email, []);
+          }
+          emailMap.get(email).push(idx + 2); // +2 for Excel row number
+        }
+      });
+
+      // Create a map of existing students by email for quick lookup
+      const existingStudentsMap = new Map();
+      existingStudents.forEach(student => {
+        if (student.email) {
+          existingStudentsMap.set(student.email.toLowerCase(), student);
+        }
+      });
+
+      // Second pass: identify duplicates, existing unchanged, and other issues
+      data.forEach((row, idx) => {
+        const email = row.email?.toLowerCase().trim();
+        const name = row.name?.trim();
+        const rowNum = idx + 2;
+        const course = row.course?.trim() || '';
+        const semester = row.semester ? String(row.semester).trim() : '';
+        const classValue = row.class ? String(row.class).trim() : '';
+
+        if (!email) {
+          issues.missingEmail.push(rowNum);
+          return;
+        }
+        if (!name) {
+          issues.missingName.push(rowNum);
+          return;
+        }
+        
+        // If this email appears more than once in Excel, mark as duplicate
+        if (emailMap.get(email).length > 1) {
+          issues.duplicateEmailRows.add(rowNum);
+          const isDuplicate = issues.duplicateEmails.some(d => d.email === email);
+          if (!isDuplicate) {
+            issues.duplicateEmails.push({ 
+              email, 
+              rows: emailMap.get(email),
+              count: emailMap.get(email).length
+            });
+          }
+          return;
+        }
+
+        // Check if email exists in database
+        const existingStudent = existingStudentsMap.get(email);
+        if (existingStudent) {
+          // Build comparison values
+          const existingValues = {
+            course: existingStudent.course || '',
+            semester: existingStudent.semester ? String(existingStudent.semester) : '',
+            class: existingStudent.class ? String(existingStudent.class) : ''
+          };
+
+          const newValues = {
+            course: instituteType === 'college' ? course : '',
+            semester: instituteType === 'college' ? semester : '',
+            class: instituteType === 'school' ? classValue : ''
+          };
+
+          // Check if all values are unchanged
+          const isUnchanged = existingValues.course === newValues.course &&
+                             existingValues.semester === newValues.semester &&
+                             existingValues.class === newValues.class;
+
+          if (isUnchanged) {
+            // No changes - will be skipped, no wallet increment
+            issues.existingUnchanged.push({
+              rowNum,
+              email,
+              name,
+              reason: 'No changes detected - will be skipped'
+            });
+          } else {
+            // Has changes - will be updated with wallet increment
+            issues.existingWillUpdate.push({
+              rowNum,
+              email,
+              name,
+              changes: {
+                course: newValues.course !== existingValues.course ? { old: existingValues.course, new: newValues.course } : null,
+                semester: newValues.semester !== existingValues.semester ? { old: existingValues.semester, new: newValues.semester } : null,
+                class: newValues.class !== existingValues.class ? { old: existingValues.class, new: newValues.class } : null
+              }
+            });
+          }
+        }
+      });
+
+      const hasIssues = issues.missingEmail.length > 0 || 
+                        issues.missingName.length > 0 || 
+                        issues.duplicateEmails.length > 0;
+
+      const hasWarnings = issues.existingUnchanged.length > 0;
+
+      // Calculate valid rows (exclude rows with errors, but count updates as valid)
+      const invalidRowsSet = new Set([
+        ...issues.missingEmail,
+        ...issues.missingName,
+        ...Array.from(issues.duplicateEmailRows)
+      ]);
+
+      // Valid rows = total - invalid - unchanged existing
+      const validRows = data.length - invalidRowsSet.size - issues.existingUnchanged.length;
+      const willBeProcessed = validRows; // New + Updated students
+
+      return {
+        valid: !hasIssues && !hasWarnings,
+        warning: hasIssues || hasWarnings,
+        issues,
+        totalRows: data.length,
+        validRows: willBeProcessed,
+        newStudents: validRows - issues.existingWillUpdate.length,
+        existingUpdates: issues.existingWillUpdate.length,
+        existingSkipped: issues.existingUnchanged.length,
+        data
+      };
+    } catch (err) {
+      return {
+        valid: false,
+        error: `Failed to read Excel file: ${err.message}`,
+        data: []
+      };
+    }
+  };
+
+  const handleFileChange = async (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) {
+      setFile(null);
+      setError(null);
+      setValidationPreview(null);
+      return;
+    }
+
+    if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
+      setError('Please upload an Excel file (.xlsx or .xls)');
+      setFile(null);
+      setValidationPreview(null);
+      return;
+    }
+
+    // Check if existing students are still loading
+    if (loadingStudents) {
+      setError('Please wait while we load existing student data...');
+      setFile(null);
+      setValidationPreview(null);
+      return;
+    }
+
+    setFile(selectedFile);
+    setError(null);
+    setValidationPreview({ loading: true });
+
+    // Validate file immediately
+    const validation = await validateExcelFile(selectedFile);
+    
+    if (validation.error) {
+      setError(validation.error);
+      setValidationPreview(null);
+      setFile(null);
+    } else if (validation.warning) {
+      setValidationPreview({
+        type: 'warning',
+        ...validation
+      });
+    } else {
+      setValidationPreview({
+        type: 'success',
+        ...validation
+      });
+    }
+  };
+
+  const handleCoinChange = (e) => {
+    const { name, value } = e.target;
+    setCoinInputs(prev => ({
+      ...prev,
+      [name]: parseInt(value) || 0
+    }));
   };
 
   const handleUpload = async () => {
@@ -27,13 +302,15 @@ const ExcelUpload = ({ instituteId, instituteName, onClose, onSuccess }) => {
 
     const formData = new FormData();
     formData.append('excelFile', file);
+    formData.append('perStudentSilver', coinInputs.perStudentSilver);
+    formData.append('perStudentGolden', coinInputs.perStudentGolden);
 
     try {
       setUploading(true);
       setError(null);
 
       const response = await fetch(
-        `/api/campus-ambassador/institutes/${instituteId}/upload-students`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/campus-ambassador/institutes/${instituteId}/upload-students`,
         {
           method: 'POST',
           credentials: 'include',
@@ -47,7 +324,7 @@ const ExcelUpload = ({ instituteId, instituteName, onClose, onSuccess }) => {
         throw new Error(data.message || 'Upload failed');
       }
 
-      setResults(data.results);
+      setResults(data);
       if (onSuccess) onSuccess(data);
     } catch (err) {
       setError(err.message || 'Error uploading file');
@@ -96,17 +373,63 @@ const ExcelUpload = ({ instituteId, instituteName, onClose, onSuccess }) => {
             </div>
           </div>
 
+          {/* Coin Distribution Inputs */}
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Coins className="text-yellow-700" size={20} />
+              <h4 className="font-semibold text-yellow-900">Reward Coins (Optional)</h4>
+            </div>
+            <p className="text-sm text-yellow-800 mb-3">
+              Coins will be <span className="font-bold">added</span> to each student's wallet incrementally
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Silver Coins per Student
+                </label>
+                <input
+                  type="number"
+                  name="perStudentSilver"
+                  value={coinInputs.perStudentSilver}
+                  onChange={handleCoinChange}
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Golden Coins per Student
+                </label>
+                <input
+                  type="number"
+                  name="perStudentGolden"
+                  value={coinInputs.perStudentGolden}
+                  onChange={handleCoinChange}
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* File Upload */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Select Excel File
             </label>
+            {loadingStudents && (
+              <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <p className="text-sm text-blue-700">Loading existing student data...</p>
+              </div>
+            )}
             <div className="flex items-center space-x-3">
               <input
                 type="file"
                 accept=".xlsx,.xls"
                 onChange={handleFileChange}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={loadingStudents}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleUpload}
@@ -122,7 +445,156 @@ const ExcelUpload = ({ instituteId, instituteName, onClose, onSuccess }) => {
                 Selected: {file.name}
               </p>
             )}
+            {!loadingStudents && existingStudents.length > 0 && !file && (
+              <p className="text-xs text-green-600 mt-2">
+                ✓ Ready to validate ({existingStudents.length} existing students loaded)
+              </p>
+            )}
           </div>
+
+          {/* Validation Preview */}
+          {validationPreview && validationPreview.loading && (
+            <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                <p className="text-blue-800 text-sm">Validating Excel file...</p>
+              </div>
+            </div>
+          )}
+
+          {validationPreview && validationPreview.type === 'success' && (
+            <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
+                <div className="flex-1">
+                  <p className="font-semibold text-green-800 mb-1">✓ File Validated Successfully</p>
+                  <div className="text-sm text-green-700 space-y-1">
+                    <p>• Total rows: <span className="font-bold">{validationPreview.totalRows}</span></p>
+                    <p>• New students: <span className="font-bold text-blue-600">{validationPreview.newStudents || 0}</span></p>
+                    {validationPreview.existingUpdates > 0 && (
+                      <p>• Will be updated: <span className="font-bold text-orange-600">{validationPreview.existingUpdates}</span> (data changed)</p>
+                    )}
+                    {validationPreview.existingSkipped > 0 && (
+                      <p>• Will be skipped: <span className="font-bold text-gray-600">{validationPreview.existingSkipped}</span> (no changes)</p>
+                    )}
+                    <p className="text-xs text-green-600 mt-2 pt-2 border-t border-green-300">
+                      {coinInputs.perStudentSilver > 0 || coinInputs.perStudentGolden > 0 ? (
+                        <>✓ Coins will be distributed to {validationPreview.validRows} students (new + updated only)</>
+                      ) : (
+                        <>✓ Ready to upload (no coins will be distributed)</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {validationPreview && validationPreview.type === 'warning' && (
+            <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+                <div className="flex-1">
+                  <p className="font-semibold text-yellow-800 mb-2">⚠️ File Has Issues</p>
+                  <div className="text-sm text-yellow-700 space-y-2">
+                    <p>• Total rows: {validationPreview.totalRows}</p>
+                    <p>• Will be processed: <span className="font-bold text-green-700">{validationPreview.validRows}</span></p>
+                    {validationPreview.newStudents > 0 && (
+                      <p className="ml-4 text-xs">→ New students: {validationPreview.newStudents}</p>
+                    )}
+                    {validationPreview.existingUpdates > 0 && (
+                      <p className="ml-4 text-xs">→ Existing (will update): {validationPreview.existingUpdates}</p>
+                    )}
+                    
+                    {validationPreview.issues.missingEmail.length > 0 && (
+                      <div className="bg-white rounded p-2 mt-2">
+                        <p className="font-semibold text-red-600">Missing Email ({validationPreview.issues.missingEmail.length} rows):</p>
+                        <p className="text-xs text-red-600">Rows: {validationPreview.issues.missingEmail.slice(0, 10).join(', ')}
+                          {validationPreview.issues.missingEmail.length > 10 && '...'}
+                        </p>
+                      </div>
+                    )}
+
+                    {validationPreview.issues.missingName.length > 0 && (
+                      <div className="bg-white rounded p-2 mt-2">
+                        <p className="font-semibold text-red-600">Missing Name ({validationPreview.issues.missingName.length} rows):</p>
+                        <p className="text-xs text-red-600">Rows: {validationPreview.issues.missingName.slice(0, 10).join(', ')}
+                          {validationPreview.issues.missingName.length > 10 && '...'}
+                        </p>
+                      </div>
+                    )}
+
+                    {validationPreview.issues.duplicateEmails.length > 0 && (
+                      <div className="bg-white rounded p-2 mt-2">
+                        <p className="font-semibold text-orange-600">Duplicate Emails Found ({validationPreview.issues.duplicateEmails.length} unique emails):</p>
+                        <div className="text-xs text-orange-600 max-h-24 overflow-y-auto space-y-1 mt-1">
+                          {validationPreview.issues.duplicateEmails.slice(0, 5).map((dup, idx) => (
+                            <div key={idx} className="bg-orange-50 p-1 rounded">
+                              <p className="font-semibold">• {dup.email}</p>
+                              <p className="text-[10px] ml-2">Found {dup.count} times in rows: {dup.rows.join(', ')}</p>
+                            </div>
+                          ))}
+                          {validationPreview.issues.duplicateEmails.length > 5 && (
+                            <p className="font-semibold">... and {validationPreview.issues.duplicateEmails.length - 5} more duplicate emails</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {validationPreview.issues.existingUnchanged && validationPreview.issues.existingUnchanged.length > 0 && (
+                      <div className="bg-white rounded p-2 mt-2">
+                        <p className="font-semibold text-gray-600">⚠️ Existing Students - No Changes ({validationPreview.issues.existingUnchanged.length}):</p>
+                        <p className="text-xs text-gray-600 mb-1">These rows will be skipped (no wallet increment)</p>
+                        <div className="text-xs text-gray-700 max-h-24 overflow-y-auto space-y-1 mt-1">
+                          {validationPreview.issues.existingUnchanged.slice(0, 5).map((item, idx) => (
+                            <div key={idx} className="bg-gray-50 p-1 rounded">
+                              <p>Row {item.rowNum}: <span className="font-semibold">{item.email}</span></p>
+                              <p className="text-[10px] ml-2 text-gray-500">{item.reason}</p>
+                            </div>
+                          ))}
+                          {validationPreview.issues.existingUnchanged.length > 5 && (
+                            <p className="font-semibold">... and {validationPreview.issues.existingUnchanged.length - 5} more unchanged students</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {validationPreview.issues.existingWillUpdate && validationPreview.issues.existingWillUpdate.length > 0 && (
+                      <div className="bg-white rounded p-2 mt-2">
+                        <p className="font-semibold text-blue-600">✓ Existing Students - Will Update ({validationPreview.issues.existingWillUpdate.length}):</p>
+                        <p className="text-xs text-blue-600 mb-1">Data changed - will update & increment wallet</p>
+                        <div className="text-xs text-blue-700 max-h-24 overflow-y-auto space-y-1 mt-1">
+                          {validationPreview.issues.existingWillUpdate.slice(0, 5).map((item, idx) => (
+                            <div key={idx} className="bg-blue-50 p-1 rounded">
+                              <p>Row {item.rowNum}: <span className="font-semibold">{item.email}</span></p>
+                              <div className="text-[10px] ml-2 text-blue-600">
+                                {item.changes.semester && (
+                                  <p>• Semester: {item.changes.semester.old || 'none'} → {item.changes.semester.new}</p>
+                                )}
+                                {item.changes.course && (
+                                  <p>• Course: {item.changes.course.old || 'none'} → {item.changes.course.new}</p>
+                                )}
+                                {item.changes.class && (
+                                  <p>• Class: {item.changes.class.old || 'none'} → {item.changes.class.new}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                          {validationPreview.issues.existingWillUpdate.length > 5 && (
+                            <p className="font-semibold">... and {validationPreview.issues.existingWillUpdate.length - 5} more students to update</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <p className="text-xs text-yellow-600 mt-2 pt-2 border-t border-yellow-300">
+                      ⚠️ Rows with issues will be skipped during upload. Only valid rows will be processed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
@@ -140,31 +612,89 @@ const ExcelUpload = ({ instituteId, instituteName, onClose, onSuccess }) => {
                   <CheckCircle className="text-green-600" size={24} />
                   <h4 className="font-semibold text-green-800">Upload Complete!</h4>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-4 text-sm mb-4">
                   <div>
-                    <p className="text-gray-600">Students Created:</p>
-                    <p className="text-2xl font-bold text-green-600">{results.created}</p>
+                    <p className="text-gray-600">Added:</p>
+                    <p className="text-2xl font-bold text-green-600">{results.summary?.added || 0}</p>
                   </div>
                   <div>
-                    <p className="text-gray-600">Students Updated:</p>
-                    <p className="text-2xl font-bold text-blue-600">{results.updated}</p>
+                    <p className="text-gray-600">Updated:</p>
+                    <p className="text-2xl font-bold text-blue-600">{results.summary?.updated || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Skipped:</p>
+                    <p className="text-2xl font-bold text-yellow-600">
+                      {(results.summary?.skippedDuplicate || 0) + (results.summary?.skippedDifferentInstitute || 0)}
+                    </p>
                   </div>
                 </div>
+
+                {/* Reward Distribution Summary */}
+                {results.rewardDistribution && (
+                  <div className="bg-white border border-green-300 rounded-lg p-3">
+                    <p className="font-semibold text-green-800 mb-2">Coins Distributed:</p>
+                    <div className="grid grid-cols-2 gap-2 text-sm text-green-700">
+                      <p>🥈 Silver: <span className="font-bold">{results.rewardDistribution.totalSilverDistributed}</span></p>
+                      <p>🏆 Golden: <span className="font-bold">{results.rewardDistribution.totalGoldenDistributed}</span></p>
+                      <p className="col-span-2">Recipients: <span className="font-bold">{results.rewardDistribution.recipientCount}</span> students</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {results.errors && results.errors.length > 0 && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-yellow-800 mb-2">
-                    Errors ({results.errors.length})
-                  </h4>
-                  <div className="max-h-40 overflow-y-auto space-y-2">
-                    {results.errors.map((err, idx) => (
-                      <div key={idx} className="text-sm text-yellow-700 bg-white p-2 rounded">
-                        <p className="font-medium">Row {idx + 1}:</p>
-                        <p>{err.error}</p>
+              {/* Detailed Results */}
+              {results.details && (
+                <div className="space-y-3">
+                  {/* Skipped - Different Institute */}
+                  {results.details.skippedDifferentInstitute?.length > 0 && (
+                    <details className="bg-red-50 border border-red-200 rounded-lg p-3">
+                      <summary className="font-semibold text-red-800 cursor-pointer">
+                        ⛔ Skipped - Assigned to Another Institute ({results.details.skippedDifferentInstitute.length})
+                      </summary>
+                      <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                        {results.details.skippedDifferentInstitute.map((item, idx) => (
+                          <div key={idx} className="text-sm text-red-700 bg-white p-2 rounded">
+                            <p className="font-medium">{item.email}</p>
+                            <p className="text-xs">{item.reason}: {item.currentInstitute}</p>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </details>
+                  )}
+
+                  {/* Skipped - Duplicate */}
+                  {results.details.skippedDuplicate?.length > 0 && (
+                    <details className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <summary className="font-semibold text-gray-800 cursor-pointer">
+                        ↩️ Skipped - No Changes (Duplicates) ({results.details.skippedDuplicate.length})
+                      </summary>
+                      <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                        {results.details.skippedDuplicate.map((item, idx) => (
+                          <div key={idx} className="text-sm text-gray-700 bg-white p-2 rounded">
+                            <p className="font-medium">{item.email}</p>
+                            <p className="text-xs">{item.reason}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
+                  {/* Errors */}
+                  {results.details.errors?.length > 0 && (
+                    <details className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                      <summary className="font-semibold text-yellow-800 cursor-pointer">
+                        ⚠️ Errors ({results.details.errors.length})
+                      </summary>
+                      <div className="mt-2 max-h-40 overflow-y-auto space-y-1">
+                        {results.details.errors.map((err, idx) => (
+                          <div key={idx} className="text-sm text-yellow-700 bg-white p-2 rounded">
+                            <p className="font-medium">{err.email}</p>
+                            <p className="text-xs">{err.reason}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
                 </div>
               )}
 
