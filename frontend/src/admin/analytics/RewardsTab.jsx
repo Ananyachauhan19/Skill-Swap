@@ -38,26 +38,47 @@ export default function RewardsTab({ dateRange }) {
   if (loading || !data) {
     return <div className="text-center py-8 text-gray-500">Loading rewards analytics...</div>;
   }
-
-
   const { 
-    economyHealth, 
-    silverGoldBalance, 
-    earningTrend, 
-    earningSources,
-    topEarners,
-    concentration,
-    engagementCorrelation,
-    abuseDetection,
-    inactiveCoinHolders,
-    retentionImpact
+    economyHealth = {}, 
+    silverGoldBalance = {}, 
+    earningTrend = [], 
+    earningSources = {},
+    topEarners = [],
+    concentration = {},
+    engagementCorrelation = {},
+    abuseDetection = { totalFlagged: 0, suspiciousUsers: [] },
+    inactiveCoinHolders = [],
+    retentionImpact = {
+      retentionRateWithCoins: 0,
+      retentionRateWithoutCoins: 0,
+      usersWithCoinsActive: 0,
+      usersWithCoinsTotal: 0,
+      usersWithoutCoinsActive: 0,
+      usersWithoutCoinsTotal: 0,
+    }
   } = data;
+
+  const safeEconomyHealth = {
+    totalEarners: economyHealth?.totalEarners ?? 0,
+    nonEarners: economyHealth?.nonEarners ?? 0,
+    percentageEarningCoins: economyHealth?.percentageEarningCoins ?? 0,
+    percentageOnlySilver: economyHealth?.percentageOnlySilver ?? 0,
+    percentageEarningGold: economyHealth?.percentageEarningGold ?? 0,
+  };
+
+  const safeSilverGoldBalance = {
+    totalSilver: silverGoldBalance?.totalSilver ?? 0,
+    totalGold: silverGoldBalance?.totalGold ?? 0,
+    ratio: silverGoldBalance?.ratio ?? 0,
+    avgSilverPerUser: silverGoldBalance?.avgSilverPerUser ?? 0,
+    avgGoldPerUser: silverGoldBalance?.avgGoldPerUser ?? 0,
+  };
 
   // Economy Health Donut Chart
   const economyHealthData = {
     labels: ['Earning Coins', 'Non-Earners'],
     datasets: [{
-      data: [economyHealth.totalEarners, economyHealth.nonEarners],
+      data: [safeEconomyHealth.totalEarners, safeEconomyHealth.nonEarners],
       backgroundColor: ['rgba(34, 197, 94, 0.7)', 'rgba(239, 68, 68, 0.5)'],
       borderColor: ['rgba(34, 197, 94, 1)', 'rgba(239, 68, 68, 1)'],
       borderWidth: 1,
@@ -136,19 +157,19 @@ export default function RewardsTab({ dateRange }) {
         <h3 className="text-lg font-semibold mb-3">Economy Health Overview</h3>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">{economyHealth.percentageEarningCoins}%</div>
+            <div className="text-3xl font-bold text-green-600">{safeEconomyHealth.percentageEarningCoins}%</div>
             <div className="text-xs text-gray-500">Users Earning Coins</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-gray-600">{economyHealth.percentageOnlySilver}%</div>
+            <div className="text-3xl font-bold text-gray-600">{safeEconomyHealth.percentageOnlySilver}%</div>
             <div className="text-xs text-gray-500">Silver Only</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-600">{economyHealth.percentageEarningGold}%</div>
+            <div className="text-3xl font-bold text-yellow-600">{safeEconomyHealth.percentageEarningGold}%</div>
             <div className="text-xs text-gray-500">Earning Gold</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-blue-600">{economyHealth.totalEarners}</div>
+            <div className="text-3xl font-bold text-blue-600">{safeEconomyHealth.totalEarners}</div>
             <div className="text-xs text-gray-500">Total Earners</div>
           </div>
           <div className="h-32 flex items-center justify-center">
@@ -164,24 +185,24 @@ export default function RewardsTab({ dateRange }) {
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Total Silver</span>
-              <span className="font-bold text-gray-700">{silverGoldBalance.totalSilver.toLocaleString()}</span>
+              <span className="font-bold text-gray-700">{safeSilverGoldBalance.totalSilver.toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Total Gold</span>
-              <span className="font-bold text-yellow-600">{silverGoldBalance.totalGold.toLocaleString()}</span>
+              <span className="font-bold text-yellow-600">{safeSilverGoldBalance.totalGold.toLocaleString()}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Silver:Gold Ratio</span>
-              <span className="font-bold text-blue-600">{silverGoldBalance.ratio}:1</span>
+              <span className="font-bold text-blue-600">{safeSilverGoldBalance.ratio}:1</span>
             </div>
             <div className="h-px bg-gray-200 my-2"></div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Avg Silver/User</span>
-              <span className="font-semibold">{silverGoldBalance.avgSilverPerUser}</span>
+              <span className="font-semibold">{safeSilverGoldBalance.avgSilverPerUser}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Avg Gold/User</span>
-              <span className="font-semibold text-yellow-600">{silverGoldBalance.avgGoldPerUser}</span>
+              <span className="font-semibold text-yellow-600">{safeSilverGoldBalance.avgGoldPerUser}</span>
             </div>
           </div>
         </div>
