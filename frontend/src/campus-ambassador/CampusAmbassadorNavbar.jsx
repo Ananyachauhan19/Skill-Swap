@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, School, Upload, UserCircle2 } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet, School, Upload, UserCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
 
-const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege }) => {
+const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, onOpenUploadTest }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { selectedInstitute, setSelectedInstitute } = useCampusAmbassador();
@@ -63,6 +63,22 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege }
             >
               <Upload size={16} className="text-white" />
               <span className="text-xs font-semibold text-white">Upload College</span>
+            </button>
+          )}
+
+          {typeof onOpenUploadTest === 'function' && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onOpenUploadTest();
+              }}
+              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/50 transition inline-flex items-center gap-2"
+              aria-label="Upload test"
+              title="Upload test"
+            >
+              <FileSpreadsheet size={16} className="text-blue-900" />
+              <span className="text-xs font-semibold text-blue-950">Upload Test</span>
             </button>
           )}
 

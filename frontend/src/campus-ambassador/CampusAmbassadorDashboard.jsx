@@ -3,6 +3,7 @@ import { Building2, Database, Gift, History, PencilLine, School, Upload, Users }
 import { useNavigate } from 'react-router-dom';
 import CampusAmbassadorNavbar from './CampusAmbassadorNavbar';
 import CollegeAssignmentPage from './CollegeAssignmentPage';
+import AssessmentUpload from './AssessmentUpload';
 import DistributeCoinsModal from './DistributeCoinsModal';
 import ExcelUpload from './ExcelUpload';
 import InstituteForm from './InstituteForm';
@@ -19,6 +20,7 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const PAGES = {
   OVERVIEW: 'overview',
   UPLOAD_COLLEGE: 'upload_college',
+  UPLOAD_TEST: 'upload_test',
   UPLOAD_STUDENTS: 'upload_students',
   DISTRIBUTE_COINS: 'distribute_coins',
   REWARDS_HISTORY: 'rewards_history',
@@ -153,6 +155,10 @@ const CampusAmbassadorDashboard = () => {
         onOpenUploadCollege={() => {
           setSelectedInstitute(null);
           setActivePage(PAGES.UPLOAD_COLLEGE);
+        }}
+        onOpenUploadTest={() => {
+          setSelectedInstitute(null);
+          setActivePage(PAGES.UPLOAD_TEST);
         }}
       />
 
@@ -313,6 +319,26 @@ const CampusAmbassadorDashboard = () => {
                       onSubmit={createInstitute}
                       onClose={() => setActivePage(PAGES.OVERVIEW)}
                     />
+                  </div>
+                </div>
+              ) : activePage === PAGES.UPLOAD_TEST ? (
+                <div className="p-6">
+                  <div className="rounded-2xl border border-blue-100 bg-white">
+                    <div className="px-6 py-4 border-b border-blue-100">
+                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Assessment</p>
+                      <h2 className="mt-1 text-lg font-semibold text-blue-950">Upload Test</h2>
+                      <p className="mt-1 text-xs text-slate-600">
+                        Upload questions via Excel and assign to institutes.
+                      </p>
+                    </div>
+                    <div className="p-6">
+                      <AssessmentUpload
+                        institutes={institutes}
+                        onUploadSuccess={() => {
+                          setActivePage(PAGES.OVERVIEW);
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               ) : activePage === PAGES.COLLEGE_ASSIGNMENT ? (
