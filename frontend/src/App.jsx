@@ -576,8 +576,9 @@ function App() {
     return <LoadingScreen />;
   }
 
-  // Hide Navbar and Footer for employee dashboard routes
+  // Hide Navbar and Footer for employee dashboard routes and campus ambassador routes
   const isEmployeeRoute = location.pathname.startsWith('/employee');
+  const isCampusAmbassadorRoute = location.pathname.startsWith('/campus-ambassador') || location.pathname === '/change-password';
   return (
     <ToastProvider>
       <ToastSocketBridge />
@@ -586,16 +587,16 @@ function App() {
           <CampusAmbassadorProvider>
             <ModalBodyScrollLock />
             <GlobalModals />
-            {!isAdminUser && !isEmployeeRoute && <CookieConsent />}
+            {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && <CookieConsent />}
             {/* Main content with fade-in transition */}
             <div
               className={`transition-opacity duration-500 ${
                 showContent ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Navbar />}
+              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Navbar />}
               {element}
-              {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Footer />}
+              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Footer />}
             </div>
           </CampusAmbassadorProvider>
         </SkillMatesProvider>
