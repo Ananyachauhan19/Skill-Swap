@@ -1,0 +1,121 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Cookies from 'js-cookie';
+
+import { BACKEND_URL } from '../../config.js';
+import socket from '../../socket.js';
+import { useModal } from '../../context/ModalContext.jsx';
+
+import CampusDashboardNavbar from '../CampusDashboardNavbar.jsx';
+import AssessmentSection from './AssessmentSection.jsx';
+
+const CampusAssessment = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { openLogin } = useModal();
+
+  const [activeTab, setActiveTab] = useState('assessment');
+
+  const [isLoggedIn] = useState(!!Cookies.get('user'));
+  const [showCoinsDropdown, setShowCoinsDropdown] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [goldenCoins, setGoldenCoins] = useState(0);
+  const [silverCoins, setSilverCoins] = useState(0);
+  const coinsRef = useRef(null);
+
+  const isActive = (tab) => activeTab === tab;
+
+  const fetchCoins = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/coins`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        setGoldenCoins(payload.golden || 0);
+        setSilverCoins(payload.silver || 0);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleLoginClick = () => {
+    openLogin();
+    setTimeout(() => {
+      window.dispatchEvent(new Event('authChanged'));
+    }, 100);
+  };
+
+  useEffect(() => {
+    const campusValidated = localStorage.getItem('campusValidated');
+    if (!campusValidated) {
+      navigate('/campus-dashboard/login', { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    const savedNotifications = localStorage.getItem('notifications');
+    if (savedNotifications) {
+      try {
+        setNotifications(JSON.parse(savedNotifications));
+      } catch {
+        localStorage.removeItem('notifications');
+      }
+    }
+
+    const userCookie = Cookies.get('user');
+    const userData = userCookie ? JSON.parse(userCookie) : null;
+    if (userData && userData._id) {
+      socket.emit('register', userData._id);
+      fetchCoins();
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!showCoinsDropdown) return;
+    const handleClickOutside = (event) => {
+      if (coinsRef.current && !coinsRef.current.contains(event.target)) {
+        setShowCoinsDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCoinsDropdown]);
+
+  return (
+    <>
+      <CampusDashboardNavbar
+        navigate={navigate}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isActive={isActive}
+        isLoggedIn={isLoggedIn}
+        handleLoginClick={handleLoginClick}
+        goldenCoins={goldenCoins}
+        silverCoins={silverCoins}
+        showCoinsDropdown={showCoinsDropdown}
+        setShowCoinsDropdown={setShowCoinsDropdown}
+        fetchCoins={fetchCoins}
+        coinsRef={coinsRef}
+        notifications={notifications}
+        setNotifications={setNotifications}
+        menuOpen={menuOpen}
+        setMenuOpen={setMenuOpen}
+      />
+
+      <AssessmentSection />
+    </>
+  );
+};
+
+export default CampusAssessment;

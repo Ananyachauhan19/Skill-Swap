@@ -92,8 +92,9 @@ import ChangePassword from './campus-ambassador/ChangePassword.jsx';
 import HomeDashboard from './student/campushome/HomeDashboard.jsx';
 import CampusLogin from './student/CampusLogin.jsx';
 import CampusOneOnOne from './student/CampusOneOnOne.jsx';
-import AssessmentAttempt from './student/AssessmentAttempt.jsx';
-import AssessmentResult from './student/AssessmentResult.jsx';
+import CampusAssessment from './student/assesment/CampusAssessment.jsx';
+import AssessmentAttempt from './student/assesment/AssessmentAttempt.jsx';
+import AssessmentResult from './student/assesment/AssessmentResult.jsx';
 import CampusAmbassadors from './admin/CampusAmbassadors.jsx';
 import { CampusAmbassadorProvider } from './context/CampusAmbassadorContext.jsx';
 
@@ -221,6 +222,7 @@ const appRoutes = [
   { path: '/campus-dashboard/login', element: <ProtectedRoute><CampusLogin /></ProtectedRoute> },
   { path: '/campus-dashboard', element: <ProtectedRoute><HomeDashboard /></ProtectedRoute> },
   { path: '/campus/one-on-one', element: <ProtectedRoute><CampusOneOnOne /></ProtectedRoute> },
+  { path: '/campus/assessment', element: <ProtectedRoute><CampusAssessment /></ProtectedRoute> },
   { path: '/student/assessment-attempt/:id', element: <ProtectedRoute><AssessmentAttempt /></ProtectedRoute> },
   { path: '/student/assessment-result/:id', element: <ProtectedRoute><AssessmentResult /></ProtectedRoute> },
   {
@@ -579,6 +581,7 @@ function App() {
   // Hide Navbar and Footer for employee dashboard routes and campus ambassador routes
   const isEmployeeRoute = location.pathname.startsWith('/employee');
   const isCampusAmbassadorRoute = location.pathname.startsWith('/campus-ambassador') || location.pathname === '/change-password';
+  const isCampusStudentRoute = location.pathname.startsWith('/campus-dashboard') || location.pathname.startsWith('/campus/');
   return (
     <ToastProvider>
       <ToastSocketBridge />
@@ -594,9 +597,9 @@ function App() {
                 showContent ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Navbar />}
+              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Navbar />}
               {element}
-              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Footer />}
+              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Footer />}
             </div>
           </CampusAmbassadorProvider>
         </SkillMatesProvider>

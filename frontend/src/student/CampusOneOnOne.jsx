@@ -9,6 +9,9 @@ import socket from '../socket.js';
 import CampusStartSkillSwapSearchForm from './CampusStartSkillSwapSearchForm';
 import CampusDashboardNavbar from './CampusDashboardNavbar';
 
+const CAMPUS_ONEONONE_HERO_IMAGE_URL =
+  'https://res.cloudinary.com/dbltazdsa/image/upload/v1767032092/webimages/campus/oneonone-hero.png';
+
 const CampusOneOnOne = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -239,61 +242,38 @@ const HowItWorks = () => {
 
     <main className="min-h-screen bg-home-bg text-gray-900 font-[Inter,Poppins,sans-serif] pt-16 md:pt-[72px] xl:pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        {/* Header */}
-        <div className="text-center mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-white/80 backdrop-blur-sm px-4 py-1.5 shadow-sm mb-4">
-            <Users className="w-4 h-4 text-blue-600" />
-            <span className="text-xs font-semibold text-blue-900 tracking-wide uppercase">
-              Campus One-on-One
-            </span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
-            Learn from Your <span className="text-blue-700">Campus Tutors</span>
-          </h1>
-          <p className="text-base sm:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed">
-            Connect with expert tutors from your institute for personalized one-on-one learning sessions. 
-            Get help tailored to your curriculum and build your campus learning network.
-          </p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white rounded-xl p-6 border border-slate-200/50 shadow-sm hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                <Video className="w-6 h-6 text-blue-600" />
+        {/* Hero */}
+        <section className="mb-10 sm:mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+            <div className="text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-white/80 backdrop-blur-sm px-4 py-1.5 shadow-sm mb-4">
+                <Users className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-semibold text-blue-900 tracking-wide uppercase">
+                  Campus One-on-One
+                </span>
               </div>
-              <div>
-                <p className="text-sm text-slate-600">Live Sessions</p>
-                <p className="text-2xl font-bold text-slate-900">24/7</p>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-4 tracking-tight">
+                Learn from Your <span className="text-blue-700">Campus Tutors</span>
+              </h1>
+              <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                Connect with expert tutors from your institute for personalized one-on-one learning sessions.
+                Get help tailored to your curriculum and build your campus learning network.
+              </p>
+            </div>
+
+            <div className="relative">
+              <div className="mx-auto w-full max-w-[560px]">
+                <img
+                  src={CAMPUS_ONEONONE_HERO_IMAGE_URL}
+                  alt="One-on-one learning with campus tutors"
+                  className="w-full h-auto select-none"
+                  loading="eager"
+                  draggable={false}
+                />
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-xl p-6 border border-slate-200/50 shadow-sm hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                <Users className="w-6 h-6 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">Campus Tutors</p>
-                <p className="text-2xl font-bold text-slate-900">Available</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 border border-slate-200/50 shadow-sm hover:shadow-md transition-all">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-slate-600">Success Rate</p>
-                <p className="text-2xl font-bold text-slate-900">95%</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
 
         {/* Search Form */}
         <div className="mb-12">

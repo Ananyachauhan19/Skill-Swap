@@ -9,7 +9,7 @@ import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 import CampusDashboardNavbar from './CampusDashboardNavbar';
 import CampusLogin from './CampusLogin';
-import AssessmentSection from './AssessmentSection';
+import AssessmentSection from './assesment/AssessmentSection';
 
 const StudentCampusDashboard = () => {
   const navigate = useNavigate();
