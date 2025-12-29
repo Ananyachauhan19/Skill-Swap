@@ -9,6 +9,7 @@ import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 import CampusDashboardNavbar from './CampusDashboardNavbar';
 import CampusLogin from './CampusLogin';
+import AssessmentSection from './AssessmentSection';
 
 const StudentCampusDashboard = () => {
   const navigate = useNavigate();
@@ -233,6 +234,12 @@ const StudentCampusDashboard = () => {
       <div className="bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           
+          {/* Render Assessment Section when assessment tab is active */}
+          {activeTab === 'assessment' && <AssessmentSection />}
+
+          {/* Render Dashboard when dashboard tab is active */}
+          {activeTab === 'dashboard' && dashboardStats && (
+            <>
           {/* Quick Stats Cards */}
           {dashboardStats && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -403,6 +410,8 @@ const StudentCampusDashboard = () => {
                 </div>
               </div>
             </div>
+          )}
+          </>
           )}
 
         </div>

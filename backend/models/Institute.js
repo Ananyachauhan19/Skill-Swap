@@ -22,6 +22,17 @@ const instituteSchema = new mongoose.Schema({
     enum: ['school', 'college'],
     required: true
   },
+  // Number of courses offered by this institute
+  numberOfCourses: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  // List of courses offered by this institute
+  courses: [{
+    type: String,
+    trim: true
+  }],
   campusAmbassador: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

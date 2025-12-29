@@ -320,3 +320,78 @@ exports.sessionLive = ({ recipientName, otherPartyName, subject, topic, joinLink
     <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
+
+// ==================== ASSESSMENT NOTIFICATIONS ====================
+
+exports.compulsoryAssessmentNotification = ({ studentName, assessmentTitle, description, startTime, endTime, duration, totalMarks }) => ({
+  subject: '🔴 MANDATORY Assessment - Action Required',
+  html: baseLayout('MANDATORY Assessment Notification', `
+    <div style="background:#fee2e2; border-left:4px solid #dc2626; padding:12px; border-radius:4px; margin-bottom:16px;">
+      <p style="margin:0; color:#991b1b; font-weight:bold;">⚠️ THIS IS A COMPULSORY ASSESSMENT</p>
+      <p style="margin:8px 0 0; color:#7f1d1d;">You MUST complete this assessment within the specified time window.</p>
+    </div>
+    <p>Dear ${studentName},</p>
+    <p>A new mandatory assessment has been published for your semester. Please review the details below:</p>
+    <ul>
+      <li><b>Assessment Title:</b> ${assessmentTitle}</li>
+      ${description ? `<li><b>Description:</b> ${description}</li>` : ''}
+      <li><b>Duration:</b> ${duration} minutes</li>
+      <li><b>Total Marks:</b> ${totalMarks}</li>
+      <li><b>Available From:</b> ${startTime}</li>
+      <li><b>Available Until:</b> ${endTime}</li>
+    </ul>
+    <div style="background:#fef3c7; border-left:4px solid #f59e0b; padding:12px; border-radius:4px; margin:16px 0;">
+      <p style="margin:0; color:#92400e; font-weight:bold;">⏰ Important Deadline</p>
+      <p style="margin:8px 0 0; color:#78350f;">Failure to complete this assessment within the time window will be marked as "Not Attempted" in your records.</p>
+    </div>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/student-assessments" style="background:#dc2626;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Take Assessment Now</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Assessment Team</p>
+  `)
+});
+
+exports.nonCompulsoryAssessmentNotification = ({ studentName, assessmentTitle, description, startTime, endTime, duration, totalMarks }) => ({
+  subject: '📝 New Assessment Available',
+  html: baseLayout('New Assessment Available', `
+    <div style="background:#dbeafe; border-left:4px solid #2563eb; padding:12px; border-radius:4px; margin-bottom:16px;">
+      <p style="margin:0; color:#1e40af; font-weight:bold;">ℹ️ OPTIONAL ASSESSMENT</p>
+      <p style="margin:8px 0 0; color:#1e3a8a;">This assessment is optional. You may attempt it to enhance your learning.</p>
+    </div>
+    <p>Dear ${studentName},</p>
+    <p>A new optional assessment has been published for your semester. You may choose to attempt it during the available time window:</p>
+    <ul>
+      <li><b>Assessment Title:</b> ${assessmentTitle}</li>
+      ${description ? `<li><b>Description:</b> ${description}</li>` : ''}
+      <li><b>Duration:</b> ${duration} minutes</li>
+      <li><b>Total Marks:</b> ${totalMarks}</li>
+      <li><b>Available From:</b> ${startTime}</li>
+      <li><b>Available Until:</b> ${endTime}</li>
+    </ul>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/student-assessments" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Assessment</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Assessment Team</p>
+  `)
+});
+
+exports.assessmentReminder = ({ studentName, assessmentTitle, endTime, hoursRemaining }) => ({
+  subject: '⏰ Reminder: Assessment Deadline Approaching',
+  html: baseLayout('Assessment Deadline Reminder', `
+    <div style="background:#fef3c7; border-left:4px solid #f59e0b; padding:12px; border-radius:4px; margin-bottom:16px;">
+      <p style="margin:0; color:#92400e; font-weight:bold;">⚠️ DEADLINE APPROACHING</p>
+      <p style="margin:8px 0 0; color:#78350f;">Only ${hoursRemaining} hours remaining to complete this assessment!</p>
+    </div>
+    <p>Dear ${studentName},</p>
+    <p>This is a reminder that the following mandatory assessment is ending soon:</p>
+    <ul>
+      <li><b>Assessment Title:</b> ${assessmentTitle}</li>
+      <li><b>Deadline:</b> ${endTime}</li>
+      <li><b>Time Remaining:</b> Approximately ${hoursRemaining} hours</li>
+    </ul>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/student-assessments" style="background:#dc2626;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Take Assessment Now</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Assessment Team</p>
+  `)
+});

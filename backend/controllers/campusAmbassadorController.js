@@ -27,12 +27,30 @@ const generatePassword = () => {
 // Create Institute
 exports.createInstitute = async (req, res) => {
   try {
-    const { instituteName, instituteId, instituteType } = req.body;
+    const { instituteName, instituteId, instituteType, numberOfCourses, courses } = req.body;
     
     // Check if institute ID already exists
     const existingInstitute = await Institute.findOne({ instituteId: instituteId.toUpperCase() });
     if (existingInstitute) {
       return res.status(400).json({ message: 'Institute ID already exists' });
+    }
+
+    // Parse courses if provided as JSON string
+    let parsedCourses = [];
+    if (courses) {
+      try {
+        parsedCourses = typeof courses === 'string' ? JSON.parse(courses) : courses;
+      } catch (e) {
+        return res.status(400).json({ message: 'Invalid courses format' });
+      }
+    }
+
+    // Validate number of courses matches actual courses
+    const numCourses = parseInt(numberOfCourses) || 0;
+    if (numCourses > 0 && parsedCourses.length !== numCourses) {
+      return res.status(400).json({ 
+        message: `Number of courses (${numCourses}) does not match provided courses (${parsedCourses.length})` 
+      });
     }
 
     let campusBackgroundImageUrl = null;
@@ -76,6 +94,8 @@ exports.createInstitute = async (req, res) => {
       instituteId: instituteId.toUpperCase(),
       campusBackgroundImage: campusBackgroundImageUrl,
       instituteType,
+      numberOfCourses: numCourses,
+      courses: parsedCourses,
       campusAmbassador: req.user._id,
       campusAmbassadorEmail: (req.user.email || '').toLowerCase(),
       students: [],
@@ -1099,5 +1119,163 @@ exports.getPublicCampusStats = async (req, res) => {
       totalCampusCollaborations: 0,
       totalStudentsOnDashboard: 0
     });
+  }
+};
+
+// Upload courses for an institute via Excel
+exports.uploadCourses = async (req, res) => {
+  try {
+    const { instituteId } = req.params;
+    const { numberOfCourses } = req.body;
+
+    // Find the institute
+    const institute = await Institute.findOne({
+      _id: instituteId,
+      campusAmbassador: req.user._id
+    });
+
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found or not authorized' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Excel file is required' });
+    }
+
+    // Parse Excel file
+    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const data = xlsx.utils.sheet_to_json(sheet);
+
+    if (!data.length) {
+      return res.status(400).json({ message: 'Excel file is empty' });
+    }
+
+    // Extract course names from Excel
+    const courses = [];
+    const errors = [];
+
+    data.forEach((row, index) => {
+      const rowNum = index + 2;
+      const courseName = row.courseName || row['Course Name'] || row.course || row.Course;
+      
+      if (!courseName || !courseName.toString().trim()) {
+        errors.push(`Row ${rowNum}: Course name is required`);
+        return;
+      }
+
+      const trimmedCourseName = courseName.toString().trim();
+      if (!courses.includes(trimmedCourseName)) {
+        courses.push(trimmedCourseName);
+      }
+    });
+
+    if (errors.length > 0) {
+      return res.status(400).json({ message: 'Validation errors found', errors });
+    }
+
+    // Validate number of courses if provided
+    const numCourses = parseInt(numberOfCourses) || courses.length;
+    if (numberOfCourses && courses.length !== numCourses) {
+      return res.status(400).json({
+        message: `Expected ${numCourses} courses but found ${courses.length} in Excel`
+      });
+    }
+
+    // Update institute with courses
+    institute.courses = courses;
+    institute.numberOfCourses = courses.length;
+    await institute.save();
+
+    res.status(200).json({
+      message: 'Courses uploaded successfully',
+      coursesCount: courses.length,
+      courses: courses,
+      institute
+    });
+  } catch (error) {
+    console.error('Upload courses error:', error);
+    res.status(500).json({ message: 'Error uploading courses', error: error.message });
+  }
+};
+
+// Update institute courses manually
+exports.updateInstituteCourses = async (req, res) => {
+  try {
+    const { instituteId } = req.params;
+    const { courses, numberOfCourses } = req.body;
+
+    // Find the institute
+    const institute = await Institute.findOne({
+      _id: instituteId,
+      campusAmbassador: req.user._id
+    });
+
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found or not authorized' });
+    }
+
+    // Parse courses if provided as JSON string
+    let parsedCourses = [];
+    if (courses) {
+      try {
+        parsedCourses = typeof courses === 'string' ? JSON.parse(courses) : courses;
+      } catch (e) {
+        return res.status(400).json({ message: 'Invalid courses format' });
+      }
+    }
+
+    // Validate
+    if (!Array.isArray(parsedCourses)) {
+      return res.status(400).json({ message: 'Courses must be an array' });
+    }
+
+    // Clean course names
+    parsedCourses = parsedCourses.map(c => c.toString().trim()).filter(c => c.length > 0);
+
+    // Remove duplicates
+    parsedCourses = [...new Set(parsedCourses)];
+
+    // Update institute
+    institute.courses = parsedCourses;
+    institute.numberOfCourses = parsedCourses.length;
+    await institute.save();
+
+    res.status(200).json({
+      message: 'Courses updated successfully',
+      coursesCount: parsedCourses.length,
+      courses: parsedCourses,
+      institute
+    });
+  } catch (error) {
+    console.error('Update institute courses error:', error);
+    res.status(500).json({ message: 'Error updating courses', error: error.message });
+  }
+};
+
+// Get courses for a specific institute
+exports.getInstituteCourses = async (req, res) => {
+  try {
+    const { instituteId } = req.params;
+
+    const institute = await Institute.findOne({
+      _id: instituteId,
+      campusAmbassador: req.user._id
+    }).select('courses numberOfCourses instituteName instituteId');
+
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found or not authorized' });
+    }
+
+    res.status(200).json({
+      courses: institute.courses || [],
+      numberOfCourses: institute.numberOfCourses || 0,
+      instituteName: institute.instituteName,
+      instituteId: institute.instituteId
+    });
+  } catch (error) {
+    console.error('Get institute courses error:', error);
+    res.status(500).json({ message: 'Error fetching courses', error: error.message });
   }
 };

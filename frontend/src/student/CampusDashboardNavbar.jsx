@@ -46,7 +46,7 @@ const CampusDashboardNavbar = ({
             {[
               { id: 'dashboard', label: 'Dashboard', path: '/campus-dashboard' },
               { id: 'oneonone', label: 'One on One', path: '/campus/one-on-one' },
-              { id: 'assessment', label: 'Assessment', path: '/campus/assessment' },
+              { id: 'assessment', label: 'Assessment', path: '/campus-dashboard' },
               { id: 'requests', label: 'Requests', path: '/campus/requests' },
             ].map(({ id, label, path }) => (
               <button
@@ -58,7 +58,11 @@ const CampusDashboardNavbar = ({
                 } touch-manipulation`}
                 onClick={() => {
                   setActiveTab(id);
-                  navigate(path);
+                  if (id === 'dashboard' || id === 'assessment') {
+                    navigate('/campus-dashboard');
+                  } else {
+                    navigate(path);
+                  }
                 }}
               >
                 {label}
@@ -321,7 +325,11 @@ const CampusDashboardNavbar = ({
                   }`}
                   onClick={() => {
                     setActiveTab(id);
-                    navigate(path);
+                    if (id === 'dashboard' || id === 'assessment') {
+                      navigate('/campus-dashboard');
+                    } else {
+                      navigate(path);
+                    }
                     setMenuOpen(false);
                   }}
                 >

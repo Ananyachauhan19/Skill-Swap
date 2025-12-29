@@ -22,6 +22,11 @@ router.delete('/institutes/:id', requireAuth, requireCampusAmbassador, campusAmb
 // Student onboarding
 router.post('/institutes/:instituteId/upload-students', requireAuth, requireCampusAmbassador, upload.single('excelFile'), campusAmbassadorController.uploadStudents);
 
+// Course management routes
+router.post('/institutes/:instituteId/upload-courses', requireAuth, requireCampusAmbassador, upload.single('excelFile'), campusAmbassadorController.uploadCourses);
+router.put('/institutes/:instituteId/courses', requireAuth, requireCampusAmbassador, campusAmbassadorController.updateInstituteCourses);
+router.get('/institutes/:instituteId/courses', requireAuth, requireCampusAmbassador, campusAmbassadorController.getInstituteCourses);
+
 // Campus ID validation (can be accessed by any authenticated user)
 router.post('/validate-campus-id', requireAuth, campusAmbassadorController.validateCampusId);
 

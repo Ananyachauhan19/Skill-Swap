@@ -92,6 +92,8 @@ import ChangePassword from './campus-ambassador/ChangePassword.jsx';
 import StudentCampusDashboard from './student/StudentCampusDashboard.jsx';
 import CampusLogin from './student/CampusLogin.jsx';
 import CampusOneOnOne from './student/CampusOneOnOne.jsx';
+import AssessmentAttempt from './student/AssessmentAttempt.jsx';
+import AssessmentResult from './student/AssessmentResult.jsx';
 import CampusAmbassadors from './admin/CampusAmbassadors.jsx';
 import { CampusAmbassadorProvider } from './context/CampusAmbassadorContext.jsx';
 
@@ -219,6 +221,8 @@ const appRoutes = [
   { path: '/campus-dashboard/login', element: <ProtectedRoute><CampusLogin /></ProtectedRoute> },
   { path: '/campus-dashboard', element: <ProtectedRoute><StudentCampusDashboard /></ProtectedRoute> },
   { path: '/campus/one-on-one', element: <ProtectedRoute><CampusOneOnOne /></ProtectedRoute> },
+  { path: '/student/assessment-attempt/:id', element: <ProtectedRoute><AssessmentAttempt /></ProtectedRoute> },
+  { path: '/student/assessment-result/:id', element: <ProtectedRoute><AssessmentResult /></ProtectedRoute> },
   {
     path: '/employee',
     element: <EmployeeRoute />,
@@ -338,6 +342,7 @@ function App() {
   const navigate = useNavigate();
   const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
   const isRatingPage = location.pathname.startsWith('/rate/');
+  const isAssessmentAttemptPage = location.pathname.startsWith('/student/assessment-attempt/');
   const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'skillswaphubb@gmail.com').toLowerCase();
   const isAdminUser = !!(user && user.email && user.email.toLowerCase() === adminEmail);
   
@@ -588,9 +593,9 @@ function App() {
                 showContent ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && <Navbar />}
+              {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Navbar />}
               {element}
-              {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && <Footer />}
+              {!isAdminUser && !isEmployeeRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Footer />}
             </div>
           </CampusAmbassadorProvider>
         </SkillMatesProvider>

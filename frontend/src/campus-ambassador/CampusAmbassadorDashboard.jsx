@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, School, Users, Trash2, Edit, Coins, TrendingUp, Upload, Building2 } from 'lucide-react';
+import { Search, School, Users, Trash2, Edit, Coins, TrendingUp, Upload, Building2, FileText, Eye, BarChart3 } from 'lucide-react';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
 import { useAuth } from '../context/AuthContext';
 import CampusAmbassadorNavbar from './CampusAmbassadorNavbar';
@@ -8,6 +8,10 @@ import InstituteForm from './InstituteForm';
 import ExcelUpload from './ExcelUpload';
 import DistributeCoinsModal from './DistributeCoinsModal';
 import InstituteRewardsDashboard from './InstituteRewardsDashboard';
+import AssessmentUpload from './AssessmentUpload';
+import AssessmentList from './AssessmentList';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 const CampusAmbassadorDashboard = () => {
   const navigate = useNavigate();
@@ -31,6 +35,10 @@ const CampusAmbassadorDashboard = () => {
   const [showRewardsDashboard, setShowRewardsDashboard] = useState(false);
   const [selectedInstitute, setSelectedInstitute] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAssessmentUpload, setShowAssessmentUpload] = useState(false);
+  const [showAssessmentList, setShowAssessmentList] = useState(false);
+  const [assessments, setAssessments] = useState([]);
+  const [loadingAssessments, setLoadingAssessments] = useState(false);
 
   // Check if campus ambassador needs to change password
   useEffect(() => {
@@ -42,6 +50,33 @@ const CampusAmbassadorDashboard = () => {
   useEffect(() => {
     fetchInstitutes();
   }, []);
+
+  // Fetch assessments when component mounts or when institutes change
+  useEffect(() => {
+    fetchAssessments();
+  }, [institutes]);
+
+  // Fetch assessments from backend
+  const fetchAssessments = async () => {
+    setLoadingAssessments(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${BACKEND_URL}/api/campus-ambassador/assessments`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAssessments(data.assessments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching assessments:', error);
+    } finally {
+      setLoadingAssessments(false);
+    }
+  };
 
   // Auto-select first institute if available
   useEffect(() => {
@@ -119,12 +154,18 @@ const CampusAmbassadorDashboard = () => {
     setSelectedInstitute(institute);
   };
 
+  const handleAssessmentUploadSuccess = () => {
+    setShowAssessmentUpload(false);
+    fetchAssessments(); // Refresh assessment list
+    setShowAssessmentList(true);
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Navbar */}
       <CampusAmbassadorNavbar
         onAddInstitute={() => setShowInstituteForm(true)}
-        onUploadTest={() => alert('Upload Test feature coming soon!')}
+        onUploadTest={() => setShowAssessmentUpload(true)}
       />
 
       {/* Main Content Area with Sidebar */}
@@ -387,6 +428,12 @@ const CampusAmbassadorDashboard = () => {
                           {selectedInstitute.assignmentEventsCount || 0}
                         </span>
                       </div>
+                      <div className="flex items-center justify-between py-1.5 border-b border-gray-100">
+                        <span className="text-xs text-gray-600">Assessments</span>
+                        <span className="text-xs font-semibold text-gray-900">
+                          {assessments.filter(a => a.institutes.some(inst => inst._id === selectedInstitute._id)).length}
+                        </span>
+                      </div>
                       <div className="flex items-center justify-between py-1.5">
                         <span className="text-xs text-gray-600">Status</span>
                         <span className="px-2 py-0.5 text-xs font-semibold bg-green-100 text-green-700 rounded">
@@ -411,6 +458,140 @@ const CampusAmbassadorDashboard = () => {
                       )}
                     </div>
                   </div>
+                </div>
+
+                {/* Assessments Section */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <FileText size={20} className="text-blue-600" />
+                      <h3 className="text-sm font-semibold text-gray-900">Assessments for this Institute</h3>
+                    </div>
+                    <button
+                      onClick={() => setShowAssessmentUpload(true)}
+                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      + Create New
+                    </button>
+                  </div>
+
+                  {loadingAssessments ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  ) : (
+                    <>
+                      {assessments.filter(assessment => 
+                        assessment.institutes.some(inst => inst._id === selectedInstitute._id)
+                      ).length === 0 ? (
+                        <div className="text-center py-8">
+                          <FileText size={32} className="mx-auto text-gray-300 mb-2" />
+                          <p className="text-sm text-gray-500 mb-3">No assessments created for this institute yet</p>
+                          <button
+                            onClick={() => setShowAssessmentUpload(true)}
+                            className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                          >
+                            Create your first assessment
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {assessments
+                            .filter(assessment => 
+                              assessment.institutes.some(inst => inst._id === selectedInstitute._id)
+                            )
+                            .map((assessment) => (
+                              <div
+                                key={assessment._id}
+                                className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="text-sm font-semibold text-gray-900">
+                                        {assessment.title}
+                                      </h4>
+                                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                        assessment.isActive
+                                          ? 'bg-green-100 text-green-700'
+                                          : 'bg-gray-100 text-gray-600'
+                                      }`}>
+                                        {assessment.isActive ? 'Active' : 'Inactive'}
+                                      </span>
+                                    </div>
+                                    {assessment.description && (
+                                      <p className="text-xs text-gray-600 mb-2 line-clamp-1">
+                                        {assessment.description}
+                                      </p>
+                                    )}
+                                    
+                                    {/* Assigned Institutes */}
+                                    <div className="mb-2">
+                                      <div className="flex flex-wrap gap-1 items-center">
+                                        <span className="text-xs text-gray-500 mr-1">Assigned to:</span>
+                                        {assessment.institutes && assessment.institutes.length > 0 ? (
+                                          assessment.institutes.map((inst) => (
+                                            <span
+                                              key={inst._id}
+                                              className={`px-2 py-0.5 text-xs rounded-full ${
+                                                inst._id === selectedInstitute._id
+                                                  ? 'bg-blue-100 text-blue-700 font-medium'
+                                                  : 'bg-gray-100 text-gray-600'
+                                              }`}
+                                            >
+                                              {inst.instituteName || inst.name || inst.instituteId}
+                                            </span>
+                                          ))
+                                        ) : (
+                                          <span className="text-xs text-gray-400">No institutes</span>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                                      <span className="flex items-center gap-1">
+                                        <FileText size={12} />
+                                        {assessment.questionCount} Questions
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <BarChart3 size={12} />
+                                        {assessment.totalMarks} Marks
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <Users size={12} />
+                                        {assessment.attemptsCount || 0} Attempts
+                                      </span>
+                                      {assessment.averageScore > 0 && (
+                                        <span className="flex items-center gap-1">
+                                          <TrendingUp size={12} />
+                                          Avg: {assessment.averageScore.toFixed(1)}%
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      setShowAssessmentList(true);
+                                    }}
+                                    className="ml-2 p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                    title="View Details"
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500">
+                                  Created: {new Date(assessment.createdAt).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -463,6 +644,61 @@ const CampusAmbassadorDashboard = () => {
             setSelectedInstituteForRewards(null);
           }}
         />
+      )}
+
+      {/* Assessment Upload Modal */}
+      {showAssessmentUpload && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto relative">
+            <button
+              onClick={() => setShowAssessmentUpload(false)}
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 z-10"
+            >
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="p-6">
+              <AssessmentUpload
+                institutes={institutes}
+                onUploadSuccess={handleAssessmentUploadSuccess}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assessment List Modal */}
+      {showAssessmentList && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto relative">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between z-10">
+              <h2 className="text-2xl font-bold text-gray-800">My Assessments</h2>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => {
+                    setShowAssessmentList(false);
+                    setShowAssessmentUpload(true);
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Upload New Test
+                </button>
+                <button
+                  onClick={() => setShowAssessmentList(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              <AssessmentList onUpdate={fetchAssessments} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

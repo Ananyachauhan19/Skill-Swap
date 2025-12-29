@@ -43,6 +43,7 @@ const verificationRoutes = require('./routes/verificationRoutes');
 const blogRoutes = require('./routes/blogRoutes');
 const visitorRoutes = require('./routes/visitorRoutes');
 const campusAmbassadorRoutes = require('./routes/campusAmbassadorRoutes');
+const assessmentRoutes = require('./routes/assessmentRoutes');
 const cron = require('node-cron');
 const Session = require('./models/Session');
 const User = require('./models/User');
@@ -51,6 +52,7 @@ const { sendMail } = require('./utils/sendMail');
 const emailTemplates = require('./utils/emailTemplates');
 const anonymousVisitorTracking = require('./middleware/anonymousVisitorTracking');
 const { expireOverdueInterviews } = require('./cron/expireInterviews');
+const { initAssessmentCronJobs } = require('./cron/assessmentCronJobs');
 
 const app = express();
 const server = http.createServer(app);
@@ -158,7 +160,7 @@ app.use('/api', verificationRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/visitors', visitorRoutes);
 app.use('/api/campus-ambassador', campusAmbassadorRoutes);
-app.use('/api/campus-ambassador', campusAmbassadorRoutes);
+app.use('/api', assessmentRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');
@@ -195,6 +197,14 @@ mongoose.connect(process.env.MONGO_URI)
       }
     } catch (err) {
       console.error('[Startup] Failed to expire overdue interviews:', err);
+    }
+    
+    // Initialize assessment cron jobs
+    try {
+      initAssessmentCronJobs();
+      console.log('[Startup] ✅ Assessment cron jobs initialized');
+    } catch (err) {
+      console.error('[Startup] Failed to initialize assessment cron jobs:', err);
     }
     
     // Ensure indexes are created for optimal performance
