@@ -122,6 +122,11 @@ body {
   to { transform: translateX(0); opacity: 1; }
 }
 
+@keyframes ca-marquee-ltr {
+  0% { transform: translateX(-20%); }
+  100% { transform: translateX(120%); }
+}
+
 .animate-fade-in {
   animation: fade-in 0.5s ease-out;
 }
@@ -132,6 +137,11 @@ body {
 
 .animate-slide-in-left {
   animation: slide-in-left 0.5s ease-out;
+}
+
+.ca-marquee-ltr {
+  display: inline-block;
+  animation: ca-marquee-ltr 10s linear infinite;
 }
 
 /* Responsive text utilities */

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash2, FileSpreadsheet, Upload } from 'lucide-react';
 
-const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
+const InstituteForm = ({ onSubmit, onClose, initialData = null, variant = 'modal' }) => {
   const [formData, setFormData] = useState({
     instituteName: initialData?.instituteName || '',
     instituteId: initialData?.instituteId || '',
@@ -111,16 +111,20 @@ const InstituteForm = ({ onSubmit, onClose, initialData = null }) => {
     }
   };
 
+  const isModal = variant !== 'page';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-200">
+    <div className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm' : 'w-full'}>
+      <div className={isModal ? 'bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-200' : 'bg-white rounded-2xl border border-slate-200 w-full overflow-y-auto'}>
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
           <h2 className="text-xl font-bold text-gray-900">
             {initialData ? 'Edit Institute' : 'Add New Institute'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={20} />
-          </button>
+          {isModal && (
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">

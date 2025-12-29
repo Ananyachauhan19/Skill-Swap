@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Coins, AlertCircle } from 'lucide-react';
 
-const DistributeCoinsModal = ({ institute, onClose, onSuccess }) => {
+const DistributeCoinsModal = ({ institute, onClose, onSuccess, variant = 'modal' }) => {
   const [formData, setFormData] = useState({
     perStudentSilver: 0,
     perStudentGolden: 0,
@@ -72,17 +72,21 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess }) => {
   const totalSilver = formData.perStudentSilver * (institute.studentsCount || 0);
   const totalGolden = formData.perStudentGolden * (institute.studentsCount || 0);
 
+  const isModal = variant !== 'page';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200">
+    <div className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm p-4' : 'w-full'}>
+      <div className={isModal ? 'bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-gray-200' : 'bg-white rounded-2xl border border-slate-200 w-full overflow-y-auto'}>
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-white">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Distribute Coins</h2>
             <p className="text-xs text-gray-600 mt-0.5">{institute.instituteName}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={20} />
-          </button>
+          {isModal && (
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">

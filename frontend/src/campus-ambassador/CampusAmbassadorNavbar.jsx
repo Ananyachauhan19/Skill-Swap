@@ -1,52 +1,130 @@
-import React from 'react';
-import { Plus, Upload } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, School, Upload, UserCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
 
-const CampusAmbassadorNavbar = ({ onAddInstitute, onUploadTest }) => {
+const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { selectedInstitute, setSelectedInstitute } = useCampusAmbassador();
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClickOutside = (event) => {
+      if (!dropdownRef.current) return;
+      if (!dropdownRef.current.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onClickOutside);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
 
   return (
-    <nav className="fixed top-0 left-0 w-full h-[64px] sm:h-[72px] bg-[#F5F9FF] text-blue-900 px-3 sm:px-4 shadow-md border-b border-gray-200/50 z-50 backdrop-blur-sm">
-      <div className="flex items-center justify-between max-w-7xl mx-auto h-full">
-        
-        {/* Left Side - Logo and Title (Same as main navbar) */}
-        <div
-          className="flex items-center gap-1.5 sm:gap-2 cursor-pointer transition-transform duration-300 hover:scale-105 flex-shrink-0"
+    <nav className="fixed top-0 left-0 w-full h-[72px] bg-white/80 backdrop-blur-md border-b border-blue-100 z-50">
+      <div className="h-full px-4 sm:px-6 flex items-center justify-between">
+        <button
+          type="button"
           onClick={() => navigate('/')}
+          className="flex items-center gap-2 rounded-lg hover:bg-blue-50/50 px-2 py-1 transition"
         >
           <img
             src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png"
-            alt="SkillSwapHub Logo"
-            className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 object-contain rounded-full shadow-md border-2 border-blue-900"
+            alt="SkillSwapHub"
+            className="h-9 w-9 rounded-full object-contain border border-blue-900/20 bg-white"
           />
-          <span className="text-sm md:text-base lg:text-lg font-extrabold text-blue-900 font-lora tracking-wide drop-shadow-md">
-            SkillSwapHub
-          </span>
-        </div>
+          <div className="leading-tight">
+            <div className="text-sm font-semibold text-blue-950">SkillSwapHub</div>
+            <div className="text-[11px] text-slate-500">Campus Ambassador</div>
+          </div>
+        </button>
 
-        {/* Center - Action Buttons */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={onAddInstitute}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-blue-900 to-blue-800 rounded-full shadow-md hover:from-blue-800 hover:to-blue-700 hover:scale-105 transition-all duration-300 whitespace-nowrap"
-          >
-            <Plus size={14} className="sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Add College / School</span>
-            <span className="sm:hidden">Add</span>
-          </button>
-          
-          <button
-            onClick={onUploadTest}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold text-blue-900 bg-blue-100/50 rounded-full shadow-sm hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105 transition-all duration-300 whitespace-nowrap"
-          >
-            <Upload size={14} className="sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Upload Test</span>
-            <span className="sm:hidden">Upload</span>
-          </button>
-        </div>
+        <div className="flex items-center gap-2">
+          {typeof onOpenUploadCollege === 'function' && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onOpenUploadCollege();
+              }}
+              className="h-9 px-3 rounded-full border border-blue-100 bg-blue-900 hover:bg-blue-950 transition inline-flex items-center gap-2"
+              aria-label="Upload college"
+              title="Upload college"
+            >
+              <Upload size={16} className="text-white" />
+              <span className="text-xs font-semibold text-white">Upload College</span>
+            </button>
+          )}
 
-        {/* Right Side - Empty for visual balance */}
-        <div className="w-20 sm:w-32 flex-shrink-0"></div>
+          {typeof onOpenCollegeAssignment === 'function' && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onOpenCollegeAssignment();
+              }}
+              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/50 transition inline-flex items-center gap-2"
+              aria-label="College assignment"
+              title="College assignment"
+            >
+              <School size={16} className="text-blue-900" />
+              <span className="text-xs font-semibold text-blue-950">College Assignment</span>
+            </button>
+          )}
+
+          {selectedInstitute?._id && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedInstitute(null);
+                setOpen(false);
+              }}
+              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/50 transition inline-flex items-center gap-2"
+              aria-label="Back to colleges"
+              title="Back to colleges"
+            >
+              <ArrowLeft size={16} className="text-blue-900" />
+              <span className="text-xs font-semibold text-blue-950">Back</span>
+            </button>
+          )}
+
+          <div className="relative" ref={dropdownRef}>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="h-9 w-9 rounded-full border border-blue-100 bg-white hover:bg-blue-50/50 transition flex items-center justify-center"
+            aria-label="Profile"
+            aria-expanded={open}
+          >
+            <UserCircle2 size={18} className="text-blue-900" />
+          </button>
+
+          <div
+            className={`absolute right-0 mt-2 w-64 origin-top-right rounded-xl border border-blue-100 bg-white shadow-lg transition-all duration-200 ${
+              open ? 'opacity-100 scale-100 translate-y-0' : 'pointer-events-none opacity-0 scale-[0.98] -translate-y-1'
+            }`}
+            role="menu"
+          >
+            <div className="px-4 py-3">
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Profile</p>
+              <p className="mt-2 text-sm font-semibold text-slate-900 truncate">
+                {user?.name || user?.fullName || 'User'}
+              </p>
+              <p className="mt-1 text-xs text-slate-600 truncate">{user?.email || '—'}</p>
+            </div>
+          </div>
+          </div>
+        </div>
       </div>
     </nav>
   );

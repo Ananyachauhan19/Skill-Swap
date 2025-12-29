@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, Coins, Info } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuccess }) => {
+const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuccess, variant = 'modal' }) => {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState(null);
@@ -14,6 +14,8 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
     perStudentSilver: 0,
     perStudentGolden: 0
   });
+
+  const isModal = variant !== 'page';
 
   // Fetch existing students when component mounts
   React.useEffect(() => {
@@ -334,13 +336,27 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-200">
+    <div
+      className={
+        isModal
+          ? 'fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm p-4'
+          : 'w-full'
+      }
+    >
+      <div
+        className={
+          isModal
+            ? 'bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-200'
+            : 'bg-white rounded-2xl border border-slate-200 w-full overflow-y-auto'
+        }
+      >
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-white">
           <h2 className="text-xl font-bold text-gray-900">Upload Students</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={20} />
-          </button>
+          {isModal && (
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         <div className="p-6">

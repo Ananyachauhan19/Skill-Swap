@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, TrendingUp, Calendar, User, Coins, Award, AlertCircle, ArrowUp } from 'lucide-react';
 
-const InstituteRewardsDashboard = ({ institute, onClose }) => {
+const InstituteRewardsDashboard = ({ institute, onClose, variant = 'modal' }) => {
   const [rewardHistory, setRewardHistory] = useState([]);
   const [totals, setTotals] = useState({
     totalSilverDistributed: 0,
@@ -61,18 +61,22 @@ const InstituteRewardsDashboard = ({ institute, onClose }) => {
     });
   };
 
+  const isModal = variant !== 'page';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200 flex flex-col">
+    <div className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center bg-white/95 backdrop-blur-sm p-4' : 'w-full'}>
+      <div className={isModal ? 'bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200 flex flex-col' : 'bg-white rounded-2xl border border-slate-200 w-full overflow-hidden flex flex-col'}>
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Rewards Dashboard</h2>
             <p className="text-xs text-gray-600 mt-0.5">{institute.instituteName}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={20} />
-          </button>
+          {isModal && (
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
