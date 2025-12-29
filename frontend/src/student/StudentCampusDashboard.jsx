@@ -34,7 +34,7 @@ const StudentCampusDashboard = () => {
   
   const coinsRef = useRef(null);
 
-  // Check for stored campus validation
+  // Check for stored campus validation and fetch data
   useEffect(() => {
     const campusValidated = localStorage.getItem('campusValidated');
     if (!campusValidated) {
@@ -43,49 +43,49 @@ const StudentCampusDashboard = () => {
       return;
     }
 
-    // Fetch institute data if validated
-    const fetchInstituteData = async () => {
-      if (authUser?.instituteId) {
-        try {
-          // Fetch institute data
-          const response = await fetch(`${BACKEND_URL}/api/campus-ambassador/my-institute`, {
-            credentials: 'include',
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setInstituteData(data.institute);
-          } else {
-            console.error('Failed to fetch institute data:', response.status);
-          }
+    // Set user name from authUser if available
+    if (authUser?.firstName) {
+      setUserName(`${authUser.firstName}${authUser.lastName ? ' ' + authUser.lastName : ''}`);
+    } else if (authUser?.username) {
+      setUserName(authUser.username);
+    } else if (authUser?.email) {
+      setUserName(authUser.email.split('@')[0]);
+    }
 
-          // Fetch dashboard stats
-          const statsResponse = await fetch(`${BACKEND_URL}/api/campus-ambassador/dashboard-stats`, {
-            credentials: 'include',
-          });
-          if (statsResponse.ok) {
-            const statsData = await statsResponse.json();
-            setDashboardStats(statsData);
-          } else {
-            console.error('Failed to fetch dashboard stats:', statsResponse.status);
-          }
-        } catch (error) {
-          console.error('Failed to fetch data:', error);
-        } finally {
-          setLoading(false);
+    // Fetch institute data if validated (works even without authUser.instituteId)
+    const fetchInstituteData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch institute data
+        const response = await fetch(`${BACKEND_URL}/api/campus-ambassador/my-institute`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setInstituteData(data.institute);
+        } else {
+          console.error('Failed to fetch institute data:', response.status);
         }
-      } else {
+
+        // Fetch dashboard stats
+        const statsResponse = await fetch(`${BACKEND_URL}/api/campus-ambassador/dashboard-stats`, {
+          credentials: 'include',
+        });
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setDashboardStats(statsData);
+        } else {
+          console.error('Failed to fetch dashboard stats:', statsResponse.status);
+        }
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
         setLoading(false);
       }
     };
 
-    if (authUser?.instituteId && authUser?.studentId) {
-      if (authUser?.firstName) {
-        setUserName(`${authUser.firstName}${authUser.lastName ? ' ' + authUser.lastName : ''}`);
-      }
-      fetchInstituteData();
-    } else {
-      setLoading(false);
-    }
+    fetchInstituteData();
   }, [authUser, navigate]);
 
   // Navbar helper functions

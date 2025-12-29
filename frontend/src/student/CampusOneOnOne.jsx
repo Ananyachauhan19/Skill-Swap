@@ -26,6 +26,15 @@ const CampusOneOnOne = () => {
   
   const coinsRef = useRef(null);
 
+  // Check for campus validation
+  useEffect(() => {
+    const campusValidated = localStorage.getItem('campusValidated');
+    if (!campusValidated) {
+      // Redirect to login if not validated
+      navigate('/campus-dashboard/login', { replace: true });
+    }
+  }, [navigate]);
+
   const fetchCoins = async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/coins`, {
