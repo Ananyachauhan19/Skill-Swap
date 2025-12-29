@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { BACKEND_URL } from '../config.js';
 
 const CampusAmbassadorContext = createContext();
 
@@ -34,7 +35,7 @@ export const CampusAmbassadorProvider = ({ children }) => {
   const fetchInstitutes = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/campus-ambassador/institutes', {
+      const response = await axios.get(`${BACKEND_URL}/api/campus-ambassador/institutes`, {
         withCredentials: true
       });
       setInstitutes(response.data.institutes);
@@ -51,7 +52,7 @@ export const CampusAmbassadorProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await axios.post(
-        '/api/campus-ambassador/institutes',
+        `${BACKEND_URL}/api/campus-ambassador/institutes`,
         formData,
         {
           withCredentials: true,
@@ -74,7 +75,7 @@ export const CampusAmbassadorProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await axios.put(
-        `/api/campus-ambassador/institutes/${id}`,
+        `${BACKEND_URL}/api/campus-ambassador/institutes/${id}`,
         formData,
         {
           withCredentials: true,
@@ -96,7 +97,7 @@ export const CampusAmbassadorProvider = ({ children }) => {
   const deleteInstitute = async (id) => {
     try {
       setLoading(true);
-      await axios.delete(`/api/campus-ambassador/institutes/${id}`, {
+      await axios.delete(`${BACKEND_URL}/api/campus-ambassador/institutes/${id}`, {
         withCredentials: true
       });
       await fetchInstitutes();
@@ -117,7 +118,7 @@ export const CampusAmbassadorProvider = ({ children }) => {
       formData.append('excelFile', file);
 
       const response = await axios.post(
-        `/api/campus-ambassador/institutes/${instituteId}/upload-students`,
+        `${BACKEND_URL}/api/campus-ambassador/institutes/${instituteId}/upload-students`,
         formData,
         {
           withCredentials: true,
@@ -140,7 +141,7 @@ export const CampusAmbassadorProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await axios.post(
-        '/api/campus-ambassador/validate-campus-id',
+        `${BACKEND_URL}/api/campus-ambassador/validate-campus-id`,
         { studentId },
         { withCredentials: true }
       );
@@ -159,7 +160,7 @@ export const CampusAmbassadorProvider = ({ children }) => {
     try {
       setLoading(true);
       const response = await axios.get(
-        `/api/campus-ambassador/institutes/${instituteId}/students`,
+        `${BACKEND_URL}/api/campus-ambassador/institutes/${instituteId}/students`,
         { withCredentials: true }
       );
       setError(null);

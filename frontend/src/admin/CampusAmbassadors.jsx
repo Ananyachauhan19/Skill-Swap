@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Shield, Trash2, CheckCircle, XCircle, X } from 'lucide-react';
 import axios from 'axios';
+import { BACKEND_URL } from '../config.js';
 
 const CampusAmbassadors = () => {
   const [campusAmbassadors, setCampusAmbassadors] = useState([]);
@@ -23,7 +24,7 @@ const CampusAmbassadors = () => {
   const fetchCampusAmbassadors = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/admin/campus-ambassadors', {
+      const response = await axios.get(`${BACKEND_URL}/api/admin/campus-ambassadors`, {
         withCredentials: true
       });
 
@@ -46,7 +47,7 @@ const CampusAmbassadors = () => {
     
     try {
       setLoading(true);
-      await axios.delete(`/api/admin/users/${userId}`, {
+      await axios.delete(`${BACKEND_URL}/api/admin/users/${userId}`, {
         withCredentials: true
       });
       
@@ -95,7 +96,7 @@ const CampusAmbassadors = () => {
       setLoading(true);
       console.log('Sending data:', formData);
       await axios.post(
-        '/api/admin/create-campus-ambassador',
+        `${BACKEND_URL}/api/admin/create-campus-ambassador`,
         formData,
         { withCredentials: true }
       );
