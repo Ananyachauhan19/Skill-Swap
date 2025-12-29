@@ -36,6 +36,9 @@ router.get('/my-institute', requireAuth, campusAmbassadorController.getStudentIn
 // Get student dashboard statistics
 router.get('/dashboard-stats', requireAuth, campusAmbassadorController.getStudentDashboardStats);
 
+// New redesigned student campus home dashboard data
+router.get('/student-home', requireAuth, campusAmbassadorController.getStudentHomeDashboard);
+
 // Get institute students (for filtering in campus dashboard)
 router.get('/institutes/:instituteId/students', requireAuth, campusAmbassadorController.getInstituteStudents);
 

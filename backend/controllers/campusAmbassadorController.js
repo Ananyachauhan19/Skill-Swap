@@ -1094,6 +1094,174 @@ exports.getStudentDashboardStats = async (req, res) => {
   }
 };
 
+const buildStudentDisplayName = (user) => {
+  const first = String(user?.firstName || '').trim();
+  const last = String(user?.lastName || '').trim();
+  if (first || last) return `${first}${last ? ` ${last}` : ''}`;
+  const username = String(user?.username || '').trim();
+  if (username) return username;
+  const email = String(user?.email || '').trim();
+  if (email && email.includes('@')) return email.split('@')[0];
+  return 'Student';
+};
+
+const daysSince = (dateValue) => {
+  const d = dateValue ? new Date(dateValue) : null;
+  if (!d || Number.isNaN(d.getTime())) return null;
+  const diffMs = Date.now() - d.getTime();
+  return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+};
+
+const computeEngagement = ({ totalSessions, completedSessions, lastActivityAt }) => {
+  const total = Number(totalSessions || 0);
+  const completed = Number(completedSessions || 0);
+
+  const completionRatio = total > 0 ? Math.min(1, Math.max(0, completed / total)) : 0;
+
+  const inactivityDays = daysSince(lastActivityAt);
+  let recencyScore = 0.15;
+  if (inactivityDays === null) recencyScore = 0.15;
+  else if (inactivityDays <= 2) recencyScore = 0.4;
+  else if (inactivityDays <= 7) recencyScore = 0.28;
+  else if (inactivityDays <= 14) recencyScore = 0.2;
+  else recencyScore = 0.12;
+
+  const score = 0.6 * completionRatio + recencyScore;
+  const label = score >= 0.7 ? 'High' : score >= 0.45 ? 'Medium' : 'Low';
+  return { score, label, inactivityDays };
+};
+
+// New API for the redesigned Campus Student Home dashboard
+exports.getStudentHomeDashboard = async (req, res) => {
+  try {
+    const studentId = req.user._id;
+    const instituteId = req.user.instituteId;
+
+    if (!instituteId) {
+      return res.status(404).json({ message: 'Student is not associated with any institute' });
+    }
+
+    const Session = require('../models/Session');
+    const SessionRequest = require('../models/SessionRequest');
+    const Contribution = require('../models/Contribution');
+
+    const institute = await Institute.findOne({ instituteId }).lean();
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found' });
+    }
+
+    const totalStudents = await User.countDocuments({
+      instituteId,
+      studentId: { $exists: true, $ne: null },
+    });
+
+    const totalSessions = await Session.countDocuments({
+      $or: [{ creator: studentId }, { requester: studentId }],
+    });
+
+    const completedSessions = await Session.countDocuments({
+      $or: [{ creator: studentId }, { requester: studentId }],
+      status: 'completed',
+    });
+
+    const pendingRequests = await SessionRequest.countDocuments({
+      $or: [
+        { sender: studentId, status: 'pending' },
+        { receiver: studentId, status: 'pending' },
+      ],
+    });
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 30);
+    const dateKeyLowerBound = thirtyDaysAgo.toISOString().slice(0, 10);
+
+    const contributionAgg = await Contribution.aggregate([
+      { $match: { userId: studentId, dateKey: { $gte: dateKeyLowerBound } } },
+      { $group: { _id: null, total: { $sum: '$count' } } },
+    ]);
+    const contribution30d = Number(contributionAgg?.[0]?.total || 0);
+
+    const engagement = computeEngagement({
+      totalSessions,
+      completedSessions,
+      lastActivityAt: req.user.lastActivityAt,
+    });
+
+    const performanceLines = [
+      `Sessions completed: ${completedSessions}/${totalSessions}`,
+      `Engagement level: ${engagement.label}`,
+      `Campus contribution (30 days): ${contribution30d}`,
+    ];
+
+    if (typeof engagement.inactivityDays === 'number') {
+      performanceLines.push(`Last active: ${engagement.inactivityDays} day${engagement.inactivityDays === 1 ? '' : 's'} ago`);
+    }
+
+    const futureLines = [];
+    if (completedSessions === 0) {
+      futureLines.push('Complete your first session to unlock stronger campus visibility.');
+    } else if (completedSessions > 0) {
+      const nextTarget = completedSessions + 1;
+      futureLines.push(`Aim for ${nextTarget} completed sessions to keep improving your learning curve.`);
+    }
+    if (pendingRequests > 0) {
+      futureLines.push(`You have ${pendingRequests} pending request${pendingRequests === 1 ? '' : 's'} — respond to keep momentum.`);
+    }
+    if (engagement.label === 'Low') {
+      futureLines.push('Try a short 1-on-1 this week to boost engagement and consistency.');
+    } else if (engagement.label === 'High') {
+      futureLines.push('Your engagement is strong — explore advanced topics or mentor juniors for higher impact.');
+    }
+    while (futureLines.length > 3) futureLines.pop();
+    while (futureLines.length < 2) futureLines.push('Keep exploring new skills — steady progress compounds over time.');
+
+    const thoughts = [];
+    thoughts.push(
+      totalSessions === 0
+        ? 'Start with one focused session — consistency beats intensity.'
+        : `You’ve shown up for ${totalSessions} session${totalSessions === 1 ? '' : 's'} — keep building the habit.`
+    );
+    thoughts.push(
+      completedSessions === 0
+        ? 'Your first completion is the biggest step — schedule a quick 1-on-1.'
+        : `Completed ${completedSessions} session${completedSessions === 1 ? '' : 's'} — protect your momentum.`
+    );
+    thoughts.push(
+      contribution30d === 0
+        ? 'Add a small campus contribution today — even one action matters.'
+        : `Your campus contribution this month is ${contribution30d} — keep your impact visible.`
+    );
+    if (pendingRequests > 0) {
+      thoughts.push(`Clear pending requests to unlock faster progress and better matches.`);
+    }
+
+    res.status(200).json({
+      hero: {
+        studentName: buildStudentDisplayName(req.user),
+        instituteName: institute.instituteName,
+        campusBackgroundImage: institute.campusBackgroundImage || null,
+      },
+      activity: {
+        mySessions: totalSessions,
+        completed: completedSessions,
+        pending: pendingRequests,
+        campusStudents: totalStudents,
+      },
+      performance: {
+        lines: performanceLines.slice(0, 4),
+        futureLines,
+      },
+      thoughts: {
+        items: thoughts.slice(0, 4),
+        intervalMs: 5000,
+      },
+    });
+  } catch (error) {
+    console.error('Get student home dashboard error:', error);
+    res.status(500).json({ message: 'Error fetching home dashboard data', error: error.message });
+  }
+};
+
 // Get public campus statistics (no auth required)
 exports.getPublicCampusStats = async (req, res) => {
   try {

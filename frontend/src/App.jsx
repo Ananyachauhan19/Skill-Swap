@@ -89,7 +89,7 @@ import RecruitmentApplications from './admin/RecruitmentApplications.jsx';
 import ChatPage from './user/ChatPage.jsx';
 import CampusAmbassadorDashboard from './campus-ambassador/CampusAmbassadorDashboard.jsx';
 import ChangePassword from './campus-ambassador/ChangePassword.jsx';
-import StudentCampusDashboard from './student/StudentCampusDashboard.jsx';
+import HomeDashboard from './student/campushome/HomeDashboard.jsx';
 import CampusLogin from './student/CampusLogin.jsx';
 import CampusOneOnOne from './student/CampusOneOnOne.jsx';
 import AssessmentAttempt from './student/AssessmentAttempt.jsx';
@@ -219,7 +219,7 @@ const appRoutes = [
   { path: '/change-password', element: <ProtectedRoute><ChangePassword /></ProtectedRoute> },
   { path: '/campus-ambassador', element: <ProtectedRoute><CampusAmbassadorDashboard /></ProtectedRoute> },
   { path: '/campus-dashboard/login', element: <ProtectedRoute><CampusLogin /></ProtectedRoute> },
-  { path: '/campus-dashboard', element: <ProtectedRoute><StudentCampusDashboard /></ProtectedRoute> },
+  { path: '/campus-dashboard', element: <ProtectedRoute><HomeDashboard /></ProtectedRoute> },
   { path: '/campus/one-on-one', element: <ProtectedRoute><CampusOneOnOne /></ProtectedRoute> },
   { path: '/student/assessment-attempt/:id', element: <ProtectedRoute><AssessmentAttempt /></ProtectedRoute> },
   { path: '/student/assessment-result/:id', element: <ProtectedRoute><AssessmentResult /></ProtectedRoute> },
