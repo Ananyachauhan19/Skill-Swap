@@ -90,6 +90,7 @@ import ChatPage from './user/ChatPage.jsx';
 import CampusAmbassadorDashboard from './campus-ambassador/CampusAmbassadorDashboard.jsx';
 import ChangePassword from './campus-ambassador/ChangePassword.jsx';
 import StudentCampusDashboard from './student/StudentCampusDashboard.jsx';
+import CampusLogin from './student/CampusLogin.jsx';
 import CampusOneOnOne from './student/CampusOneOnOne.jsx';
 import CampusAmbassadors from './admin/CampusAmbassadors.jsx';
 import { CampusAmbassadorProvider } from './context/CampusAmbassadorContext.jsx';
@@ -215,6 +216,7 @@ const appRoutes = [
   { path: '/blog', element: <ProtectedRoute><Blog /></ProtectedRoute> },
   { path: '/change-password', element: <ProtectedRoute><ChangePassword /></ProtectedRoute> },
   { path: '/campus-ambassador', element: <ProtectedRoute><CampusAmbassadorDashboard /></ProtectedRoute> },
+  { path: '/campus-dashboard/login', element: <ProtectedRoute><CampusLogin /></ProtectedRoute> },
   { path: '/campus-dashboard', element: <ProtectedRoute><StudentCampusDashboard /></ProtectedRoute> },
   { path: '/campus/one-on-one', element: <ProtectedRoute><CampusOneOnOne /></ProtectedRoute> },
   {

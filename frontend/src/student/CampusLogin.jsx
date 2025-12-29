@@ -7,8 +7,18 @@ const CampusLogin = ({ onSuccess }) => {
   const navigate = useNavigate();
   const { validateCampusId } = useCampusAmbassador();
   const [campusId, setCampusId] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Load saved campus ID on mount
+  React.useEffect(() => {
+    const savedCampusId = localStorage.getItem('rememberedCampusId');
+    if (savedCampusId) {
+      setCampusId(savedCampusId);
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,6 +33,20 @@ const CampusLogin = ({ onSuccess }) => {
 
     try {
       const data = await validateCampusId(campusId.trim());
+      
+      // Store campus validation in localStorage
+      localStorage.setItem('campusValidated', 'true');
+      localStorage.setItem('campusId', campusId.trim());
+      
+      // Save campus ID if Remember Me is checked
+      if (rememberMe) {
+        localStorage.setItem('rememberedCampusId', campusId.trim());
+      } else {
+        localStorage.removeItem('rememberedCampusId');
+      }
+      
+      // Navigate to dashboard
+      navigate('/campus-dashboard', { replace: true });
       
       if (typeof onSuccess === 'function') {
         onSuccess(data);
@@ -86,6 +110,24 @@ const CampusLogin = ({ onSuccess }) => {
                   disabled={loading}
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-800 focus:border-blue-800 text-center text-sm sm:text-base font-mono text-gray-700 placeholder-gray-400 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed"
                 />
+              </div>
+
+              {/* Remember Me Checkbox */}
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={loading}
+                  className="w-4 h-4 text-blue-800 bg-gray-50 border-gray-300 rounded focus:ring-blue-800 focus:ring-2 disabled:cursor-not-allowed"
+                />
+                <label
+                  htmlFor="rememberMe"
+                  className="ml-2 text-xs sm:text-sm font-medium text-gray-700 cursor-pointer select-none"
+                >
+                  Remember my Campus ID
+                </label>
               </div>
 
               {error && (

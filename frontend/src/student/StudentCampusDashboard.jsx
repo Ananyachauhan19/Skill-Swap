@@ -16,7 +16,6 @@ const StudentCampusDashboard = () => {
   const { openLogin } = useModal();
   const { user: authUser } = useAuth();
 
-  const [step, setStep] = useState('input'); // 'input' | 'dashboard'
   const [instituteData, setInstituteData] = useState(null);
   const [dashboardStats, setDashboardStats] = useState(null);
   const [studentData, setStudentData] = useState(null);
@@ -35,8 +34,16 @@ const StudentCampusDashboard = () => {
   
   const coinsRef = useRef(null);
 
-  // Fetch institute data dynamically
+  // Check for stored campus validation
   useEffect(() => {
+    const campusValidated = localStorage.getItem('campusValidated');
+    if (!campusValidated) {
+      // Redirect to login if not validated
+      navigate('/campus-dashboard/login', { replace: true });
+      return;
+    }
+
+    // Fetch institute data if validated
     const fetchInstituteData = async () => {
       if (authUser?.instituteId) {
         try {
@@ -72,7 +79,6 @@ const StudentCampusDashboard = () => {
     };
 
     if (authUser?.instituteId && authUser?.studentId) {
-      setStep('dashboard');
       if (authUser?.firstName) {
         setUserName(`${authUser.firstName}${authUser.lastName ? ' ' + authUser.lastName : ''}`);
       }
@@ -80,16 +86,7 @@ const StudentCampusDashboard = () => {
     } else {
       setLoading(false);
     }
-  }, [authUser]);
-
-  const handleCampusLoginSuccess = (data) => {
-    setInstituteData(data.institute);
-    setStudentData(data.user);
-    setStep('dashboard');
-    if (data.user?.firstName) {
-      setUserName(`${data.user.firstName}${data.user.lastName ? ' ' + data.user.lastName : ''}`);
-    }
-  };
+  }, [authUser, navigate]);
 
   // Navbar helper functions
   const fetchCoins = async () => {
@@ -153,11 +150,6 @@ const StudentCampusDashboard = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showCoinsDropdown]);
-
-  // Campus ID Input Screen
-  if (step === 'input') {
-    return <CampusLogin onSuccess={handleCampusLoginSuccess} />;
-  }
 
   // Show loading state while fetching
   if (loading && !instituteData) {

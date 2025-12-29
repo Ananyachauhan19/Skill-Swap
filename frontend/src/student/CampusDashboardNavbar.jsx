@@ -163,6 +163,8 @@ const CampusDashboardNavbar = ({
                   className="hidden lg:inline-flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-white/80 border border-blue-200 shadow-sm hover:shadow-md transition"
                   onClick={() => {
                     setBackToSkillSwapOn(true);
+                    localStorage.removeItem('campusValidated');
+                    localStorage.removeItem('campusId');
                     navigate('/');
                   }}
                 >
@@ -296,6 +298,8 @@ const CampusDashboardNavbar = ({
                 className="w-full px-4 py-3 text-sm font-bold text-white bg-gradient-to-r from-blue-900 to-blue-800 rounded-xl shadow hover:from-blue-800 hover:to-blue-700 transition"
                 onClick={() => {
                   setMenuOpen(false);
+                  localStorage.removeItem('campusValidated');
+                  localStorage.removeItem('campusId');
                   navigate('/');
                 }}
               >
