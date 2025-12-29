@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, FileSpreadsheet, School, Upload, UserCircle2 } from 'lucide-react';
+import { ArrowLeft, FileSpreadsheet, LogOut, School, Upload, UserCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
 
 const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, onOpenUploadTest }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { selectedInstitute, setSelectedInstitute } = useCampusAmbassador();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -33,11 +33,7 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
   return (
     <nav className="fixed top-0 left-0 w-full h-[72px] bg-white/80 backdrop-blur-md border-b border-blue-100 z-50">
       <div className="h-full px-4 sm:px-6 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 rounded-lg hover:bg-blue-50/50 px-2 py-1 transition"
-        >
+        <div className="flex items-center gap-2 px-2 py-1">
           <img
             src="https://res.cloudinary.com/dbltazdsa/image/upload/v1766589377/webimages/skillswap-logo.png"
             alt="SkillSwapHub"
@@ -47,7 +43,7 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
             <div className="text-sm font-semibold text-blue-950">SkillSwapHub</div>
             <div className="text-[11px] text-slate-500">Campus Ambassador</div>
           </div>
-        </button>
+        </div>
 
         <div className="flex items-center gap-2">
           {typeof onOpenUploadCollege === 'function' && (
@@ -131,12 +127,26 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
             }`}
             role="menu"
           >
-            <div className="px-4 py-3">
+            <div className="px-4 py-3 border-b border-blue-100">
               <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Profile</p>
               <p className="mt-2 text-sm font-semibold text-slate-900 truncate">
                 {user?.name || user?.fullName || 'User'}
               </p>
               <p className="mt-1 text-xs text-slate-600 truncate">{user?.email || '—'}</p>
+            </div>
+            <div className="px-2 py-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  setOpen(false);
+                  await logout();
+                  navigate('/login');
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition"
+              >
+                <LogOut size={16} />
+                <span className="font-medium">Logout</span>
+              </button>
             </div>
           </div>
           </div>
