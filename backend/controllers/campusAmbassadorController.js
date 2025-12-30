@@ -1741,6 +1741,82 @@ exports.getCollegeAssessments = async (req, res) => {
   }
 };
 
+// Get assessment attempt details with questions and answers for answer sheet view
+exports.getAssessmentAttemptDetails = async (req, res) => {
+  try {
+    const { studentId, assessmentId } = req.params;
+    const Assessment = require('../models/Assessment');
+    const AssessmentAttempt = require('../models/AssessmentAttempt');
+
+    console.log('[Answer Sheet] Fetching details for assessmentId:', assessmentId, 'studentId:', studentId);
+
+    // Find the assessment
+    const assessment = await Assessment.findById(assessmentId).lean();
+    if (!assessment) {
+      console.log('[Answer Sheet] Assessment not found');
+      return res.status(404).json({ message: 'Assessment not found' });
+    }
+
+    console.log('[Answer Sheet] Assessment found:', assessment.title);
+    console.log('[Answer Sheet] College configs:', assessment.collegeConfigs);
+
+    // Verify this assessment belongs to one of the campus ambassador's institutes
+    const instituteIds = assessment.collegeConfigs?.map(c => c.collegeId.toString()) || [];
+    console.log('[Answer Sheet] Institute IDs from assessment:', instituteIds);
+    console.log('[Answer Sheet] Campus ambassador ID:', req.campusAmbassador._id);
+    console.log('[Answer Sheet] User ID:', req.user._id);
+
+    const institutes = await Institute.find({
+      _id: { $in: instituteIds },
+      campusAmbassador: req.user._id
+    }).select('_id instituteName');
+
+    console.log('[Answer Sheet] Matching institutes found:', institutes.length);
+    if (institutes.length > 0) {
+      console.log('[Answer Sheet] Institute details:', institutes);
+    }
+
+    if (institutes.length === 0) {
+      console.log('[Answer Sheet] Authorization failed - no matching institutes');
+      return res.status(403).json({ message: 'Not authorized to view this assessment' });
+    }
+
+    // Find the student's attempt
+    const attempt = await AssessmentAttempt.findOne({
+      assessmentId,
+      studentId,
+      status: 'submitted'
+    }).lean();
+
+    if (!attempt) {
+      console.log('[Answer Sheet] Assessment attempt not found');
+      return res.status(404).json({ message: 'Assessment attempt not found' });
+    }
+
+    console.log('[Answer Sheet] Attempt found, score:', attempt.score);
+
+    // Return assessment questions and student's answers
+    res.status(200).json({
+      assessment: {
+        title: assessment.title,
+        totalMarks: assessment.totalMarks,
+        questions: assessment.questions
+      },
+      attempt: {
+        score: attempt.score,
+        answers: attempt.answers,
+        submittedAt: attempt.submittedAt,
+        timeTaken: Math.floor((new Date(attempt.submittedAt) - new Date(attempt.startedAt)) / 1000 / 60)
+      }
+    });
+
+  } catch (error) {
+    console.error('Get assessment attempt details error:', error);
+    res.status(500).json({ message: 'Error fetching assessment attempt details', error: error.message });
+  }
+};
+
+
 // Get my activity logs (for ambassador self-view)
 exports.getMyActivityLogs = async (req, res) => {
   try {

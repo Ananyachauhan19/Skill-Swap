@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Clock, Users, TrendingUp, AlertTriangle, ChevronDown, ChevronUp, Calendar, CheckCircle, XCircle, User, Award, Timer, Shield, Download, Eye } from 'lucide-react';
+import { FileText, Clock, Users, TrendingUp, AlertTriangle, ChevronDown, ChevronUp, Calendar, CheckCircle, XCircle, User, Award, Timer, Shield, Download, Eye, X } from 'lucide-react';
 import axios from 'axios';
 import { BACKEND_URL } from '../config.js';
 
@@ -10,6 +10,9 @@ const CollegeAssessmentsTab = ({ institute }) => {
   const [selectedAssessment, setSelectedAssessment] = useState(null);
   const [activeTab, setActiveTab] = useState('compulsory'); // compulsory | optional
   const [expandedSemesters, setExpandedSemesters] = useState({});
+  const [answerSheetModal, setAnswerSheetModal] = useState(null);
+  const [answerSheetData, setAnswerSheetData] = useState(null);
+  const [loadingAnswerSheet, setLoadingAnswerSheet] = useState(false);
 
   useEffect(() => {
     if (institute?._id) {
@@ -57,6 +60,31 @@ const CollegeAssessmentsTab = ({ institute }) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
+  const viewAnswerSheet = async (attemptData, assessmentId) => {
+    try {
+      setLoadingAnswerSheet(true);
+      setAnswerSheetModal(attemptData);
+      
+      const response = await axios.get(
+        `${BACKEND_URL}/api/campus-ambassador/assessment-attempt/${attemptData.studentId}/${assessmentId}`,
+        { withCredentials: true }
+      );
+      
+      setAnswerSheetData(response.data);
+    } catch (err) {
+      console.error('Failed to fetch answer sheet:', err);
+      alert('Failed to load answer sheet');
+      setAnswerSheetModal(null);
+    } finally {
+      setLoadingAnswerSheet(false);
+    }
+  };
+
+  const closeAnswerSheet = () => {
+    setAnswerSheetModal(null);
+    setAnswerSheetData(null);
   };
 
   if (loading) {
@@ -504,17 +532,10 @@ const CollegeAssessmentsTab = ({ institute }) => {
                                 <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
                                   <button
                                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                                    onClick={() => {/* TODO: Implement view answer sheet */}}
+                                    onClick={() => viewAnswerSheet(attempt, selectedAssessment.assessmentId)}
                                   >
                                     <Eye className="h-3.5 w-3.5" />
                                     View Answer Sheet
-                                  </button>
-                                  <button
-                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors"
-                                    onClick={() => {/* TODO: Implement download result */}}
-                                  >
-                                    <Download className="h-3.5 w-3.5" />
-                                    Download Result
                                   </button>
                                 </div>
 
@@ -529,6 +550,150 @@ const CollegeAssessmentsTab = ({ institute }) => {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Answer Sheet Modal */}
+      {answerSheetModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700">
+              <div>
+                <h2 className="text-xl font-bold text-white">Answer Sheet</h2>
+                <p className="text-sm text-blue-100 mt-1">{answerSheetModal.studentName}</p>
+              </div>
+              <button
+                onClick={closeAnswerSheet}
+                className="p-2 hover:bg-blue-800 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-white" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingAnswerSheet ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              ) : answerSheetData ? (
+                <div className="space-y-6">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="text-center">
+                      <p className="text-xs text-gray-600 mb-1">Score</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {answerSheetData.attempt.score}/{answerSheetData.assessment.totalMarks}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-600 mb-1">Correct</p>
+                      <p className="text-lg font-bold text-green-600">{answerSheetData.attempt.score}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-600 mb-1">Incorrect</p>
+                      <p className="text-lg font-bold text-red-600">
+                        {answerSheetData.assessment.questions.length - answerSheetData.attempt.score}
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-600 mb-1">Percentage</p>
+                      <p className="text-lg font-bold text-blue-600">
+                        {Math.round((answerSheetData.attempt.score / answerSheetData.assessment.totalMarks) * 100)}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Questions and Answers */}
+                  <div className="space-y-4">
+                    {answerSheetData.assessment.questions.map((question, index) => {
+                      const studentAnswer = answerSheetData.attempt.answers.find(a => a.questionIndex === index);
+                      const selectedOption = studentAnswer?.selectedAnswer || '';
+                      const isCorrect = selectedOption === question.correctAnswer;
+                      
+                      return (
+                        <div
+                          key={index}
+                          className={`p-5 rounded-lg border-2 ${
+                            isCorrect
+                              ? 'bg-green-50 border-green-300'
+                              : 'bg-red-50 border-red-300'
+                          }`}
+                        >
+                          {/* Question Header */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-700 text-white flex items-center justify-center text-sm font-semibold">
+                                {index + 1}
+                              </span>
+                              <h4 className="text-base font-semibold text-gray-900">
+                                {question.questionText}
+                              </h4>
+                            </div>
+                            {isCorrect ? (
+                              <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0" />
+                            ) : (
+                              <XCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
+                            )}
+                          </div>
+
+                          {/* Options */}
+                          <div className="space-y-2 ml-10">
+                            {['A', 'B', 'C', 'D'].map((option) => {
+                              const optionText = question[`option${option}`];
+                              if (!optionText) return null;
+
+                              const isSelected = selectedOption === option;
+                              const isCorrectOption = question.correctAnswer === option;
+                              
+                              let optionClass = 'bg-white border-gray-300';
+                              if (isCorrectOption) {
+                                optionClass = 'bg-green-100 border-green-500 font-semibold';
+                              } else if (isSelected && !isCorrect) {
+                                optionClass = 'bg-red-100 border-red-500 font-semibold';
+                              }
+
+                              return (
+                                <div
+                                  key={option}
+                                  className={`p-3 rounded-lg border-2 ${optionClass} flex items-center gap-3`}
+                                >
+                                  <span className="flex-shrink-0 w-7 h-7 rounded-full bg-gray-200 text-gray-700 flex items-center justify-center text-sm font-bold">
+                                    {option}
+                                  </span>
+                                  <span className="text-sm text-gray-900">{optionText}</span>
+                                  {isCorrectOption && (
+                                    <span className="ml-auto flex-shrink-0 text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded">
+                                      Correct Answer
+                                    </span>
+                                  )}
+                                  {isSelected && !isCorrectOption && (
+                                    <span className="ml-auto flex-shrink-0 text-xs font-bold text-red-700 bg-red-200 px-2 py-1 rounded">
+                                      Student's Answer
+                                    </span>
+                                  )}
+                                  {isSelected && isCorrectOption && (
+                                    <span className="ml-auto flex-shrink-0 text-xs font-bold text-green-700 bg-green-200 px-2 py-1 rounded">
+                                      Student's Answer ✓
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-600">Failed to load answer sheet</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
