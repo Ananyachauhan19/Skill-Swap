@@ -30,6 +30,14 @@ router.get(
   assessmentController.getAssessmentById
 );
 
+// Update assessment configuration (college configs and compulsory semesters)
+router.put(
+  '/campus-ambassador/assessments/:id/config',
+  requireAuth,
+  requireCampusAmbassador,
+  assessmentController.updateAssessmentConfig
+);
+
 // Toggle assessment active/inactive
 router.patch(
   '/campus-ambassador/assessments/:id/toggle',

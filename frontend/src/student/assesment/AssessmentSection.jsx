@@ -219,7 +219,6 @@ const AssessmentSection = () => {
               <ul className="divide-y divide-blue-100/70">
                 {filteredAssessments.map((a) => {
                   const isSelected = selectedAssessment?._id === a._id;
-                  const statusLabel = a.hasAttempted ? 'Completed' : 'Available';
                   return (
                     <li key={a._id}>
                       <button
@@ -228,26 +227,35 @@ const AssessmentSection = () => {
                           isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/60'
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
-                              {a.title}
-                            </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <p className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
+                                {a.title}
+                              </p>
+                              {a.isCompulsory && (
+                                <span className="shrink-0 px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold">
+                                  COMPULSORY
+                                </span>
+                              )}
+                            </div>
                             {a.description ? (
                               <p className="mt-0.5 text-[11px] sm:text-xs text-slate-600 line-clamp-2">
                                 {a.description}
                               </p>
                             ) : null}
                           </div>
-                          <span
-                            className={`shrink-0 mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                              a.hasAttempted
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-blue-100 text-blue-800'
-                            }`}
-                          >
-                            {statusLabel}
-                          </span>
+                          {(a.hasAttempted || a.isCompulsory) && (
+                            <span
+                              className={`shrink-0 mt-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                                a.hasAttempted
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}
+                            >
+                              {a.hasAttempted ? 'Completed' : 'Required'}
+                            </span>
+                          )}
                         </div>
                       </button>
                     </li>
@@ -290,11 +298,11 @@ const AssessmentSection = () => {
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    {selectedAssessment.isCompulsory ? (
-                      <span className="px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-semibold">
-                        Compulsory
+                    {selectedAssessment.isCompulsory && (
+                      <span className="px-3 py-1 rounded-full bg-red-600 text-white text-xs font-bold shadow-sm">
+                        COMPULSORY
                       </span>
-                    ) : null}
+                    )}
                     {selectedAssessment.hasAttempted ? (
                       <span className="px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold">
                         Completed

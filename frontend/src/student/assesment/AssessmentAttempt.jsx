@@ -217,6 +217,22 @@ const AssessmentAttempt = () => {
     submitAssessment();
   };
 
+  const handleConfirmSubmit = async () => {
+    // Exit fullscreen IMMEDIATELY before closing modal or submitting
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+        // Wait to ensure fullscreen has fully exited
+        await new Promise(resolve => setTimeout(resolve, 200));
+      } catch (err) {
+        console.log('Fullscreen exit error:', err);
+      }
+    }
+    
+    setShowConfirmModal(false);
+    submitAssessment();
+  };
+
   const submitAssessment = async () => {
     if (submitting) return;
 
@@ -237,7 +253,6 @@ const AssessmentAttempt = () => {
 
       // Cleanup
       if (timerRef.current) clearInterval(timerRef.current);
-      document.exitFullscreen?.().catch(() => {});
 
       // Navigate to results
       navigate(`/student/assessment-result/${id}`);
@@ -555,10 +570,7 @@ const AssessmentAttempt = () => {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  submitAssessment();
-                }}
+                onClick={handleConfirmSubmit}
                 className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 text-sm font-semibold"
               >
                 Yes, Submit

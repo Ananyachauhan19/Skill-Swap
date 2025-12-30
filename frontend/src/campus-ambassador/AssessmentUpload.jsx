@@ -12,7 +12,7 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
     startTime: '',
     endTime: ''
   });
-  const [universitySemesterConfig, setUniversitySemesterConfig] = useState([]);
+  const [collegeConfigs, setCollegeConfigs] = useState([]);
   const [instituteCourses, setInstituteCourses] = useState({}); // Stores courses for each institute
   const [file, setFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
@@ -98,23 +98,14 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
       return { ...prev, selectedInstitutes: selected };
     });
 
-    // If adding institute, fetch its courses and add default config
+    // If adding institute, fetch its courses
     if (!formData.selectedInstitutes.includes(instituteId)) {
       fetchInstituteCourses(instituteId);
-      setUniversitySemesterConfig(prev => [
-        ...prev,
-        {
-          instituteId,
-          courses: [],
-          semesters: [],
-          isCompulsory: false
-        }
-      ]);
       setExpandedConfig(prev => ({ ...prev, [instituteId]: true }));
     } else {
-      // Remove config when deselecting
-      setUniversitySemesterConfig(prev => 
-        prev.filter(config => config.instituteId !== instituteId)
+      // Remove all configs for this college when deselecting
+      setCollegeConfigs(prev => 
+        prev.filter(config => config.collegeId !== instituteId)
       );
       setExpandedConfig(prev => {
         const newState = { ...prev };
@@ -124,46 +115,45 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
     }
   };
 
-  const updateInstituteConfig = (instituteId, field, value) => {
-    setUniversitySemesterConfig(prev => 
-      prev.map(config => 
-        config.instituteId === instituteId
+  const addCourseConfig = (collegeId) => {
+    setCollegeConfigs(prev => [
+      ...prev,
+      {
+        collegeId,
+        courseId: '',
+        compulsorySemesters: []
+      }
+    ]);
+  };
+
+  const removeCourseConfig = (index) => {
+    setCollegeConfigs(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const updateCollegeConfig = (index, field, value) => {
+    setCollegeConfigs(prev => 
+      prev.map((config, idx) => 
+        idx === index
           ? { ...config, [field]: value }
           : config
       )
     );
   };
 
-  const toggleCourse = (instituteId, course) => {
-    setUniversitySemesterConfig(prev => 
-      prev.map(config => {
-        if (config.instituteId !== instituteId) return config;
-        const courses = config.courses.includes(course)
-          ? config.courses.filter(c => c !== course)
-          : [...config.courses, course];
-        return { ...config, courses };
+  const toggleSemester = (index, semester) => {
+    setCollegeConfigs(prev => 
+      prev.map((config, idx) => {
+        if (idx !== index) return config;
+        const semesters = config.compulsorySemesters.includes(semester)
+          ? config.compulsorySemesters.filter(s => s !== semester)
+          : [...config.compulsorySemesters, semester];
+        return { ...config, compulsorySemesters: semesters.sort((a, b) => a - b) };
       })
     );
   };
 
-  const toggleSemester = (instituteId, semester) => {
-    setUniversitySemesterConfig(prev => 
-      prev.map(config => {
-        if (config.instituteId !== instituteId) return config;
-        const semesters = config.semesters.includes(semester)
-          ? config.semesters.filter(s => s !== semester)
-          : [...config.semesters, semester];
-        return { ...config, semesters: semesters.sort((a, b) => a - b) };
-      })
-    );
-  };
-
-  const getInstituteConfig = (instituteId) => {
-    return universitySemesterConfig.find(c => c.instituteId === instituteId) || {
-      courses: [],
-      semesters: [],
-      isCompulsory: false
-    };
+  const getCollegeConfigs = (collegeId) => {
+    return collegeConfigs.filter(c => c.collegeId === collegeId);
   };
 
   const handleSubmit = async (e) => {
@@ -190,12 +180,23 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
       return;
     }
 
-    // Validate advanced config if enabled
-    if (useAdvancedConfig) {
-      for (const config of universitySemesterConfig) {
-        if (config.semesters.length === 0) {
-          const inst = institutes.find(i => i._id === config.instituteId);
-          setError(`Please select at least one semester for ${inst?.instituteName || 'institute'}`);
+    // Validate college configurations
+    for (const instituteId of formData.selectedInstitutes) {
+      const configs = collegeConfigs.filter(c => c.collegeId === instituteId);
+      if (configs.length === 0) {
+        const inst = institutes.find(i => i._id === instituteId);
+        setError(`Please add at least one course configuration for ${inst?.instituteName || 'college'}`);
+        return;
+      }
+      for (const config of configs) {
+        if (!config.courseId) {
+          const inst = institutes.find(i => i._id === instituteId);
+          setError(`Please select a course for all configurations in ${inst?.instituteName || 'college'}`);
+          return;
+        }
+        if (config.compulsorySemesters.length === 0) {
+          const inst = institutes.find(i => i._id === instituteId);
+          setError(`Please select at least one compulsory semester for ${config.courseId} in ${inst?.instituteName || 'college'}`);
           return;
         }
       }
@@ -209,11 +210,14 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
       uploadData.append('title', formData.title);
       uploadData.append('description', formData.description);
       uploadData.append('duration', formData.duration);
-      uploadData.append('instituteIds', JSON.stringify(formData.selectedInstitutes));
       
-      // Include advanced semester/course config if enabled
-      if (useAdvancedConfig && universitySemesterConfig.length > 0) {
-        uploadData.append('universitySemesterConfig', JSON.stringify(universitySemesterConfig));
+      // Include college configurations (NEW FORMAT)
+      if (collegeConfigs.length > 0) {
+        // Validate each config has required fields
+        const validConfigs = collegeConfigs.filter(c => c.courseId && c.compulsorySemesters.length > 0);
+        if (validConfigs.length > 0) {
+          uploadData.append('collegeConfigs', JSON.stringify(validConfigs));
+        }
       }
       
       // Include time window if provided
@@ -245,8 +249,8 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
         endTime: ''
       });
       setFile(null);
-      setUniversitySemesterConfig([]);
-      setUseAdvancedConfig(false);
+      setCollegeConfigs([]);
+      setExpandedConfig({});
 
       // Notify parent component
       if (onUploadSuccess) {
@@ -383,128 +387,139 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
           </div>
         </div>
 
-        {/* Advanced Configuration Toggle */}
+        {/* College Configuration */}
         {formData.selectedInstitutes.length > 0 && (
           <div className="border border-gray-200 rounded-lg p-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useAdvancedConfig}
-                onChange={(e) => setUseAdvancedConfig(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="flex items-center gap-2 mb-4">
               <Settings size={16} className="text-gray-500" />
               <span className="text-sm font-medium text-gray-700">
-                Configure courses, semesters & compulsory settings per institute
+                Configure Courses & Compulsory Semesters per College
               </span>
-            </label>
+            </div>
+            <div className="text-xs text-gray-500 mb-4 bg-blue-50 p-3 rounded">
+              ℹ️ You can add multiple courses per college. For each course, the test will be visible to ALL semesters, but marked as COMPULSORY only for selected semesters.
+            </div>
 
-            {useAdvancedConfig && (
-              <div className="mt-4 space-y-4">
-                {formData.selectedInstitutes.map(instituteId => {
-                  const institute = institutes.find(i => i._id === instituteId);
-                  const config = getInstituteConfig(instituteId);
-                  const courses = instituteCourses[instituteId] || [];
-                  const isExpanded = expandedConfig[instituteId];
+            <div className="space-y-4">
+              {formData.selectedInstitutes.map(instituteId => {
+                const institute = institutes.find(i => i._id === instituteId);
+                const courses = instituteCourses[instituteId] || [];
+                const configs = getCollegeConfigs(instituteId);
+                const isExpanded = expandedConfig[instituteId];
 
-                  return (
-                    <div key={instituteId} className="border border-gray-200 rounded-lg overflow-hidden">
-                      {/* Institute Header */}
-                      <div
-                        className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer"
-                        onClick={() => setExpandedConfig(prev => ({ ...prev, [instituteId]: !isExpanded }))}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-800">
-                            {institute?.instituteName || institute?.name}
+                return (
+                  <div key={instituteId} className="border border-gray-200 rounded-lg overflow-hidden">
+                    {/* College Header */}
+                    <div
+                      className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer"
+                      onClick={() => setExpandedConfig(prev => ({ ...prev, [instituteId]: !isExpanded }))}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-800">
+                          {institute?.instituteName || institute?.name}
+                        </span>
+                        {configs.length > 0 && (
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                            {configs.length} course{configs.length > 1 ? 's' : ''} configured
                           </span>
-                          {config.isCompulsory && (
-                            <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded">Compulsory</span>
-                          )}
-                          {config.semesters.length > 0 && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                              {config.semesters.length} sem
-                            </span>
-                          )}
-                          {config.courses.length > 0 && (
-                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                              {config.courses.length} courses
-                            </span>
-                          )}
-                        </div>
-                        {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        )}
                       </div>
-
-                      {/* Expanded Config */}
-                      {isExpanded && (
-                        <div className="p-4 space-y-4">
-                          {/* Compulsory Toggle */}
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={config.isCompulsory}
-                              onChange={(e) => updateInstituteConfig(instituteId, 'isCompulsory', e.target.checked)}
-                              className="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500"
-                            />
-                            <span className="text-sm text-gray-700">Mark as compulsory for selected students</span>
-                          </label>
-
-                          {/* Course Selection */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-2">
-                              Select Courses (leave empty for all courses)
-                            </label>
-                            {courses.length === 0 ? (
-                              <p className="text-xs text-gray-400 italic">No courses defined for this institute</p>
-                            ) : (
-                              <div className="flex flex-wrap gap-2">
-                                {courses.map(course => (
-                                  <button
-                                    key={course}
-                                    type="button"
-                                    onClick={() => toggleCourse(instituteId, course)}
-                                    className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                                      config.courses.includes(course)
-                                        ? 'bg-green-600 text-white border-green-600'
-                                        : 'bg-white text-gray-700 border-gray-300 hover:border-green-400'
-                                    }`}
-                                  >
-                                    {course}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Semester Selection */}
-                          <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-2">
-                              Select Semesters *
-                            </label>
-                            <div className="flex flex-wrap gap-2">
-                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sem => (
-                                <button
-                                  key={sem}
-                                  type="button"
-                                  onClick={() => toggleSemester(instituteId, sem)}
-                                  className={`w-8 h-8 text-xs rounded-full border transition-colors ${
-                                    config.semesters.includes(sem)
-                                      ? 'bg-blue-600 text-white border-blue-600'
-                                      : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
-                                  }`}
-                                >
-                                  {sem}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+
+                    {/* Expanded Config */}
+                    {isExpanded && (
+                      <div className="p-4 space-y-4">
+                        {/* Course Configurations */}
+                        {configs.map((config, idx) => {
+                          const configIndex = collegeConfigs.findIndex(
+                            (c, i) => c.collegeId === instituteId && collegeConfigs.slice(0, i + 1).filter(x => x.collegeId === instituteId).length === idx + 1
+                          );
+
+                          return (
+                            <div key={idx} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm font-semibold text-gray-700">
+                                  Course Configuration #{idx + 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeCourseConfig(configIndex)}
+                                  className="text-red-600 hover:text-red-800 p-1"
+                                  title="Remove this course"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+
+                              {/* Course Selection */}
+                              <div className="mb-3">
+                                <label className="block text-xs font-medium text-gray-600 mb-2">
+                                  Select Course *
+                                </label>
+                                <p className="text-xs text-gray-500 mb-2">
+                                  The test will be visible to ALL semesters of this course
+                                </p>
+                                {courses.length === 0 ? (
+                                  <p className="text-xs text-gray-400 italic">No courses defined for this college</p>
+                                ) : (
+                                  <select
+                                    value={config.courseId}
+                                    onChange={(e) => updateCollegeConfig(configIndex, 'courseId', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <option value="">-- Select Course --</option>
+                                    {courses.map(course => (
+                                      <option key={course} value={course}>{course}</option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+
+                              {/* Compulsory Semester Selection */}
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-2">
+                                  Select Compulsory Semesters *
+                                </label>
+                                <p className="text-xs text-gray-500 mb-2">
+                                  Only these semesters will see the "COMPULSORY" badge
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sem => (
+                                    <button
+                                      key={sem}
+                                      type="button"
+                                      onClick={() => toggleSemester(configIndex, sem)}
+                                      className={`w-10 h-10 text-xs rounded-full border-2 font-semibold transition-all ${
+                                        config.compulsorySemesters.includes(sem)
+                                          ? 'bg-red-600 text-white border-red-600 shadow-md'
+                                          : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:bg-red-50'
+                                      }`}
+                                    >
+                                      {sem}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Add Course Button */}
+                        <button
+                          type="button"
+                          onClick={() => addCourseConfig(instituteId)}
+                          className="w-full py-2 px-4 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Plus size={16} />
+                          Add Another Course
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

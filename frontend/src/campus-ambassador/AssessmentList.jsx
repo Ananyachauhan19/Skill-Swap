@@ -192,14 +192,31 @@ const AssessmentList = () => {
                 )}
 
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {assessment.institutes?.map(institute => (
-                    <span
-                      key={institute._id}
-                      className="px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
-                    >
-                      {institute.name}
-                    </span>
-                  ))}
+                  {assessment.collegeConfigs?.length > 0 ? (
+                    assessment.collegeConfigs.map((config, index) => (
+                      <div
+                        key={index}
+                        className="px-3 py-2 bg-blue-50 text-blue-800 text-xs rounded-lg border border-blue-200"
+                      >
+                        <div className="font-semibold">{config.collegeName}</div>
+                        <div className="text-xs mt-1">
+                          <span className="font-medium">Course:</span> {config.courseId}
+                        </div>
+                        <div className="text-xs mt-0.5">
+                          <span className="font-medium">Compulsory:</span> Sem {config.compulsorySemesters.join(', ')}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    assessment.institutes?.map(institute => (
+                      <span
+                        key={institute._id}
+                        className="px-3 py-1 bg-blue-50 text-blue-700 text-xs rounded-full"
+                      >
+                        {institute.instituteName || institute.name}
+                      </span>
+                    ))
+                  )}
                 </div>
 
                 <p className="text-xs text-gray-400">

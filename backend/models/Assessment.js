@@ -56,11 +56,25 @@ const assessmentSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  instituteIds: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Institute',
-    required: true
+  collegeConfigs: [{
+    collegeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Institute',
+      required: true
+    },
+    courseId: {
+      type: String,
+      required: true,
+      trim: true
+    },
+    compulsorySemesters: [{
+      type: Number,
+      min: 1,
+      max: 12,
+      required: true
+    }]
   }],
+  // Backward compatibility: keep old config format for migration purposes
   universitySemesterConfig: [{
     instituteId: {
       type: mongoose.Schema.Types.ObjectId,
