@@ -894,4 +894,75 @@ router.get('/campus-ambassadors', async (req, res) => {
   }
 });
 
+// Get activity logs for any campus ambassador (admin only)
+router.get('/campus-ambassadors/:ambassadorId/activity-logs', async (req, res) => {
+  try {
+    const ActivityLog = require('../models/ActivityLog');
+    const { ambassadorId } = req.params;
+    const { page = 1, limit = 20, actionType } = req.query;
+    
+    const query = { ambassadorId };
+    
+    // Filter by action type if provided
+    if (actionType && actionType !== 'all') {
+      query.actionType = actionType;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const [activities, totalCount] = await Promise.all([
+      ActivityLog.find(query)
+        .sort({ performedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      ActivityLog.countDocuments(query)
+    ]);
+
+    res.status(200).json({
+      activities,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+        totalCount,
+        hasMore: skip + activities.length < totalCount
+      }
+    });
+  } catch (error) {
+    console.error('Admin - Get activity logs error:', error);
+    res.status(500).json({ message: 'Error fetching activity logs', error: error.message });
+  }
+});
+
+// Get activity stats for any campus ambassador (admin only)
+router.get('/campus-ambassadors/:ambassadorId/activity-stats', async (req, res) => {
+  try {
+    const ActivityLog = require('../models/ActivityLog');
+    const mongoose = require('mongoose');
+    const { ambassadorId } = req.params;
+
+    const stats = await ActivityLog.aggregate([
+      { $match: { ambassadorId: new mongoose.Types.ObjectId(ambassadorId) } },
+      { $group: {
+        _id: '$actionType',
+        count: { $sum: 1 }
+      }},
+      { $sort: { count: -1 } }
+    ]);
+
+    const totalActivities = stats.reduce((sum, stat) => sum + stat.count, 0);
+
+    res.status(200).json({
+      stats: stats.map(s => ({
+        actionType: s._id,
+        count: s.count
+      })),
+      totalActivities
+    });
+  } catch (error) {
+    console.error('Admin - Get activity stats error:', error);
+    res.status(500).json({ message: 'Error fetching activity stats', error: error.message });
+  }
+});
+
 module.exports = router;

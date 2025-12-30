@@ -3,6 +3,7 @@ const AssessmentAttempt = require('../models/AssessmentAttempt');
 const AssessmentNotification = require('../models/AssessmentNotification');
 const Institute = require('../models/Institute');
 const User = require('../models/User');
+const ActivityLog = require('../models/ActivityLog');
 const xlsx = require('xlsx');
 const multer = require('multer');
 const path = require('path');
@@ -231,6 +232,25 @@ exports.uploadAssessment = async (req, res) => {
           duration: assessment.duration
         },
         notifications: notificationResults
+      });
+
+      // Log activity (after response to avoid blocking)
+      setImmediate(async () => {
+        try {
+          const instituteNames = validColleges.map(c => c.instituteName);
+          await ActivityLog.logActivity(req.campusAmbassador._id, 'Assessment Uploaded', {
+            instituteName: instituteNames,
+            metadata: {
+              testName: assessment.title,
+              testStartTime: assessment.startTime,
+              testEndTime: assessment.endTime,
+              questionCount: assessment.questions.length,
+              totalMarks: assessment.totalMarks
+            }
+          });
+        } catch (logError) {
+          console.error('[ActivityLog] Error logging assessment upload:', logError);
+        }
       });
 
     } catch (error) {

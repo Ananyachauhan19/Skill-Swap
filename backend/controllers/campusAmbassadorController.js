@@ -1,6 +1,7 @@
 const Institute = require('../models/Institute');
 const User = require('../models/User');
 const InstituteRewardTransaction = require('../models/InstituteRewardTransaction');
+const ActivityLog = require('../models/ActivityLog');
 const xlsx = require('xlsx');
 const cloudinary = require('../utils/cloudinary');
 const bcrypt = require('bcryptjs');
@@ -102,6 +103,16 @@ exports.createInstitute = async (req, res) => {
     });
 
     await institute.save();
+
+    // Log activity
+    await ActivityLog.logActivity(req.campusAmbassador._id, 'Institute Added', {
+      instituteName: institute.instituteName,
+      metadata: {
+        instituteId: institute.instituteId,
+        instituteType: institute.instituteType,
+        numberOfCourses: numCourses
+      }
+    });
 
     res.status(201).json({
       message: 'Institute created successfully',
@@ -248,6 +259,15 @@ exports.updateInstitute = async (req, res) => {
     }
 
     await institute.save();
+
+    // Log activity
+    await ActivityLog.logActivity(req.campusAmbassador._id, 'Institute Edited', {
+      instituteName: institute.instituteName,
+      metadata: {
+        instituteId: institute.instituteId
+      }
+    });
+
     res.status(200).json({ message: 'Institute updated successfully', institute });
   } catch (error) {
     console.error('Update institute error:', error);
@@ -653,6 +673,23 @@ exports.uploadStudents = async (req, res) => {
         recipientCount: validProcessedCount
       } : null
     });
+
+    // Log activity (after response to avoid blocking)
+    setImmediate(async () => {
+      try {
+        await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Excel Uploaded', {
+          instituteName: institute.instituteName,
+          metadata: {
+            totalStudentsUploaded: validProcessedCount,
+            coinsAssignedDuringUpload: (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0),
+            silverCoinsPerStudent: silverCoinsPerStudent,
+            goldenCoinsPerStudent: goldCoinsPerStudent
+          }
+        });
+      } catch (logError) {
+        console.error('[ActivityLog] Error logging student upload:', logError);
+      }
+    });
   } catch (error) {
     console.error('Upload students error:', error);
     res.status(500).json({ message: 'Error uploading students', error: error.message });
@@ -745,7 +782,19 @@ exports.deleteInstitute = async (req, res) => {
       return res.status(404).json({ message: 'Institute not found or unauthorized' });
     }
 
+    const instituteName = institute.instituteName;
+    const instituteId = institute.instituteId;
+
     await Institute.findByIdAndDelete(id);
+
+    // Log activity (after deletion so it's preserved)
+    await ActivityLog.logActivity(req.campusAmbassador._id, 'Institute Deleted', {
+      instituteName: instituteName,
+      metadata: {
+        instituteId: instituteId
+      }
+    });
+
     res.status(200).json({ message: 'Institute deleted successfully' });
   } catch (error) {
     console.error('Delete institute error:', error);
@@ -879,6 +928,22 @@ exports.distributeCoinsToInstitute = async (req, res) => {
         totalSilverDistributed,
         totalGoldenDistributed,
         distributionDate: transaction.distributionDate
+      }
+    });
+
+    // Log activity (after response to avoid blocking)
+    setImmediate(async () => {
+      try {
+        await ActivityLog.logActivity(req.campusAmbassador._id, 'Coins Distributed', {
+          instituteName: institute.instituteName,
+          metadata: {
+            totalStudentsAffected: totalStudentsCount,
+            silverCoinsPerStudent: silverCoins,
+            goldenCoinsPerStudent: goldenCoins
+          }
+        });
+      } catch (logError) {
+        console.error('[ActivityLog] Error logging coin distribution:', logError);
       }
     });
   } catch (error) {
@@ -1675,3 +1740,73 @@ exports.getCollegeAssessments = async (req, res) => {
     res.status(500).json({ message: 'Error fetching college assessments', error: error.message });
   }
 };
+
+// Get my activity logs (for ambassador self-view)
+exports.getMyActivityLogs = async (req, res) => {
+  try {
+    const ActivityLog = require('../models/ActivityLog');
+    const { page = 1, limit = 20, actionType } = req.query;
+    
+    const query = { ambassadorId: req.campusAmbassador._id };
+    
+    // Filter by action type if provided
+    if (actionType && actionType !== 'all') {
+      query.actionType = actionType;
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const [activities, totalCount] = await Promise.all([
+      ActivityLog.find(query)
+        .sort({ performedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      ActivityLog.countDocuments(query)
+    ]);
+
+    res.status(200).json({
+      activities,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+        totalCount,
+        hasMore: skip + activities.length < totalCount
+      }
+    });
+  } catch (error) {
+    console.error('Get my activity logs error:', error);
+    res.status(500).json({ message: 'Error fetching activity logs', error: error.message });
+  }
+};
+
+// Get my activity stats (for ambassador self-view)
+exports.getMyActivityStats = async (req, res) => {
+  try {
+    const ActivityLog = require('../models/ActivityLog');
+    const mongoose = require('mongoose');
+
+    const stats = await ActivityLog.aggregate([
+      { $match: { ambassadorId: new mongoose.Types.ObjectId(req.campusAmbassador._id) } },
+      { $group: {
+        _id: '$actionType',
+        count: { $sum: 1 }
+      }},
+      { $sort: { count: -1 } }
+    ]);
+
+    const totalActivities = stats.reduce((sum, stat) => sum + stat.count, 0);
+
+    res.status(200).json({
+      stats: stats.map(s => ({
+        actionType: s._id,
+        count: s.count
+      })),
+      totalActivities
+    });
+  } catch (error) {
+    console.error('Get my activity stats error:', error);
+    res.status(500).json({ message: 'Error fetching activity stats', error: error.message });
+  }
+};
+

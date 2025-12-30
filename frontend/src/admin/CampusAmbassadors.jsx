@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Shield, Trash2, CheckCircle, XCircle, X } from 'lucide-react';
+import { UserPlus, Shield, Trash2, CheckCircle, XCircle, X, Activity } from 'lucide-react';
 import axios from 'axios';
 import { BACKEND_URL } from '../config.js';
+import AmbassadorActivityProfile from '../components/AmbassadorActivityProfile';
 
 const CampusAmbassadors = () => {
   const [campusAmbassadors, setCampusAmbassadors] = useState([]);
@@ -9,6 +10,7 @@ const CampusAmbassadors = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [selectedAmbassadorId, setSelectedAmbassadorId] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -170,33 +172,44 @@ const CampusAmbassadors = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {campusAmbassadors.map((user) => (
-                <div key={user.userId || user._id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+              {campusAmbassadors.map((ambassador) => (
+                <div 
+                  key={ambassador.userId || ambassador._id} 
+                  onClick={() => setSelectedAmbassadorId(ambassador._id)}
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-lg hover:border-blue-300 transition cursor-pointer"
+                >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center space-x-3">
                       <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                        {user.firstName?.[0]}{user.lastName?.[0]}
+                        {ambassador.firstName?.[0]}{ambassador.lastName?.[0]}
                       </div>
                       <div>
                         <h3 className="font-semibold text-gray-800">
-                          {user.firstName} {user.lastName}
+                          {ambassador.firstName} {ambassador.lastName}
                         </h3>
-                        <p className="text-sm text-gray-600">@{user.username}</p>
+                        <p className="text-sm text-gray-600">@{ambassador.username}</p>
                       </div>
                     </div>
                     <button
-                      onClick={() => removeCampusAmbassador(user._id)}
-                      className="text-red-600 hover:text-red-700 p-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeCampusAmbassador(ambassador._id);
+                      }}
+                      className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition"
                       title="Remove Campus Ambassador"
                     >
                       <Trash2 size={18} />
                     </button>
                   </div>
-                  <div className="space-y-1 text-sm">
-                    <p className="text-gray-600">{user.email}</p>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-gray-600">{ambassador.email}</p>
                     <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
                       Campus Ambassador
                     </span>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                      <Activity size={12} />
+                      <span>Click to view activity profile</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -332,6 +345,36 @@ const CampusAmbassadors = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Activity Profile Modal */}
+      {selectedAmbassadorId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800">Activity Profile</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {campusAmbassadors.find(a => a._id === selectedAmbassadorId)?.firstName}{' '}
+                  {campusAmbassadors.find(a => a._id === selectedAmbassadorId)?.lastName}
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedAmbassadorId(null)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              <AmbassadorActivityProfile 
+                ambassadorId={selectedAmbassadorId}
+                isAdminView={true}
+              />
+            </div>
           </div>
         </div>
       )}

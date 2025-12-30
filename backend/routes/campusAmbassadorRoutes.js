@@ -52,4 +52,8 @@ router.get('/public-stats', campusAmbassadorController.getPublicCampusStats);
 // Get college assessments with analytics
 router.get('/institutes/:instituteId/assessments', requireAuth, requireCampusAmbassador, campusAmbassadorController.getCollegeAssessments);
 
+// Activity log routes
+router.get('/activity-logs', requireAuth, requireCampusAmbassador, campusAmbassadorController.getMyActivityLogs);
+router.get('/activity-stats', requireAuth, requireCampusAmbassador, campusAmbassadorController.getMyActivityStats);
+
 module.exports = router;

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Building2, Database, Gift, History, PencilLine, School, Upload, Users, FileText } from 'lucide-react';
+import { Building2, Database, Gift, History, PencilLine, School, Upload, Users, FileText, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CampusAmbassadorNavbar from './CampusAmbassadorNavbar';
 import CollegeAssignmentPage from './CollegeAssignmentPage';
@@ -9,6 +9,7 @@ import ExcelUpload from './ExcelUpload';
 import InstituteForm from './InstituteForm';
 import InstituteRewardsDashboard from './InstituteRewardsDashboard';
 import CollegeAssessmentsTab from './CollegeAssessmentsTab';
+import AmbassadorActivityProfile from '../components/AmbassadorActivityProfile';
 import { useAuth } from '../context/AuthContext';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
 
@@ -28,7 +29,8 @@ const PAGES = {
   EDIT_DETAILS: 'edit_details',
   COLLEGE_ASSIGNMENT: 'college_assignment',
   DATABASE: 'database',
-  ASSESSMENTS: 'assessments'
+  ASSESSMENTS: 'assessments',
+  ACTIVITY_PROFILE: 'activity_profile'
 };
 
 const DEFAULT_SIDEBAR_WIDTH = 304; // px
@@ -162,6 +164,10 @@ const CampusAmbassadorDashboard = () => {
         onOpenUploadTest={() => {
           setSelectedInstitute(null);
           setActivePage(PAGES.UPLOAD_TEST);
+        }}
+        onOpenActivityProfile={() => {
+          setSelectedInstitute(null);
+          setActivePage(PAGES.ACTIVITY_PROFILE);
         }}
       />
 
@@ -347,6 +353,18 @@ const CampusAmbassadorDashboard = () => {
               ) : activePage === PAGES.COLLEGE_ASSIGNMENT ? (
                 <div className="p-6">
                   <CollegeAssignmentPage institutes={institutes} selectedInstitute={selectedInstitute} />
+                </div>
+              ) : activePage === PAGES.ACTIVITY_PROFILE ? (
+                <div className="p-6">
+                  <div className="rounded-xl border border-blue-100 bg-white p-6 shadow-sm">
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold text-gray-900">Activity Profile</h2>
+                      <p className="mt-1 text-sm text-gray-600">
+                        Track all your actions and contributions as a campus ambassador
+                      </p>
+                    </div>
+                    <AmbassadorActivityProfile isAdminView={false} />
+                  </div>
                 </div>
               ) : !selectedInstitute ? (
                 <div className="h-[calc(100vh-72px)] flex items-center justify-center px-6">
