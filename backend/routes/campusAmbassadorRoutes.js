@@ -49,4 +49,7 @@ router.get('/institutes/:instituteId/reward-history', requireAuth, requireCampus
 // Public campus statistics (no auth required)
 router.get('/public-stats', campusAmbassadorController.getPublicCampusStats);
 
+// Get college assessments with analytics
+router.get('/institutes/:instituteId/assessments', requireAuth, requireCampusAmbassador, campusAmbassadorController.getCollegeAssessments);
+
 module.exports = router;

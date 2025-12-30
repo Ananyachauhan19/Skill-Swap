@@ -22,14 +22,21 @@ const AssessmentAttempt = () => {
   const [warningMessage, setWarningMessage] = useState('');
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
+  const isSubmittingRef = useRef(false); // Flag to prevent violation during submission
+  const isCleanedUpRef = useRef(false); // Flag to track if cleanup has been done
 
   useEffect(() => {
     startAssessment();
     return () => {
+      isCleanedUpRef.current = true;
       if (timerRef.current) clearInterval(timerRef.current);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      document.removeEventListener('contextmenu', handleRightClick);
-      document.exitFullscreen?.();
+      cleanupAntiCheat();
+      // Safely exit fullscreen if document is active
+      if (document.fullscreenElement && document.fullscreenElement === document.documentElement) {
+        document.exitFullscreen().catch(err => {
+          console.log('Fullscreen exit on cleanup:', err);
+        });
+      }
     };
   }, []);
 
@@ -89,16 +96,40 @@ const AssessmentAttempt = () => {
     document.addEventListener('paste', handleCopyPaste);
   };
 
+  const cleanupAntiCheat = () => {
+    // Remove all anti-cheat event listeners
+    document.removeEventListener('contextmenu', handleRightClick);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('blur', handleWindowBlur);
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.removeEventListener('copy', handleCopyPaste);
+    document.removeEventListener('paste', handleCopyPaste);
+  };
+
   const enterFullscreen = () => {
+    // Don't attempt to enter fullscreen if cleaned up or submitting
+    if (isCleanedUpRef.current || isSubmittingRef.current) {
+      return;
+    }
+
     const elem = document.documentElement;
     if (elem.requestFullscreen) {
       elem.requestFullscreen().catch(err => {
         console.error('Fullscreen error:', err);
+        // Show a warning but don't log as violation on initial attempt
+        if (err.message && err.message.includes('user gesture')) {
+          showWarning('Please click anywhere to enable fullscreen mode');
+        }
       });
     }
   };
 
   const logViolation = async (type) => {
+    // Don't log violations if component is cleaning up or submission is in progress
+    if (isCleanedUpRef.current || isSubmittingRef.current) {
+      return;
+    }
+
     try {
       const response = await axios.post(
         `${BACKEND_URL}/api/student/assessments/${id}/violation`,
@@ -151,7 +182,8 @@ const AssessmentAttempt = () => {
   };
 
   const handleFullscreenChange = () => {
-    if (!document.fullscreenElement) {
+    // Don't log violation if component is cleaning up or submitting
+    if (!document.fullscreenElement && !isCleanedUpRef.current && !isSubmittingRef.current) {
       logViolation('fullscreen-exit');
       // Try to re-enter fullscreen
       setTimeout(enterFullscreen, 1000);
@@ -218,18 +250,24 @@ const AssessmentAttempt = () => {
   };
 
   const handleConfirmSubmit = async () => {
-    // Exit fullscreen IMMEDIATELY before closing modal or submitting
+    // Set flags to stop violation tracking
+    isSubmittingRef.current = true;
+    isCleanedUpRef.current = true;
+    
+    // Immediately cleanup all anti-cheat listeners to stop violation tracking
+    cleanupAntiCheat();
+    setShowConfirmModal(false);
+    
+    // Exit fullscreen
     if (document.fullscreenElement) {
       try {
         await document.exitFullscreen();
-        // Wait to ensure fullscreen has fully exited
-        await new Promise(resolve => setTimeout(resolve, 200));
       } catch (err) {
         console.log('Fullscreen exit error:', err);
       }
     }
     
-    setShowConfirmModal(false);
+    // Submit assessment
     submitAssessment();
   };
 

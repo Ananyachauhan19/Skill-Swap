@@ -839,7 +839,11 @@ exports.submitAssessment = async (req, res) => {
 
     // Check if assessment window has ended
     const assessment = await Assessment.findById(attempt.assessmentId);
-    if (assessment && assessment.endTime) {
+    if (!assessment) {
+      return res.status(404).json({ message: 'Assessment not found' });
+    }
+
+    if (assessment.endTime) {
       const now = new Date();
       if (now > new Date(assessment.endTime)) {
         return res.status(400).json({ 
@@ -855,12 +859,24 @@ exports.submitAssessment = async (req, res) => {
     attempt.submittedAt = new Date();
 
     // Calculate score
-    await attempt.calculateScore();
+    try {
+      await attempt.calculateScore();
+    } catch (scoreError) {
+      console.error('Calculate score error:', scoreError);
+      return res.status(500).json({ 
+        message: 'Failed to calculate score',
+        error: scoreError.message 
+      });
+    }
+
     await attempt.save();
 
     // Update assessment statistics
-    if (assessment) {
+    try {
       await assessment.updateStatistics();
+    } catch (statsError) {
+      console.error('Update statistics error:', statsError);
+      // Don't fail submission if statistics update fails
     }
 
     res.json({ 
@@ -874,7 +890,11 @@ exports.submitAssessment = async (req, res) => {
     });
   } catch (error) {
     console.error('Submit assessment error:', error);
-    res.status(500).json({ message: 'Failed to submit assessment' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Failed to submit assessment',
+      error: error.message 
+    });
   }
 };
 
@@ -887,6 +907,13 @@ exports.logViolation = async (req, res) => {
       return res.status(400).json({ message: 'Violation type is required' });
     }
 
+    // Log for debugging
+    console.log(`[Violation] Type: ${type}, AssessmentId: ${req.params.id}, UserId: ${req.user?._id}`);
+
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
     const attempt = await AssessmentAttempt.findOne({
       assessmentId: req.params.id,
       studentId: req.user._id,
@@ -894,6 +921,7 @@ exports.logViolation = async (req, res) => {
     });
 
     if (!attempt) {
+      console.log(`[Violation] No active attempt found for assessment ${req.params.id} and user ${req.user._id}`);
       return res.status(404).json({ message: 'No active attempt found' });
     }
 
@@ -906,7 +934,8 @@ exports.logViolation = async (req, res) => {
     });
   } catch (error) {
     console.error('Log violation error:', error);
-    res.status(500).json({ message: 'Failed to log violation' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ message: 'Failed to log violation', error: error.message });
   }
 };
 

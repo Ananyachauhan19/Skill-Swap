@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Building2, Database, Gift, History, PencilLine, School, Upload, Users } from 'lucide-react';
+import { Building2, Database, Gift, History, PencilLine, School, Upload, Users, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CampusAmbassadorNavbar from './CampusAmbassadorNavbar';
 import CollegeAssignmentPage from './CollegeAssignmentPage';
@@ -8,6 +8,7 @@ import DistributeCoinsModal from './DistributeCoinsModal';
 import ExcelUpload from './ExcelUpload';
 import InstituteForm from './InstituteForm';
 import InstituteRewardsDashboard from './InstituteRewardsDashboard';
+import CollegeAssessmentsTab from './CollegeAssessmentsTab';
 import { useAuth } from '../context/AuthContext';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
 
@@ -26,7 +27,8 @@ const PAGES = {
   REWARDS_HISTORY: 'rewards_history',
   EDIT_DETAILS: 'edit_details',
   COLLEGE_ASSIGNMENT: 'college_assignment',
-  DATABASE: 'database'
+  DATABASE: 'database',
+  ASSESSMENTS: 'assessments'
 };
 
 const DEFAULT_SIDEBAR_WIDTH = 304; // px
@@ -128,6 +130,7 @@ const CampusAmbassadorDashboard = () => {
 
   const menuItems = useMemo(
     () => [
+      { key: PAGES.ASSESSMENTS, label: 'Assessments', icon: FileText },
       { key: PAGES.UPLOAD_STUDENTS, label: 'Upload Students', icon: Upload },
       { key: PAGES.DISTRIBUTE_COINS, label: 'Distribute Coins', icon: Gift },
       { key: PAGES.REWARDS_HISTORY, label: 'Rewards History', icon: History },
@@ -502,6 +505,10 @@ const CampusAmbassadorDashboard = () => {
                           onSubmit={handleUpdateInstitute}
                           onClose={() => setActivePage(PAGES.OVERVIEW)}
                         />
+                      )}
+
+                      {activePage === PAGES.ASSESSMENTS && (
+                        <CollegeAssessmentsTab institute={selectedInstitute} />
                       )}
 
                       {activePage === PAGES.DATABASE && (

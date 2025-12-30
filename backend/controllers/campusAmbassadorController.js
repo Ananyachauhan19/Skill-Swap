@@ -1447,3 +1447,231 @@ exports.getInstituteCourses = async (req, res) => {
     res.status(500).json({ message: 'Error fetching courses', error: error.message });
   }
 };
+
+// Get college assessments with analytics
+exports.getCollegeAssessments = async (req, res) => {
+  try {
+    const { instituteId } = req.params;
+    const Assessment = require('../models/Assessment');
+    const AssessmentAttempt = require('../models/AssessmentAttempt');
+
+    // Verify college belongs to this campus ambassador
+    const institute = await Institute.findOne({
+      _id: instituteId,
+      campusAmbassador: req.user._id
+    });
+
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found or not authorized' });
+    }
+
+    // Find all assessments for this college
+    const assessments = await Assessment.find({
+      'collegeConfigs.collegeId': instituteId
+    }).sort({ createdAt: -1 }).lean();
+
+    // For each assessment, gather analytics
+    const assessmentAnalytics = await Promise.all(assessments.map(async (assessment) => {
+      // Find this college's config
+      const collegeConfig = assessment.collegeConfigs?.find(
+        c => c.collegeId.toString() === instituteId.toString()
+      );
+
+      if (!collegeConfig) return null;
+
+      const courseId = collegeConfig.courseId;
+      const compulsorySemesters = collegeConfig.compulsorySemesters || [];
+
+      console.log(`[Assessment Analytics] Processing assessment: ${assessment.title}`);
+      console.log(`[Assessment Analytics] Institute ID: ${instituteId}, Course ID: ${courseId}`);
+      console.log(`[Assessment Analytics] Compulsory Semesters: ${JSON.stringify(compulsorySemesters)}`);
+
+      // Get all students in this college for this course
+      // The instituteId might be stored as ObjectId in User collection
+      const instituteObjectId = mongoose.Types.ObjectId.isValid(instituteId) 
+        ? new mongoose.Types.ObjectId(instituteId) 
+        : instituteId;
+
+      let students = await User.find({
+        $or: [
+          { instituteId: instituteId.toString() },
+          { instituteId: instituteObjectId },
+          { instituteName: institute.instituteName },
+          { instituteName: institute.instituteId }
+        ],
+        course: courseId,
+        role: 'learner'
+      }).select('_id firstName lastName username email semester course instituteId instituteName').lean();
+
+      // If no students found, try without course filter to debug
+      if (students.length === 0) {
+        console.log(`[Assessment Analytics] No students found with course filter. Checking all students in college...`);
+        const allCollegeStudents = await User.find({
+          $or: [
+            { instituteId: instituteId.toString() },
+            { instituteId: instituteObjectId },
+            { instituteName: institute.instituteName },
+            { instituteName: institute.instituteId }
+          ],
+          role: 'learner'
+        }).select('_id firstName lastName username course semester instituteId instituteName').lean();
+        console.log(`[Assessment Analytics] Total students in college: ${allCollegeStudents.length}`);
+        if (allCollegeStudents.length > 0) {
+          console.log(`[Assessment Analytics] Sample student instituteId type:`, typeof allCollegeStudents[0].instituteId, allCollegeStudents[0].instituteId);
+          console.log(`[Assessment Analytics] Sample courses in college:`, [...new Set(allCollegeStudents.map(s => s.course))]);
+        } else {
+          // Check if there are any students at all
+          const anyStudents = await User.find({ role: 'learner' }).select('_id firstName lastName username instituteId instituteName course semester').limit(3).lean();
+          console.log(`[Assessment Analytics] Sample of ANY students in database:`, anyStudents.length);
+          if (anyStudents.length > 0) {
+            console.log(`[Assessment Analytics] Full student record sample:`, JSON.stringify(anyStudents[0], null, 2));
+            console.log(`[Assessment Analytics] Looking for institute with _id:`, instituteId);
+            console.log(`[Assessment Analytics] Looking for institute with name:`, institute.instituteName);
+          }
+        }
+      }
+
+      console.log(`[Assessment Analytics] Students found matching course '${courseId}': ${students.length}`);
+      if (students.length > 0) {
+        console.log(`[Assessment Analytics] Sample student:`, JSON.stringify(students[0]));
+      }
+
+      // Get all attempts for this assessment from these students
+      const studentIds = students.map(s => s._id);
+      
+      console.log(`[Assessment Analytics] Looking for attempts with assessmentId:`, assessment._id);
+      console.log(`[Assessment Analytics] Student IDs to match:`, studentIds.map(id => id.toString()));
+      
+      // First, check all attempts for this assessment regardless of status
+      const allAttempts = await AssessmentAttempt.find({
+        assessmentId: assessment._id
+      }).lean();
+      
+      console.log(`[Assessment Analytics] Total attempts for this assessment (any status):`, allAttempts.length);
+      if (allAttempts.length > 0) {
+        console.log(`[Assessment Analytics] Full attempt record:`, JSON.stringify(allAttempts[0], null, 2));
+        console.log(`[Assessment Analytics] Attempt user field names:`, Object.keys(allAttempts[0]).filter(k => k.toLowerCase().includes('user')));
+      }
+      
+      const attempts = await AssessmentAttempt.find({
+        assessmentId: assessment._id,
+        studentId: { $in: studentIds },
+        status: 'submitted'
+      }).select('studentId score marksObtained submittedAt startedAt createdAt updatedAt timeTaken violations').lean();
+
+      console.log(`[Assessment Analytics] Attempts found (submitted status, matching students): ${attempts.length}`);
+
+      // Group by semester
+      const semesterData = {};
+      students.forEach(student => {
+        const sem = parseInt(student.semester) || student.semester; // Handle both string and number
+        if (!semesterData[sem]) {
+          semesterData[sem] = {
+            semester: sem,
+            isCompulsory: compulsorySemesters.includes(parseInt(sem)),
+            totalStudents: 0,
+            attemptedCount: 0,
+            notAttemptedCount: 0,
+            attempts: []
+          };
+        }
+        semesterData[sem].totalStudents++;
+        
+        // Find student's attempt
+        const attempt = attempts.find(a => a.studentId.toString() === student._id.toString());
+        if (attempt) {
+          semesterData[sem].attemptedCount++;
+          const studentName = student.firstName || student.lastName 
+            ? `${student.firstName || ''} ${student.lastName || ''}`.trim()
+            : student.username || 'Unknown Student';
+          
+          // Calculate time taken in seconds
+          const startTime = new Date(attempt.startedAt || attempt.createdAt);
+          const endTime = new Date(attempt.submittedAt);
+          const timeTakenSeconds = Math.floor((endTime - startTime) / 1000);
+          
+          // Extract violation details
+          const violationTypes = (attempt.violations || []).map(v => v.type || 'unknown');
+          
+          semesterData[sem].attempts.push({
+            studentId: student._id,
+            studentName: studentName,
+            studentEmail: student.email,
+            marksObtained: attempt.score || attempt.marksObtained || 0,
+            totalMarks: assessment.totalMarks,
+            timeTaken: timeTakenSeconds > 0 ? timeTakenSeconds : 0,
+            completedAt: attempt.submittedAt || attempt.updatedAt,
+            violations: attempt.violations?.length || 0,
+            violationTypes: violationTypes,
+            violationDetected: (attempt.violations?.length || 0) > 0
+          });
+        } else {
+          semesterData[sem].notAttemptedCount++;
+        }
+      });
+
+      // Split into compulsory and optional
+      const compulsory = [];
+      const optional = [];
+      Object.values(semesterData).forEach(sd => {
+        if (sd.isCompulsory) {
+          compulsory.push(sd);
+        } else {
+          optional.push(sd);
+        }
+      });
+
+      // Sort by semester
+      compulsory.sort((a, b) => a.semester - b.semester);
+      optional.sort((a, b) => a.semester - b.semester);
+
+      // Calculate totals
+      const totalStudents = students.length;
+      const totalAttempted = attempts.length;
+      const totalNotAttempted = totalStudents - totalAttempted;
+
+      // Check if expired
+      const now = new Date();
+      const isExpired = assessment.endTime && new Date(assessment.endTime) < now;
+      const isActive = !isExpired && (!assessment.startTime || new Date(assessment.startTime) <= now);
+
+      return {
+        assessmentId: assessment._id,
+        title: assessment.title,
+        description: assessment.description,
+        duration: assessment.duration,
+        totalMarks: assessment.totalMarks,
+        questionCount: assessment.questionCount,
+        createdAt: assessment.createdAt,
+        startTime: assessment.startTime,
+        endTime: assessment.endTime,
+        status: isExpired ? 'Expired' : isActive ? 'Active' : 'Scheduled',
+        courseId,
+        compulsorySemesters,
+        optionalSemesters: optional.map(o => o.semester),
+        totalStudents,
+        totalAttempted,
+        totalNotAttempted,
+        compulsoryData: compulsory,
+        optionalData: optional
+      };
+    }));
+
+    // Filter out null entries
+    const validAssessments = assessmentAnalytics.filter(a => a !== null);
+
+    res.status(200).json({
+      college: {
+        _id: institute._id,
+        instituteName: institute.instituteName,
+        instituteId: institute.instituteId
+      },
+      assessments: validAssessments,
+      totalAssessments: validAssessments.length
+    });
+
+  } catch (error) {
+    console.error('Get college assessments error:', error);
+    res.status(500).json({ message: 'Error fetching college assessments', error: error.message });
+  }
+};

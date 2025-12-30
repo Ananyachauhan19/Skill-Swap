@@ -19,7 +19,6 @@ const answerSchema = new mongoose.Schema({
   },
   selectedAnswer: {
     type: String,
-    enum: ['A', 'B', 'C', 'D', ''],
     default: ''
   }
 }, { _id: false });
@@ -109,19 +108,32 @@ assessmentAttemptSchema.methods.calculateScore = async function() {
   if (!assessment) {
     throw new Error('Assessment not found');
   }
+
+  if (!assessment.questions || assessment.questions.length === 0) {
+    throw new Error('Assessment has no questions');
+  }
   
   let totalScore = 0;
   
   this.answers.forEach(answer => {
-    const question = assessment.questions[answer.questionIndex];
-    if (question && answer.selectedAnswer === question.correctAnswer) {
-      totalScore += question.marks;
+    // Validate question index
+    if (answer.questionIndex >= 0 && answer.questionIndex < assessment.questions.length) {
+      const question = assessment.questions[answer.questionIndex];
+      if (question && answer.selectedAnswer && answer.selectedAnswer === question.correctAnswer) {
+        totalScore += question.marks || 0;
+      }
     }
   });
   
   this.score = totalScore;
-  this.totalMarks = assessment.totalMarks;
-  this.percentage = Math.round((totalScore / assessment.totalMarks) * 100 * 100) / 100;
+  this.totalMarks = assessment.totalMarks || 0;
+  
+  // Prevent division by zero
+  if (this.totalMarks > 0) {
+    this.percentage = Math.round((totalScore / assessment.totalMarks) * 100 * 100) / 100;
+  } else {
+    this.percentage = 0;
+  }
   
   return this.score;
 };
