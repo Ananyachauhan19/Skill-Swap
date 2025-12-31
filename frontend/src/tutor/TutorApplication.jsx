@@ -10,12 +10,109 @@ const MAX_SKILLS = 5;
 const DRAFT_KEY = 'tutorApplicationDraft_v1';
 const EDUCATION_LEVELS = [
   { value: 'school', label: 'School' },
-  { value: 'college', label: 'College' }
+  { value: 'college', label: 'College' },
+  { value: 'graduate', label: 'Graduated' },
+  { value: 'competitive_exam', label: 'Preparing for Competitive Exams' },
 ];
 
+
 const SCHOOL_CLASSES = ['9', '10', '11', '12'];
-const COLLEGE_TYPES = ['UG', 'PG'];
-const COLLEGE_COURSES = ['BCA', 'BSc CS', 'BCom', 'BA', 'BTech', 'MTech', 'MCA', 'MBA', 'BBA', 'BSc Maths'];
+const STREAMS = ['Science', 'Commerce', 'Arts', 'Other'];
+const EXAMS = [
+  // 🏫 School Level
+  'JEE',
+  'NEET',
+  'CUET-UG',
+  'Olympiads (IMO / IPhO / IChO / NSO)',
+  'NTSE',
+  'KVPY',
+  'Boards Improvement',
+
+  // 🎓 Undergraduate / Integrated
+  'CLAT',
+  'AILET',
+  'NIFT',
+  'NID',
+  'UCEED',
+  'CEED',
+  'IISER Aptitude Test',
+  'ICAR AIEEA',
+  'IISc Bangalore UG',
+  'NDA',
+  'NA',
+
+  // 🎓 Postgraduate
+  'GATE',
+  'CUET-PG',
+  'CAT',
+  'XAT',
+  'GMAT',
+  'GRE',
+  'MAT',
+  'CMAT',
+  'ATMA',
+  'TISS NET',
+  'IIT JAM',
+  'NIMCET',
+  'DU LLB',
+  'MAH CET',
+
+  // 🏦 Banking & Insurance
+  'IBPS PO',
+  'IBPS Clerk',
+  'SBI PO',
+  'SBI Clerk',
+  'RBI Grade B',
+  'RBI Assistant',
+  'LIC AAO',
+  'LIC ADO',
+
+  // 🏛 Government / SSC
+  'UPSC CSE',
+  'UPSC CDS',
+  'UPSC CAPF',
+  'SSC CGL',
+  'SSC CHSL',
+  'SSC CPO',
+  'SSC GD',
+  'State PSC',
+
+  // 👮 Defence
+  'AFCAT',
+  'INET',
+  'Territorial Army',
+
+  // 👩‍🏫 Teaching
+  'CTET',
+  'UPTET',
+  'State TET',
+  'KVS',
+  'NVS',
+  'UGC NET',
+  'CSIR NET',
+
+  // ⚖ Law
+  'Judicial Services Exam',
+  'All State Judiciary Exams',
+
+  // 🌍 International
+  'SAT',
+  'ACT',
+  'IELTS',
+  'TOEFL',
+  'PTE',
+
+  // 🧪 Research / Fellowships
+  'DBT BET',
+  'ICMR JRF',
+  'DST INSPIRE',
+
+  // 🧾 Others
+  'State Entrance Exams',
+  'Professional Certification Exams',
+  'Other',
+];
+
 
 function titleCase(str) {
   return str
@@ -225,10 +322,24 @@ const TutorApplication = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [educationLevel, setEducationLevel] = useState('');
-  const [institutionName, setInstitutionName] = useState('');
-  const [classOrYear, setClassOrYear] = useState(''); // For school classes 9-12
-  const [collegeTrack, setCollegeTrack] = useState(''); // UG / PG
-  const [courseName, setCourseName] = useState('');
+  
+  // School fields
+  const [schoolClass, setSchoolClass] = useState('');
+  const [stream, setStream] = useState('');
+  const [customStream, setCustomStream] = useState('');
+  const [schoolInstitution, setSchoolInstitution] = useState('');
+  
+  // College/Graduated fields - array of courses with institutions
+  const [courses, setCourses] = useState([{ courseName: '', customCourseName: '', institutionName: '' }]);
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  
+  // Competitive exam fields
+  const [isPursuingDegree, setIsPursuingDegree] = useState(''); // 'yes' or 'no'
+  const [examName, setExamName] = useState('');
+  const [customExamName, setCustomExamName] = useState('');
+  const [coachingInstitute, setCoachingInstitute] = useState('');
+  
   const [skills, setSkills] = useState([]); // each { class, subject, topic }
   const [currentSkill, setCurrentSkill] = useState({ class: '', subject: '', topic: '' });
   const [classes, setClasses] = useState([]);
@@ -268,6 +379,28 @@ const TutorApplication = () => {
       }
     })();
   }, []);
+
+  // Load courses from CSV when needed
+  useEffect(() => {
+    if (!educationLevel) return;
+    if (!['college', 'graduate', 'competitive_exam'].includes(educationLevel)) return;
+    if (educationLevel === 'competitive_exam' && isPursuingDegree !== 'yes') return;
+    
+    (async () => {
+      try {
+        setLoadingCourses(true);
+        const res = await fetch(`${BACKEND_URL}/api/tutor/courses`);
+        if (!res.ok) throw new Error('Failed to fetch courses');
+        const data = await res.json();
+        setAvailableCourses(data.courses || []);
+      } catch (e) {
+        console.error('Failed to load courses:', e);
+        setAvailableCourses(['BCA', 'BSc CS', 'BCom', 'BA', 'BTech', 'MTech', 'MCA', 'MBA', 'BBA', 'BSc Maths', 'Other']);
+      } finally {
+        setLoadingCourses(false);
+      }
+    })();
+  }, [educationLevel, isPursuingDegree]);
 
   // Prefill education/institution/class defaults and any pending edited skills from application
   useEffect(() => {
@@ -318,10 +451,15 @@ const TutorApplication = () => {
       if (raw) {
         const draft = JSON.parse(raw);
         if (draft.educationLevel) setEducationLevel(draft.educationLevel);
-        if (draft.institutionName) setInstitutionName(draft.institutionName);
-        if (draft.classOrYear) setClassOrYear(draft.classOrYear);
-        if (draft.collegeTrack) setCollegeTrack(draft.collegeTrack);
-        if (draft.courseName) setCourseName(draft.courseName);
+        if (draft.schoolClass) setSchoolClass(draft.schoolClass);
+        if (draft.stream) setStream(draft.stream);
+        if (draft.customStream) setCustomStream(draft.customStream);
+        if (draft.schoolInstitution) setSchoolInstitution(draft.schoolInstitution);
+        if (Array.isArray(draft.courses)) setCourses(draft.courses);
+        if (draft.isPursuingDegree) setIsPursuingDegree(draft.isPursuingDegree);
+        if (draft.examName) setExamName(draft.examName);
+        if (draft.customExamName) setCustomExamName(draft.customExamName);
+        if (draft.coachingInstitute) setCoachingInstitute(draft.coachingInstitute);
         if (Array.isArray(draft.skills)) {
           const key = (x) => `${(x.class||'').toLowerCase()}::${(x.subject||'').toLowerCase()}::${(x.topic||'').toLowerCase()}`;
           const seen = new Set();
@@ -354,10 +492,15 @@ const TutorApplication = () => {
       const payload = {
         step,
         educationLevel,
-        institutionName,
-        classOrYear,
-        collegeTrack,
-        courseName,
+        schoolClass,
+        stream,
+        customStream,
+        schoolInstitution,
+        courses,
+        isPursuingDegree,
+        examName,
+        customExamName,
+        coachingInstitute,
         skills,
         currentSkill
         // Files intentionally not stored (cannot serialize File objects)
@@ -369,15 +512,20 @@ const TutorApplication = () => {
       }
     }, 400); // 400ms debounce
     return () => clearTimeout(handle);
-  }, [step, educationLevel, institutionName, classOrYear, collegeTrack, courseName, skills, currentSkill, loadedDraft]);
+  }, [step, educationLevel, schoolClass, stream, customStream, schoolInstitution, courses, isPursuingDegree, examName, customExamName, coachingInstitute, skills, currentSkill, loadedDraft]);
 
   function clearDraft() {
     localStorage.removeItem(DRAFT_KEY);
     setEducationLevel('');
-    setInstitutionName('');
-    setClassOrYear('');
-    setCollegeTrack('');
-    setCourseName('');
+    setSchoolClass('');
+    setStream('');
+    setCustomStream('');
+    setSchoolInstitution('');
+    setCourses([{ courseName: '', customCourseName: '', institutionName: '' }]);
+    setIsPursuingDegree('');
+    setExamName('');
+    setCustomExamName('');
+    setCoachingInstitute('');
     setSkills([]);
     setCurrentSkill({ class: '', subject: '', topic: '' });
     setStep(1);
@@ -388,9 +536,39 @@ const TutorApplication = () => {
     const isSkillsUpdate = pendingUpdate?.applicationType === 'skills-update';
     if (step === 1) {
       if (!educationLevel) return false;
-      if (!institutionName.trim()) return false;
-      if (educationLevel === 'school' && !classOrYear) return false;
-      if (educationLevel === 'college' && (!collegeTrack || !courseName)) return false;
+      
+      if (educationLevel === 'school') {
+        if (!schoolClass) return false;
+        if ((schoolClass === '11' || schoolClass === '12') && !stream) return false;
+        if (stream === 'Other' && !customStream.trim()) return false;
+        if (!schoolInstitution.trim()) return false;
+      }
+      
+      if (educationLevel === 'college' || educationLevel === 'graduate') {
+        if (!courses.length) return false;
+        for (const course of courses) {
+          if (!course.courseName) return false;
+          if (course.courseName === 'Other' && !course.customCourseName?.trim()) return false;
+          if (!course.institutionName?.trim()) return false;
+        }
+      }
+      
+      if (educationLevel === 'competitive_exam') {
+        if (!isPursuingDegree) return false;
+        // Exam is required for both yes and no
+        if (!examName) return false;
+        if (examName === 'Other' && !customExamName?.trim()) return false;
+        // If pursuing degree, also validate courses
+        if (isPursuingDegree === 'yes') {
+          if (!courses.length) return false;
+          for (const course of courses) {
+            if (!course.courseName) return false;
+            if (course.courseName === 'Other' && !course.customCourseName?.trim()) return false;
+            if (!course.institutionName?.trim()) return false;
+          }
+        }
+      }
+      
       return true;
     }
     if (step === 2) {
@@ -409,7 +587,7 @@ const TutorApplication = () => {
       return true;
     }
     return false;
-  }, [step, educationLevel, institutionName, classOrYear, collegeTrack, courseName, skills, marksheetFile, videoFile]);
+  }, [step, educationLevel, schoolClass, stream, customStream, schoolInstitution, courses, isPursuingDegree, examName, customExamName, coachingInstitute, skills, marksheetFile, videoFile, pendingUpdate]);
 
   const duplicateSkill = (clazz, subject, topic) => skills.some(s => s.class === clazz && s.subject === subject && s.topic === topic);
   const canAddCurrent = currentSkill.class && currentSkill.subject && currentSkill.topic && !duplicateSkill(currentSkill.class, currentSkill.subject, currentSkill.topic) && skills.length < MAX_SKILLS;
@@ -433,10 +611,31 @@ const TutorApplication = () => {
     try {
       const fd = new FormData();
       fd.append('educationLevel', educationLevel);
-      fd.append('institutionName', titleCase(institutionName));
-      // Choose classOrYear value depending on education selection
-      const classYearValue = educationLevel === 'school' ? classOrYear : `${collegeTrack}-${courseName}`;
-      fd.append('classOrYear', classYearValue);
+      
+      // Prepare education data based on level
+      const educationData = {};
+      if (educationLevel === 'school') {
+        educationData.class = schoolClass;
+        educationData.stream = stream === 'Other' ? customStream : stream;
+        educationData.institution = schoolInstitution;
+      } else if (educationLevel === 'college' || educationLevel === 'graduate') {
+        educationData.courses = courses.map(c => ({
+          courseName: c.courseName === 'Other' ? c.customCourseName : c.courseName,
+          institutionName: c.institutionName
+        }));
+      } else if (educationLevel === 'competitive_exam') {
+        educationData.isPursuingDegree = isPursuingDegree;
+        educationData.examName = examName === 'Other' ? customExamName : examName;
+        educationData.coachingInstitute = coachingInstitute;
+        if (isPursuingDegree === 'yes') {
+          educationData.courses = courses.map(c => ({
+            courseName: c.courseName === 'Other' ? c.customCourseName : c.courseName,
+            institutionName: c.institutionName
+          }));
+        }
+      }
+      
+      fd.append('educationData', JSON.stringify(educationData));
       fd.append('skills', JSON.stringify(skills));
       fd.append('marksheet', marksheetFile);
       fd.append('video', videoFile);
@@ -469,73 +668,372 @@ const TutorApplication = () => {
     }
   }
 
+  // Helper functions for course management
+  const addCourse = () => {
+    if (courses.length < 5) {
+      setCourses([...courses, { courseName: '', customCourseName: '', institutionName: '' }]);
+    }
+  };
+  
+  const removeCourse = (idx) => {
+    if (courses.length > 1) {
+      setCourses(courses.filter((_, i) => i !== idx));
+    }
+  };
+  
+  const updateCourse = (idx, field, value) => {
+    const updated = [...courses];
+    updated[idx] = { ...updated[idx], [field]: value };
+    setCourses(updated);
+  };
+
   // Render Steps
   function renderStep() {
     if (step === 1) {
       return (
         <div className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-2">Education Level</label>
-              <select 
-                value={educationLevel} 
-                onChange={e => setEducationLevel(e.target.value)} 
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-              >
-                <option value="">Select...</option>
-                {EDUCATION_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
-              </select>
+          {/* Education Level Selector */}
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-2">Education Level</label>
+            <select 
+              value={educationLevel} 
+              onChange={e => {
+                setEducationLevel(e.target.value);
+                // Reset fields when changing education level
+                setSchoolClass('');
+                setStream('');
+                setCustomStream('');
+                setSchoolInstitution('');
+                setCourses([{ courseName: '', customCourseName: '', institutionName: '' }]);
+                setIsPursuingDegree('');
+                setExamName('');
+                setCustomExamName('');
+                setCoachingInstitute('');
+              }} 
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+            >
+              <option value="">Select...</option>
+              {EDUCATION_LEVELS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+            </select>
+          </div>
+
+          {/* SCHOOL FLOW */}
+          {educationLevel === 'school' && (
+            <div className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-2">Class (9–12)</label>
+                  <select 
+                    value={schoolClass} 
+                    onChange={e => {
+                      setSchoolClass(e.target.value);
+                      if (e.target.value !== '11' && e.target.value !== '12') setStream('');
+                    }} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+                  >
+                    <option value="">Select class</option>
+                    {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                {(schoolClass === '11' || schoolClass === '12') && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-2">Stream</label>
+                      <select 
+                        value={stream} 
+                        onChange={e => setStream(e.target.value)} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+                      >
+                        <option value="">Select stream</option>
+                        {STREAMS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    {stream === 'Other' && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-2">Custom Stream Name</label>
+                        <input 
+                          value={customStream} 
+                          onChange={e => setCustomStream(titleCase(e.target.value))} 
+                          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                          placeholder="e.g. Vocational" 
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+              {schoolClass && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-2">Institution Name</label>
+                  <input 
+                    value={schoolInstitution} 
+                    onChange={e => setSchoolInstitution(titleCase(e.target.value))} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                    placeholder="e.g. Green Valley High School" 
+                  />
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-2">Institution Name</label>
-              <input 
-                value={institutionName} 
-                onChange={e => setInstitutionName(titleCase(e.target.value))} 
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
-                placeholder="e.g. Green Valley High School" 
-              />
+          )}
+
+          {/* COLLEGE FLOW */}
+          {educationLevel === 'college' && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-800">Courses</h3>
+              {loadingCourses && <p className="text-xs text-gray-500">Loading courses...</p>}
+              {!loadingCourses && courses.map((course, idx) => (
+                <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-600">Course {idx + 1}</span>
+                    {courses.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => removeCourse(idx)} 
+                        className="text-red-600 text-xs hover:underline"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">Course Name</label>
+                    <select 
+                      value={course.courseName} 
+                      onChange={e => updateCourse(idx, 'courseName', e.target.value)} 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+                    >
+                      <option value="">Select course</option>
+                      {availableCourses.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  {course.courseName === 'Other' && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-2">Custom Course Name</label>
+                      <input 
+                        value={course.customCourseName} 
+                        onChange={e => updateCourse(idx, 'customCourseName', titleCase(e.target.value))} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                        placeholder="e.g. BSc Physics" 
+                      />
+                    </div>
+                  )}
+                  {course.courseName && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-2">Institution Name</label>
+                      <input 
+                        value={course.institutionName} 
+                        onChange={e => updateCourse(idx, 'institutionName', titleCase(e.target.value))} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                        placeholder="e.g. State University" 
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+              {!loadingCourses && courses.length < 5 && (
+                <button 
+                  type="button" 
+                  onClick={addCourse} 
+                  className="text-sm text-blue-900 hover:underline font-medium"
+                >
+                  + Add another course
+                </button>
+              )}
             </div>
-            {educationLevel === 'school' && (
+          )}
+
+          {/* GRADUATED FLOW */}
+          {educationLevel === 'graduate' && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-800">Courses you studied</h3>
+              {loadingCourses && <p className="text-xs text-gray-500">Loading courses...</p>}
+              {!loadingCourses && courses.map((course, idx) => (
+                <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-600">Course {idx + 1}</span>
+                    {courses.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => removeCourse(idx)} 
+                        className="text-red-600 text-xs hover:underline"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">Course Name</label>
+                    <select 
+                      value={course.courseName} 
+                      onChange={e => updateCourse(idx, 'courseName', e.target.value)} 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+                    >
+                      <option value="">Select course</option>
+                      {availableCourses.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  {course.courseName === 'Other' && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-2">Custom Course Name</label>
+                      <input 
+                        value={course.customCourseName} 
+                        onChange={e => updateCourse(idx, 'customCourseName', titleCase(e.target.value))} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                        placeholder="e.g. BSc Physics" 
+                      />
+                    </div>
+                  )}
+                  {course.courseName && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-2">Institute you studied in</label>
+                      <input 
+                        value={course.institutionName} 
+                        onChange={e => updateCourse(idx, 'institutionName', titleCase(e.target.value))} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                        placeholder="e.g. State University" 
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+              {!loadingCourses && courses.length < 5 && (
+                <button 
+                  type="button" 
+                  onClick={addCourse} 
+                  className="text-sm text-blue-900 hover:underline font-medium"
+                >
+                  + Add another course
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* COMPETITIVE EXAM FLOW */}
+          {educationLevel === 'competitive_exam' && (
+            <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">Class (9–12)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-2">Are you pursuing any degree?</label>
                 <select 
-                  value={classOrYear} 
-                  onChange={e => setClassOrYear(e.target.value)} 
+                  value={isPursuingDegree} 
+                  onChange={e => {
+                    setIsPursuingDegree(e.target.value);
+                    if (e.target.value === 'no') {
+                      setCourses([{ courseName: '', customCourseName: '', institutionName: '' }]);
+                    }
+                  }} 
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
                 >
-                  <option value="">Select class</option>
-                  {SCHOOL_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value="">Select...</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
                 </select>
               </div>
-            )}
-            {educationLevel === 'college' && (
-              <>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-2">Track</label>
-                  <select 
-                    value={collegeTrack} 
-                    onChange={e => setCollegeTrack(e.target.value)} 
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-                  >
-                    <option value="">Select track</option>
-                    {COLLEGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+
+              {(isPursuingDegree === 'no' || isPursuingDegree === 'yes') && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-800">Exam Details</h3>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">Exam</label>
+                    <select 
+                      value={examName} 
+                      onChange={e => setExamName(e.target.value)} 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+                    >
+                      <option value="">Select exam</option>
+                      {EXAMS.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+                  </div>
+                  {examName === 'Other' && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-2">Custom Exam Name</label>
+                      <input 
+                        value={customExamName} 
+                        onChange={e => setCustomExamName(e.target.value.toUpperCase())} 
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                        placeholder="e.g. BANK PO" 
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">Coaching Institute Name (Optional)</label>
+                    <input 
+                      value={coachingInstitute} 
+                      onChange={e => setCoachingInstitute(titleCase(e.target.value))} 
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                      placeholder="e.g. Aakash Institute" 
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-2">Course Name</label>
-                  <select 
-                    value={courseName} 
-                    onChange={e => setCourseName(e.target.value)} 
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-                  >
-                    <option value="">Select course</option>
-                    {COLLEGE_COURSES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+              )}
+
+              {isPursuingDegree === 'yes' && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-800">Your Degree Courses</h3>
+                  {loadingCourses && <p className="text-xs text-gray-500">Loading courses...</p>}
+                  {!loadingCourses && courses.map((course, idx) => (
+                    <div key={idx} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-gray-600">Course {idx + 1}</span>
+                        {courses.length > 1 && (
+                          <button 
+                            type="button" 
+                            onClick={() => removeCourse(idx)} 
+                            className="text-red-600 text-xs hover:underline"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-2">Course Name</label>
+                        <select 
+                          value={course.courseName} 
+                          onChange={e => updateCourse(idx, 'courseName', e.target.value)} 
+                          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+                        >
+                          <option value="">Select course</option>
+                          {availableCourses.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      {course.courseName === 'Other' && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-2">Custom Course Name</label>
+                          <input 
+                            value={course.customCourseName} 
+                            onChange={e => updateCourse(idx, 'customCourseName', titleCase(e.target.value))} 
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                            placeholder="e.g. BSc Physics" 
+                          />
+                        </div>
+                      )}
+                      {course.courseName && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-2">Institution Name</label>
+                          <input 
+                            value={course.institutionName} 
+                            onChange={e => updateCourse(idx, 'institutionName', titleCase(e.target.value))} 
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent" 
+                            placeholder="e.g. State University" 
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {!loadingCourses && courses.length < 5 && (
+                    <button 
+                      type="button" 
+                      onClick={addCourse} 
+                      className="text-sm text-blue-900 hover:underline font-medium"
+                    >
+                      + Add another course
+                    </button>
+                  )}
                 </div>
-              </>
-            )}
-          </div>
-          {!stepValid && <p className="text-xs text-red-600 font-medium">Complete all required fields.</p>}
+              )}
+            </div>
+          )}
+
+          {!stepValid && <p className="text-xs text-red-600 font-medium mt-4">Complete all required fields.</p>}
         </div>
       );
     }
@@ -621,21 +1119,83 @@ const TutorApplication = () => {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b">
                 <span className="text-gray-600">Education</span>
-                <span className="font-medium text-gray-900">{educationLevel === 'school' ? 'School' : 'College'}</span>
+                <span className="font-medium text-gray-900">
+                  {educationLevel === 'school' && 'School'}
+                  {educationLevel === 'college' && 'College'}
+                  {educationLevel === 'graduate' && 'Graduated'}
+                  {educationLevel === 'competitive_exam' && 'Competitive Exams'}
+                </span>
               </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Institution</span>
-                <span className="font-medium text-gray-900">{institutionName || '—'}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Class / Track</span>
-                <span className="font-medium text-gray-900">{educationLevel === 'school' ? classOrYear : collegeTrack || '—'}</span>
-              </div>
-              {educationLevel === 'college' && (
-                <div className="flex justify-between py-2 border-b">
-                  <span className="text-gray-600">Course</span>
-                  <span className="font-medium text-gray-900">{courseName || '—'}</span>
+              
+              {educationLevel === 'school' && (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-gray-600">Class</span>
+                    <span className="font-medium text-gray-900">{schoolClass || '—'}</span>
+                  </div>
+                  {stream && (
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Stream</span>
+                      <span className="font-medium text-gray-900">{stream === 'Other' ? customStream : stream}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-gray-600">Institution</span>
+                    <span className="font-medium text-gray-900">{schoolInstitution || '—'}</span>
+                  </div>
+                </>
+              )}
+              
+              {(educationLevel === 'college' || educationLevel === 'graduate') && (
+                <div className="py-2 border-b">
+                  <span className="text-gray-600 block mb-2">Courses</span>
+                  <div className="space-y-2">
+                    {courses.map((course, idx) => (
+                      <div key={idx} className="bg-gray-50 p-2 rounded">
+                        <div className="font-medium text-gray-900">
+                          {course.courseName === 'Other' ? course.customCourseName : course.courseName}
+                        </div>
+                        <div className="text-xs text-gray-600">{course.institutionName}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              )}
+              
+              {educationLevel === 'competitive_exam' && (
+                <>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-gray-600">Pursuing Degree</span>
+                    <span className="font-medium text-gray-900">{isPursuingDegree === 'yes' ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div className="flex justify-between py-2 border-b">
+                    <span className="text-gray-600">Exam</span>
+                    <span className="font-medium text-gray-900">
+                      {examName === 'Other' ? customExamName : examName}
+                    </span>
+                  </div>
+                  {coachingInstitute && (
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-gray-600">Coaching Institute</span>
+                      <span className="font-medium text-gray-900">{coachingInstitute}</span>
+                    </div>
+                  )}
+                  {isPursuingDegree === 'yes' && (
+                    <div className="py-2 border-b">
+                      <span className="text-gray-600 block mb-2">Degree Courses</span>
+                      <div className="space-y-2">
+                        {courses.map((course, idx) => (
+                          <div key={idx} className="bg-gray-50 p-2 rounded">
+                            <div className="font-medium text-gray-900">
+                              {course.courseName === 'Other' ? course.customCourseName : course.courseName}
+                            </div>
+                            <div className="text-xs text-gray-600">{course.institutionName}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div className="space-y-3 text-sm">

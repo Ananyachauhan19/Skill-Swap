@@ -13,6 +13,8 @@ router.get('/tutor/status', requireAuth, tutor.ensureTutorActivation, tutor.stat
 router.get('/tutor/verified-skills', requireAuth, tutor.getVerifiedSkills);
 // Prefill defaults for apply/tutor form
 router.get('/tutor/apply/defaults', requireAuth, tutor.prefillApplyDefaults);
+// Get available courses from CSV
+router.get('/tutor/courses', tutor.getCourses);
 // Tutor requests a skills update (pending until admin approval)
 router.post('/tutor/skills/update-request', requireAuth, tutor.uploadOptionalFields, tutor.requestSkillsUpdate);
 // User can revert a pending skills-update to start fresh

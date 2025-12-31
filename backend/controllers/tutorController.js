@@ -80,6 +80,52 @@ exports.uploadOptionalFields = upload.fields([
   { name: 'video', maxCount: 1 },
 ]);
 
+// Get available courses from CSV
+exports.getCourses = async (req, res) => {
+  try {
+    const csvUrl = process.env.GOOGLE_DEGREE_CSV_URL;
+    if (!csvUrl) {
+      // Fallback courses if CSV URL not configured
+      return res.json({
+        courses: ['BCA', 'BSc CS', 'BCom', 'BA', 'BTech', 'MTech', 'MCA', 'MBA', 'BBA', 'BSc Maths', 'Other']
+      });
+    }
+
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(csvUrl);
+    if (!response.ok) {
+      throw new Error('Failed to fetch courses CSV');
+    }
+
+    const text = await response.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    // Skip header row and parse courses
+    // CSV format: DEGREE_CODE,Full Name,Type,Category
+    // We only want the Full Name (second column)
+    const courseList = lines.slice(1).map(line => {
+      const columns = line.split(',');
+      if (columns.length >= 2) {
+        // Extract second column (Full Name) and remove quotes
+        const fullName = columns[1].trim().replace(/^"|"$/g, '');
+        return fullName;
+      }
+      return null;
+    }).filter(Boolean);
+
+    // Remove duplicates and sort
+    const uniqueCourses = [...new Set(courseList)].sort();
+
+    // Add "Other" option at the end
+    res.json({ courses: [...uniqueCourses, 'Other'] });
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+    // Return fallback courses on error
+    res.json({
+      courses: ['BCA', 'BSc CS', 'BCom', 'BA', 'BTech', 'MTech', 'MCA', 'MBA', 'BBA', 'BSc Maths', 'Other']
+    });
+  }
+};
+
 // Create / update application (idempotent per user)
 exports.apply = async (req, res) => {
   try {
