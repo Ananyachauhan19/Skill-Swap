@@ -33,7 +33,7 @@ async function getSkillsList(req, res, next) {
     rows.forEach(r => {
       const classOrCourse = (r['Class/Course'] || r.course || r.Course || '').trim();
       const subject = (r['Subject'] || r.subject || r.unit || r.Unit || '').trim();
-      const topic = (r['Topics'] || r.topics || r.topic || r.Topic || '').trim();
+      const topicsString = (r['Topics'] || r.topics || r.topic || r.Topic || '').trim();
 
       // Add to classes set 
       if (classOrCourse) {
@@ -47,12 +47,22 @@ async function getSkillsList(req, res, next) {
         }
       }
 
-      // Map topics under subject
-      if (subject && topic) {
+      // Parse comma-separated topics from the Topics column
+      if (subject && topicsString) {
+        // Split topics by comma, trim whitespace, and filter empty values
+        const topicsArray = topicsString
+          .split(',')
+          .map(t => t.trim())
+          .filter(Boolean);
+
         topicsBySubject[subject] = topicsBySubject[subject] || [];
-        if (!topicsBySubject[subject].includes(topic)) {
-          topicsBySubject[subject].push(topic);
-        }
+        
+        // Add each individual topic to the subject
+        topicsArray.forEach(topic => {
+          if (!topicsBySubject[subject].includes(topic)) {
+            topicsBySubject[subject].push(topic);
+          }
+        });
       }
     });
 
