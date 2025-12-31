@@ -125,6 +125,36 @@ const CampusStartSkillSwapSearchForm = () => {
     }
   };
 
+  const renderHighlightedText = (text, query) => {
+    if (!query || query.trim().length === 0) {
+      return <span>{text}</span>;
+    }
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase().trim();
+    const parts = [];
+    let currentIndex = 0;
+
+    while (true) {
+      const matchIndex = lowerText.indexOf(lowerQuery, currentIndex);
+      if (matchIndex === -1) break;
+      if (matchIndex > currentIndex) {
+        parts.push(<span key={currentIndex}>{text.slice(currentIndex, matchIndex)}</span>);
+      }
+      const end = matchIndex + lowerQuery.length;
+      parts.push(
+        <mark key={matchIndex} className="bg-yellow-200 font-semibold">
+          {text.slice(matchIndex, end)}
+        </mark>
+      );
+      currentIndex = end;
+    }
+
+    if (currentIndex < text.length) {
+      parts.push(<span key={currentIndex}>{text.slice(currentIndex)}</span>);
+    }
+    return <span>{parts}</span>;
+  };
+
   const [questionValue, setQuestionValue] = useState("");
   const [questionPhoto, setQuestionPhoto] = useState(null);
   const [questionImageUrl, setQuestionImageUrl] = useState("");
@@ -307,7 +337,7 @@ const CampusStartSkillSwapSearchForm = () => {
                       setTimeout(() => unitInputRef.current && unitInputRef.current.focus(), 0);
                     }}
                   >
-                    {s}
+                    {renderHighlightedText(s, courseValue)}
                   </li>
                 ))}
               </ul>
@@ -349,7 +379,7 @@ const CampusStartSkillSwapSearchForm = () => {
                       setTimeout(() => topicInputRef.current && topicInputRef.current.focus(), 0);
                     }}
                   >
-                    {u}
+                    {renderHighlightedText(u, unitValue)}
                   </li>
                 ))}
               </ul>
@@ -389,7 +419,7 @@ const CampusStartSkillSwapSearchForm = () => {
                       setHighlightedTopicIdx(-1);
                     }}
                   >
-                    {t}
+                    {renderHighlightedText(t, topicValue)}
                   </li>
                 ))}
               </ul>

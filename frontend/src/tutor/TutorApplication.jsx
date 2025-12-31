@@ -67,15 +67,27 @@ const StepIndicator = ({ currentStep }) => {
 };
 
 const SkillSelector = ({ classes, subjectsByClass, topicsBySubject, value, onChange }) => {
+  const [classQuery, setClassQuery] = useState('');
   const [subjectQuery, setSubjectQuery] = useState('');
   const [topicQuery, setTopicQuery] = useState('');
   const [classFocused, setClassFocused] = useState(false);
   const [subjectFocused, setSubjectFocused] = useState(false);
   const [topicFocused, setTopicFocused] = useState(false);
+  const [highlightedClassIdx, setHighlightedClassIdx] = useState(-1);
+  const [highlightedSubjectIdx, setHighlightedSubjectIdx] = useState(-1);
+  const [highlightedTopicIdx, setHighlightedTopicIdx] = useState(-1);
+  const classInputRef = useRef(null);
+  const subjectInputRef = useRef(null);
+  const topicInputRef = useRef(null);
+  
   const activeSubjects = value.class ? (subjectsByClass[value.class] || []) : [];
   const activeSubjectTopics = value.subject ? (topicsBySubject[value.subject] || []) : [];
 
-  const filteredClasses = classes || [];
+  const filteredClasses = useMemo(() => {
+    if (!classQuery) return classes || [];
+    const q = classQuery.toLowerCase();
+    return (classes || []).filter(c => c.toLowerCase().includes(q));
+  }, [classQuery, classes]);
   const filteredSubjects = useMemo(() => {
     if (!subjectQuery) return activeSubjects;
     const q = subjectQuery.toLowerCase();
@@ -90,49 +102,193 @@ const SkillSelector = ({ classes, subjectsByClass, topicsBySubject, value, onCha
   useEffect(() => {
     if (!value.class && !value.subject && !value.topic) {
       setClassFocused(false);
+      setClassQuery('');
       setSubjectQuery('');
       setTopicQuery('');
     }
   }, [value]);
 
+  const handleClassKeyDown = (e) => {
+    if (!classFocused || filteredClasses.length === 0) return;
+    if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedClassIdx(idx => (idx + 1) % filteredClasses.length);
+    } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedClassIdx(idx => (idx - 1 + filteredClasses.length) % filteredClasses.length);
+    } else if (e.key === 'Enter') {
+      if (highlightedClassIdx >= 0 && highlightedClassIdx < filteredClasses.length) {
+        const selectedClass = filteredClasses[highlightedClassIdx];
+        onChange({ class: selectedClass, subject: '', topic: '' });
+        setClassQuery(selectedClass);
+        setClassFocused(false);
+        setHighlightedClassIdx(-1);
+        setTimeout(() => subjectInputRef.current && subjectInputRef.current.focus(), 0);
+      }
+    }
+  };
+
+  const handleSubjectKeyDown = (e) => {
+    if (!subjectFocused || filteredSubjects.length === 0) return;
+    if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedSubjectIdx(idx => (idx + 1) % filteredSubjects.length);
+    } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedSubjectIdx(idx => (idx - 1 + filteredSubjects.length) % filteredSubjects.length);
+    } else if (e.key === 'Enter') {
+      if (highlightedSubjectIdx >= 0 && highlightedSubjectIdx < filteredSubjects.length) {
+        const selectedSubject = filteredSubjects[highlightedSubjectIdx];
+        onChange({ class: value.class, subject: selectedSubject, topic: '' });
+        setSubjectQuery(selectedSubject);
+        setSubjectFocused(false);
+        setHighlightedSubjectIdx(-1);
+        setTimeout(() => topicInputRef.current && topicInputRef.current.focus(), 0);
+      }
+    }
+  };
+
+  const handleTopicKeyDown = (e) => {
+    if (!topicFocused || (filteredTopics.length === 0 && value.subject)) return;
+    const topicListWithAll = ['ALL', ...filteredTopics];
+    if (e.key === 'ArrowDown' || (e.key === 'Tab' && !e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedTopicIdx(idx => (idx + 1) % topicListWithAll.length);
+    } else if (e.key === 'ArrowUp' || (e.key === 'Tab' && e.shiftKey)) {
+      e.preventDefault();
+      setHighlightedTopicIdx(idx => (idx - 1 + topicListWithAll.length) % topicListWithAll.length);
+    } else if (e.key === 'Enter') {
+      if (highlightedTopicIdx >= 0 && highlightedTopicIdx < topicListWithAll.length) {
+        const selectedTopic = topicListWithAll[highlightedTopicIdx];
+        onChange({ ...value, topic: selectedTopic });
+        setTopicQuery(selectedTopic);
+        setTopicFocused(false);
+        setHighlightedTopicIdx(-1);
+      }
+    }
+  };
+
+  const renderHighlightedText = (text, query) => {
+    if (!query || query.trim().length === 0) {
+      return <span>{text}</span>;
+    }
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase().trim();
+    const parts = [];
+    let currentIndex = 0;
+
+    while (true) {
+      const matchIndex = lowerText.indexOf(lowerQuery, currentIndex);
+      if (matchIndex === -1) break;
+      if (matchIndex > currentIndex) {
+        parts.push(<span key={currentIndex}>{text.slice(currentIndex, matchIndex)}</span>);
+      }
+      const end = matchIndex + lowerQuery.length;
+      parts.push(
+        <mark key={matchIndex} className="bg-yellow-200 font-semibold">
+          {text.slice(matchIndex, end)}
+        </mark>
+      );
+      currentIndex = end;
+    }
+
+    if (currentIndex < text.length) {
+      parts.push(<span key={currentIndex}>{text.slice(currentIndex)}</span>);
+    }
+    return <span>{parts}</span>;
+  };
+
   return (
     <div className="space-y-4">
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Class / Course</label>
-        <select
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-          value={value.class || ''}
-          onChange={e => onChange({ class: e.target.value, subject: '', topic: '' })}
-          onFocus={() => setClassFocused(true)}
-          onBlur={() => setClassFocused(false)}
-        >
-          <option value="">Select...</option>
-          {filteredClasses.map(c => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
+        <div className="relative">
+          <input
+            ref={classInputRef}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
+            placeholder="Search class/course..."
+            value={classQuery}
+            onChange={e => {
+              setClassQuery(e.target.value);
+              setHighlightedClassIdx(-1);
+            }}
+            onFocus={() => {
+              setClassFocused(true);
+              setHighlightedClassIdx(-1);
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                setClassFocused(false);
+                setHighlightedClassIdx(-1);
+              }, 120);
+            }}
+            onKeyDown={handleClassKeyDown}
+            autoComplete="off"
+            spellCheck="false"
+          />
+          {classFocused && filteredClasses.length > 0 && (
+            <div className="absolute left-0 right-0 z-10 max-h-48 overflow-y-auto border border-gray-200 rounded-lg mt-1 bg-white shadow-lg">
+              {filteredClasses.map((c, idx) => (
+                <button
+                  key={c}
+                  type="button"
+                  onMouseDown={() => { 
+                    onChange({ class: c, subject: '', topic: '' }); 
+                    setClassQuery(c); 
+                    setTimeout(() => subjectInputRef.current && subjectInputRef.current.focus(), 0);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition ${
+                    highlightedClassIdx === idx ? 'bg-blue-100' : value.class === c ? 'bg-blue-50 font-medium' : ''
+                  }`}
+                >{renderHighlightedText(c, classQuery)}</button>
+              ))}
+              {!filteredClasses.length && <div className="px-3 py-2 text-xs text-gray-500">No matches</div>}
+            </div>
+          )}
+        </div>
       </div>
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">Subject</label>
         <div className="relative">
           <input
+            ref={subjectInputRef}
             disabled={!value.class}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:ring-2 focus:ring-blue-900 focus:border-transparent"
             placeholder="Search subject..."
             value={subjectQuery}
-            onChange={e => setSubjectQuery(e.target.value)}
-            onFocus={() => setSubjectFocused(true)}
-            onBlur={() => setSubjectFocused(false)}
+            onChange={e => {
+              setSubjectQuery(e.target.value);
+              setHighlightedSubjectIdx(-1);
+            }}
+            onFocus={() => {
+              setSubjectFocused(true);
+              setHighlightedSubjectIdx(-1);
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                setSubjectFocused(false);
+                setHighlightedSubjectIdx(-1);
+              }, 120);
+            }}
+            onKeyDown={handleSubjectKeyDown}
+            autoComplete="off"
+            spellCheck="false"
           />
           {subjectFocused && (
             <div className="absolute left-0 right-0 z-10 max-h-48 overflow-y-auto border border-gray-200 rounded-lg mt-1 bg-white shadow-lg">
-              {filteredSubjects.map(s => (
+              {filteredSubjects.map((s, idx) => (
                 <button
                   key={s}
                   type="button"
-                  onMouseDown={() => { onChange({ class: value.class, subject: s, topic: '' }); setSubjectQuery(s); }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition ${value.subject === s ? 'bg-blue-100 font-medium' : ''}`}
-                >{s}</button>
+                  onMouseDown={() => { 
+                    onChange({ class: value.class, subject: s, topic: '' }); 
+                    setSubjectQuery(s); 
+                    setTimeout(() => topicInputRef.current && topicInputRef.current.focus(), 0);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition ${
+                    highlightedSubjectIdx === idx ? 'bg-blue-100' : value.subject === s ? 'bg-blue-50 font-medium' : ''
+                  }`}
+                >{renderHighlightedText(s, subjectQuery)}</button>
               ))}
               {!filteredSubjects.length && <div className="px-3 py-2 text-xs text-gray-500">No matches</div>}
             </div>
@@ -143,28 +299,47 @@ const SkillSelector = ({ classes, subjectsByClass, topicsBySubject, value, onCha
         <label className="block text-xs font-medium text-gray-700 mb-1">Topic</label>
         <div className="relative">
           <input
+            ref={topicInputRef}
             disabled={!value.subject}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 focus:ring-2 focus:ring-blue-900 focus:border-transparent"
             placeholder={value.subject ? 'Search topic...' : 'Select subject first'}
             value={topicQuery}
-            onChange={e => setTopicQuery(e.target.value)}
-            onFocus={() => setTopicFocused(true)}
-            onBlur={() => setTopicFocused(false)}
+            onChange={e => {
+              setTopicQuery(e.target.value);
+              setHighlightedTopicIdx(-1);
+            }}
+            onFocus={() => {
+              setTopicFocused(true);
+              setHighlightedTopicIdx(-1);
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                setTopicFocused(false);
+                setHighlightedTopicIdx(-1);
+              }, 150);
+            }}
+            onKeyDown={handleTopicKeyDown}
+            autoComplete="off"
+            spellCheck="false"
           />
           {value.subject && topicFocused && (
             <div className="absolute left-0 right-0 z-10 max-h-48 overflow-y-auto border border-gray-200 rounded-lg mt-1 bg-white shadow-lg">
               <button
                 type="button"
                 onMouseDown={() => { onChange({ ...value, topic: 'ALL' }); setTopicQuery('ALL'); }}
-                className={`w-full text-left px-3 py-2 text-sm font-semibold bg-blue-50 hover:bg-blue-100 transition ${value.topic === 'ALL' ? 'bg-blue-200' : ''}`}
+                className={`w-full text-left px-3 py-2 text-sm font-semibold bg-blue-50 hover:bg-blue-100 transition ${
+                  highlightedTopicIdx === 0 ? 'bg-blue-200' : value.topic === 'ALL' ? 'bg-blue-100' : ''
+                }`}
               >ALL (Complete Subject)</button>
-              {filteredTopics.map(t => (
+              {filteredTopics.map((t, idx) => (
                 <button
                   key={t}
                   type="button"
                   onMouseDown={() => { onChange({ ...value, topic: t }); setTopicQuery(t); }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition ${value.topic === t ? 'bg-blue-100 font-medium' : ''}`}
-                >{t}</button>
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition ${
+                    highlightedTopicIdx === idx + 1 ? 'bg-blue-100' : value.topic === t ? 'bg-blue-50 font-medium' : ''
+                  }`}
+                >{renderHighlightedText(t, topicQuery)}</button>
               ))}
               {!filteredTopics.length && <div className="px-3 py-2 text-xs text-gray-500">No matches</div>}
             </div>
