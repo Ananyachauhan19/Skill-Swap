@@ -27,6 +27,35 @@ function parseCSV(text) {
   });
 }
 
+// GET /api/google-data/degrees - Fetch degrees/courses from GOOGLE_DEGREE_CSV_URL column 1
+router.get('/degrees', async (req, res) => {
+  try {
+    const csvUrl = process.env.GOOGLE_DEGREE_CSV_URL;
+    if (!csvUrl) {
+      return res.status(500).json({ error: 'GOOGLE_DEGREE_CSV_URL not configured' });
+    }
+
+    console.log('Fetching degrees from:', csvUrl);
+    const response = await axios.get(csvUrl);
+    const rows = parseCSV(response.data);
+    
+    console.log('Total rows fetched:', rows.length);
+    console.log('Sample rows:', rows.slice(0, 3));
+    
+    // Extract column 1 (index 0), skip header row
+    const degrees = rows
+      .slice(1) // Skip header
+      .map(row => row[0])
+      .filter(degree => degree && degree.trim() !== '');
+    
+    console.log('Degrees extracted:', degrees.length, degrees.slice(0, 5));
+    res.json({ degrees });
+  } catch (error) {
+    console.error('Error fetching degrees from Google CSV:', error.message);
+    res.status(500).json({ error: 'Failed to fetch degrees' });
+  }
+});
+
 // GET /api/google-data/exams - Fetch exams from column 1
 router.get('/exams', async (req, res) => {
   try {

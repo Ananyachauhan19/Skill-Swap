@@ -26,7 +26,7 @@ const instituteRewardTransactionSchema = new mongoose.Schema({
   },
   source: {
     type: String,
-    enum: ['EXCEL_UPLOAD', 'DISTRIBUTE'],
+    enum: ['EXCEL_UPLOAD', 'DISTRIBUTE', 'MANUAL_ADD', 'MANUAL_UPDATE', 'MANUAL_ASSIGN'],
     required: true
   },
   perStudentSilver: {

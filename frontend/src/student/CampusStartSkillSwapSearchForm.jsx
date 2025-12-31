@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import socket from '../socket';
 import TutorCard from '../user/oneononeSection/TutorCard';
-import Fuse from 'fuse.js';
 import { BACKEND_URL } from '../config.js';
 import { supabase, getPublicUrl } from '../lib/supabaseClient';
 import { Users, AlertCircle } from 'lucide-react';
@@ -44,38 +43,11 @@ const CampusStartSkillSwapSearchForm = () => {
     fetchLists();
     return () => { aborted = true; };
   }, []);
-
-  const fuseClasses = useMemo(() => {
-    return new Fuse(classes, {
-      threshold: 0.3,
-      distance: 100,
-      keys: ['']
-    });
-  }, [classes]);
-
-  const fuseSubjects = useMemo(() => {
-    const subjectList = courseValue ? (subjectsByClass[courseValue] || []) : [];
-    return new Fuse(subjectList, {
-      threshold: 0.3,
-      distance: 100,
-      keys: ['']
-    });
-  }, [courseValue, subjectsByClass]);
-
-  const fuseTopics = useMemo(() => {
-    const topicList = unitValue ? (topicsBySubject[unitValue] || []) : [];
-    return new Fuse(topicList, {
-      threshold: 0.3,
-      distance: 100,
-      keys: ['']
-    });
-  }, [unitValue, topicsBySubject]);
-
   const courseList = useMemo(() => {
-    if ((courseValue || '').trim() === '') return classes;
-    const results = fuseClasses.search(courseValue);
-    return results.map(result => result.item);
-  }, [courseValue, classes, fuseClasses]);
+    const term = (courseValue || '').trim().toLowerCase();
+    if (!term) return classes;
+    return classes.filter(c => c.toLowerCase().includes(term));
+  }, [courseValue, classes]);
 
   const unitList = useMemo(() => {
     return courseValue ? (subjectsByClass[courseValue] || []) : [];
@@ -86,16 +58,16 @@ const CampusStartSkillSwapSearchForm = () => {
   }, [unitValue, topicsBySubject]);
 
   const unitDropdownList = useMemo(() => {
-    if ((unitValue || '').trim() === '') return unitList;
-    const results = fuseSubjects.search(unitValue);
-    return results.map(result => result.item);
-  }, [unitValue, unitList, fuseSubjects]);
+    const term = (unitValue || '').trim().toLowerCase();
+    if (!term) return unitList;
+    return unitList.filter(u => u.toLowerCase().includes(term));
+  }, [unitValue, unitList]);
 
   const topicDropdownList = useMemo(() => {
-    if ((topicValue || '').trim() === '') return topicList;
-    const results = fuseTopics.search(topicValue);
-    return results.map(result => result.item);
-  }, [topicValue, topicList, fuseTopics]);
+    const term = (topicValue || '').trim().toLowerCase();
+    if (!term) return topicList;
+    return topicList.filter(t => t.toLowerCase().includes(term));
+  }, [topicValue, topicList]);
 
   const handleCourseKeyDown = (e) => {
     if (!showDropdown || courseList.length === 0) return;

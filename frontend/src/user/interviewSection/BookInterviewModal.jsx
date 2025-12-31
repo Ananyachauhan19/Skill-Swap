@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Fuse from 'fuse.js';
 import { AnimatePresence } from 'framer-motion';
 import { FaTimes, FaCheckCircle, FaStar, FaFileUpload, FaFilePdf } from 'react-icons/fa';
 import { BACKEND_URL } from '../../config.js';
@@ -64,36 +63,18 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
   const [highlightedPositionIdx, setHighlightedPositionIdx] = useState(-1);
   const companyInputRef = useRef();
   const positionInputRef = useRef();
-
-  // Fuse.js instances for fuzzy search
-  const fuseCompanies = useMemo(() => {
-    return new Fuse(COMPANIES, {
-      threshold: 0.3,
-      distance: 100,
-      keys: ['']
-    });
-  }, []);
-
-  const fusePositions = useMemo(() => {
-    return new Fuse(POSITIONS, {
-      threshold: 0.3,
-      distance: 100,
-      keys: ['']
-    });
-  }, []);
-
-  // Filtered lists using Fuse.js
+  // Filtered lists using simple case-insensitive substring search
   const companyList = useMemo(() => {
-    if ((company || '').trim() === '') return COMPANIES;
-    const results = fuseCompanies.search(company);
-    return results.map(result => result.item);
-  }, [company, fuseCompanies]);
+    const term = (company || '').trim().toLowerCase();
+    if (!term) return COMPANIES;
+    return COMPANIES.filter(c => c.toLowerCase().includes(term));
+  }, [company]);
 
   const positionList = useMemo(() => {
-    if ((position || '').trim() === '') return POSITIONS;
-    const results = fusePositions.search(position);
-    return results.map(result => result.item);
-  }, [position, fusePositions]);
+    const term = (position || '').trim().toLowerCase();
+    if (!term) return POSITIONS;
+    return POSITIONS.filter(p => p.toLowerCase().includes(term));
+  }, [position]);
 
   // Resume file handling
   const handleResumeSelect = async (e) => {

@@ -65,11 +65,11 @@ exports.uploadAssessment = async (req, res) => {
       // Extract unique college IDs from configs
       const collegeIds = [...new Set(parsedConfigs.map(c => c.collegeId))];
 
-      // Verify colleges belong to this campus ambassador
+      // Verify colleges belong to this campus ambassador and load their types
       const validColleges = await Institute.find({
         _id: { $in: collegeIds },
         campusAmbassador: req.user._id
-      });
+      }).select('instituteName courses instituteType');
 
       if (validColleges.length !== collegeIds.length) {
         return res.status(403).json({ message: 'Invalid college selection' });
@@ -92,27 +92,38 @@ exports.uploadAssessment = async (req, res) => {
           });
         }
 
-        // Validate course belongs to this college
+        const isSchool = college.instituteType === 'school';
+
+        // Validate course/class belongs to this institute
         const collegeCourses = college.courses || [];
         if (!collegeCourses.includes(config.courseId)) {
           return res.status(400).json({
-            message: `Course "${config.courseId}" is not available in ${college.instituteName}. Available courses: ${collegeCourses.join(', ')}`
+            message: `Course/Class "${config.courseId}" is not available in ${college.instituteName}. Available values: ${collegeCourses.join(', ')}`
           });
         }
 
-        // Validate compulsory semesters (1-12)
-        if (!Array.isArray(config.compulsorySemesters) || config.compulsorySemesters.length === 0) {
+        // For colleges, compulsorySemesters must be a non-empty array of 1-12
+        if (!Array.isArray(config.compulsorySemesters)) {
           return res.status(400).json({
-            message: `College ${college.instituteName}: compulsorySemesters must be a non-empty array`
+            message: `Institute ${college.instituteName}: compulsorySemesters must be an array`
           });
         }
 
-        const invalidSemesters = config.compulsorySemesters.filter(s => s < 1 || s > 12);
-        if (invalidSemesters.length > 0) {
-          return res.status(400).json({
-            message: `Invalid semesters for ${college.instituteName}: ${invalidSemesters.join(', ')}. Semesters must be between 1 and 12.`
-          });
+        if (!isSchool) {
+          if (config.compulsorySemesters.length === 0) {
+            return res.status(400).json({
+              message: `College ${college.instituteName}: compulsorySemesters must be a non-empty array`
+            });
+          }
+
+          const invalidSemesters = config.compulsorySemesters.filter(s => s < 1 || s > 12);
+          if (invalidSemesters.length > 0) {
+            return res.status(400).json({
+              message: `Invalid semesters for ${college.instituteName}: ${invalidSemesters.join(', ')}. Semesters must be between 1 and 12.`
+            });
+          }
         }
+        // For schools, we ignore compulsorySemesters and use class-based compulsory logic on the fly
       }
 
       // Validate time window if provided
@@ -281,6 +292,7 @@ exports.getMyAssessments = async (req, res) => {
       collegeConfigs: assessment.collegeConfigs?.map(config => ({
         collegeId: config.collegeId?._id || config.collegeId,
         collegeName: config.collegeId?.instituteName,
+        instituteType: config.collegeId?.instituteType,
         courseId: config.courseId,
         compulsorySemesters: config.compulsorySemesters
       })) || [],
@@ -520,6 +532,7 @@ exports.getStudentAssessments = async (req, res) => {
 
     const studentSemester = req.user.semester ? parseInt(req.user.semester) : null;
     const studentCourse = req.user.course || null;
+    const studentClass = req.user.class || null;
 
     // Find active assessments for this institute that include the student's course
     const assessments = await Assessment.find({
@@ -536,13 +549,13 @@ exports.getStudentAssessments = async (req, res) => {
       });
 
       // VISIBILITY LOGIC:
-      // 1. Find the college config for student's institute
-      const collegeConfig = assessment.collegeConfigs?.find(config => 
+      // 1. Find all configs for student's institute
+      const instituteConfigs = (assessment.collegeConfigs || []).filter(config => 
         config.collegeId.toString() === studentInstitute._id.toString()
       );
 
-      // If no college config exists, check old format for backward compatibility
-      if (!collegeConfig && (!assessment.collegeConfigs || assessment.collegeConfigs.length === 0)) {
+      // If no config exists for this institute, check old format for backward compatibility
+      if (instituteConfigs.length === 0 && (!assessment.collegeConfigs || assessment.collegeConfigs.length === 0)) {
         // OLD FORMAT: Check universitySemesterConfig for backward compatibility
         if (assessment.universitySemesterConfig && assessment.universitySemesterConfig.length > 0) {
           const matchingConfig = assessment.universitySemesterConfig.find(config => {
@@ -601,20 +614,35 @@ exports.getStudentAssessments = async (req, res) => {
       }
 
       // NEW FORMAT LOGIC:
-      if (!collegeConfig) {
-        return null; // Assessment not visible to this college
+      if (instituteConfigs.length === 0) {
+        return null; // Assessment not visible to this institute
       }
 
-      // VISIBILITY: Student can see if they're in the selected course
-      // (ALL semesters of the course can see it)
-      const isVisible = studentCourse === collegeConfig.courseId;
+      const isSchool = studentInstitute.instituteType === 'school';
 
-      if (!isVisible) {
-        return null; // Not in the visible course
+      let isVisible;
+      let isCompulsory;
+
+      if (!isSchool) {
+        // COLLEGE LOGIC:
+        // Student can see if they're in the selected course (all semesters visible)
+        const collegeConfig = instituteConfigs.find(cfg => cfg.courseId === studentCourse) || instituteConfigs[0];
+
+        isVisible = studentCourse === collegeConfig.courseId;
+        if (!isVisible) {
+          return null;
+        }
+
+        // Compulsory if student's semester is in compulsorySemesters
+        isCompulsory = studentSemester && collegeConfig.compulsorySemesters.includes(studentSemester);
+      } else {
+        // SCHOOL LOGIC:
+        // No visibility filtering: all classes in the school see the test
+        isVisible = true;
+
+        // Compulsory only if student's class matches any configured class/course
+        isCompulsory = !!(studentClass && instituteConfigs.some(cfg => cfg.courseId === studentClass));
       }
-
-      // COMPULSORY: Mark as compulsory only if student's semester is in compulsorySemesters
-      const isCompulsory = studentSemester && collegeConfig.compulsorySemesters.includes(studentSemester);
 
       // Check time window
       const now = new Date();
@@ -705,22 +733,35 @@ exports.startAssessment = async (req, res) => {
     
     // NEW FORMAT: Check collegeConfigs
     if (assessment.collegeConfigs && assessment.collegeConfigs.length > 0) {
-      // Find the college config for this student's institute
-      const collegeConfig = assessment.collegeConfigs.find(config => 
+      // All configs for this institute
+      const instituteConfigs = assessment.collegeConfigs.filter(config => 
         config.collegeId.toString() === studentInstitute._id.toString()
       );
 
-      if (!collegeConfig) {
-        return res.status(403).json({ message: 'This assessment is not available for your college' });
+      if (instituteConfigs.length === 0) {
+        return res.status(403).json({ message: 'This assessment is not available for your institute' });
       }
 
-      // Check if student's course matches
-      if (studentCourse !== collegeConfig.courseId) {
-        return res.status(403).json({ message: 'This assessment is not available for your course' });
-      }
+      const isSchool = studentInstitute.instituteType === 'school';
 
-      // Determine if compulsory for this student
-      isCompulsory = studentSemester && collegeConfig.compulsorySemesters.includes(studentSemester);
+      if (!isSchool) {
+        // COLLEGE LOGIC: student must belong to one of the configured courses
+        const collegeConfig = instituteConfigs.find(cfg => cfg.courseId === studentCourse) || null;
+
+        if (!collegeConfig) {
+          return res.status(403).json({ message: 'This assessment is not available for your course' });
+        }
+
+        // Determine if compulsory for this student based on semester
+        isCompulsory = studentSemester && collegeConfig.compulsorySemesters.includes(studentSemester);
+      } else {
+        // SCHOOL LOGIC: all classes can attempt; compulsory only for configured class/course
+        const studentClass = req.user.class || null;
+
+        // Assessment is available to the school if at least one config exists
+        // Determine compulsory based on whether the student's class is configured
+        isCompulsory = !!(studentClass && instituteConfigs.some(cfg => cfg.courseId === studentClass));
+      }
 
       // Check time window
       const now = new Date();

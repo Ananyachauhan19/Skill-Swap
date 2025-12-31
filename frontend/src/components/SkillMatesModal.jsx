@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { X, Trash2, MoreVertical, Search, UserX, Users, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSkillMates } from '../context/SkillMatesContext';
-import Fuse from 'fuse.js';
 
 const SkillMatesModal = () => {
   const { isOpen, close, list, loading, error, remove } = useSkillMates();
@@ -26,23 +25,23 @@ const SkillMatesModal = () => {
     setLiveQuery(e.target.value);
   }, []);
 
-  const fuse = useMemo(() => new Fuse(list || [], {
-    keys: [
-      { name: 'firstName', weight: 0.4 },
-      { name: 'lastName', weight: 0.3 },
-      { name: 'username', weight: 0.3 }
-    ],
-    includeMatches: true,
-    // Slightly looser matching and allow single-character queries
-    threshold: 0.35,
-    ignoreLocation: true,
-    minMatchCharLength: 1
-  }), [list]);
-
   const displayList = useMemo(() => {
     if (!searchQuery) return (list || []).slice(0, 100);
-    return fuse.search(searchQuery).slice(0, 100).map(r => ({ ...r.item, _matches: r.matches }));
-  }, [searchQuery, list, fuse]);
+    const term = searchQuery.toLowerCase();
+    return (list || [])
+      .filter(user => {
+        const first = (user.firstName || '').toLowerCase();
+        const last = (user.lastName || '').toLowerCase();
+        const username = (user.username || '').toLowerCase();
+        return (
+          first.includes(term) ||
+          last.includes(term) ||
+          username.includes(term)
+        );
+      })
+      .slice(0, 100)
+      .map(user => ({ ...user }));
+  }, [searchQuery, list]);
 
   // Reset active index when query changes or list shrinks
   useEffect(() => {
@@ -64,19 +63,32 @@ const SkillMatesModal = () => {
     }
   }, [activeIndex, displayList]);
 
-  const highlight = (text, matches, key) => {
-    if (!matches) return text;
-    const m = matches.find(x => x.key === key);
-    if (!m) return text;
+  const highlight = (text, query) => {
+    if (!query) return text;
+    const lowerText = String(text || '');
+    const lower = query.toLowerCase();
+    const full = lowerText.toLowerCase();
     const parts = [];
-    let last = 0;
-    m.indices.forEach(([start, end], idx) => {
-      if (start > last) parts.push(text.slice(last, start));
-      parts.push(<mark key={key+idx} className="bg-yellow-200 rounded px-0.5">{text.slice(start, end+1)}</mark>);
-      last = end + 1;
-    });
-    if (last < text.length) parts.push(text.slice(last));
-    return parts;
+    let index = 0;
+    let matchIndex;
+
+    while ((matchIndex = full.indexOf(lower, index)) !== -1) {
+      if (matchIndex > index) {
+        parts.push(lowerText.slice(index, matchIndex));
+      }
+      parts.push(
+        <mark key={matchIndex} className="bg-yellow-200 rounded px-0.5">
+          {lowerText.slice(matchIndex, matchIndex + lower.length)}
+        </mark>
+      );
+      index = matchIndex + lower.length;
+    }
+
+    if (index < lowerText.length) {
+      parts.push(lowerText.slice(index));
+    }
+
+    return parts.length ? parts : text;
   };
 
   if (!isOpen) return null;

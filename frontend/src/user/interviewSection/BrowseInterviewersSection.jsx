@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Fuse from 'fuse.js';
 import { FaTimes } from 'react-icons/fa';
 import { BACKEND_URL } from '../../config.js';
 import { useAuth } from '../../context/AuthContext';
@@ -54,29 +53,28 @@ function BrowseInterviewersSection({ onBookSession }) {
     })();
   }, [searchText, searchMode, user?._id]);
 
-  // Fuse.js instance for searching interviewers in the "All Expert Interviewers" modal
-  const modalFuse = useMemo(() => {
-    if (!allInterviewers || allInterviewers.length === 0) return null;
-    return new Fuse(allInterviewers, {
-      includeScore: false,
-      threshold: 0.35,
-      keys: [
-        'user.firstName',
-        'user.lastName',
-        'user.username',
-        'application.company',
-        'application.position',
-        'application.qualification',
-      ],
-    });
-  }, [allInterviewers]);
-
   const modalFilteredInterviewers = useMemo(() => {
     const query = modalSearchText.trim();
-    if (!query || !modalFuse) return allInterviewers;
-    const results = modalFuse.search(query);
-    return results.map(r => r.item);
-  }, [modalSearchText, modalFuse, allInterviewers]);
+    if (!query) return allInterviewers;
+    const term = query.toLowerCase();
+    return allInterviewers.filter(m => {
+      const firstName = (m.user?.firstName || '').toLowerCase();
+      const lastName = (m.user?.lastName || '').toLowerCase();
+      const username = (m.user?.username || '').toLowerCase();
+      const company = (m.application?.company || '').toLowerCase();
+      const position = (m.application?.position || '').toLowerCase();
+      const qualification = (m.application?.qualification || '').toLowerCase();
+
+      return (
+        firstName.includes(term) ||
+        lastName.includes(term) ||
+        username.includes(term) ||
+        company.includes(term) ||
+        position.includes(term) ||
+        qualification.includes(term)
+      );
+    });
+  }, [modalSearchText, allInterviewers]);
 
   return (
     <section className="bg-gradient-to-br from-white via-blue-50/20 to-slate-50/50 rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-5 lg:p-8 border border-slate-200/50 shadow-sm">

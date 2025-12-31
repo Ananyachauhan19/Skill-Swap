@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import FlexSearch from 'flexsearch';
 import { BACKEND_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -41,6 +42,9 @@ const RegisterInterviewer = () => {
   const roleBoxRef = useRef(null);
   const qualBoxRef = useRef(null);
   const dragRef = useRef(null);
+  const qualIndexRef = useRef(null);
+
+  const [qualResultIds, setQualResultIds] = useState([]);
 
   // Fetch existing application
   useEffect(() => {
@@ -76,11 +80,12 @@ const RegisterInterviewer = () => {
     (async () => {
       try {
         setLoadingQualifications(true);
-        const res = await fetch(`${BACKEND_URL}/api/interview/qualifications`);
+        const res = await fetch(`${BACKEND_URL}/api/google-data/degrees`);
         if (!res.ok) throw new Error('Failed to fetch qualifications');
         const data = await res.json();
-        if (data.qualifications && Array.isArray(data.qualifications)) {
-          setAvailableQualifications(data.qualifications);
+        if (data.degrees && Array.isArray(data.degrees)) {
+          setAvailableQualifications(data.degrees);
+          console.log('Qualifications loaded from GOOGLE_DEGREE_CSV_URL:', data.degrees.length);
         }
       } catch (e) {
         console.error('Failed to fetch qualifications, using fallback', e);
@@ -131,18 +136,74 @@ const RegisterInterviewer = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filtered suggestions
+  // Filtered suggestions (simple substring-based for orgs/roles)
   const filteredOrgs = useMemo(() => {
-    if (!company.trim()) return orgSuggestions;
-    return orgSuggestions.filter(o => o.toLowerCase().includes(company.toLowerCase()));
+    const term = company.trim().toLowerCase();
+    if (!term) return orgSuggestions;
+    return orgSuggestions.filter(o => o.toLowerCase().includes(term));
   }, [company, orgSuggestions]);
+
   const filteredRoles = useMemo(() => {
-    if (!position.trim()) return roleSuggestions;
-    return roleSuggestions.filter(r => r.toLowerCase().includes(position.toLowerCase()));
+    const term = position.trim().toLowerCase();
+    if (!term) return roleSuggestions;
+    return roleSuggestions.filter(r => r.toLowerCase().includes(term));
   }, [position, roleSuggestions]);
-  const filteredQuals = useMemo(() => {
-    if (!qualification.trim()) return availableQualifications;
-    return availableQualifications.filter(q => q.toLowerCase().includes(qualification.toLowerCase()));
+
+  // Build FlexSearch index for qualifications when list changes
+  useEffect(() => {
+    if (!Array.isArray(availableQualifications) || availableQualifications.length === 0) {
+      qualIndexRef.current = null;
+      setQualResultIds([]);
+      return;
+    }
+    const Document = FlexSearch.Document;
+    const index = new Document({
+      tokenize: 'forward',
+      cache: true,
+      context: true,
+      depth: 3,
+      document: {
+        id: 'id',
+        index: ['degree_course'],
+        store: ['degree_course'],
+      },
+    });
+
+    availableQualifications.forEach((q, id) => {
+      index.add({ id, degree_course: (q || '').toString() });
+    });
+
+    qualIndexRef.current = index;
+    const allIds = availableQualifications.map((_, i) => i);
+    setQualResultIds(allIds);
+  }, [availableQualifications]);
+
+  // Update qualification search results on every keystroke (no debounce)
+  useEffect(() => {
+    const data = Array.isArray(availableQualifications) ? availableQualifications : [];
+    const index = qualIndexRef.current;
+    const trimmed = qualification.trim();
+
+    if (!index || trimmed.length < 2) {
+      setQualResultIds(data.map((_, i) => i));
+      return;
+    }
+
+    const results = index.search({
+      query: trimmed,
+      index: 'degree_course',
+      limit: 500,
+      enrich: false,
+    });
+
+    let ids = [];
+    if (Array.isArray(results) && results.length > 0) {
+      const fieldResult = results.find(r => r.field === 'degree_course') || results[0];
+      if (fieldResult && Array.isArray(fieldResult.result)) {
+        ids = fieldResult.result;
+      }
+    }
+    setQualResultIds(ids);
   }, [qualification, availableQualifications]);
 
   // Validation
@@ -210,6 +271,35 @@ const RegisterInterviewer = () => {
 
   const helper = (text) => <p className="mt-1 text-xs text-gray-500">{text}</p>;
   const invalidClass = (v) => v ? 'border-gray-300 focus:ring-blue-500 focus:border-blue-500' : 'border-red-400 focus:ring-red-500 focus:border-red-500';
+
+   const renderHighlightedText = (text, rawQuery) => {
+    const query = (rawQuery || '').trim();
+    if (!query || query.length < 2) return <span>{text}</span>;
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const parts = [];
+    let currentIndex = 0;
+
+    while (true) {
+      const matchIndex = lowerText.indexOf(lowerQuery, currentIndex);
+      if (matchIndex === -1) break;
+      if (matchIndex > currentIndex) {
+        parts.push(<span key={currentIndex}>{text.slice(currentIndex, matchIndex)}</span>);
+      }
+      const end = matchIndex + lowerQuery.length;
+      parts.push(
+        <mark key={matchIndex} className="bg-yellow-200 font-semibold">
+          {text.slice(matchIndex, end)}
+        </mark>
+      );
+      currentIndex = end;
+    }
+
+    if (currentIndex < text.length) {
+      parts.push(<span key={currentIndex}>{text.slice(currentIndex)}</span>);
+    }
+    return <span>{parts}</span>;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-white to-gray-100 pt-16 md:pt-[72px] xl:pt-20 pb-10 px-4">
@@ -361,18 +451,35 @@ const RegisterInterviewer = () => {
                 autoComplete="off"
               />
               {helper('Select from list or type your own highest qualification.')}
-              {showQualList && filteredQuals.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow max-h-60 overflow-y-auto">
-                  {filteredQuals.map(q => (
-                    <button
-                      key={q}
-                      type="button"
-                      onMouseDown={() => { setQualification(q); setShowQualList(false); }}
-                      className="block w-full text-left px-3 py-2 text-sm hover:bg-blue-50"
-                    >{q}</button>
-                  ))}
-                </div>
-              )}
+              {showQualList && (() => {
+                const allQuals = Array.isArray(availableQualifications) ? availableQualifications : [];
+                const ids = qualResultIds.length ? qualResultIds : allQuals.map((_, i) => i);
+                if (!ids.length) {
+                  return (
+                    <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow max-h-60 overflow-y-auto">
+                      <div className="px-3 py-2 text-xs text-gray-500">No matches</div>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow max-h-60 overflow-y-auto">
+                    {ids.map((id) => {
+                      const text = allQuals[id];
+                      const isSelected = qualification === text;
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          onMouseDown={() => { setQualification(text); setShowQualList(false); }}
+                          className={`block w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${isSelected ? 'bg-blue-100 font-medium' : ''}`}
+                        >
+                          {renderHighlightedText(text, qualification)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 

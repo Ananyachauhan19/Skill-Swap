@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
-import Fuse from 'fuse.js';
+import FlexSearch from 'flexsearch';
 import { BACKEND_URL } from '../config';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -74,13 +74,19 @@ const SkillSelector = ({ classes, subjectsByClass, topicsBySubject, value, onCha
   const [subjectFocused, setSubjectFocused] = useState(false);
   const [topicFocused, setTopicFocused] = useState(false);
   const activeSubjects = value.class ? (subjectsByClass[value.class] || []) : [];
-  const fuseSubjects = useMemo(() => new Fuse(activeSubjects.map(s => ({ name: s })), { keys: ['name'], threshold: 0.4 }), [activeSubjects]);
   const activeSubjectTopics = value.subject ? (topicsBySubject[value.subject] || []) : [];
-  const fuseTopics = useMemo(() => new Fuse(activeSubjectTopics.map(t => ({ name: t })), { keys: ['name'], threshold: 0.4 }), [activeSubjectTopics]);
 
   const filteredClasses = classes || [];
-  const filteredSubjects = subjectQuery ? fuseSubjects.search(subjectQuery).map(r => r.item.name) : activeSubjects;
-  const filteredTopics = topicQuery ? fuseTopics.search(topicQuery).map(r => r.item.name) : activeSubjectTopics;
+  const filteredSubjects = useMemo(() => {
+    if (!subjectQuery) return activeSubjects;
+    const q = subjectQuery.toLowerCase();
+    return activeSubjects.filter(s => s.toLowerCase().includes(q));
+  }, [subjectQuery, activeSubjects]);
+  const filteredTopics = useMemo(() => {
+    if (!topicQuery) return activeSubjectTopics;
+    const q = topicQuery.toLowerCase();
+    return activeSubjectTopics.filter(t => t.toLowerCase().includes(q));
+  }, [topicQuery, activeSubjectTopics]);
 
   useEffect(() => {
     if (!value.class && !value.subject && !value.topic) {
@@ -269,10 +275,191 @@ const TutorApplication = () => {
   const [prefillLoaded, setPrefillLoaded] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState(null); // { applicationType, status }
   const [draftOverride, setDraftOverride] = useState(false);
+  // FlexSearch indexes stored in refs to avoid recreation on every render
+  const courseIndexRef = useRef(null);
+  const examIndexRef = useRef(null);
 
-  // Fuse instances for searchable dropdowns
-  const fuseExams = useMemo(() => new Fuse(availableExams.map(e => ({ name: e })), { keys: ['name'], threshold: 0.3 }), [availableExams]);
-  const fuseCourses = useMemo(() => new Fuse(availableCourses.map(c => ({ name: c })), { keys: ['name'], threshold: 0.3 }), [availableCourses]);
+  // Search results (store document IDs from FlexSearch)
+  const [courseResultIds, setCourseResultIds] = useState([]); // array of arrays of ids per course index
+  const [examResultIds, setExamResultIds] = useState([]);
+
+  // Build FlexSearch index for courses when list changes
+  useEffect(() => {
+    if (!Array.isArray(availableCourses) || availableCourses.length === 0) {
+      courseIndexRef.current = null;
+      setCourseResultIds([]);
+      return;
+    }
+    const Document = FlexSearch.Document;
+    const index = new Document({
+      tokenize: 'forward',
+      cache: true,
+      context: true,
+      depth: 3,
+      document: {
+        id: 'id',
+        index: ['degree_course'],
+        store: ['degree_course'],
+      },
+    });
+
+    availableCourses.forEach((c, id) => {
+      index.add({ id, degree_course: (c || '').toString() });
+    });
+
+    courseIndexRef.current = index;
+    const allIds = availableCourses.map((_, i) => i);
+    setCourseResultIds(courses.map(() => allIds));
+  }, [availableCourses, courses.length]);
+
+  // Build FlexSearch index for exams when list changes
+  useEffect(() => {
+    if (!Array.isArray(availableExams) || availableExams.length === 0) {
+      examIndexRef.current = null;
+      setExamResultIds([]);
+      return;
+    }
+    const Document = FlexSearch.Document;
+    const index = new Document({
+      tokenize: 'forward',
+      cache: true,
+      context: true,
+      depth: 3,
+      document: {
+        id: 'id',
+        index: ['degree_course'],
+        store: ['degree_course'],
+      },
+    });
+
+    availableExams.forEach((e, id) => {
+      index.add({ id, degree_course: (e || '').toString() });
+    });
+
+    examIndexRef.current = index;
+    const allIds = availableExams.map((_, i) => i);
+    setExamResultIds(allIds);
+  }, [availableExams]);
+
+  // Run course search for a specific index - stores document IDs
+  function searchCourses(idx, query) {
+    const data = Array.isArray(availableCourses) ? availableCourses : [];
+    const index = courseIndexRef.current;
+    const trimmed = (query || '').trim();
+    let ids;
+
+    if (!index || trimmed.length < 2) {
+      ids = data.map((_, i) => i);
+    } else {
+      const results = index.search({
+        query: trimmed,
+        index: 'degree_course',
+        limit: 500,
+        enrich: false,
+      });
+
+      let resultIds = [];
+      if (Array.isArray(results) && results.length > 0) {
+        const fieldResult = results.find(r => r.field === 'degree_course') || results[0];
+        if (fieldResult && Array.isArray(fieldResult.result)) {
+          resultIds = fieldResult.result;
+        }
+      }
+      ids = resultIds;
+    }
+
+    setCourseResultIds(prev => {
+      const next = Array.isArray(prev) ? [...prev] : [];
+      const allIds = data.map((_, i) => i);
+      while (next.length < courses.length) {
+        next.push(allIds);
+      }
+      next[idx] = ids;
+      return next;
+    });
+  }
+
+  // Run exam search - stores document IDs
+  function searchExams(query) {
+    const data = Array.isArray(availableExams) ? availableExams : [];
+    const index = examIndexRef.current;
+    const trimmed = (query || '').trim();
+    let ids;
+
+    if (!index || trimmed.length < 2) {
+      ids = data.map((_, i) => i);
+    } else {
+      const results = index.search({
+        query: trimmed,
+        index: 'degree_course',
+        limit: 500,
+        enrich: false,
+      });
+
+      let resultIds = [];
+      if (Array.isArray(results) && results.length > 0) {
+        const fieldResult = results.find(r => r.field === 'degree_course') || results[0];
+        if (fieldResult && Array.isArray(fieldResult.result)) {
+          resultIds = fieldResult.result;
+        }
+      }
+      ids = resultIds;
+    }
+
+    setExamResultIds(ids);
+  }
+
+  // Helper to render text with highlighted matches based on query
+  const renderHighlightedText = (text, rawQuery) => {
+    const query = (rawQuery || '').trim();
+    if (!query || query.length < 2) {
+      return <span>{text}</span>;
+    }
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const parts = [];
+    let currentIndex = 0;
+
+    while (true) {
+      const matchIndex = lowerText.indexOf(lowerQuery, currentIndex);
+      if (matchIndex === -1) break;
+      if (matchIndex > currentIndex) {
+        parts.push(<span key={currentIndex}>{text.slice(currentIndex, matchIndex)}</span>);
+      }
+      const end = matchIndex + lowerQuery.length;
+      parts.push(
+        <mark key={matchIndex} className="bg-yellow-200 font-semibold">
+          {text.slice(matchIndex, end)}
+        </mark>
+      );
+      currentIndex = end;
+    }
+
+    if (currentIndex < text.length) {
+      parts.push(<span key={currentIndex}>{text.slice(currentIndex)}</span>);
+    }
+    return <span>{parts}</span>;
+  };
+
+  // Input handlers that trigger instant search
+  const handleCourseInputChange = (idx, value) => {
+    const updatedQueries = [...courseQueries];
+    updatedQueries[idx] = value;
+    setCourseQueries(updatedQueries);
+
+    const updatedShow = [...showCourseList];
+    updatedShow[idx] = true;
+    setShowCourseList(updatedShow);
+
+    searchCourses(idx, value);
+  };
+
+  const handleExamInputChange = (e) => {
+    const value = e.target.value;
+    setExamQuery(value);
+    setShowExamList(true);
+    searchExams(value);
+  };
 
   // Load subjects/topics
   useEffect(() => {
@@ -325,10 +512,13 @@ const TutorApplication = () => {
     (async () => {
       try {
         setLoadingCourses(true);
-        const res = await fetch(`${BACKEND_URL}/api/tutor/courses`);
+        const res = await fetch(`${BACKEND_URL}/api/google-data/degrees`);
         if (!res.ok) throw new Error('Failed to fetch courses');
         const data = await res.json();
-        setAvailableCourses(data.courses || []);
+        const degrees = Array.isArray(data.degrees) ? [...data.degrees] : [];
+        if (!degrees.includes('Other')) degrees.push('Other');
+        setAvailableCourses(degrees);
+        console.log('Courses loaded from GOOGLE_DEGREE_CSV_URL:', data.degrees?.length);
       } catch (e) {
         console.error('Failed to load courses:', e);
         setAvailableCourses(['BCA', 'BSc CS', 'BCom', 'BA', 'BTech', 'MTech', 'MCA', 'MBA', 'BBA', 'BSc Maths', 'Other']);
@@ -743,16 +933,88 @@ const TutorApplication = () => {
                       </button>
                     )}
                   </div>
-                  <div>
+                  <div className="relative">
                     <label className="block text-xs font-medium text-gray-700 mb-2">Course Name</label>
-                    <select 
-                      value={course.courseName} 
-                      onChange={e => updateCourse(idx, 'courseName', e.target.value)} 
+                    <input
+                      type="text"
+                      value={courseQueries[idx] || ''}
+                      onChange={e => handleCourseInputChange(idx, e.target.value)}
+                      onFocus={() => {
+                        const updated = [...showCourseList];
+                        updated[idx] = true;
+                        setShowCourseList(updated);
+                        searchCourses(idx, courseQueries[idx] || '');
+                      }}
+                      onBlur={() => setTimeout(() => {
+                        const updated = [...showCourseList];
+                        updated[idx] = false;
+                        setShowCourseList(updated);
+                      }, 200)}
+                      placeholder="Search or select course..."
                       className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-                    >
-                      <option value="">Select course</option>
-                      {availableCourses.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    />
+                    {showCourseList[idx] && (() => {
+                      const allCourses = Array.isArray(availableCourses) ? availableCourses : [];
+                      const ids = (courseResultIds[idx] && courseResultIds[idx].length)
+                        ? courseResultIds[idx]
+                        : allCourses.map((_, i) => i);
+                      if (!ids.length) {
+                        return (
+  						<div className="absolute z-20 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                            <div className="px-4 py-2 text-xs text-gray-500">No matches</div>
+                          </div>
+                        );
+                      }
+                      const Row = ({ index, style }) => {
+                        const id = ids[index];
+                        const courseText = allCourses[id];
+                        const isSelected = course.courseName === courseText;
+                        return (
+                          <button
+                            type="button"
+                            style={style}
+                            onMouseDown={() => {
+                              updateCourse(idx, 'courseName', courseText);
+                              const updated = [...courseQueries];
+                              updated[idx] = courseText;
+                              setCourseQueries(updated);
+                              const updatedShow = [...showCourseList];
+                              updatedShow[idx] = false;
+                              setShowCourseList(updatedShow);
+                            }}
+                            className={`w-full text-left px-4 text-sm hover:bg-blue-50 transition flex items-center ${isSelected ? 'bg-blue-100 font-medium' : ''}`}
+                          >
+                            {renderHighlightedText(courseText, courseQueries[idx] || '')}
+                          </button>
+                        );
+                      };
+                      return (
+						<div className="absolute z-20 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                          {ids.map((id) => {
+                            const courseText = allCourses[id];
+                            const isSelected = course.courseName === courseText;
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                onMouseDown={() => {
+                                  updateCourse(idx, 'courseName', courseText);
+                                  const updated = [...courseQueries];
+                                  updated[idx] = courseText;
+                                  setCourseQueries(updated);
+                                  const updatedShow = [...showCourseList];
+                                  updatedShow[idx] = false;
+                                  setShowCourseList(updatedShow);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition flex items-center ${isSelected ? 'bg-blue-100 font-medium' : ''}`}
+                              >
+                                {renderHighlightedText(courseText, courseQueries[idx] || '')}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                   {course.courseName === 'Other' && (
                     <div>
@@ -814,18 +1076,12 @@ const TutorApplication = () => {
                     <input
                       type="text"
                       value={courseQueries[idx] || ''}
-                      onChange={e => {
-                        const updated = [...courseQueries];
-                        updated[idx] = e.target.value;
-                        setCourseQueries(updated);
-                        const updatedShow = [...showCourseList];
-                        updatedShow[idx] = true;
-                        setShowCourseList(updatedShow);
-                      }}
+                      onChange={e => handleCourseInputChange(idx, e.target.value)}
                       onFocus={() => {
                         const updated = [...showCourseList];
                         updated[idx] = true;
                         setShowCourseList(updated);
+                          searchCourses(idx, courseQueries[idx] || '');
                       }}
                       onBlur={() => setTimeout(() => {
                         const updated = [...showCourseList];
@@ -836,31 +1092,66 @@ const TutorApplication = () => {
                       className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
                     />
                     {showCourseList[idx] && (() => {
-                      const query = courseQueries[idx] || '';
-                      const filtered = query.trim() ? fuseCourses.search(query).map(r => r.item.name) : availableCourses;
-                      return (
-                        <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
-                          {filtered.map(c => (
-                            <button
-                              key={c}
-                              type="button"
-                              onMouseDown={() => {
-                                updateCourse(idx, 'courseName', c);
-                                const updated = [...courseQueries];
-                                updated[idx] = c;
-                                setCourseQueries(updated);
-                                const updatedShow = [...showCourseList];
-                                updatedShow[idx] = false;
-                                setShowCourseList(updatedShow);
-                              }}
-                              className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition ${course.courseName === c ? 'bg-blue-100 font-medium' : ''}`}
-                            >
-                              {c}
-                            </button>
-                          ))}
-                          {!filtered.length && <div className="px-4 py-2 text-xs text-gray-500">No matches</div>}
-                        </div>
-                      );
+                      const allCourses = Array.isArray(availableCourses) ? availableCourses : [];
+                      const ids = (courseResultIds[idx] && courseResultIds[idx].length)
+                        ? courseResultIds[idx]
+                        : allCourses.map((_, i) => i);
+                      if (!ids.length) {
+                        return (
+  						<div className="absolute z-20 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                            <div className="px-4 py-2 text-xs text-gray-500">No matches</div>
+                          </div>
+                        );
+                      }
+                      const Row = ({ index, style }) => {
+                        const id = ids[index];
+                        const courseText = allCourses[id];
+                        const isSelected = course.courseName === courseText;
+                        return (
+                          <button
+                            type="button"
+                            style={style}
+                            onMouseDown={() => {
+                              updateCourse(idx, 'courseName', courseText);
+                              const updated = [...courseQueries];
+                              updated[idx] = courseText;
+                              setCourseQueries(updated);
+                              const updatedShow = [...showCourseList];
+                              updatedShow[idx] = false;
+                              setShowCourseList(updatedShow);
+                            }}
+                            className={`w-full text-left px-4 text-sm hover:bg-blue-50 transition flex items-center ${isSelected ? 'bg-blue-100 font-medium' : ''}`}
+                          >
+                            {renderHighlightedText(courseText, courseQueries[idx] || '')}
+                          </button>
+                        );
+                      };
+                          return (
+    						<div className="absolute z-20 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                              {ids.map((id) => {
+                                const courseText = allCourses[id];
+                                const isSelected = course.courseName === courseText;
+                                return (
+                                  <button
+                                    key={id}
+                                    type="button"
+                                    onMouseDown={() => {
+                                      updateCourse(idx, 'courseName', courseText);
+                                      const updated = [...courseQueries];
+                                      updated[idx] = courseText;
+                                      setCourseQueries(updated);
+                                      const updatedShow = [...showCourseList];
+                                      updatedShow[idx] = false;
+                                      setShowCourseList(updatedShow);
+                                    }}
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition flex items-center ${isSelected ? 'bg-blue-100 font-medium' : ''}`}
+                                  >
+                                    {renderHighlightedText(courseText, courseQueries[idx] || '')}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          );
                     })()}
                   </div>
                   {course.courseName === 'Other' && (
@@ -928,27 +1219,57 @@ const TutorApplication = () => {
                     <input
                       type="text"
                       value={examQuery}
-                      onChange={e => { setExamQuery(e.target.value); setShowExamList(true); }}
-                      onFocus={() => setShowExamList(true)}
+                      onChange={handleExamInputChange}
+                      onFocus={() => {
+                        setShowExamList(true);
+                        searchExams(examQuery || '');
+                      }}
                       onBlur={() => setTimeout(() => setShowExamList(false), 200)}
                       placeholder="Search or select exam..."
                       className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
                     />
                     {showExamList && (() => {
-                      const filtered = examQuery.trim() ? fuseExams.search(examQuery).map(r => r.item.name) : availableExams;
+                      const allExams = Array.isArray(availableExams) ? availableExams : [];
+                      const ids = examResultIds.length ? examResultIds : allExams.map((_, i) => i);
+                      if (!ids.length) {
+                        return (
+                          <div className="absolute z-20 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg">
+                            <div className="px-4 py-2 text-xs text-gray-500">No matches</div>
+                          </div>
+                        );
+                      }
+                      const Row = ({ index, style }) => {
+                        const id = ids[index];
+                        const examText = allExams[id];
+                        const isSelected = examName === examText;
+                        return (
+                          <button
+                            key={examText}
+                            type="button"
+                            style={style}
+                            onMouseDown={() => { setExamName(examText); setExamQuery(examText); setShowExamList(false); }}
+                            className={`w-full text-left px-4 text-sm hover:bg-blue-50 transition flex items-center ${isSelected ? 'bg-blue-100 font-medium' : ''}`}
+                          >
+                            {renderHighlightedText(examText, examQuery)}
+                          </button>
+                        );
+                      };
                       return (
-                        <div className="absolute z-20 left-0 right-0 mt-1 max-h-60 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
-                          {filtered.map(e => (
-                            <button
-                              key={e}
-                              type="button"
-                              onMouseDown={() => { setExamName(e); setExamQuery(e); setShowExamList(false); }}
-                              className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition ${examName === e ? 'bg-blue-100 font-medium' : ''}`}
-                            >
-                              {e}
-                            </button>
-                          ))}
-                          {!filtered.length && <div className="px-4 py-2 text-xs text-gray-500">No matches</div>}
+						<div className="absolute z-20 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                          {ids.map((id) => {
+                            const examText = allExams[id];
+                            const isSelected = examName === examText;
+                            return (
+                              <button
+                                key={examText}
+                                type="button"
+                                onMouseDown={() => { setExamName(examText); setExamQuery(examText); setShowExamList(false); }}
+                                className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition flex items-center ${isSelected ? 'bg-blue-100 font-medium' : ''}`}
+                              >
+                                {renderHighlightedText(examText, examQuery)}
+                              </button>
+                            );
+                          })}
                         </div>
                       );
                     })()}
@@ -999,18 +1320,12 @@ const TutorApplication = () => {
                         <input
                           type="text"
                           value={courseQueries[idx] || ''}
-                          onChange={e => {
-                            const updated = [...courseQueries];
-                            updated[idx] = e.target.value;
-                            setCourseQueries(updated);
-                            const updatedShow = [...showCourseList];
-                            updatedShow[idx] = true;
-                            setShowCourseList(updatedShow);
-                          }}
+                          onChange={e => handleCourseInputChange(idx, e.target.value)}
                           onFocus={() => {
                             const updated = [...showCourseList];
                             updated[idx] = true;
                             setShowCourseList(updated);
+                            searchCourses(idx, courseQueries[idx] || '');
                           }}
                           onBlur={() => setTimeout(() => {
                             const updated = [...showCourseList];
@@ -1021,29 +1336,64 @@ const TutorApplication = () => {
                           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
                         />
                         {showCourseList[idx] && (() => {
-                          const query = courseQueries[idx] || '';
-                          const filtered = query.trim() ? fuseCourses.search(query).map(r => r.item.name) : availableCourses;
+                          const allCourses = Array.isArray(availableCourses) ? availableCourses : [];
+                          const ids = (courseResultIds[idx] && courseResultIds[idx].length)
+                            ? courseResultIds[idx]
+                            : allCourses.map((_, i) => i);
+                          if (!ids.length) {
+                            return (
+                              <div className="absolute z-20 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg">
+                                <div className="px-4 py-2 text-xs text-gray-500">No matches</div>
+                              </div>
+                            );
+                          }
+                          const Row = ({ index, style }) => {
+                            const id = ids[index];
+                            const courseText = allCourses[id];
+                            const isSelected = course.courseName === courseText;
+                            return (
+                              <button
+                                type="button"
+                                style={style}
+                                onMouseDown={() => {
+                                  updateCourse(idx, 'courseName', courseText);
+                                  const updated = [...courseQueries];
+                                  updated[idx] = courseText;
+                                  setCourseQueries(updated);
+                                  const updatedShow = [...showCourseList];
+                                  updatedShow[idx] = false;
+                                  setShowCourseList(updatedShow);
+                                }}
+                                className={`w-full text-left px-4 text-sm hover:bg-blue-50 transition flex items-center ${isSelected ? 'bg-blue-100 font-medium' : ''}`}
+                              >
+                                {renderHighlightedText(courseText, courseQueries[idx] || '')}
+                              </button>
+                            );
+                          };
                           return (
-                            <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
-                              {filtered.map(c => (
-                                <button
-                                  key={c}
-                                  type="button"
-                                  onMouseDown={() => {
-                                    updateCourse(idx, 'courseName', c);
-                                    const updated = [...courseQueries];
-                                    updated[idx] = c;
-                                    setCourseQueries(updated);
-                                    const updatedShow = [...showCourseList];
-                                    updatedShow[idx] = false;
-                                    setShowCourseList(updatedShow);
-                                  }}
-                                  className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition ${course.courseName === c ? 'bg-blue-100 font-medium' : ''}`}
-                                >
-                                  {c}
-                                </button>
-                              ))}
-                              {!filtered.length && <div className="px-4 py-2 text-xs text-gray-500">No matches</div>}
+							<div className="absolute z-20 left-0 right-0 mt-1 border border-gray-200 rounded-lg bg-white shadow-lg max-h-60 overflow-y-auto">
+                              {ids.map((id) => {
+                                const courseText = allCourses[id];
+                                const isSelected = course.courseName === courseText;
+                                return (
+                                  <button
+                                    key={id}
+                                    type="button"
+                                    onMouseDown={() => {
+                                      updateCourse(idx, 'courseName', courseText);
+                                      const updated = [...courseQueries];
+                                      updated[idx] = courseText;
+                                      setCourseQueries(updated);
+                                      const updatedShow = [...showCourseList];
+                                      updatedShow[idx] = false;
+                                      setShowCourseList(updatedShow);
+                                    }}
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition flex items-center ${isSelected ? 'bg-blue-100 font-medium' : ''}`}
+                                  >
+                                    {renderHighlightedText(courseText, courseQueries[idx] || '')}
+                                  </button>
+                                );
+                              })}
                             </div>
                           );
                         })()}

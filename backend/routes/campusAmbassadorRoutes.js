@@ -21,9 +21,9 @@ router.delete('/institutes/:id', requireAuth, requireCampusAmbassador, campusAmb
 
 // Student onboarding
 router.post('/institutes/:instituteId/upload-students', requireAuth, requireCampusAmbassador, upload.single('excelFile'), campusAmbassadorController.uploadStudents);
+router.post('/institutes/:instituteId/add-student', requireAuth, requireCampusAmbassador, campusAmbassadorController.addSingleStudent);
 
-// Course management routes
-router.post('/institutes/:instituteId/upload-courses', requireAuth, requireCampusAmbassador, upload.single('excelFile'), campusAmbassadorController.uploadCourses);
+// Course management routes (manual / API based, Excel upload deprecated)
 router.put('/institutes/:instituteId/courses', requireAuth, requireCampusAmbassador, campusAmbassadorController.updateInstituteCourses);
 router.get('/institutes/:instituteId/courses', requireAuth, requireCampusAmbassador, campusAmbassadorController.getInstituteCourses);
 

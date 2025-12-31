@@ -180,22 +180,24 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
       return;
     }
 
-    // Validate college configurations
+    // Validate configurations per institute type
     for (const instituteId of formData.selectedInstitutes) {
+      const inst = institutes.find(i => i._id === instituteId);
+      const isSchool = inst?.instituteType === 'school';
+
       const configs = collegeConfigs.filter(c => c.collegeId === instituteId);
       if (configs.length === 0) {
-        const inst = institutes.find(i => i._id === instituteId);
-        setError(`Please add at least one course configuration for ${inst?.instituteName || 'college'}`);
+        setError(`Please add at least one ${isSchool ? 'class/course' : 'course'} configuration for ${inst?.instituteName || 'institute'}`);
         return;
       }
+
       for (const config of configs) {
         if (!config.courseId) {
-          const inst = institutes.find(i => i._id === instituteId);
-          setError(`Please select a course for all configurations in ${inst?.instituteName || 'college'}`);
+          setError(`Please select a ${isSchool ? 'class/course' : 'course'} for all configurations in ${inst?.instituteName || 'institute'}`);
           return;
         }
-        if (config.compulsorySemesters.length === 0) {
-          const inst = institutes.find(i => i._id === instituteId);
+
+        if (!isSchool && config.compulsorySemesters.length === 0) {
           setError(`Please select at least one compulsory semester for ${config.courseId} in ${inst?.instituteName || 'college'}`);
           return;
         }
@@ -211,13 +213,10 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
       uploadData.append('description', formData.description);
       uploadData.append('duration', formData.duration);
       
-      // Include college configurations (NEW FORMAT)
+      // Include configurations (NEW FORMAT)
       if (collegeConfigs.length > 0) {
-        // Validate each config has required fields
-        const validConfigs = collegeConfigs.filter(c => c.courseId && c.compulsorySemesters.length > 0);
-        if (validConfigs.length > 0) {
-          uploadData.append('collegeConfigs', JSON.stringify(validConfigs));
-        }
+        // We already validated per institute/type above, so send all configs
+        uploadData.append('collegeConfigs', JSON.stringify(collegeConfigs));
       }
       
       // Include time window if provided
@@ -387,17 +386,17 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
           </div>
         </div>
 
-        {/* College Configuration */}
+        {/* Institute Configuration */}
         {formData.selectedInstitutes.length > 0 && (
           <div className="border border-gray-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-4">
               <Settings size={16} className="text-gray-500" />
               <span className="text-sm font-medium text-gray-700">
-                Configure Courses & Compulsory Semesters per College
+                Configure visibility & compulsory rules per institute
               </span>
             </div>
             <div className="text-xs text-gray-500 mb-4 bg-blue-50 p-3 rounded">
-              ℹ️ You can add multiple courses per college. For each course, the test will be visible to ALL semesters, but marked as COMPULSORY only for selected semesters.
+              ℹ️ For colleges: pick courses and compulsory semesters (test visible to that course, compulsory only for selected semesters). For schools: pick classes/courses that should see the test as COMPULSORY; all other classes in the school will see it as OPTIONAL.
             </div>
 
             <div className="space-y-4">
@@ -406,6 +405,7 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
                 const courses = instituteCourses[instituteId] || [];
                 const configs = getCollegeConfigs(instituteId);
                 const isExpanded = expandedConfig[instituteId];
+                const isSchool = institute?.instituteType === 'school';
 
                 return (
                   <div key={instituteId} className="border border-gray-200 rounded-lg overflow-hidden">
@@ -440,7 +440,7 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
                             <div key={idx} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                               <div className="flex items-center justify-between mb-3">
                                 <span className="text-sm font-semibold text-gray-700">
-                                  Course Configuration #{idx + 1}
+                                  {isSchool ? 'Class/Course Configuration' : 'Course Configuration'} #{idx + 1}
                                 </span>
                                 <button
                                   type="button"
@@ -455,10 +455,12 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
                               {/* Course Selection */}
                               <div className="mb-3">
                                 <label className="block text-xs font-medium text-gray-600 mb-2">
-                                  Select Course *
+                                  {isSchool ? 'Select Class/Course *' : 'Select Course *'}
                                 </label>
                                 <p className="text-xs text-gray-500 mb-2">
-                                  The test will be visible to ALL semesters of this course
+                                  {isSchool
+                                    ? 'Students in the selected class/course will see this test as COMPULSORY; others in the school will see it as OPTIONAL.'
+                                    : 'The test will be visible to ALL semesters of this course; only selected semesters will be marked as COMPULSORY.'}
                                 </p>
                                 {courses.length === 0 ? (
                                   <p className="text-xs text-gray-400 italic">No courses defined for this college</p>
@@ -475,32 +477,32 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
                                   </select>
                                 )}
                               </div>
-
-                              {/* Compulsory Semester Selection */}
-                              <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-2">
-                                  Select Compulsory Semesters *
-                                </label>
-                                <p className="text-xs text-gray-500 mb-2">
-                                  Only these semesters will see the "COMPULSORY" badge
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sem => (
-                                    <button
-                                      key={sem}
-                                      type="button"
-                                      onClick={() => toggleSemester(configIndex, sem)}
-                                      className={`w-10 h-10 text-xs rounded-full border-2 font-semibold transition-all ${
-                                        config.compulsorySemesters.includes(sem)
-                                          ? 'bg-red-600 text-white border-red-600 shadow-md'
-                                          : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:bg-red-50'
-                                      }`}
-                                    >
-                                      {sem}
-                                    </button>
-                                  ))}
+                              {!isSchool && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-2">
+                                    Select Compulsory Semesters *
+                                  </label>
+                                  <p className="text-xs text-gray-500 mb-2">
+                                    Only these semesters will see the "COMPULSORY" badge
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sem => (
+                                      <button
+                                        key={sem}
+                                        type="button"
+                                        onClick={() => toggleSemester(configIndex, sem)}
+                                        className={`w-10 h-10 text-xs rounded-full border-2 font-semibold transition-all ${
+                                          config.compulsorySemesters.includes(sem)
+                                            ? 'bg-red-600 text-white border-red-600 shadow-md'
+                                            : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:bg-red-50'
+                                        }`}
+                                      >
+                                        {sem}
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           );
                         })}

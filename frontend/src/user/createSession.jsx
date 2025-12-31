@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
-import Fuse from 'fuse.js';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/ToastContext';
 import DateTimePicker from '../components/DateTimePicker';
@@ -218,45 +217,29 @@ const CreateSessionNew = () => {
     fetchSkillMates();
   }, [currentUser]);
 
-  // Initialize Fuse.js instances for fuzzy search
-  const fuseClasses = useMemo(() => {
-    const list = isTutorRole ? availableClasses : classes;
-    return new Fuse(list, { threshold: 0.3 });
-  }, [availableClasses, classes, isTutorRole]);
-
-  const fuseSubjects = useMemo(() => {
-    const list = isTutorRole ? tutorSubjects : (subjectsByClass[form.subject] || []);
-    return new Fuse(list, { threshold: 0.3 });
-  }, [tutorSubjects, isTutorRole, subjectsByClass, form.subject]);
-
-  const fuseTopics = useMemo(() => {
-    if (!form.topic) return null;
-    const list = isTutorRole
-      ? (tutorTopicsBySubject[form.topic] || [])
-      : (topicsBySubject[form.topic] || []);
-    return new Fuse(list, { threshold: 0.3 });
-  }, [form.topic, tutorTopicsBySubject, isTutorRole, topicsBySubject]);
-
-  // Filter using Fuse.js fuzzy search
+  // Filter using simple case-insensitive substring search
   const courseList = useMemo(() => {
     const list = isTutorRole ? availableClasses : classes;
-    if (!form.subject.trim()) return list;
-    return fuseClasses.search(form.subject).map(res => res.item);
-  }, [form.subject, availableClasses, classes, fuseClasses, isTutorRole]);
+    const term = (form.subject || '').trim().toLowerCase();
+    if (!term) return list;
+    return list.filter(c => String(c || '').toLowerCase().includes(term));
+  }, [form.subject, availableClasses, classes, isTutorRole]);
 
   const unitDropdownList = useMemo(() => {
     const list = isTutorRole ? tutorSubjects : (subjectsByClass[form.subject] || []);
-    if (!form.topic.trim()) return list;
-    return fuseSubjects.search(form.topic).map(res => res.item);
-  }, [form.topic, tutorSubjects, fuseSubjects, isTutorRole, subjectsByClass, form.subject]);
+    const term = (form.topic || '').trim().toLowerCase();
+    if (!term) return list;
+    return list.filter(s => String(s || '').toLowerCase().includes(term));
+  }, [form.topic, tutorSubjects, isTutorRole, subjectsByClass, form.subject]);
 
   const topicDropdownList = useMemo(() => {
     const list = isTutorRole
       ? (tutorTopicsBySubject[form.topic] || [])
       : (topicsBySubject[form.topic] || []);
-    if (!form.subtopic.trim()) return list;
-    return fuseTopics ? fuseTopics.search(form.subtopic).map(res => res.item) : list;
-  }, [form.subtopic, form.topic, tutorTopicsBySubject, fuseTopics, isTutorRole, topicsBySubject]);
+    const term = (form.subtopic || '').trim().toLowerCase();
+    if (!term) return list;
+    return list.filter(t => String(t || '').toLowerCase().includes(term));
+  }, [form.subtopic, form.topic, tutorTopicsBySubject, isTutorRole, topicsBySubject]);
 
   const unitList = useMemo(() => {
     return isTutorRole ? tutorSubjects : (subjectsByClass[form.subject] || []);

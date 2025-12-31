@@ -15,7 +15,6 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { motion } from "framer-motion";
 import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config.js';
-import Fuse from 'fuse.js';
 
 const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
   const navigate = useNavigate();

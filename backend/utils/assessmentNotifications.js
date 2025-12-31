@@ -3,6 +3,7 @@ const emailTemplates = require('./emailTemplates');
 const AssessmentNotification = require('../models/AssessmentNotification');
 const User = require('../models/User');
 const Assessment = require('../models/Assessment');
+const Institute = require('../models/Institute');
 
 /**
  * Send assessment notification emails to eligible students
@@ -20,23 +21,49 @@ async function sendAssessmentNotifications(assessment) {
   try {
     // NEW FORMAT: Use collegeConfigs if available
     if (assessment.collegeConfigs && assessment.collegeConfigs.length > 0) {
+      // Preload institute types to distinguish schools vs colleges
+      const uniqueInstituteIds = [...new Set(assessment.collegeConfigs.map(c => c.collegeId.toString()))];
+      const institutes = await Institute.find({ _id: { $in: uniqueInstituteIds } }).select('_id instituteType');
+      const instituteTypeMap = new Map();
+      institutes.forEach(inst => {
+        instituteTypeMap.set(inst._id.toString(), inst.instituteType || 'college');
+      });
+
       // Process each college configuration
       for (const config of assessment.collegeConfigs) {
-        // Find all students matching this college and course
-        // (ALL semesters of the course get notifications)
-        const students = await User.find({
-          instituteId: config.collegeId,
-          course: config.courseId,
-          email: { $exists: true, $ne: null, $ne: '' }
-        }).select('_id email firstName lastName semester course');
+        const instType = instituteTypeMap.get(config.collegeId.toString()) || 'college';
 
-        console.log(`Found ${students.length} students for college ${config.collegeId}, course ${config.courseId}`);
+        let students;
+        if (instType === 'school') {
+          // For schools: all students in the institute receive notifications
+          students = await User.find({
+            instituteId: config.collegeId,
+            email: { $exists: true, $ne: null, $ne: '' }
+          }).select('_id email firstName lastName class course');
+        } else {
+          // For colleges: only students of the configured course
+          students = await User.find({
+            instituteId: config.collegeId,
+            course: config.courseId,
+            email: { $exists: true, $ne: null, $ne: '' }
+          }).select('_id email firstName lastName semester course');
+        }
+
+        console.log(`Found ${students.length} students for institute ${config.collegeId}, course/class ${config.courseId}`);
 
         for (const student of students) {
           try {
-            // Determine if compulsory for this student based on their semester
-            const studentSemester = student.semester ? parseInt(student.semester) : null;
-            const isCompulsoryForStudent = studentSemester && config.compulsorySemesters.includes(studentSemester);
+            let isCompulsoryForStudent = false;
+
+            if (instType === 'school') {
+              // SCHOOL: compulsory only if student's class matches configured course/class
+              const studentClass = student.class || null;
+              isCompulsoryForStudent = !!(studentClass && studentClass === config.courseId);
+            } else {
+              // COLLEGE: compulsory based on configured semesters
+              const studentSemester = student.semester ? parseInt(student.semester) : null;
+              isCompulsoryForStudent = studentSemester && config.compulsorySemesters.includes(studentSemester);
+            }
             
             // Check if notification already sent
             const existingNotification = await AssessmentNotification.findOne({

@@ -54,11 +54,11 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
                 onOpenUploadCollege();
               }}
               className="h-9 px-3 rounded-full border border-blue-100 bg-blue-900 hover:bg-blue-950 transition inline-flex items-center gap-2"
-              aria-label="Upload college"
-              title="Upload college"
+              aria-label="Upload institute"
+              title="Upload institute"
             >
               <Upload size={16} className="text-white" />
-              <span className="text-xs font-semibold text-white">Upload College</span>
+              <span className="text-xs font-semibold text-white">Upload Institute</span>
             </button>
           )}
 

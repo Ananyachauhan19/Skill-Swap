@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, X, CheckCircle, AlertCircle, Coins, Info } from 'lucide-react';
+import { Upload, X, CheckCircle, AlertCircle, Coins, Info, UserPlus } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuccess, variant = 'modal' }) => {
@@ -14,15 +14,20 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
     perStudentSilver: 0,
     perStudentGolden: 0
   });
+  const [uploadMode, setUploadMode] = useState('csv'); // 'csv' or 'manual'
+  const [manualStudent, setManualStudent] = useState({
+    name: '',
+    email: '',
+    class: '',
+    course: '',
+    semester: ''
+  });
+  const [manualSubmitting, setManualSubmitting] = useState(false);
 
   const isModal = variant !== 'page';
 
-  // Fetch existing students when component mounts
-  React.useEffect(() => {
-    fetchExistingStudents();
-  }, [instituteId]);
-
-  const fetchExistingStudents = async () => {
+  // Fetch existing students function
+  const fetchExistingStudents = React.useCallback(async () => {
     try {
       setLoadingStudents(true);
       const response = await fetch(
@@ -45,7 +50,12 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
     } finally {
       setLoadingStudents(false);
     }
-  };
+  }, [instituteId]);
+
+  // Fetch existing students when component mounts
+  React.useEffect(() => {
+    fetchExistingStudents();
+  }, [fetchExistingStudents]);
 
   const validateExcelFile = async (selectedFile) => {
     try {
@@ -296,6 +306,104 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
     }));
   };
 
+  const handleManualSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    if (!manualStudent.name || !manualStudent.email) {
+      setError('Name and Email are required');
+      return;
+    }
+
+    if (instituteType === 'school' && !manualStudent.class) {
+      setError('Class is required for school students');
+      return;
+    }
+
+    if (instituteType === 'college' && (!manualStudent.course || !manualStudent.semester)) {
+      setError('Course and Semester are required for college students');
+      return;
+    }
+
+    try {
+      setManualSubmitting(true);
+      setError(null);
+
+      const payload = {
+        students: [{
+          name: manualStudent.name.trim(),
+          email: manualStudent.email.trim().toLowerCase(),
+          ...(instituteType === 'school' ? { class: manualStudent.class } : {}),
+          ...(instituteType === 'college' ? { 
+            course: manualStudent.course.trim(),
+            semester: manualStudent.semester 
+          } : {})
+        }],
+        perStudentSilver: coinInputs.perStudentSilver,
+        perStudentGolden: coinInputs.perStudentGolden
+      };
+
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/campus-ambassador/institutes/${instituteId}/add-student`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to add student');
+      }
+
+      setResults({
+        success: true,
+        message: data.message,
+        summary: {
+          added: 1,
+          updated: 0,
+          skippedDuplicate: 0,
+          skippedDifferentInstitute: 0
+        },
+        rewardDistribution: coinInputs.perStudentSilver > 0 || coinInputs.perStudentGolden > 0 ? {
+          totalSilverDistributed: coinInputs.perStudentSilver,
+          totalGoldenDistributed: coinInputs.perStudentGolden,
+          recipientCount: 1
+        } : null,
+        details: {
+          added: [{ email: manualStudent.email, name: manualStudent.name }],
+          updated: [],
+          skippedDuplicate: [],
+          skippedDifferentInstitute: [],
+          errors: []
+        }
+      });
+
+      // Reset form
+      setManualStudent({
+        name: '',
+        email: '',
+        class: '',
+        course: '',
+        semester: ''
+      });
+
+      // Refresh student list to update count
+      await fetchExistingStudents();
+
+      if (onSuccess) onSuccess(data);
+    } catch (err) {
+      setError(err.message || 'Error adding student');
+    } finally {
+      setManualSubmitting(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!file) {
       setError('Please select a file');
@@ -359,35 +467,159 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
           )}
         </div>
 
+        {/* Mode Toggle */}
+        <div className="px-6 pt-4 pb-2">
+          <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
+            <button
+              onClick={() => setUploadMode('csv')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                uploadMode === 'csv'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Upload size={16} />
+              CSV Upload
+            </button>
+            <button
+              onClick={() => setUploadMode('manual')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                uploadMode === 'manual'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <UserPlus size={16} />
+              Add Single Student
+            </button>
+          </div>
+        </div>
+
         <div className="p-6">
           <div className="mb-4">
             <h3 className="font-semibold text-base text-gray-700 mb-1">
               {instituteName}
             </h3>
             <p className="text-gray-600 text-xs">
-              Upload an Excel file with student information to onboard them to the platform.
+              {uploadMode === 'csv' 
+                ? 'Upload an Excel file with student information to onboard them to the platform.'
+                : 'Manually add a single student to the platform.'}
             </p>
           </div>
 
-          {/* Excel Format Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <h4 className="font-semibold text-sm text-blue-900 mb-2">Excel Format:</h4>
-            <div className="space-y-1.5 text-xs text-blue-700">
-              <p className="font-medium">For Schools:</p>
-              <ul className="list-disc list-inside ml-2">
-                <li>name (required)</li>
-                <li>email (required)</li>
-                <li>class (required)</li>
-              </ul>
-              <p className="font-medium mt-1.5">For Colleges:</p>
-              <ul className="list-disc list-inside ml-2">
-                <li>name (required)</li>
-                <li>email (required)</li>
-                <li>course (required)</li>
-                <li>semester (required)</li>
-              </ul>
-            </div>
-          </div>
+          {uploadMode === 'csv' ? (
+            <>
+              {/* Excel Format Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <h4 className="font-semibold text-sm text-blue-900 mb-2">Excel Format:</h4>
+                <div className="space-y-1.5 text-xs text-blue-700">
+                  <p className="font-medium">For Schools:</p>
+                  <ul className="list-disc list-inside ml-2">
+                    <li>name (required)</li>
+                    <li>email (required)</li>
+                    <li>class (required)</li>
+                  </ul>
+                  <p className="font-medium mt-1.5">For Colleges:</p>
+                  <ul className="list-disc list-inside ml-2">
+                    <li>name (required)</li>
+                    <li>email (required)</li>
+                    <li>course (required)</li>
+                    <li>semester (required)</li>
+                  </ul>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Manual Student Form */}
+              <form onSubmit={handleManualSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Student Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={manualStudent.name}
+                    onChange={(e) => setManualStudent(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter student name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={manualStudent.email}
+                    onChange={(e) => setManualStudent(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="student@example.com"
+                    required
+                  />
+                </div>
+
+                {instituteType === 'school' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Class <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={manualStudent.class}
+                      onChange={(e) => setManualStudent(prev => ({ ...prev, class: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., 10, 11, 12"
+                      required
+                    />
+                  </div>
+                )}
+
+                {instituteType === 'college' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Course <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={manualStudent.course}
+                        onChange={(e) => setManualStudent(prev => ({ ...prev, course: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., BTech, BCA, MBA"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Semester <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={manualStudent.semester}
+                        onChange={(e) => setManualStudent(prev => ({ ...prev, semester: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., 1, 2, 3..."
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+              </form>
+            </>
+          )}
+
+          {uploadMode === 'csv' && (
+            <>
+              {/* Excel Format Instructions - keeping original content */}
+            </>
+          )}
+
+          {/* Continue with original Excel Format Instructions block if in CSV mode */}
+          {uploadMode === 'csv' ? null : null}
 
           {/* Coin Distribution Inputs */}
           <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
@@ -428,45 +660,63 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
             </div>
           </div>
 
-          {/* File Upload */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Select Excel File
-            </label>
-            {loadingStudents && (
-              <div className="mb-2 bg-blue-50 border border-blue-200 rounded-lg p-2 flex items-center gap-2">
-                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                <p className="text-xs text-blue-700">Loading existing student data...</p>
+          {/* File Upload - CSV Mode Only */}
+          {uploadMode === 'csv' && (
+            <>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Select Excel File
+                </label>
+                {loadingStudents && (
+                  <div className="mb-2 bg-blue-50 border border-blue-200 rounded-lg p-2 flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                    <p className="text-xs text-blue-700">Loading existing student data...</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileChange}
+                    disabled={loadingStudents}
+                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <button
+                    onClick={handleUpload}
+                    disabled={!file || uploading}
+                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium"
+                  >
+                    <Upload size={16} />
+                    <span>{uploading ? 'Uploading...' : 'Upload'}</span>
+                  </button>
+                </div>
+                {file && (
+                  <p className="text-xs text-gray-600 mt-1.5">
+                    Selected: {file.name}
+                  </p>
+                )}
+                {!loadingStudents && existingStudents.length > 0 && !file && (
+                  <p className="text-xs text-green-600 mt-1.5">
+                    ✓ Ready to validate ({existingStudents.length} existing students loaded)
+                  </p>
+                )}
               </div>
-            )}
-            <div className="flex items-center gap-2">
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={handleFileChange}
-                disabled={loadingStudents}
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
+            </>
+          )}
+
+          {/* Manual Student Submit Button */}
+          {uploadMode === 'manual' && (
+            <div className="mb-4">
               <button
-                onClick={handleUpload}
-                disabled={!file || uploading}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium"
+                onClick={handleManualSubmit}
+                disabled={manualSubmitting}
+                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
               >
-                <Upload size={16} />
-                <span>{uploading ? 'Uploading...' : 'Upload'}</span>
+                <UserPlus size={18} />
+                <span>{manualSubmitting ? 'Adding Student...' : 'Add Student'}</span>
               </button>
             </div>
-            {file && (
-              <p className="text-xs text-gray-600 mt-1.5">
-                Selected: {file.name}
-              </p>
-            )}
-            {!loadingStudents && existingStudents.length > 0 && !file && (
-              <p className="text-xs text-green-600 mt-1.5">
-                ✓ Ready to validate ({existingStudents.length} existing students loaded)
-              </p>
-            )}
-          </div>
+          )}
 
           {/* Validation Preview */}
           {validationPreview && validationPreview.loading && (

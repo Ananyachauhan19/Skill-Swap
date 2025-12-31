@@ -1355,81 +1355,336 @@ exports.getPublicCampusStats = async (req, res) => {
   }
 };
 
-// Upload courses for an institute via Excel
-exports.uploadCourses = async (req, res) => {
+// Add a single student manually
+exports.addSingleStudent = async (req, res) => {
   try {
     const { instituteId } = req.params;
-    const { numberOfCourses } = req.body;
+    const { students, perStudentSilver, perStudentGolden } = req.body;
 
-    // Find the institute
+    // Parse coin values
+    const silverCoinsPerStudent = parseInt(perStudentSilver) || 0;
+    const goldCoinsPerStudent = parseInt(perStudentGolden) || 0;
+
+    // Find institute
     const institute = await Institute.findOne({
       _id: instituteId,
       campusAmbassador: req.user._id
     });
 
     if (!institute) {
-      return res.status(404).json({ message: 'Institute not found or not authorized' });
+      return res.status(404).json({ message: 'Institute not found or unauthorized' });
     }
 
-    if (!req.file) {
-      return res.status(400).json({ message: 'Excel file is required' });
+    if (!students || !Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({ message: 'Please provide student data' });
     }
 
-    // Parse Excel file
-    const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const data = xlsx.utils.sheet_to_json(sheet);
+    const student = students[0]; // We expect only one student
+    const email = student.email?.toLowerCase().trim();
+    const name = student.name?.trim();
+    const course = student.course?.trim();
+    const semester = student.semester ? String(student.semester).trim() : '';
+    const classValue = student.class ? String(student.class).trim() : '';
 
-    if (!data.length) {
-      return res.status(400).json({ message: 'Excel file is empty' });
+    if (!email || !name) {
+      return res.status(400).json({ message: 'Name and email are required' });
     }
 
-    // Extract course names from Excel
-    const courses = [];
-    const errors = [];
+    if (institute.instituteType === 'school' && !classValue) {
+      return res.status(400).json({ message: 'Class is required for school students' });
+    }
 
-    data.forEach((row, index) => {
-      const rowNum = index + 2;
-      const courseName = row.courseName || row['Course Name'] || row.course || row.Course;
+    if (institute.instituteType === 'college' && (!course || !semester)) {
+      return res.status(400).json({ message: 'Course and semester are required for college students' });
+    }
+
+    // Track student IDs
+    const studentIds = new Set((institute.students || []).map(id => id.toString()));
+
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      // Email exists but assigned to different institute
+      if (existingUser.instituteId && existingUser.instituteId !== institute.instituteId) {
+        return res.status(400).json({
+          message: 'User already assigned to another institute',
+          existingInstitute: existingUser.instituteName || existingUser.instituteId
+        });
+      }
+
+      // Same institute - check for changes
+      if (existingUser.instituteId === institute.instituteId) {
+        const existingValues = {
+          course: existingUser.course || '',
+          semester: existingUser.semester || '',
+          class: existingUser.class || ''
+        };
+
+        const newValues = {
+          course: institute.instituteType === 'college' ? course : '',
+          semester: institute.instituteType === 'college' ? semester : '',
+          class: institute.instituteType === 'school' ? classValue : ''
+        };
+
+        const isUnchanged = existingValues.course === newValues.course &&
+                           existingValues.semester === newValues.semester &&
+                           existingValues.class === newValues.class;
+
+        if (isUnchanged) {
+          return res.status(400).json({
+            message: 'Student already exists with same details. No changes made.',
+            student: { email, name }
+          });
+        }
+
+        // Update with new data
+        if (institute.instituteType === 'college') {
+          if (course) existingUser.course = course;
+          if (semester) existingUser.semester = semester;
+        }
+        
+        if (institute.instituteType === 'school' && classValue) {
+          existingUser.class = classValue;
+        }
+
+        // Increment wallet coins
+        existingUser.goldCoins = (existingUser.goldCoins || 0) + goldCoinsPerStudent;
+        existingUser.silverCoins = (existingUser.silverCoins || 0) + silverCoinsPerStudent;
+
+        await existingUser.save();
+        
+        studentIds.add(existingUser._id.toString());
+
+        // Update institute
+        institute.students = Array.from(studentIds).map(id => new mongoose.Types.ObjectId(id));
+        institute.studentsCount = studentIds.size;
+        
+        // Update institute coin tracking
+        if (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0) {
+          institute.perStudentSilverCoins = (institute.perStudentSilverCoins || 0) + silverCoinsPerStudent;
+          institute.perStudentGoldCoins = (institute.perStudentGoldCoins || 0) + goldCoinsPerStudent;
+          
+          // Create transaction record
+          const transaction = new InstituteRewardTransaction({
+            instituteId: institute._id,
+            instituteName: institute.instituteName,
+            ambassadorId: req.user._id,
+            ambassadorName: req.user.name || req.user.email,
+            ambassadorEmail: req.user.email,
+            source: 'MANUAL_UPDATE',
+            perStudentSilver: silverCoinsPerStudent,
+            perStudentGolden: goldCoinsPerStudent,
+            totalStudentsCount: 1,
+            totalSilverDistributed: silverCoinsPerStudent,
+            totalGoldenDistributed: goldCoinsPerStudent,
+            remarks: `Manual student update - ${name}`,
+            status: 'completed',
+            distributionDate: new Date()
+          });
+          await transaction.save();
+        }
+        
+        await institute.save();
+
+        // Log activity
+        setImmediate(async () => {
+          try {
+            await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Updated Manually', {
+              instituteName: institute.instituteName,
+              metadata: {
+                studentEmail: email,
+                studentName: name,
+                coinsGiven: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
+                silverCoinsPerStudent,
+                goldenCoinsPerStudent: goldCoinsPerStudent
+              }
+            });
+          } catch (logError) {
+            console.error('[ActivityLog] Error logging manual student update:', logError);
+          }
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: 'Student updated successfully',
+          student: { email, name },
+          coinsAdded: { silver: silverCoinsPerStudent, golden: goldCoinsPerStudent }
+        });
+      }
+
+      // Email exists but not assigned to any institute - assign now
+      existingUser.instituteId = institute.instituteId;
+      existingUser.instituteName = institute.instituteName;
       
-      if (!courseName || !courseName.toString().trim()) {
-        errors.push(`Row ${rowNum}: Course name is required`);
-        return;
+      if (institute.instituteType === 'school' && classValue) {
+        existingUser.class = classValue;
+      }
+      
+      if (institute.instituteType === 'college') {
+        if (course) existingUser.course = course;
+        if (semester) existingUser.semester = semester;
       }
 
-      const trimmedCourseName = courseName.toString().trim();
-      if (!courses.includes(trimmedCourseName)) {
-        courses.push(trimmedCourseName);
+      // Generate student ID if not exists
+      if (!existingUser.studentId) {
+        existingUser.studentId = generateStudentId(institute.instituteId);
       }
-    });
 
-    if (errors.length > 0) {
-      return res.status(400).json({ message: 'Validation errors found', errors });
-    }
+      // Increment wallet coins
+      existingUser.goldCoins = (existingUser.goldCoins || 0) + goldCoinsPerStudent;
+      existingUser.silverCoins = (existingUser.silverCoins || 0) + silverCoinsPerStudent;
 
-    // Validate number of courses if provided
-    const numCourses = parseInt(numberOfCourses) || courses.length;
-    if (numberOfCourses && courses.length !== numCourses) {
-      return res.status(400).json({
-        message: `Expected ${numCourses} courses but found ${courses.length} in Excel`
+      await existingUser.save();
+      
+      studentIds.add(existingUser._id.toString());
+
+      // Update institute
+      institute.students = Array.from(studentIds).map(id => new mongoose.Types.ObjectId(id));
+      institute.studentsCount = studentIds.size;
+      
+      // Update institute coin tracking
+      if (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0) {
+        institute.perStudentSilverCoins = (institute.perStudentSilverCoins || 0) + silverCoinsPerStudent;
+        institute.perStudentGoldCoins = (institute.perStudentGoldCoins || 0) + goldCoinsPerStudent;
+        
+        // Create transaction record
+        const transaction = new InstituteRewardTransaction({
+          instituteId: institute._id,
+          instituteName: institute.instituteName,
+          ambassadorId: req.user._id,
+          ambassadorName: req.user.name || req.user.email,
+          ambassadorEmail: req.user.email,
+          source: 'MANUAL_ASSIGN',
+          perStudentSilver: silverCoinsPerStudent,
+          perStudentGolden: goldCoinsPerStudent,
+          totalStudentsCount: 1,
+          totalSilverDistributed: silverCoinsPerStudent,
+          totalGoldenDistributed: goldCoinsPerStudent,
+          remarks: `Manual student assignment - ${name}`,
+          status: 'completed',
+          distributionDate: new Date()
+        });
+        await transaction.save();
+      }
+      
+      await institute.save();
+
+      // Log activity
+      setImmediate(async () => {
+        try {
+          await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Assigned Manually', {
+            instituteName: institute.instituteName,
+            metadata: {
+              studentEmail: email,
+              studentName: name,
+              coinsGiven: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
+              silverCoinsPerStudent,
+              goldenCoinsPerStudent: goldCoinsPerStudent
+            }
+          });
+        } catch (logError) {
+          console.error('[ActivityLog] Error logging manual student assignment:', logError);
+        }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Student added successfully',
+        student: { email, name },
+        coinsAdded: { silver: silverCoinsPerStudent, golden: goldCoinsPerStudent }
       });
     }
 
-    // Update institute with courses
-    institute.courses = courses;
-    institute.numberOfCourses = courses.length;
+    // Create new user
+    const newUser = new User({
+      email,
+      username: email.split('@')[0], // Generate username from email
+      firstName: name.split(' ')[0],
+      lastName: name.split(' ').slice(1).join(' ') || '',
+      instituteId: institute.instituteId,
+      instituteName: institute.instituteName,
+      studentId: generateStudentId(institute.instituteId),
+      goldCoins: goldCoinsPerStudent,
+      silverCoins: silverCoinsPerStudent,
+      password: Math.random().toString(36).slice(-8) // Temporary password
+    });
+
+    if (institute.instituteType === 'school' && classValue) {
+      newUser.class = classValue;
+    }
+    
+    if (institute.instituteType === 'college') {
+      if (course) newUser.course = course;
+      if (semester) newUser.semester = semester;
+    }
+
+    await newUser.save();
+    
+    studentIds.add(newUser._id.toString());
+
+    // Update institute
+    institute.students = Array.from(studentIds).map(id => new mongoose.Types.ObjectId(id));
+    institute.studentsCount = studentIds.size;
+    
+    // Update institute coin tracking
+    if (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0) {
+      institute.perStudentSilverCoins = (institute.perStudentSilverCoins || 0) + silverCoinsPerStudent;
+      institute.perStudentGoldCoins = (institute.perStudentGoldCoins || 0) + goldCoinsPerStudent;
+      
+      // Create transaction record
+      const transaction = new InstituteRewardTransaction({
+        instituteId: institute._id,
+        instituteName: institute.instituteName,
+        ambassadorId: req.user._id,
+        ambassadorName: req.user.name || req.user.email,
+        ambassadorEmail: req.user.email,
+        source: 'MANUAL_ADD',
+        perStudentSilver: silverCoinsPerStudent,
+        perStudentGolden: goldCoinsPerStudent,
+        totalStudentsCount: 1,
+        totalSilverDistributed: silverCoinsPerStudent,
+        totalGoldenDistributed: goldCoinsPerStudent,
+        remarks: `Manual student addition - ${name}`,
+        status: 'completed',
+        distributionDate: new Date()
+      });
+      await transaction.save();
+    }
+    
     await institute.save();
 
-    res.status(200).json({
-      message: 'Courses uploaded successfully',
-      coursesCount: courses.length,
-      courses: courses,
-      institute
+    // Log activity
+    setImmediate(async () => {
+      try {
+        await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Added Manually', {
+          instituteName: institute.instituteName,
+          metadata: {
+            studentEmail: email,
+            studentName: name,
+            coinsGiven: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
+            silverCoinsPerStudent,
+            goldenCoinsPerStudent: goldCoinsPerStudent
+          }
+        });
+      } catch (logError) {
+        console.error('[ActivityLog] Error logging manual student addition:', logError);
+      }
     });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Student created successfully',
+      student: { email, name },
+      coinsAdded: { silver: silverCoinsPerStudent, golden: goldCoinsPerStudent }
+    });
+
   } catch (error) {
-    console.error('Upload courses error:', error);
-    res.status(500).json({ message: 'Error uploading courses', error: error.message });
+    console.error('Error adding single student:', error);
+    res.status(500).json({ 
+      message: 'Server error', 
+      error: error.message 
+    });
   }
 };
 
