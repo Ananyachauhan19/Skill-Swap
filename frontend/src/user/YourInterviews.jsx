@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FaCalendarAlt, FaUser, FaClock, FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaVideo, FaStar, FaComment, FaList, FaBullseye, FaUserCheck, FaHourglassStart, FaCalendarCheck, FaCheck, FaTimes, FaHistory } from 'react-icons/fa';
+import { FaCalendarAlt, FaUser, FaClock, FaCheckCircle, FaTimesCircle, FaHourglassHalf, FaVideo, FaStar, FaComment, FaList, FaBullseye, FaUserCheck, FaHourglassStart, FaCalendarCheck, FaCheck, FaTimes, FaHistory, FaFilePdf } from 'react-icons/fa';
 import { BACKEND_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext';
 
@@ -185,6 +185,23 @@ const YourInterviews = () => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+        {interview.resumeUrl && (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-xs text-[#1e3a8a] mb-1 flex items-center gap-1">
+              <FaFilePdf className="text-[#1e3a8a]" />
+              Resume
+            </p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                window.open(interview.resumeUrl, '_blank');
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
+            >
+              {interview.resumeFileName || 'View Resume'}
+            </button>
           </div>
         )}
       </div>

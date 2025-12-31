@@ -230,8 +230,13 @@ const upload = multer({
 // Create a new interview request (by requester)
 exports.submitRequest = async (req, res) => {
   try {
-    const { company, position, message } = req.body;
+    const { company, position, message, resumeUrl, resumeFileName, resumeUploadedAt } = req.body;
     const requester = req.user._id;
+
+    // Validate required resume fields
+    if (!resumeUrl || !resumeFileName) {
+      return res.status(400).json({ message: 'Resume upload is required to submit an interview request' });
+    }
 
     const { assignedInterviewer } = req.body;
     const reqDoc = new InterviewRequest({
@@ -239,6 +244,9 @@ exports.submitRequest = async (req, res) => {
       company,
       position,
       message: message || '',
+      resumeUrl,
+      resumeFileName,
+      resumeUploadedAt: resumeUploadedAt || new Date(),
       // Status 'assigned' when user selects an interviewer, 'pending' when no interviewer (admin will assign later)
       status: assignedInterviewer ? 'assigned' : 'pending',
       assignedInterviewer: assignedInterviewer || null,

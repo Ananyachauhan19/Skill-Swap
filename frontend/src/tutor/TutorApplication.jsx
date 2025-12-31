@@ -18,100 +18,7 @@ const EDUCATION_LEVELS = [
 
 const SCHOOL_CLASSES = ['9', '10', '11', '12'];
 const STREAMS = ['Science', 'Commerce', 'Arts', 'Other'];
-const EXAMS = [
-  // 🏫 School Level
-  'JEE',
-  'NEET',
-  'CUET-UG',
-  'Olympiads (IMO / IPhO / IChO / NSO)',
-  'NTSE',
-  'KVPY',
-  'Boards Improvement',
-
-  // 🎓 Undergraduate / Integrated
-  'CLAT',
-  'AILET',
-  'NIFT',
-  'NID',
-  'UCEED',
-  'CEED',
-  'IISER Aptitude Test',
-  'ICAR AIEEA',
-  'IISc Bangalore UG',
-  'NDA',
-  'NA',
-
-  // 🎓 Postgraduate
-  'GATE',
-  'CUET-PG',
-  'CAT',
-  'XAT',
-  'GMAT',
-  'GRE',
-  'MAT',
-  'CMAT',
-  'ATMA',
-  'TISS NET',
-  'IIT JAM',
-  'NIMCET',
-  'DU LLB',
-  'MAH CET',
-
-  // 🏦 Banking & Insurance
-  'IBPS PO',
-  'IBPS Clerk',
-  'SBI PO',
-  'SBI Clerk',
-  'RBI Grade B',
-  'RBI Assistant',
-  'LIC AAO',
-  'LIC ADO',
-
-  // 🏛 Government / SSC
-  'UPSC CSE',
-  'UPSC CDS',
-  'UPSC CAPF',
-  'SSC CGL',
-  'SSC CHSL',
-  'SSC CPO',
-  'SSC GD',
-  'State PSC',
-
-  // 👮 Defence
-  'AFCAT',
-  'INET',
-  'Territorial Army',
-
-  // 👩‍🏫 Teaching
-  'CTET',
-  'UPTET',
-  'State TET',
-  'KVS',
-  'NVS',
-  'UGC NET',
-  'CSIR NET',
-
-  // ⚖ Law
-  'Judicial Services Exam',
-  'All State Judiciary Exams',
-
-  // 🌍 International
-  'SAT',
-  'ACT',
-  'IELTS',
-  'TOEFL',
-  'PTE',
-
-  // 🧪 Research / Fellowships
-  'DBT BET',
-  'ICMR JRF',
-  'DST INSPIRE',
-
-  // 🧾 Others
-  'State Entrance Exams',
-  'Professional Certification Exams',
-  'Other',
-];
+// EXAMS will be fetched from backend
 
 
 function titleCase(str) {
@@ -341,6 +248,8 @@ const TutorApplication = () => {
   const [coachingInstitute, setCoachingInstitute] = useState('');
   const [examQuery, setExamQuery] = useState('');
   const [showExamList, setShowExamList] = useState(false);
+  const [availableExams, setAvailableExams] = useState([]);
+  const [loadingExams, setLoadingExams] = useState(false);
   const [courseQueries, setCourseQueries] = useState([]);
   const [showCourseList, setShowCourseList] = useState([]);
   
@@ -362,7 +271,7 @@ const TutorApplication = () => {
   const [draftOverride, setDraftOverride] = useState(false);
 
   // Fuse instances for searchable dropdowns
-  const fuseExams = useMemo(() => new Fuse(EXAMS.map(e => ({ name: e })), { keys: ['name'], threshold: 0.3 }), []);
+  const fuseExams = useMemo(() => new Fuse(availableExams.map(e => ({ name: e })), { keys: ['name'], threshold: 0.3 }), [availableExams]);
   const fuseCourses = useMemo(() => new Fuse(availableCourses.map(c => ({ name: c })), { keys: ['name'], threshold: 0.3 }), [availableCourses]);
 
   // Load subjects/topics
@@ -384,6 +293,25 @@ const TutorApplication = () => {
         setSubmitError(e.message);
       } finally {
         setLoadingMeta(false);
+      }
+    })();
+  }, []);
+
+  // Fetch exams from Google CSV
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingExams(true);
+        const res = await fetch(`${BACKEND_URL}/api/google-data/exams`);
+        if (!res.ok) throw new Error('Failed to load exams');
+        const data = await res.json();
+        console.log('Fetched exams from CSV:', data);
+        console.log('Exams count:', data.exams?.length);
+        setAvailableExams(data.exams || []);
+      } catch (e) {
+        console.error('Error loading exams:', e);
+      } finally {
+        setLoadingExams(false);
       }
     })();
   }, []);
@@ -815,59 +743,16 @@ const TutorApplication = () => {
                       </button>
                     )}
                   </div>
-                  <div className="relative">
+                  <div>
                     <label className="block text-xs font-medium text-gray-700 mb-2">Course Name</label>
-                    <input
-                      type="text"
-                      value={courseQueries[idx] || ''}
-                      onChange={e => {
-                        const updated = [...courseQueries];
-                        updated[idx] = e.target.value;
-                        setCourseQueries(updated);
-                        const updatedShow = [...showCourseList];
-                        updatedShow[idx] = true;
-                        setShowCourseList(updatedShow);
-                      }}
-                      onFocus={() => {
-                        const updated = [...showCourseList];
-                        updated[idx] = true;
-                        setShowCourseList(updated);
-                      }}
-                      onBlur={() => setTimeout(() => {
-                        const updated = [...showCourseList];
-                        updated[idx] = false;
-                        setShowCourseList(updated);
-                      }, 200)}
-                      placeholder="Search or select course..."
+                    <select 
+                      value={course.courseName} 
+                      onChange={e => updateCourse(idx, 'courseName', e.target.value)} 
                       className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-                    />
-                    {showCourseList[idx] && (() => {
-                      const query = courseQueries[idx] || '';
-                      const filtered = query.trim() ? fuseCourses.search(query).map(r => r.item.name) : availableCourses;
-                      return (
-                        <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
-                          {filtered.map(c => (
-                            <button
-                              key={c}
-                              type="button"
-                              onMouseDown={() => {
-                                updateCourse(idx, 'courseName', c);
-                                const updated = [...courseQueries];
-                                updated[idx] = c;
-                                setCourseQueries(updated);
-                                const updatedShow = [...showCourseList];
-                                updatedShow[idx] = false;
-                                setShowCourseList(updatedShow);
-                              }}
-                              className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition ${course.courseName === c ? 'bg-blue-100 font-medium' : ''}`}
-                            >
-                              {c}
-                            </button>
-                          ))}
-                          {!filtered.length && <div className="px-4 py-2 text-xs text-gray-500">No matches</div>}
-                        </div>
-                      );
-                    })()}
+                    >
+                      <option value="">Select course</option>
+                      {availableCourses.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                   </div>
                   {course.courseName === 'Other' && (
                     <div>
@@ -1050,7 +935,7 @@ const TutorApplication = () => {
                       className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
                     />
                     {showExamList && (() => {
-                      const filtered = examQuery.trim() ? fuseExams.search(examQuery).map(r => r.item.name) : EXAMS;
+                      const filtered = examQuery.trim() ? fuseExams.search(examQuery).map(r => r.item.name) : availableExams;
                       return (
                         <div className="absolute z-20 left-0 right-0 mt-1 max-h-60 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
                           {filtered.map(e => (

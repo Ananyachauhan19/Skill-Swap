@@ -13,6 +13,10 @@ const interviewRequestSchema = new mongoose.Schema({
   assignedInterviewer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   assignedByAdmin: { type: Boolean, default: false }, // Track if interviewer was assigned by admin
   scheduledAt: { type: Date, default: null },
+  // Resume fields
+  resumeUrl: { type: String, required: true },
+  resumeFileName: { type: String, required: true },
+  resumeUploadedAt: { type: Date, required: true },
   // Negotiation fields for time-slot suggestions
   negotiationStatus: {
     type: String,

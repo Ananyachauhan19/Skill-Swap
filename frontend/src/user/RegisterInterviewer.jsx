@@ -4,228 +4,9 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 
 // Static suggestion lists (could be fetched later)
-const ORG_SUGGESTIONS = [
-  // 🌍 Global Tech Giants
-  'Google',
-  'Microsoft',
-  'Amazon',
-  'Meta',
-  'Netflix',
-  'Apple',
-  'Tesla',
-  'NVIDIA',
-  'OpenAI',
-  'Salesforce',
-  'Adobe',
-  'Oracle',
-  'IBM',
-  'Intel',
-  'Cisco',
+// ORG_SUGGESTIONS and ROLE_SUGGESTIONS will be fetched from backend
 
-  // 🚀 Global Startups & Product Companies
-  'Uber',
-  'Stripe',
-  'Airbnb',
-  'Spotify',
-  'Dropbox',
-  'Atlassian',
-  'Shopify',
-  'Zoom',
-  'PayPal',
-  'Square (Block)',
 
-  // 🇮🇳 Indian IT & Product Companies
-  'Infosys',
-  'TCS',
-  'Wipro',
-  'HCL Technologies',
-  'Tech Mahindra',
-  'LTIMindtree',
-  'Cognizant',
-  'Capgemini',
-  'Zoho',
-  'Freshworks',
-  'Flipkart',
-  'Swiggy',
-  'Zomato',
-  'Ola',
-  'Paytm',
-  'PhonePe',
-
-  // 🏦 Finance & Consulting
-  'Goldman Sachs',
-  'JPMorgan Chase',
-  'Morgan Stanley',
-  'Deloitte',
-  'PwC',
-  'EY',
-  'KPMG',
-  'McKinsey & Company',
-  'Boston Consulting Group',
-  'Bain & Company',
-
-  // 🏫 Indian Institutes (IITs / NITs / IISc)
-  'IIT Bombay',
-  'IIT Delhi',
-  'IIT Kanpur',
-  'IIT Kharagpur',
-  'IIT Madras',
-  'IIT Roorkee',
-  'IIT Guwahati',
-  'IIT Hyderabad',
-  'BITS Pilani',
-  'BITS Goa',
-  'BITS Hyderabad',
-  'NIT Trichy',
-  'NIT Surathkal',
-  'NIT Warangal',
-  'NIT Rourkela',
-  'IISc Bangalore',
-  'IISER Pune',
-
-  // 🌍 Global Universities
-  'Stanford University',
-  'Massachusetts Institute of Technology (MIT)',
-  'Harvard University',
-  'University of California, Berkeley',
-  'University of Oxford',
-  'University of Cambridge',
-  'Carnegie Mellon University',
-  'Princeton University',
-  'Columbia University',
-  'University of Toronto',
-
-  // 🧪 Research & Government Organizations
-  'ISRO',
-  'DRDO',
-  'BARC',
-  'CSIR',
-  'ICMR',
-  'NASA',
-  'CERN',
-
-  // 🧾 Others
-  'Startup (Stealth)',
-  'Private University',
-  'Government Institution',
-
-];
-
-const ROLE_SUGGESTIONS = [
-  // 🧑‍💻 Engineering & Tech
-  'Intern',
-  'Trainee',
-  'Junior Developer',
-  'Software Engineer',
-  'Senior Developer',
-  'Lead Engineer',
-  'Staff Engineer',
-  'Principal Engineer',
-  'Engineering Manager',
-  'Technical Architect',
-  'Solution Architect',
-  'System Architect',
-  'Backend Developer',
-  'Frontend Developer',
-  'Full Stack Developer',
-  'Mobile App Developer',
-  'Android Developer',
-  'iOS Developer',
-  'Web Developer',
-
-  // 🤖 Data & AI
-  'Data Analyst',
-  'Business Analyst',
-  'Data Scientist',
-  'Machine Learning Engineer',
-  'AI Engineer',
-  'Research Engineer',
-  'Research Scientist',
-
-  // ☁ DevOps / Cloud / Security
-  'DevOps Engineer',
-  'Site Reliability Engineer (SRE)',
-  'Cloud Engineer',
-  'Platform Engineer',
-  'Infrastructure Engineer',
-  'Security Engineer',
-  'Cybersecurity Analyst',
-
-  // 🧪 QA / Testing
-  'QA Engineer',
-  'Manual Tester',
-  'Automation Tester',
-  'Performance Tester',
-
-  // 🎨 Design
-  'UI Designer',
-  'UX Designer',
-  'Product Designer',
-  'Graphic Designer',
-
-  // 📦 Product & Program
-  'Product Manager',
-  'Associate Product Manager',
-  'Technical Product Manager',
-  'Program Manager',
-  'Project Manager',
-  'Delivery Manager',
-  'Scrum Master',
-
-  // 🧑‍💼 HR / Talent
-  'HR',
-  'HR Executive',
-  'HR Manager',
-  'Recruiter',
-  'Technical Recruiter',
-  'Talent Acquisition Specialist',
-  'People Operations Manager',
-
-  // 📈 Sales / Marketing / Growth
-  'Sales Executive',
-  'Account Executive',
-  'Business Development Executive',
-  'Growth Manager',
-  'Marketing Executive',
-  'Digital Marketing Specialist',
-  'SEO Specialist',
-  'Content Strategist',
-
-  // 💰 Finance / Operations
-  'Finance Analyst',
-  'Accountant',
-  'Chartered Accountant',
-  'Operations Manager',
-  'Business Operations Analyst',
-
-  // 🧑‍🏫 Education & Training
-  'Tutor',
-  'Subject Matter Expert',
-  'Teaching Assistant',
-  'Professor',
-  'Instructor',
-  'Trainer',
-
-  // 🏛 Leadership
-  'Team Lead',
-  'Manager',
-  'Senior Manager',
-  'Associate Director',
-  'Director',
-  'Senior Director',
-  'Vice President',
-  'Chief Technology Officer (CTO)',
-  'Chief Product Officer (CPO)',
-  'Chief Executive Officer (CEO)',
-
-  // 🧾 Other
-  'Consultant',
-  'Freelancer',
-  'Contractor',
-  'Entrepreneur',
-  'Founder',
-  'Co-Founder',
-];
 
 const capitalizeWords = (v) => v.replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1));
 
@@ -252,6 +33,9 @@ const RegisterInterviewer = () => {
   // Qualifications list
   const [availableQualifications, setAvailableQualifications] = useState(['BTech','MTech','BCA','MCA','BSc','MSc','MBA','PhD']);
   const [loadingQualifications, setLoadingQualifications] = useState(false);
+  const [orgSuggestions, setOrgSuggestions] = useState([]);
+  const [roleSuggestions, setRoleSuggestions] = useState([]);
+  const [loadingData, setLoadingData] = useState(false);
 
   const orgBoxRef = useRef(null);
   const roleBoxRef = useRef(null);
@@ -307,6 +91,29 @@ const RegisterInterviewer = () => {
     })();
   }, []);
 
+  // Fetch organizations and roles from Google CSV
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingData(true);
+        const res = await fetch(`${BACKEND_URL}/api/google-data/orgs-roles`);
+        if (!res.ok) throw new Error('Failed to fetch data');
+        const data = await res.json();
+        console.log('Fetched orgs/roles from CSV:', data);
+        console.log('Organizations count:', data.organizations?.length);
+        console.log('Roles count:', data.roles?.length);
+        setOrgSuggestions(data.organizations || []);
+        setRoleSuggestions(data.roles || []);
+      } catch (e) {
+        console.error('Failed to fetch organizations/roles, using fallback', e);
+        setOrgSuggestions(['Google', 'Microsoft', 'Amazon', 'Startup']);
+        setRoleSuggestions(['Software Engineer', 'Product Manager', 'Data Scientist']);
+      } finally {
+        setLoadingData(false);
+      }
+    })();
+  }, []);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -326,13 +133,13 @@ const RegisterInterviewer = () => {
 
   // Filtered suggestions
   const filteredOrgs = useMemo(() => {
-    if (!company.trim()) return ORG_SUGGESTIONS;
-    return ORG_SUGGESTIONS.filter(o => o.toLowerCase().includes(company.toLowerCase()));
-  }, [company]);
+    if (!company.trim()) return orgSuggestions;
+    return orgSuggestions.filter(o => o.toLowerCase().includes(company.toLowerCase()));
+  }, [company, orgSuggestions]);
   const filteredRoles = useMemo(() => {
-    if (!position.trim()) return ROLE_SUGGESTIONS;
-    return ROLE_SUGGESTIONS.filter(r => r.toLowerCase().includes(position.toLowerCase()));
-  }, [position]);
+    if (!position.trim()) return roleSuggestions;
+    return roleSuggestions.filter(r => r.toLowerCase().includes(position.toLowerCase()));
+  }, [position, roleSuggestions]);
   const filteredQuals = useMemo(() => {
     if (!qualification.trim()) return availableQualifications;
     return availableQualifications.filter(q => q.toLowerCase().includes(qualification.toLowerCase()));

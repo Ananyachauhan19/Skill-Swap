@@ -10,7 +10,8 @@ import {
   FaUserFriends, 
   FaHandshake,
   FaHome,
-  FaBars
+  FaBars,
+  FaFileAlt
 } from 'react-icons/fa';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket';
@@ -1155,6 +1156,19 @@ const SessionRequests = () => {
           {request.message && (
             <div className="mt-2 pt-2 border-t border-slate-200">
               <p className="text-xs text-slate-500 italic">"{request.message}"</p>
+            </div>
+          )}
+          {request.resumeUrl && (
+            <div className="mt-2 pt-2 border-t border-slate-200">
+              <a
+                href={request.resumeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+              >
+                <FaFileAlt size={12} />
+                View Resume ({request.resumeFileName || 'resume.pdf'})
+              </a>
             </div>
           )}
         </div>
