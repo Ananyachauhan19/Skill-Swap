@@ -11,6 +11,9 @@ router.post('/create', requireAuth, ctrl.submitRequest);
 // Apply to become an interviewer (upload resume)
 router.post('/apply', requireAuth, ctrl.applyInterviewer);
 
+// Get qualifications list from CSV
+router.get('/qualifications', ctrl.getQualifications);
+
 // Public: list approved interviewers (filter by company/position)
 router.get('/interviewers', requireAuth, ctrl.getApprovedInterviewers);
 

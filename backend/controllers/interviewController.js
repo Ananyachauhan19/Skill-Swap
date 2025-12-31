@@ -329,6 +329,50 @@ exports.submitRequest = async (req, res) => {
   }
 };
 
+// Get qualifications from CSV
+exports.getQualifications = async (req, res) => {
+  try {
+    const csvUrl = process.env.GOOGLE_DEGREE_CSV_URL;
+    if (!csvUrl) {
+      // Fallback qualifications if CSV URL not configured
+      return res.json({
+        qualifications: ['BTech', 'MTech', 'BCA', 'MCA', 'BSc', 'MSc', 'MBA', 'PhD']
+      });
+    }
+
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(csvUrl);
+    if (!response.ok) {
+      throw new Error('Failed to fetch qualifications CSV');
+    }
+
+    const text = await response.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    // CSV format: DEGREE_CODE,Full Name,Type,Category
+    // We want the Full Name (second column)
+    const qualList = lines.slice(1).map(line => {
+      const columns = line.split(',');
+      if (columns.length >= 2) {
+        // Extract second column (Full Name) and remove quotes
+        const fullName = columns[1].trim().replace(/^"|"$/g, '');
+        return fullName;
+      }
+      return null;
+    }).filter(Boolean);
+
+    // Remove duplicates and sort
+    const uniqueQuals = [...new Set(qualList)].sort();
+
+    res.json({ qualifications: uniqueQuals });
+  } catch (error) {
+    console.error('Error fetching qualifications:', error);
+    // Return fallback qualifications on error
+    res.json({
+      qualifications: ['BTech', 'MTech', 'BCA', 'MCA', 'BSc', 'MSc', 'MBA', 'PhD']
+    });
+  }
+};
+
 // Apply to become an interviewer (multipart for resume)
 exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
   try {
@@ -340,7 +384,7 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
     } catch (logErr) {
       console.error('[DEBUG] failed to log applyInterviewer context', logErr);
     }
-    const { name, company, position, experience, totalPastInterviews, qualification } = req.body;
+    const { name, company, position, experience, age, totalPastInterviews, qualification } = req.body;
     const userId = req.user._id;
     let resumePublicUrl = '';
 
@@ -380,6 +424,7 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
     appDoc.company = company || appDoc.company;
     appDoc.position = position || appDoc.position;
     appDoc.experience = experience || appDoc.experience;
+    if (age) appDoc.age = Number(age);
     appDoc.totalPastInterviews = Number(totalPastInterviews) || appDoc.totalPastInterviews || 0;
     appDoc.qualification = qualification || appDoc.qualification;
     // If a new resume was uploaded, replace the URL

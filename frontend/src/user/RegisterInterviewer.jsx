@@ -5,10 +5,227 @@ import { useNavigate } from 'react-router-dom';
 
 // Static suggestion lists (could be fetched later)
 const ORG_SUGGESTIONS = [
-  'Google','Microsoft','Amazon','Meta','Netflix','Salesforce','Adobe','Oracle','IBM','Intel','Uber','Stripe','Airbnb','Infosys','TCS','Wipro','Accenture','Cognizant','IIT Bombay','IIT Delhi','IIT Kanpur','IIT Kharagpur','IIT Madras','BITS Pilani','NIT Trichy','NIT Surathkal','Stanford University','MIT','Harvard University'
+  // 🌍 Global Tech Giants
+  'Google',
+  'Microsoft',
+  'Amazon',
+  'Meta',
+  'Netflix',
+  'Apple',
+  'Tesla',
+  'NVIDIA',
+  'OpenAI',
+  'Salesforce',
+  'Adobe',
+  'Oracle',
+  'IBM',
+  'Intel',
+  'Cisco',
+
+  // 🚀 Global Startups & Product Companies
+  'Uber',
+  'Stripe',
+  'Airbnb',
+  'Spotify',
+  'Dropbox',
+  'Atlassian',
+  'Shopify',
+  'Zoom',
+  'PayPal',
+  'Square (Block)',
+
+  // 🇮🇳 Indian IT & Product Companies
+  'Infosys',
+  'TCS',
+  'Wipro',
+  'HCL Technologies',
+  'Tech Mahindra',
+  'LTIMindtree',
+  'Cognizant',
+  'Capgemini',
+  'Zoho',
+  'Freshworks',
+  'Flipkart',
+  'Swiggy',
+  'Zomato',
+  'Ola',
+  'Paytm',
+  'PhonePe',
+
+  // 🏦 Finance & Consulting
+  'Goldman Sachs',
+  'JPMorgan Chase',
+  'Morgan Stanley',
+  'Deloitte',
+  'PwC',
+  'EY',
+  'KPMG',
+  'McKinsey & Company',
+  'Boston Consulting Group',
+  'Bain & Company',
+
+  // 🏫 Indian Institutes (IITs / NITs / IISc)
+  'IIT Bombay',
+  'IIT Delhi',
+  'IIT Kanpur',
+  'IIT Kharagpur',
+  'IIT Madras',
+  'IIT Roorkee',
+  'IIT Guwahati',
+  'IIT Hyderabad',
+  'BITS Pilani',
+  'BITS Goa',
+  'BITS Hyderabad',
+  'NIT Trichy',
+  'NIT Surathkal',
+  'NIT Warangal',
+  'NIT Rourkela',
+  'IISc Bangalore',
+  'IISER Pune',
+
+  // 🌍 Global Universities
+  'Stanford University',
+  'Massachusetts Institute of Technology (MIT)',
+  'Harvard University',
+  'University of California, Berkeley',
+  'University of Oxford',
+  'University of Cambridge',
+  'Carnegie Mellon University',
+  'Princeton University',
+  'Columbia University',
+  'University of Toronto',
+
+  // 🧪 Research & Government Organizations
+  'ISRO',
+  'DRDO',
+  'BARC',
+  'CSIR',
+  'ICMR',
+  'NASA',
+  'CERN',
+
+  // 🧾 Others
+  'Startup (Stealth)',
+  'Private University',
+  'Government Institution',
+
 ];
-const ROLE_SUGGESTIONS = [ 'Intern','Junior Developer','Developer','Senior Developer','Lead','Manager','HR','Recruiter','Architect','Director' ];
-const QUALIFICATIONS = [ 'BTech','MTech','BCA','MCA','BSc','MSc','MBA','PhD' ];
+
+const ROLE_SUGGESTIONS = [
+  // 🧑‍💻 Engineering & Tech
+  'Intern',
+  'Trainee',
+  'Junior Developer',
+  'Software Engineer',
+  'Senior Developer',
+  'Lead Engineer',
+  'Staff Engineer',
+  'Principal Engineer',
+  'Engineering Manager',
+  'Technical Architect',
+  'Solution Architect',
+  'System Architect',
+  'Backend Developer',
+  'Frontend Developer',
+  'Full Stack Developer',
+  'Mobile App Developer',
+  'Android Developer',
+  'iOS Developer',
+  'Web Developer',
+
+  // 🤖 Data & AI
+  'Data Analyst',
+  'Business Analyst',
+  'Data Scientist',
+  'Machine Learning Engineer',
+  'AI Engineer',
+  'Research Engineer',
+  'Research Scientist',
+
+  // ☁ DevOps / Cloud / Security
+  'DevOps Engineer',
+  'Site Reliability Engineer (SRE)',
+  'Cloud Engineer',
+  'Platform Engineer',
+  'Infrastructure Engineer',
+  'Security Engineer',
+  'Cybersecurity Analyst',
+
+  // 🧪 QA / Testing
+  'QA Engineer',
+  'Manual Tester',
+  'Automation Tester',
+  'Performance Tester',
+
+  // 🎨 Design
+  'UI Designer',
+  'UX Designer',
+  'Product Designer',
+  'Graphic Designer',
+
+  // 📦 Product & Program
+  'Product Manager',
+  'Associate Product Manager',
+  'Technical Product Manager',
+  'Program Manager',
+  'Project Manager',
+  'Delivery Manager',
+  'Scrum Master',
+
+  // 🧑‍💼 HR / Talent
+  'HR',
+  'HR Executive',
+  'HR Manager',
+  'Recruiter',
+  'Technical Recruiter',
+  'Talent Acquisition Specialist',
+  'People Operations Manager',
+
+  // 📈 Sales / Marketing / Growth
+  'Sales Executive',
+  'Account Executive',
+  'Business Development Executive',
+  'Growth Manager',
+  'Marketing Executive',
+  'Digital Marketing Specialist',
+  'SEO Specialist',
+  'Content Strategist',
+
+  // 💰 Finance / Operations
+  'Finance Analyst',
+  'Accountant',
+  'Chartered Accountant',
+  'Operations Manager',
+  'Business Operations Analyst',
+
+  // 🧑‍🏫 Education & Training
+  'Tutor',
+  'Subject Matter Expert',
+  'Teaching Assistant',
+  'Professor',
+  'Instructor',
+  'Trainer',
+
+  // 🏛 Leadership
+  'Team Lead',
+  'Manager',
+  'Senior Manager',
+  'Associate Director',
+  'Director',
+  'Senior Director',
+  'Vice President',
+  'Chief Technology Officer (CTO)',
+  'Chief Product Officer (CPO)',
+  'Chief Executive Officer (CEO)',
+
+  // 🧾 Other
+  'Consultant',
+  'Freelancer',
+  'Contractor',
+  'Entrepreneur',
+  'Founder',
+  'Co-Founder',
+];
 
 const capitalizeWords = (v) => v.replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1));
 
@@ -31,6 +248,10 @@ const RegisterInterviewer = () => {
   const [loading, setLoading] = useState(false);
   const [appLoading, setAppLoading] = useState(true);
   const [application, setApplication] = useState(null);
+  
+  // Qualifications list
+  const [availableQualifications, setAvailableQualifications] = useState(['BTech','MTech','BCA','MCA','BSc','MSc','MBA','PhD']);
+  const [loadingQualifications, setLoadingQualifications] = useState(false);
 
   const orgBoxRef = useRef(null);
   const roleBoxRef = useRef(null);
@@ -66,19 +287,56 @@ const RegisterInterviewer = () => {
     })();
   }, []);
 
+  // Fetch qualifications from backend
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingQualifications(true);
+        const res = await fetch(`${BACKEND_URL}/api/interview/qualifications`);
+        if (!res.ok) throw new Error('Failed to fetch qualifications');
+        const data = await res.json();
+        if (data.qualifications && Array.isArray(data.qualifications)) {
+          setAvailableQualifications(data.qualifications);
+        }
+      } catch (e) {
+        console.error('Failed to fetch qualifications, using fallback', e);
+        // Keep the fallback list already set in state
+      } finally {
+        setLoadingQualifications(false);
+      }
+    })();
+  }, []);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (orgBoxRef.current && !orgBoxRef.current.contains(e.target)) {
+        setShowOrgList(false);
+      }
+      if (roleBoxRef.current && !roleBoxRef.current.contains(e.target)) {
+        setShowRoleList(false);
+      }
+      if (qualBoxRef.current && !qualBoxRef.current.contains(e.target)) {
+        setShowQualList(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Filtered suggestions
   const filteredOrgs = useMemo(() => {
-    if (!company.trim()) return ORG_SUGGESTIONS.slice(0, 8);
-    return ORG_SUGGESTIONS.filter(o => o.toLowerCase().includes(company.toLowerCase())).slice(0, 8);
+    if (!company.trim()) return ORG_SUGGESTIONS;
+    return ORG_SUGGESTIONS.filter(o => o.toLowerCase().includes(company.toLowerCase()));
   }, [company]);
   const filteredRoles = useMemo(() => {
-    if (!position.trim()) return ROLE_SUGGESTIONS.slice(0, 8);
-    return ROLE_SUGGESTIONS.filter(r => r.toLowerCase().includes(position.toLowerCase())).slice(0, 8);
+    if (!position.trim()) return ROLE_SUGGESTIONS;
+    return ROLE_SUGGESTIONS.filter(r => r.toLowerCase().includes(position.toLowerCase()));
   }, [position]);
   const filteredQuals = useMemo(() => {
-    if (!qualification.trim()) return QUALIFICATIONS.slice(0, 8);
-    return QUALIFICATIONS.filter(q => q.toLowerCase().includes(qualification.toLowerCase())).slice(0, 8);
-  }, [qualification]);
+    if (!qualification.trim()) return availableQualifications;
+    return availableQualifications.filter(q => q.toLowerCase().includes(qualification.toLowerCase()));
+  }, [qualification, availableQualifications]);
 
   // Validation
   const validations = {
@@ -195,9 +453,9 @@ const RegisterInterviewer = () => {
                 onChange={e => { setCompany(e.target.value); setShowOrgList(true); }}
                 autoComplete="off"
               />
-              {helper('Select or type your current organization / institute.')}
+              {helper('Select from list or type your own organization / institute.')}
               {showOrgList && filteredOrgs.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow animate-fade">
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow animate-fade max-h-60 overflow-y-auto">
                   {filteredOrgs.map(o => (
                     <button
                       key={o}
@@ -222,9 +480,9 @@ const RegisterInterviewer = () => {
                 onChange={e => { setPosition(capitalizeWords(e.target.value)); setShowRoleList(true); }}
                 autoComplete="off"
               />
-              {helper('Enter your current job title. You can type a custom title.')}
+              {helper('Select from list or type your own designation / role.')}
               {showRoleList && filteredRoles.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow">
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow max-h-60 overflow-y-auto">
                   {filteredRoles.map(r => (
                     <button
                       key={r}
@@ -295,9 +553,9 @@ const RegisterInterviewer = () => {
                 onChange={e => { setQualification(capitalizeWords(e.target.value)); setShowQualList(true); }}
                 autoComplete="off"
               />
-              {helper('Select or enter your highest attained qualification.')}
+              {helper('Select from list or type your own highest qualification.')}
               {showQualList && filteredQuals.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow">
+                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow max-h-60 overflow-y-auto">
                   {filteredQuals.map(q => (
                     <button
                       key={q}
@@ -377,7 +635,6 @@ const RegisterInterviewer = () => {
             </button>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-4 text-center">Age field is currently not persisted server-side; update backend if needed.</p>
       </div>
     </div>
   );

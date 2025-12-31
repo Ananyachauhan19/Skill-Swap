@@ -339,6 +339,10 @@ const TutorApplication = () => {
   const [examName, setExamName] = useState('');
   const [customExamName, setCustomExamName] = useState('');
   const [coachingInstitute, setCoachingInstitute] = useState('');
+  const [examQuery, setExamQuery] = useState('');
+  const [showExamList, setShowExamList] = useState(false);
+  const [courseQueries, setCourseQueries] = useState([]);
+  const [showCourseList, setShowCourseList] = useState([]);
   
   const [skills, setSkills] = useState([]); // each { class, subject, topic }
   const [currentSkill, setCurrentSkill] = useState({ class: '', subject: '', topic: '' });
@@ -356,6 +360,10 @@ const TutorApplication = () => {
   const [prefillLoaded, setPrefillLoaded] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState(null); // { applicationType, status }
   const [draftOverride, setDraftOverride] = useState(false);
+
+  // Fuse instances for searchable dropdowns
+  const fuseExams = useMemo(() => new Fuse(EXAMS.map(e => ({ name: e })), { keys: ['name'], threshold: 0.3 }), []);
+  const fuseCourses = useMemo(() => new Fuse(availableCourses.map(c => ({ name: c })), { keys: ['name'], threshold: 0.3 }), [availableCourses]);
 
   // Load subjects/topics
   useEffect(() => {
@@ -401,6 +409,14 @@ const TutorApplication = () => {
       }
     })();
   }, [educationLevel, isPursuingDegree]);
+
+  // Initialize course query arrays when courses array changes
+  useEffect(() => {
+    if (courseQueries.length !== courses.length) {
+      setCourseQueries(courses.map(c => c.courseName || ''));
+      setShowCourseList(courses.map(() => false));
+    }
+  }, [courses.length]);
 
   // Prefill education/institution/class defaults and any pending edited skills from application
   useEffect(() => {
@@ -672,12 +688,16 @@ const TutorApplication = () => {
   const addCourse = () => {
     if (courses.length < 5) {
       setCourses([...courses, { courseName: '', customCourseName: '', institutionName: '' }]);
+      setCourseQueries([...courseQueries, '']);
+      setShowCourseList([...showCourseList, false]);
     }
   };
   
   const removeCourse = (idx) => {
     if (courses.length > 1) {
       setCourses(courses.filter((_, i) => i !== idx));
+      setCourseQueries(courseQueries.filter((_, i) => i !== idx));
+      setShowCourseList(showCourseList.filter((_, i) => i !== idx));
     }
   };
   
@@ -795,16 +815,59 @@ const TutorApplication = () => {
                       </button>
                     )}
                   </div>
-                  <div>
+                  <div className="relative">
                     <label className="block text-xs font-medium text-gray-700 mb-2">Course Name</label>
-                    <select 
-                      value={course.courseName} 
-                      onChange={e => updateCourse(idx, 'courseName', e.target.value)} 
+                    <input
+                      type="text"
+                      value={courseQueries[idx] || ''}
+                      onChange={e => {
+                        const updated = [...courseQueries];
+                        updated[idx] = e.target.value;
+                        setCourseQueries(updated);
+                        const updatedShow = [...showCourseList];
+                        updatedShow[idx] = true;
+                        setShowCourseList(updatedShow);
+                      }}
+                      onFocus={() => {
+                        const updated = [...showCourseList];
+                        updated[idx] = true;
+                        setShowCourseList(updated);
+                      }}
+                      onBlur={() => setTimeout(() => {
+                        const updated = [...showCourseList];
+                        updated[idx] = false;
+                        setShowCourseList(updated);
+                      }, 200)}
+                      placeholder="Search or select course..."
                       className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-                    >
-                      <option value="">Select course</option>
-                      {availableCourses.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    />
+                    {showCourseList[idx] && (() => {
+                      const query = courseQueries[idx] || '';
+                      const filtered = query.trim() ? fuseCourses.search(query).map(r => r.item.name) : availableCourses;
+                      return (
+                        <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
+                          {filtered.map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              onMouseDown={() => {
+                                updateCourse(idx, 'courseName', c);
+                                const updated = [...courseQueries];
+                                updated[idx] = c;
+                                setCourseQueries(updated);
+                                const updatedShow = [...showCourseList];
+                                updatedShow[idx] = false;
+                                setShowCourseList(updatedShow);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition ${course.courseName === c ? 'bg-blue-100 font-medium' : ''}`}
+                            >
+                              {c}
+                            </button>
+                          ))}
+                          {!filtered.length && <div className="px-4 py-2 text-xs text-gray-500">No matches</div>}
+                        </div>
+                      );
+                    })()}
                   </div>
                   {course.courseName === 'Other' && (
                     <div>
@@ -861,16 +924,59 @@ const TutorApplication = () => {
                       </button>
                     )}
                   </div>
-                  <div>
+                  <div className="relative">
                     <label className="block text-xs font-medium text-gray-700 mb-2">Course Name</label>
-                    <select 
-                      value={course.courseName} 
-                      onChange={e => updateCourse(idx, 'courseName', e.target.value)} 
+                    <input
+                      type="text"
+                      value={courseQueries[idx] || ''}
+                      onChange={e => {
+                        const updated = [...courseQueries];
+                        updated[idx] = e.target.value;
+                        setCourseQueries(updated);
+                        const updatedShow = [...showCourseList];
+                        updatedShow[idx] = true;
+                        setShowCourseList(updatedShow);
+                      }}
+                      onFocus={() => {
+                        const updated = [...showCourseList];
+                        updated[idx] = true;
+                        setShowCourseList(updated);
+                      }}
+                      onBlur={() => setTimeout(() => {
+                        const updated = [...showCourseList];
+                        updated[idx] = false;
+                        setShowCourseList(updated);
+                      }, 200)}
+                      placeholder="Search or select course..."
                       className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-                    >
-                      <option value="">Select course</option>
-                      {availableCourses.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    />
+                    {showCourseList[idx] && (() => {
+                      const query = courseQueries[idx] || '';
+                      const filtered = query.trim() ? fuseCourses.search(query).map(r => r.item.name) : availableCourses;
+                      return (
+                        <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
+                          {filtered.map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              onMouseDown={() => {
+                                updateCourse(idx, 'courseName', c);
+                                const updated = [...courseQueries];
+                                updated[idx] = c;
+                                setCourseQueries(updated);
+                                const updatedShow = [...showCourseList];
+                                updatedShow[idx] = false;
+                                setShowCourseList(updatedShow);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition ${course.courseName === c ? 'bg-blue-100 font-medium' : ''}`}
+                            >
+                              {c}
+                            </button>
+                          ))}
+                          {!filtered.length && <div className="px-4 py-2 text-xs text-gray-500">No matches</div>}
+                        </div>
+                      );
+                    })()}
                   </div>
                   {course.courseName === 'Other' && (
                     <div>
@@ -932,16 +1038,35 @@ const TutorApplication = () => {
               {(isPursuingDegree === 'no' || isPursuingDegree === 'yes') && (
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-800">Exam Details</h3>
-                  <div>
+                  <div className="relative">
                     <label className="block text-xs font-medium text-gray-700 mb-2">Exam</label>
-                    <select 
-                      value={examName} 
-                      onChange={e => setExamName(e.target.value)} 
+                    <input
+                      type="text"
+                      value={examQuery}
+                      onChange={e => { setExamQuery(e.target.value); setShowExamList(true); }}
+                      onFocus={() => setShowExamList(true)}
+                      onBlur={() => setTimeout(() => setShowExamList(false), 200)}
+                      placeholder="Search or select exam..."
                       className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-                    >
-                      <option value="">Select exam</option>
-                      {EXAMS.map(e => <option key={e} value={e}>{e}</option>)}
-                    </select>
+                    />
+                    {showExamList && (() => {
+                      const filtered = examQuery.trim() ? fuseExams.search(examQuery).map(r => r.item.name) : EXAMS;
+                      return (
+                        <div className="absolute z-20 left-0 right-0 mt-1 max-h-60 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
+                          {filtered.map(e => (
+                            <button
+                              key={e}
+                              type="button"
+                              onMouseDown={() => { setExamName(e); setExamQuery(e); setShowExamList(false); }}
+                              className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition ${examName === e ? 'bg-blue-100 font-medium' : ''}`}
+                            >
+                              {e}
+                            </button>
+                          ))}
+                          {!filtered.length && <div className="px-4 py-2 text-xs text-gray-500">No matches</div>}
+                        </div>
+                      );
+                    })()}
                   </div>
                   {examName === 'Other' && (
                     <div>
@@ -984,16 +1109,59 @@ const TutorApplication = () => {
                           </button>
                         )}
                       </div>
-                      <div>
+                      <div className="relative">
                         <label className="block text-xs font-medium text-gray-700 mb-2">Course Name</label>
-                        <select 
-                          value={course.courseName} 
-                          onChange={e => updateCourse(idx, 'courseName', e.target.value)} 
+                        <input
+                          type="text"
+                          value={courseQueries[idx] || ''}
+                          onChange={e => {
+                            const updated = [...courseQueries];
+                            updated[idx] = e.target.value;
+                            setCourseQueries(updated);
+                            const updatedShow = [...showCourseList];
+                            updatedShow[idx] = true;
+                            setShowCourseList(updatedShow);
+                          }}
+                          onFocus={() => {
+                            const updated = [...showCourseList];
+                            updated[idx] = true;
+                            setShowCourseList(updated);
+                          }}
+                          onBlur={() => setTimeout(() => {
+                            const updated = [...showCourseList];
+                            updated[idx] = false;
+                            setShowCourseList(updated);
+                          }, 200)}
+                          placeholder="Search or select course..."
                           className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-900 focus:border-transparent"
-                        >
-                          <option value="">Select course</option>
-                          {availableCourses.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        />
+                        {showCourseList[idx] && (() => {
+                          const query = courseQueries[idx] || '';
+                          const filtered = query.trim() ? fuseCourses.search(query).map(r => r.item.name) : availableCourses;
+                          return (
+                            <div className="absolute z-20 left-0 right-0 mt-1 max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-lg">
+                              {filtered.map(c => (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onMouseDown={() => {
+                                    updateCourse(idx, 'courseName', c);
+                                    const updated = [...courseQueries];
+                                    updated[idx] = c;
+                                    setCourseQueries(updated);
+                                    const updatedShow = [...showCourseList];
+                                    updatedShow[idx] = false;
+                                    setShowCourseList(updatedShow);
+                                  }}
+                                  className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition ${course.courseName === c ? 'bg-blue-100 font-medium' : ''}`}
+                                >
+                                  {c}
+                                </button>
+                              ))}
+                              {!filtered.length && <div className="px-4 py-2 text-xs text-gray-500">No matches</div>}
+                            </div>
+                          );
+                        })()}
                       </div>
                       {course.courseName === 'Other' && (
                         <div>

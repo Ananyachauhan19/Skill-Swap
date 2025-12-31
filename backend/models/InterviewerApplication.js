@@ -6,6 +6,7 @@ const interviewerAppSchema = new mongoose.Schema({
   company: { type: String, required: false },
   position: { type: String, required: false },
   experience: { type: String, required: false },
+  age: { type: Number, required: false, min: 18, max: 80 },
   totalPastInterviews: { type: Number, required: false, default: 0 },
   qualification: { type: String, required: false },
   resumeUrl: { type: String, required: false },
