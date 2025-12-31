@@ -80,8 +80,65 @@ export default function TutorVerification({ selected }) {
           )}
         </div>
         <div className="bg-white border rounded-lg p-3 text-xs shadow-sm">
-          <div className="font-medium text-gray-700 mb-1">Education</div>
-          <div>{tutorApp.educationLevel} • {tutorApp.institutionName} • {tutorApp.classOrYear}</div>
+          <div className="font-medium text-gray-700 mb-2">Education</div>
+          
+          {/* School Education */}
+          {tutorApp.educationLevel === 'school' && tutorApp.educationData && (
+            <div className="space-y-1">
+              <div><span className="font-semibold">Level:</span> School</div>
+              <div><span className="font-semibold">Class:</span> {tutorApp.educationData.class || 'N/A'}</div>
+              {tutorApp.educationData.stream && (
+                <div><span className="font-semibold">Stream:</span> {tutorApp.educationData.stream}</div>
+              )}
+              <div><span className="font-semibold">Institution:</span> {tutorApp.educationData.institution || 'N/A'}</div>
+            </div>
+          )}
+
+          {/* College/Graduated Education */}
+          {(tutorApp.educationLevel === 'college' || tutorApp.educationLevel === 'graduate') && tutorApp.educationData && (
+            <div className="space-y-2">
+              <div><span className="font-semibold">Level:</span> {tutorApp.educationLevel === 'college' ? 'College' : 'Graduated'}</div>
+              <div className="font-semibold">Courses:</div>
+              {Array.isArray(tutorApp.educationData.courses) && tutorApp.educationData.courses.map((course, idx) => (
+                <div key={idx} className="ml-3 pl-3 border-l-2 border-gray-200 space-y-0.5">
+                  <div><span className="font-semibold">Course:</span> {course.courseName}</div>
+                  <div><span className="font-semibold">Institution:</span> {course.institutionName}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Competitive Exam Education */}
+          {tutorApp.educationLevel === 'competitive_exam' && tutorApp.educationData && (
+            <div className="space-y-2">
+              <div><span className="font-semibold">Level:</span> Competitive Exam Preparation</div>
+              <div><span className="font-semibold">Pursuing Degree:</span> {tutorApp.educationData.isPursuingDegree === 'yes' ? 'Yes' : 'No'}</div>
+              <div><span className="font-semibold">Exam:</span> {tutorApp.educationData.examName || 'N/A'}</div>
+              {tutorApp.educationData.coachingInstitute && (
+                <div><span className="font-semibold">Coaching:</span> {tutorApp.educationData.coachingInstitute}</div>
+              )}
+              {tutorApp.educationData.isPursuingDegree === 'yes' && Array.isArray(tutorApp.educationData.courses) && (
+                <div>
+                  <div className="font-semibold mt-2">Degree Courses:</div>
+                  {tutorApp.educationData.courses.map((course, idx) => (
+                    <div key={idx} className="ml-3 pl-3 border-l-2 border-gray-200 space-y-0.5">
+                      <div><span className="font-semibold">Course:</span> {course.courseName}</div>
+                      <div><span className="font-semibold">Institution:</span> {course.institutionName}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Legacy fallback for old data */}
+          {!tutorApp.educationData && (
+            <div className="space-y-1">
+              <div><span className="font-semibold">Level:</span> {tutorApp.educationLevel}</div>
+              <div><span className="font-semibold">Institution:</span> {tutorApp.institutionName}</div>
+              <div><span className="font-semibold">Class/Year:</span> {tutorApp.classOrYear}</div>
+            </div>
+          )}
         </div>
         <div className="bg-white border rounded-lg p-3 text-xs shadow-sm">
           <div className="font-medium text-gray-700 mb-2 flex items-center gap-2">

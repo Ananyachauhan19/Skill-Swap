@@ -515,16 +515,94 @@ export default function Applications({ mode = 'admin', allowedCategories, initia
                   <div className="space-y-2 text-sm">
                     <div>
                       <span className="text-gray-500">Level:</span>{' '}
-                      <span className="text-gray-900 font-medium">{tutorApp.educationLevel || '—'}</span>
+                      <span className="text-gray-900 font-medium capitalize">
+                        {tutorApp.educationLevel === 'competitive_exam' ? 'Competitive Exam' : tutorApp.educationLevel || '—'}
+                      </span>
                     </div>
-                    <div>
-                      <span className="text-gray-500">Institution:</span>{' '}
-                      <span className="text-gray-900 font-medium">{tutorApp.institutionName || '—'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Class/Year:</span>{' '}
-                      <span className="text-gray-900 font-medium">{tutorApp.classOrYear || '—'}</span>
-                    </div>
+
+                    {/* School Education */}
+                    {tutorApp.educationLevel === 'school' && tutorApp.educationData && (
+                      <>
+                        <div>
+                          <span className="text-gray-500">Class:</span>{' '}
+                          <span className="text-gray-900 font-medium">{tutorApp.educationData.class || '—'}</span>
+                        </div>
+                        {tutorApp.educationData.stream && (
+                          <div>
+                            <span className="text-gray-500">Stream:</span>{' '}
+                            <span className="text-gray-900 font-medium">{tutorApp.educationData.stream}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-gray-500">Institution:</span>{' '}
+                          <span className="text-gray-900 font-medium">{tutorApp.educationData.institution || '—'}</span>
+                        </div>
+                      </>
+                    )}
+
+                    {/* College/Graduated Education */}
+                    {(tutorApp.educationLevel === 'college' || tutorApp.educationLevel === 'graduate') && tutorApp.educationData && (
+                      <>
+                        {Array.isArray(tutorApp.educationData.courses) && tutorApp.educationData.courses.length > 0 ? (
+                          <div>
+                            <span className="text-gray-500 block mb-1">Courses:</span>
+                            {tutorApp.educationData.courses.map((course, idx) => (
+                              <div key={idx} className="ml-3 pl-3 border-l-2 border-gray-200 mb-2">
+                                <div className="text-gray-900 font-medium">{course.courseName}</div>
+                                <div className="text-gray-600 text-xs">{course.institutionName}</div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-gray-500">No courses listed</div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Competitive Exam Education */}
+                    {tutorApp.educationLevel === 'competitive_exam' && tutorApp.educationData && (
+                      <>
+                        <div>
+                          <span className="text-gray-500">Pursuing Degree:</span>{' '}
+                          <span className="text-gray-900 font-medium">{tutorApp.educationData.isPursuingDegree === 'yes' ? 'Yes' : 'No'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Exam:</span>{' '}
+                          <span className="text-gray-900 font-medium">{tutorApp.educationData.examName || '—'}</span>
+                        </div>
+                        {tutorApp.educationData.coachingInstitute && (
+                          <div>
+                            <span className="text-gray-500">Coaching Institute:</span>{' '}
+                            <span className="text-gray-900 font-medium">{tutorApp.educationData.coachingInstitute}</span>
+                          </div>
+                        )}
+                        {tutorApp.educationData.isPursuingDegree === 'yes' && Array.isArray(tutorApp.educationData.courses) && tutorApp.educationData.courses.length > 0 && (
+                          <div>
+                            <span className="text-gray-500 block mb-1">Degree Courses:</span>
+                            {tutorApp.educationData.courses.map((course, idx) => (
+                              <div key={idx} className="ml-3 pl-3 border-l-2 border-gray-200 mb-2">
+                                <div className="text-gray-900 font-medium">{course.courseName}</div>
+                                <div className="text-gray-600 text-xs">{course.institutionName}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Legacy fallback for old data */}
+                    {!tutorApp.educationData && (
+                      <>
+                        <div>
+                          <span className="text-gray-500">Institution:</span>{' '}
+                          <span className="text-gray-900 font-medium">{tutorApp.institutionName || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Class/Year:</span>{' '}
+                          <span className="text-gray-900 font-medium">{tutorApp.classOrYear || '—'}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

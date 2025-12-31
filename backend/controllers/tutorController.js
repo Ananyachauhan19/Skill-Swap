@@ -130,13 +130,32 @@ exports.getCourses = async (req, res) => {
 exports.apply = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { educationLevel, institutionName, classOrYear, skills } = req.body;
+    const { educationLevel, educationData: educationDataStr, skills } = req.body;
 
-    if (!educationLevel || !['school', 'college'].includes(educationLevel)) {
+    if (!educationLevel || !['school', 'college', 'graduate', 'competitive_exam'].includes(educationLevel)) {
       return res.status(400).json({ message: 'Invalid education level' });
     }
-    if (!institutionName || !classOrYear) {
-      return res.status(400).json({ message: 'Institution and class/year are required' });
+
+    let educationData;
+    try {
+      educationData = typeof educationDataStr === 'string' ? JSON.parse(educationDataStr) : educationDataStr;
+    } catch (e) {
+      return res.status(400).json({ message: 'Invalid education data format' });
+    }
+
+    // Validate education data based on level
+    if (educationLevel === 'school') {
+      if (!educationData.class || !educationData.institution) {
+        return res.status(400).json({ message: 'Class and institution are required for school' });
+      }
+    } else if (educationLevel === 'college' || educationLevel === 'graduate') {
+      if (!Array.isArray(educationData.courses) || educationData.courses.length === 0) {
+        return res.status(400).json({ message: 'At least one course is required' });
+      }
+    } else if (educationLevel === 'competitive_exam') {
+      if (!educationData.isPursuingDegree || !educationData.examName) {
+        return res.status(400).json({ message: 'Exam details are required' });
+      }
     }
 
     let parsedSkills;
@@ -205,8 +224,7 @@ exports.apply = async (req, res) => {
       application.skills = parsedSkills;
       application.applicationType = 'initial';
       application.educationLevel = educationLevel;
-      application.institutionName = institutionName;
-      application.classOrYear = classOrYear;
+      application.educationData = educationData;
       application.marksheetUrl = marksheetUrl;
       application.videoUrl = videoUrl;
       application.status = 'pending';
@@ -221,8 +239,7 @@ exports.apply = async (req, res) => {
         skills: parsedSkills,
         applicationType: 'initial',
         educationLevel,
-        institutionName,
-        classOrYear,
+        educationData,
         marksheetUrl,
         videoUrl,
       });

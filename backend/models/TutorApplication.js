@@ -10,7 +10,10 @@ const tutorApplicationSchema = new mongoose.Schema({
     },
   ],
   applicationType: { type: String, enum: ['initial', 'skills-update'], default: 'initial' },
-  educationLevel: { type: String, enum: ['school', 'college'] },
+  educationLevel: { type: String, enum: ['school', 'college', 'graduate', 'competitive_exam'] },
+  // New flexible education data structure
+  educationData: { type: mongoose.Schema.Types.Mixed },
+  // Legacy fields (kept for backward compatibility)
   institutionName: { type: String },
   classOrYear: { type: String },
   marksheetUrl: { type: String },
