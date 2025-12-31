@@ -761,10 +761,192 @@ exports.getInstituteStudents = async (req, res) => {
       .select('firstName lastName email studentId class course semester profileImageUrl isActive')
       .limit(1000);
 
-    res.status(200).json({ students, count: students.length });
+    // Map to include name field
+    const studentsWithName = students.map(student => ({
+      _id: student._id,
+      name: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+      email: student.email,
+      studentId: student.studentId,
+      class: student.class,
+      course: student.course,
+      semester: student.semester,
+      profileImageUrl: student.profileImageUrl,
+      isActive: student.isActive
+    }));
+
+    res.status(200).json({ students: studentsWithName, count: studentsWithName.length });
   } catch (error) {
     console.error('Get institute students error:', error);
     res.status(500).json({ message: 'Error fetching students', error: error.message });
+  }
+};
+
+// Delete student from institute
+exports.deleteInstituteStudent = async (req, res) => {
+  try {
+    const { instituteId, studentId } = req.params;
+
+    // Verify institute belongs to this ambassador
+    const institute = await Institute.findOne({
+      _id: instituteId,
+      campusAmbassador: req.user._id
+    });
+
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found or unauthorized' });
+    }
+
+    // Find the student
+    const student = await User.findOne({
+      _id: studentId,
+      instituteId: institute.instituteId
+    });
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found in this institute' });
+    }
+
+    // Remove instituteId to unlink student from institute (keep coins)
+    student.instituteId = null;
+    student.class = null;
+    student.course = null;
+    student.semester = null;
+    await student.save();
+
+    res.status(200).json({ 
+      message: 'Student removed from institute successfully',
+      studentEmail: student.email
+    });
+  } catch (error) {
+    console.error('Delete institute student error:', error);
+    res.status(500).json({ message: 'Error removing student', error: error.message });
+  }
+};
+
+// Update student in institute
+exports.updateInstituteStudent = async (req, res) => {
+  try {
+    const { instituteId, studentId } = req.params;
+    const { name, email, course, semester, class: studentClass } = req.body;
+
+    // Verify institute belongs to this ambassador
+    const institute = await Institute.findOne({
+      _id: instituteId,
+      campusAmbassador: req.user._id
+    });
+
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found or unauthorized' });
+    }
+
+    // Find the student
+    const student = await User.findOne({
+      _id: studentId,
+      instituteId: institute.instituteId
+    });
+
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found in this institute' });
+    }
+
+    // Check if email is being changed
+    if (email && email.toLowerCase() !== student.email.toLowerCase()) {
+      // Check if new email exists in any institute (campus database)
+      const existingUser = await User.findOne({
+        email: email.toLowerCase(),
+        instituteId: { $ne: null }
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: 'This email is already registered with another student in the campus database' 
+        });
+      }
+    }
+
+    // Track if email is changing
+    const emailChanged = email && email.toLowerCase() !== student.email.toLowerCase();
+    const oldEmail = student.email;
+
+    // Update student fields
+    if (name) student.name = name.trim();
+    if (email) student.email = email.trim().toLowerCase();
+    
+    if (institute.instituteType === 'school') {
+      if (studentClass) student.class = studentClass;
+    } else {
+      if (course) student.course = course.trim();
+      if (semester) student.semester = parseInt(semester);
+    }
+
+    await student.save();
+
+    // Send email notification if email was changed
+    if (emailChanged) {
+      setImmediate(async () => {
+        try {
+          const emailContent = {
+            subject: `Added to ${institute.instituteName} Campus Dashboard - Skill-Swap`,
+            html: `
+              <div style="font-family: system-ui, Arial; max-width: 640px; margin:0 auto; padding:16px;">
+                <div style="background:#0ea5e9; color:#fff; padding:12px 16px; border-radius:8px 8px 0 0;">
+                  <strong>Skill‑Swap</strong>
+                </div>
+                <div style="border:1px solid #e5e7eb; border-top:none; padding:16px; border-radius:0 0 8px 8px;">
+                  <h2 style="margin:0 0 12px; color:#0f172a;">Campus Dashboard Access Information</h2>
+                  <p>Hello ${student.firstName || 'Student'},</p>
+                  <p>Your email has been updated for the <strong>${institute.instituteName}</strong> campus dashboard.</p>
+                  
+                  <div style="background:#f8fafc; padding:16px; border-radius:6px; margin:16px 0;">
+                    <h3 style="margin:0 0 12px; color:#334155;">Your Campus Details:</h3>
+                    <p style="margin:8px 0;"><strong>Student ID:</strong> ${student.studentId}</p>
+                    <p style="margin:8px 0;"><strong>Institute:</strong> ${institute.instituteName}</p>
+                    ${student.course ? `<p style="margin:8px 0;"><strong>Course:</strong> ${student.course}</p>` : ''}
+                    ${student.semester ? `<p style="margin:8px 0;"><strong>Semester:</strong> ${student.semester}</p>` : ''}
+                    ${student.class ? `<p style="margin:8px 0;"><strong>Class:</strong> ${student.class}</p>` : ''}
+                  </div>
+
+                  <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
+                    <h3 style="margin:0 0 12px; color:#065f46;">Your Current Rewards</h3>
+                    <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> ${student.goldCoins || 0}</p>
+                    <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> ${student.silverCoins || 0}</p>
+                  </div>
+
+                  <p style="margin:16px 0;">You can now access your campus dashboard and all Skill-Swap features using your updated email address.</p>
+                  
+                  <p style="margin:24px 0;">
+                    <a href="https://skillswaphub.in/campus-dashboard" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Campus Dashboard</a>
+                  </p>
+                  
+                  <hr style="margin:24px 0; border:none; border-top:1px solid #e5e7eb"/>
+                  <p style="color:#64748b; font-size:12px;">This email was sent automatically by Skill‑Swap. Please do not reply to this message.</p>
+                </div>
+              </div>
+            `
+          };
+          
+          await sendMail({ to: student.email, ...emailContent });
+          console.log(`Email sent to updated address: ${student.email} (previously: ${oldEmail})`);
+        } catch (emailError) {
+          console.error('Failed to send email notification:', emailError);
+        }
+      });
+    }
+
+    res.status(200).json({ 
+      message: 'Student updated successfully',
+      student: {
+        _id: student._id,
+        name: student.name,
+        email: student.email,
+        class: student.class,
+        course: student.course,
+        semester: student.semester
+      }
+    });
+  } catch (error) {
+    console.error('Update institute student error:', error);
+    res.status(500).json({ message: 'Error updating student', error: error.message });
   }
 };
 

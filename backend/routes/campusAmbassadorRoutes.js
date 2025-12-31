@@ -42,6 +42,12 @@ router.get('/student-home', requireAuth, campusAmbassadorController.getStudentHo
 // Get institute students (for filtering in campus dashboard)
 router.get('/institutes/:instituteId/students', requireAuth, campusAmbassadorController.getInstituteStudents);
 
+// Update student in institute
+router.put('/institutes/:instituteId/students/:studentId', requireAuth, requireCampusAmbassador, campusAmbassadorController.updateInstituteStudent);
+
+// Delete student from institute
+router.delete('/institutes/:instituteId/students/:studentId', requireAuth, requireCampusAmbassador, campusAmbassadorController.deleteInstituteStudent);
+
 // Reward distribution routes
 router.post('/institutes/:instituteId/distribute-coins', requireAuth, requireCampusAmbassador, campusAmbassadorController.distributeCoinsToInstitute);
 router.get('/institutes/:instituteId/reward-history', requireAuth, requireCampusAmbassador, campusAmbassadorController.getInstituteRewardHistory);

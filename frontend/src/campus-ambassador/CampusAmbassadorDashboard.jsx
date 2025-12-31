@@ -9,6 +9,7 @@ import ExcelUpload from './ExcelUpload';
 import InstituteForm from './InstituteForm';
 import InstituteRewardsDashboard from './InstituteRewardsDashboard';
 import CollegeAssessmentsTab from './CollegeAssessmentsTab';
+import StudentDatabaseTab from './StudentDatabaseTab';
 import AmbassadorActivityProfile from '../components/AmbassadorActivityProfile';
 import { useAuth } from '../context/AuthContext';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
@@ -539,12 +540,7 @@ const CampusAmbassadorDashboard = () => {
                       )}
 
                       {activePage === PAGES.DATABASE && (
-                        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-                          <p className="text-xs font-semibold text-blue-950">Database</p>
-                          <p className="mt-1 text-[11px] text-slate-600">
-                            This section is reserved for future development.
-                          </p>
-                        </div>
+                        <StudentDatabaseTab institute={selectedInstitute} />
                       )}
                     </div>
                   </section>
