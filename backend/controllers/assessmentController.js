@@ -637,11 +637,37 @@ exports.getStudentAssessments = async (req, res) => {
         isCompulsory = studentSemester && collegeConfig.compulsorySemesters.includes(studentSemester);
       } else {
         // SCHOOL LOGIC:
-        // No visibility filtering: all classes in the school see the test
-        isVisible = true;
+        // Check if student's class has a matching config
+        const matchingClassConfigs = instituteConfigs.filter(cfg => cfg.courseId === studentClass);
 
-        // Compulsory only if student's class matches any configured class/course
-        isCompulsory = !!(studentClass && instituteConfigs.some(cfg => cfg.courseId === studentClass));
+        if (matchingClassConfigs.length > 0) {
+          // Student's class is configured - check stream filtering
+          const studentStream = req.user.stream || null;
+
+          // For class 11 and 12, check stream matching
+          if (studentClass === '11' || studentClass === '12') {
+            const matchingStreamConfig = matchingClassConfigs.find(cfg => {
+              // If no stream specified in config, visible to all
+              if (!cfg.stream || cfg.stream === '') {
+                return true;
+              }
+              // Otherwise, must match student's stream
+              return cfg.stream === studentStream;
+            });
+
+            if (!matchingStreamConfig) {
+              return null; // Not visible due to stream mismatch
+            }
+          }
+
+          // Compulsory for this class
+          isVisible = true;
+          isCompulsory = true;
+        } else {
+          // Student's class not in configured classes - visible but optional
+          isVisible = true;
+          isCompulsory = false;
+        }
       }
 
       // Check time window

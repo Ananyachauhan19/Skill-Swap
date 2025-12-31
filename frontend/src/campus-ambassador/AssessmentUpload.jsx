@@ -121,7 +121,8 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
       {
         collegeId,
         courseId: '',
-        compulsorySemesters: []
+        compulsorySemesters: [],
+        stream: ''
       }
     ]);
   };
@@ -194,6 +195,12 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
       for (const config of configs) {
         if (!config.courseId) {
           setError(`Please select a ${isSchool ? 'class/course' : 'course'} for all configurations in ${inst?.instituteName || 'institute'}`);
+          return;
+        }
+
+        // Validate stream for class 11 and 12
+        if (isSchool && (config.courseId === '11' || config.courseId === '12') && !config.stream) {
+          setError(`Please select a stream for Class ${config.courseId} in ${inst?.instituteName || 'school'}`);
           return;
         }
 
@@ -364,25 +371,60 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Select Institutes *
           </label>
-          <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3">
-            {institutes.length === 0 ? (
-              <p className="text-gray-500 text-sm">No institutes found. Please create an institute first.</p>
-            ) : (
-              institutes.map(institute => (
-                <label key={institute._id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                  <input
-                    type="checkbox"
-                    checked={formData.selectedInstitutes.includes(institute._id)}
-                    onChange={() => handleInstituteToggle(institute._id)}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">{institute.instituteName || institute.name}</span>
-                  {institute.courses?.length > 0 && (
-                    <span className="text-xs text-gray-400">({institute.courses.length} courses)</span>
-                  )}
-                </label>
-              ))
-            )}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Colleges Column */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-600 mb-2 uppercase">Colleges</h3>
+              <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
+                {institutes.filter(inst => inst.instituteType !== 'school').length === 0 ? (
+                  <p className="text-gray-400 text-xs italic">No colleges available</p>
+                ) : (
+                  institutes
+                    .filter(institute => institute.instituteType !== 'school')
+                    .map(institute => (
+                      <label key={institute._id} className="flex items-center space-x-2 cursor-pointer hover:bg-white p-2 rounded">
+                        <input
+                          type="checkbox"
+                          checked={formData.selectedInstitutes.includes(institute._id)}
+                          onChange={() => handleInstituteToggle(institute._id)}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{institute.instituteName || institute.name}</span>
+                        {institute.courses?.length > 0 && (
+                          <span className="text-xs text-gray-400">({institute.courses.length} courses)</span>
+                        )}
+                      </label>
+                    ))
+                )}
+              </div>
+            </div>
+
+            {/* Schools Column */}
+            <div>
+              <h3 className="text-xs font-semibold text-gray-600 mb-2 uppercase">Schools</h3>
+              <div className="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50">
+                {institutes.filter(inst => inst.instituteType === 'school').length === 0 ? (
+                  <p className="text-gray-400 text-xs italic">No schools available</p>
+                ) : (
+                  institutes
+                    .filter(institute => institute.instituteType === 'school')
+                    .map(institute => (
+                      <label key={institute._id} className="flex items-center space-x-2 cursor-pointer hover:bg-white p-2 rounded">
+                        <input
+                          type="checkbox"
+                          checked={formData.selectedInstitutes.includes(institute._id)}
+                          onChange={() => handleInstituteToggle(institute._id)}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{institute.instituteName || institute.name}</span>
+                        {institute.courses?.length > 0 && (
+                          <span className="text-xs text-gray-400">({institute.courses.length} courses)</span>
+                        )}
+                      </label>
+                    ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -477,6 +519,29 @@ const AssessmentUpload = ({ institutes, onUploadSuccess }) => {
                                   </select>
                                 )}
                               </div>
+
+                              {/* Stream Selection for Class 11 & 12 */}
+                              {isSchool && config.courseId && (config.courseId === '11' || config.courseId === '12' || config.courseId.includes('11') || config.courseId.includes('12')) && (
+                                <div className="mb-3">
+                                  <label className="block text-xs font-medium text-gray-600 mb-2">
+                                    Select Stream *
+                                  </label>
+                                  <p className="text-xs text-gray-500 mb-2">
+                                    Only students in this stream will see the assessment
+                                  </p>
+                                  <select
+                                    value={config.stream || ''}
+                                    onChange={(e) => updateCollegeConfig(configIndex, 'stream', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                                  >
+                                    <option value="">-- Select Stream --</option>
+                                    <option value="Science">Science</option>
+                                    <option value="Commerce">Commerce</option>
+                                    <option value="Arts">Arts</option>
+                                  </select>
+                                </div>
+                              )}
+
                               {!isSchool && (
                                 <div>
                                   <label className="block text-xs font-medium text-gray-600 mb-2">

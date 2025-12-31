@@ -67,6 +67,11 @@ const assessmentSchema = new mongoose.Schema({
       required: true,
       trim: true
     },
+    stream: {
+      type: String,
+      enum: ['Science', 'Commerce', 'Arts', ''],
+      default: ''
+    },
     compulsorySemesters: [{
       type: Number,
       min: 1,
