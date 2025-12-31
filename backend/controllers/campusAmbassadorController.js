@@ -677,11 +677,11 @@ exports.uploadStudents = async (req, res) => {
     // Log activity (after response to avoid blocking)
     setImmediate(async () => {
       try {
-        await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Excel Uploaded', {
+        await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Upload', {
           instituteName: institute.instituteName,
           metadata: {
-            totalStudentsUploaded: validProcessedCount,
-            coinsAssignedDuringUpload: (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0),
+            totalStudents: validProcessedCount,
+            coinsAssigned: (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0),
             silverCoinsPerStudent: silverCoinsPerStudent,
             goldenCoinsPerStudent: goldCoinsPerStudent
           }
@@ -1490,18 +1490,17 @@ exports.addSingleStudent = async (req, res) => {
         // Log activity
         setImmediate(async () => {
           try {
-            await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Updated Manually', {
+            await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Upload', {
               instituteName: institute.instituteName,
               metadata: {
-                studentEmail: email,
-                studentName: name,
-                coinsGiven: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
+                totalStudents: 1,
+                coinsAssigned: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
                 silverCoinsPerStudent,
                 goldenCoinsPerStudent: goldCoinsPerStudent
               }
             });
           } catch (logError) {
-            console.error('[ActivityLog] Error logging manual student update:', logError);
+            console.error('[ActivityLog] Error logging student upload:', logError);
           }
         });
 
@@ -1573,18 +1572,17 @@ exports.addSingleStudent = async (req, res) => {
       // Log activity
       setImmediate(async () => {
         try {
-          await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Assigned Manually', {
+          await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Upload', {
             instituteName: institute.instituteName,
             metadata: {
-              studentEmail: email,
-              studentName: name,
-              coinsGiven: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
+              totalStudents: 1,
+              coinsAssigned: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
               silverCoinsPerStudent,
               goldenCoinsPerStudent: goldCoinsPerStudent
             }
           });
         } catch (logError) {
-          console.error('[ActivityLog] Error logging manual student assignment:', logError);
+          console.error('[ActivityLog] Error logging student upload:', logError);
         }
       });
 
@@ -1657,18 +1655,17 @@ exports.addSingleStudent = async (req, res) => {
     // Log activity
     setImmediate(async () => {
       try {
-        await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Added Manually', {
+        await ActivityLog.logActivity(req.campusAmbassador._id, 'Student Upload', {
           instituteName: institute.instituteName,
           metadata: {
-            studentEmail: email,
-            studentName: name,
-            coinsGiven: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
+            totalStudents: 1,
+            coinsAssigned: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
             silverCoinsPerStudent,
             goldenCoinsPerStudent: goldCoinsPerStudent
           }
         });
       } catch (logError) {
-        console.error('[ActivityLog] Error logging manual student addition:', logError);
+        console.error('[ActivityLog] Error logging student upload:', logError);
       }
     });
 
@@ -2128,12 +2125,51 @@ exports.getMyActivityStats = async (req, res) => {
 
     const totalActivities = stats.reduce((sum, stat) => sum + stat.count, 0);
 
+    // Calculate cumulative student count and coin distribution from all uploads
+    const studentUploadStats = await ActivityLog.aggregate([
+      { 
+        $match: { 
+          ambassadorId: new mongoose.Types.ObjectId(req.campusAmbassador._id),
+          actionType: 'Student Upload'
+        } 
+      },
+      { 
+        $group: {
+          _id: null,
+          totalStudents: { $sum: { $ifNull: ['$metadata.totalStudents', 0] } },
+          totalSilverCoins: { $sum: { 
+            $multiply: [
+              { $ifNull: ['$metadata.totalStudents', 0] },
+              { $ifNull: ['$metadata.silverCoinsPerStudent', 0] }
+            ]
+          } },
+          totalGoldenCoins: { $sum: { 
+            $multiply: [
+              { $ifNull: ['$metadata.totalStudents', 0] },
+              { $ifNull: ['$metadata.goldenCoinsPerStudent', 0] }
+            ]
+          } }
+        }
+      }
+    ]);
+
+    const uploadTotals = studentUploadStats.length > 0 ? studentUploadStats[0] : {
+      totalStudents: 0,
+      totalSilverCoins: 0,
+      totalGoldenCoins: 0
+    };
+
     res.status(200).json({
       stats: stats.map(s => ({
         actionType: s._id,
         count: s.count
       })),
-      totalActivities
+      totalActivities,
+      studentUploadTotals: {
+        totalStudentsUploaded: uploadTotals.totalStudents,
+        totalSilverCoinsDistributed: uploadTotals.totalSilverCoins,
+        totalGoldenCoinsDistributed: uploadTotals.totalGoldenCoins
+      }
     });
   } catch (error) {
     console.error('Get my activity stats error:', error);

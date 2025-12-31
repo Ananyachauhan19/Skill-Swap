@@ -18,7 +18,6 @@ const EDUCATION_LEVELS = [
 
 const SCHOOL_CLASSES = ['9', '10', '11', '12'];
 const STREAMS = ['Science', 'Commerce', 'Arts', 'Other'];
-// EXAMS will be fetched from backend
 
 
 function titleCase(str) {

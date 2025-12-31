@@ -59,6 +59,7 @@ const CampusAmbassadorDashboard = () => {
   const [activePage, setActivePage] = useState(() => {
     return localStorage.getItem(ACTIVE_PAGE_STORAGE_KEY) || PAGES.OVERVIEW;
   });
+  const [activityRefreshTrigger, setActivityRefreshTrigger] = useState(0);
 
   const isSidebarWide = sidebarWidth >= 340;
 
@@ -363,7 +364,7 @@ const CampusAmbassadorDashboard = () => {
                         Track all your actions and contributions as a campus ambassador
                       </p>
                     </div>
-                    <AmbassadorActivityProfile isAdminView={false} />
+                    <AmbassadorActivityProfile isAdminView={false} refreshTrigger={activityRefreshTrigger} />
                   </div>
                 </div>
               ) : !selectedInstitute ? (
@@ -490,8 +491,16 @@ const CampusAmbassadorDashboard = () => {
                           instituteType={selectedInstitute.instituteType}
                           onClose={() => setActivePage(PAGES.OVERVIEW)}
                           onSuccess={async () => {
+                            console.log('[Dashboard] ExcelUpload onSuccess called, incrementing trigger');
                             await fetchInstitutes();
-                            setActivePage(PAGES.OVERVIEW);
+                            setActivityRefreshTrigger(prev => {
+                              console.log('[Dashboard] Activity trigger:', prev, '->', prev + 1);
+                              return prev + 1;
+                            });
+                            // Small delay to allow activity log to be created in backend
+                            setTimeout(() => {
+                              setActivePage(PAGES.OVERVIEW);
+                            }, 100);
                           }}
                         />
                       )}

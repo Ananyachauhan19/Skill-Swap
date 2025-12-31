@@ -396,6 +396,7 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
       // Refresh student list to update count
       await fetchExistingStudents();
 
+      console.log('[ExcelUpload] Manual student added, calling onSuccess:', !!onSuccess);
       if (onSuccess) onSuccess(data);
     } catch (err) {
       setError(err.message || 'Error adding student');

@@ -14,7 +14,7 @@ const activityLogSchema = new mongoose.Schema({
       'Institute Added',
       'Institute Edited',
       'Institute Deleted',
-      'Student Excel Uploaded',
+      'Student Upload',
       'Coins Distributed',
       'Assessment Uploaded'
     ],

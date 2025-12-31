@@ -14,7 +14,7 @@ import {
 import axios from 'axios';
 import { BACKEND_URL } from '../config';
 
-const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false }) => {
+const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false, refreshTrigger = 0 }) => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -28,7 +28,7 @@ const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false }) => {
     'Institute Added': <Building2 className="w-5 h-5 text-green-600" />,
     'Institute Edited': <Edit3 className="w-5 h-5 text-blue-600" />,
     'Institute Deleted': <Trash2 className="w-5 h-5 text-red-600" />,
-    'Student Excel Uploaded': <Users className="w-5 h-5 text-purple-600" />,
+    'Student Upload': <Users className="w-5 h-5 text-purple-600" />,
     'Coins Distributed': <Coins className="w-5 h-5 text-yellow-600" />,
     'Assessment Uploaded': <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
   };
@@ -37,15 +37,26 @@ const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false }) => {
     'Institute Added': 'bg-green-50 border-green-200',
     'Institute Edited': 'bg-blue-50 border-blue-200',
     'Institute Deleted': 'bg-red-50 border-red-200',
-    'Student Excel Uploaded': 'bg-purple-50 border-purple-200',
+    'Student Upload': 'bg-purple-50 border-purple-200',
     'Coins Distributed': 'bg-yellow-50 border-yellow-200',
     'Assessment Uploaded': 'bg-indigo-50 border-indigo-200'
   };
 
   useEffect(() => {
-    fetchActivities();
-    fetchStats();
-  }, [ambassadorId, currentPage, selectedFilter]);
+    console.log('[ActivityProfile] useEffect triggered - ambassadorId:', ambassadorId, 'page:', currentPage, 'filter:', selectedFilter, 'refreshTrigger:', refreshTrigger);
+    
+    // Add small delay when refreshTrigger changes to allow backend activity logging to complete
+    if (refreshTrigger > 0) {
+      const timer = setTimeout(() => {
+        fetchActivities();
+        fetchStats();
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      fetchActivities();
+      fetchStats();
+    }
+  }, [ambassadorId, currentPage, selectedFilter, refreshTrigger]);
 
   const fetchActivities = async () => {
     try {
@@ -65,6 +76,10 @@ const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false }) => {
         withCredentials: true
       });
 
+      console.log('[ActivityProfile] Fetched activities:', response.data.activities);
+      console.log('[ActivityProfile] Filter:', selectedFilter);
+      console.log('[ActivityProfile] RefreshTrigger:', refreshTrigger);
+      
       setActivities(response.data.activities);
       setPagination(response.data.pagination);
       setError(null);
@@ -86,6 +101,7 @@ const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false }) => {
         withCredentials: true
       });
 
+      console.log('[ActivityProfile] Stats:', response.data);
       setStats(response.data);
     } catch (err) {
       console.error('Error fetching stats:', err);
@@ -127,23 +143,26 @@ const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false }) => {
       case 'Institute Deleted':
         return `Removed institute: ${activity.instituteName}`;
       
-      case 'Student Excel Uploaded':
-        const studentCount = meta.totalStudentsUploaded || 0;
-        const coinsInfo = meta.coinsAssignedDuringUpload 
+      case 'Student Upload': {
+        const studentCount = meta.totalStudents || 0;
+        const coinsInfo = meta.coinsAssigned
           ? ` with ${meta.silverCoinsPerStudent || 0} silver & ${meta.goldenCoinsPerStudent || 0} golden coins each`
           : '';
-        return `Uploaded ${studentCount} students to ${activity.instituteName}${coinsInfo}`;
+        return `Uploaded ${studentCount} student${studentCount !== 1 ? 's' : ''} to ${activity.instituteName}${coinsInfo}`;
+      }
       
-      case 'Coins Distributed':
+      case 'Coins Distributed': {
         const affectedCount = meta.totalStudentsAffected || 0;
         return `Distributed ${meta.silverCoinsPerStudent || 0} silver & ${meta.goldenCoinsPerStudent || 0} golden coins to ${affectedCount} students in ${activity.instituteName}`;
+      }
       
-      case 'Assessment Uploaded':
+      case 'Assessment Uploaded': {
         const institutes = Array.isArray(activity.instituteName) ? activity.instituteName : [activity.instituteName];
         const instituteText = institutes.length > 1 
           ? `${institutes.length} institutes` 
           : institutes[0];
         return `Uploaded assessment "${meta.testName}" for ${instituteText}`;
+      }
       
       default:
         return `Performed action: ${activity.actionType}`;
@@ -169,10 +188,10 @@ const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false }) => {
           </>
         )}
         
-        {activity.actionType === 'Student Excel Uploaded' && (
+        {activity.actionType === 'Student Upload' && (
           <>
-            <div><strong>Total Students:</strong> {meta.totalStudentsUploaded}</div>
-            {meta.coinsAssignedDuringUpload && (
+            <div><strong>Total Students:</strong> {meta.totalStudents}</div>
+            {meta.coinsAssigned && (
               <>
                 <div><strong>Silver Coins/Student:</strong> {meta.silverCoinsPerStudent}</div>
                 <div><strong>Golden Coins/Student:</strong> {meta.goldenCoinsPerStudent}</div>
@@ -236,20 +255,54 @@ const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false }) => {
     <div className="space-y-6">
       {/* Stats Overview */}
       {stats && stats.stats.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {stats.stats.map((stat) => (
-            <div key={stat.actionType} className="bg-white border rounded-lg p-4 shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                {ACTION_ICONS[stat.actionType]}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {stats.stats.map((stat) => (
+              <div key={stat.actionType} className="bg-white border rounded-lg p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  {ACTION_ICONS[stat.actionType]}
+                </div>
+                <div className="text-2xl font-bold text-gray-800">{stat.count}</div>
+                <div className="text-xs text-gray-600 truncate">{stat.actionType}</div>
               </div>
-              <div className="text-2xl font-bold text-gray-800">{stat.count}</div>
-              <div className="text-xs text-gray-600 truncate">{stat.actionType}</div>
+            ))}
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-4 shadow-sm">
+              <div className="text-2xl font-bold">{stats.totalActivities}</div>
+              <div className="text-xs">Total Activities</div>
             </div>
-          ))}
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg p-4 shadow-sm">
-            <div className="text-2xl font-bold">{stats.totalActivities}</div>
-            <div className="text-xs">Total Activities</div>
           </div>
+
+          {/* Student Upload Totals */}
+          {stats.studentUploadTotals && (stats.studentUploadTotals.totalStudentsUploaded > 0 || stats.studentUploadTotals.totalSilverCoinsDistributed > 0 || stats.studentUploadTotals.totalGoldenCoinsDistributed > 0) && (
+            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-4">
+              <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Users className="w-4 h-4 text-purple-600" />
+                Student Upload Summary
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg p-3 border border-purple-100">
+                  <div className="text-xs text-gray-600 mb-1">Total Students Uploaded</div>
+                  <div className="text-2xl font-bold text-purple-700">
+                    {stats.studentUploadTotals.totalStudentsUploaded}
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-gray-300">
+                  <div className="text-xs text-gray-600 mb-1">Total Silver Coins</div>
+                  <div className="text-2xl font-bold text-gray-700 flex items-center gap-1">
+                    {stats.studentUploadTotals.totalSilverCoinsDistributed}
+                    <Coins className="w-5 h-5 text-gray-400" />
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-yellow-200">
+                  <div className="text-xs text-gray-600 mb-1">Total Golden Coins</div>
+                  <div className="text-2xl font-bold text-yellow-600 flex items-center gap-1">
+                    {stats.studentUploadTotals.totalGoldenCoinsDistributed}
+                    <Coins className="w-5 h-5 text-yellow-500" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -268,7 +321,7 @@ const AmbassadorActivityProfile = ({ ambassadorId, isAdminView = false }) => {
           <option value="Institute Added">Institute Added</option>
           <option value="Institute Edited">Institute Edited</option>
           <option value="Institute Deleted">Institute Deleted</option>
-          <option value="Student Excel Uploaded">Student Uploads</option>
+          <option value="Student Upload">Student Upload</option>
           <option value="Coins Distributed">Coins Distributed</option>
           <option value="Assessment Uploaded">Assessment Uploaded</option>
         </select>
