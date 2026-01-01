@@ -1,10 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, FileSpreadsheet, LogOut, School, Upload, UserCircle2, Activity } from 'lucide-react';
+import { Activity, ArrowLeft, FileSpreadsheet, Home, LogOut, School, Upload, UserCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
 
-const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, onOpenUploadTest, onOpenActivityProfile }) => {
+const CampusAmbassadorNavbar = ({
+  onOpenOverview,
+  onOpenCollegeAssignment,
+  onOpenUploadCollege,
+  onOpenUploadTest,
+  onOpenActivityProfile
+}) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { selectedInstitute, setSelectedInstitute } = useCampusAmbassador();
@@ -46,6 +52,22 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
         </div>
 
         <div className="flex items-center gap-2">
+          {typeof onOpenOverview === 'function' && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onOpenOverview();
+              }}
+              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/60 hover:border-blue-200 transition inline-flex items-center gap-2"
+              aria-label="Overview"
+              title="Overview"
+            >
+              <Home size={16} className="text-blue-900" />
+              <span className="text-xs font-semibold text-blue-950">Overview</span>
+            </button>
+          )}
+
           {typeof onOpenUploadCollege === 'function' && (
             <button
               type="button"
@@ -53,12 +75,12 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
                 setOpen(false);
                 onOpenUploadCollege();
               }}
-              className="h-9 px-3 rounded-full border border-blue-100 bg-blue-900 hover:bg-blue-950 transition inline-flex items-center gap-2"
+              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/60 hover:border-blue-200 transition inline-flex items-center gap-2"
               aria-label="Upload institute"
               title="Upload institute"
             >
-              <Upload size={16} className="text-white" />
-              <span className="text-xs font-semibold text-white">Upload Institute</span>
+              <Upload size={16} className="text-blue-900" />
+              <span className="text-xs font-semibold text-blue-950">Upload Institute</span>
             </button>
           )}
 
@@ -69,7 +91,7 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
                 setOpen(false);
                 onOpenUploadTest();
               }}
-              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/50 transition inline-flex items-center gap-2"
+              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/60 hover:border-blue-200 transition inline-flex items-center gap-2"
               aria-label="Upload test"
               title="Upload test"
             >
@@ -85,28 +107,12 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
                 setOpen(false);
                 onOpenCollegeAssignment();
               }}
-              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/50 transition inline-flex items-center gap-2"
+              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/60 hover:border-blue-200 transition inline-flex items-center gap-2"
               aria-label="College assignment"
               title="College assignment"
             >
               <School size={16} className="text-blue-900" />
               <span className="text-xs font-semibold text-blue-950">College Assignment</span>
-            </button>
-          )}
-
-          {selectedInstitute?._id && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedInstitute(null);
-                setOpen(false);
-              }}
-              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/50 transition inline-flex items-center gap-2"
-              aria-label="Back to colleges"
-              title="Back to colleges"
-            >
-              <ArrowLeft size={16} className="text-blue-900" />
-              <span className="text-xs font-semibold text-blue-950">Back</span>
             </button>
           )}
 
@@ -117,7 +123,7 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
                 setOpen(false);
                 onOpenActivityProfile();
               }}
-              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/50 transition inline-flex items-center gap-2"
+              className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/60 hover:border-blue-200 transition inline-flex items-center gap-2"
               aria-label="Activity Profile"
               title="Activity Profile"
             >
@@ -130,7 +136,7 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            className="h-9 w-9 rounded-full border border-blue-100 bg-white hover:bg-blue-50/50 transition flex items-center justify-center"
+            className="h-9 w-9 rounded-full border border-blue-100 bg-white hover:bg-blue-50/60 hover:border-blue-200 transition flex items-center justify-center"
             aria-label="Profile"
             aria-expanded={open}
           >
@@ -166,6 +172,25 @@ const CampusAmbassadorNavbar = ({ onOpenCollegeAssignment, onOpenUploadCollege, 
             </div>
           </div>
           </div>
+
+          {/* Back (always last) */}
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              if (selectedInstitute?._id) {
+                setSelectedInstitute(null);
+                return;
+              }
+              navigate(-1);
+            }}
+            className="h-9 px-3 rounded-full border border-blue-100 bg-white hover:bg-blue-50/60 hover:border-blue-200 transition inline-flex items-center gap-2"
+            aria-label="Back"
+            title="Back"
+          >
+            <ArrowLeft size={16} className="text-blue-900" />
+            <span className="text-xs font-semibold text-blue-950">Back</span>
+          </button>
         </div>
       </div>
     </nav>

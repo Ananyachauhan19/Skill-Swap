@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Building2, Database, Gift, History, PencilLine, School, Upload, Users, FileText, Activity } from 'lucide-react';
+import { Building2, ChevronDown, Database, Gift, History, PencilLine, School, Upload, Users, FileText, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CampusAmbassadorNavbar from './CampusAmbassadorNavbar';
 import CollegeAssignmentPage from './CollegeAssignmentPage';
@@ -38,6 +38,9 @@ const DEFAULT_SIDEBAR_WIDTH = 304; // px
 const MIN_SIDEBAR_WIDTH = 240;
 const MAX_SIDEBAR_WIDTH = 420;
 
+const PROFILE_HEADER_OPEN_HEIGHT_PX = 396; // 330px + ~20%
+const PROFILE_HEADER_COLLAPSED_HEIGHT_PX = 92;
+
 const CampusAmbassadorDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -61,6 +64,8 @@ const CampusAmbassadorDashboard = () => {
     return localStorage.getItem(ACTIVE_PAGE_STORAGE_KEY) || PAGES.OVERVIEW;
   });
   const [activityRefreshTrigger, setActivityRefreshTrigger] = useState(0);
+
+  const [isProfileHeaderOpen, setIsProfileHeaderOpen] = useState(false);
 
   const isSidebarWide = sidebarWidth >= 340;
 
@@ -145,6 +150,16 @@ const CampusAmbassadorDashboard = () => {
   );
 
   const showProfileHeader = Boolean(selectedInstitute) && activePage !== PAGES.COLLEGE_ASSIGNMENT;
+  const hideSidebar = [
+    PAGES.ACTIVITY_PROFILE,
+    PAGES.UPLOAD_COLLEGE,
+    PAGES.UPLOAD_TEST,
+    PAGES.COLLEGE_ASSIGNMENT
+  ].includes(activePage);
+
+  useEffect(() => {
+    if (showProfileHeader) setIsProfileHeaderOpen(false);
+  }, [showProfileHeader, selectedInstitute?._id]);
 
   const handleUpdateInstitute = async (formData) => {
     if (!selectedInstitute?._id) return;
@@ -155,6 +170,10 @@ const CampusAmbassadorDashboard = () => {
   return (
     <div className="h-screen bg-blue-50/40">
       <CampusAmbassadorNavbar
+        onOpenOverview={() => {
+          setSelectedInstitute(null);
+          setActivePage(PAGES.OVERVIEW);
+        }}
         onOpenCollegeAssignment={() => {
           setSelectedInstitute(null);
           setActivePage(PAGES.COLLEGE_ASSIGNMENT);
@@ -176,141 +195,143 @@ const CampusAmbassadorDashboard = () => {
       <div className="pt-[72px] h-full">
         <div className="h-full flex overflow-hidden">
           {/* Left Sidebar (Resizable + Scrollable) */}
-          <aside
-            ref={sidebarRef}
-            className="relative h-full border-r border-blue-100 bg-white flex-shrink-0"
-            style={{ width: sidebarWidth }}
-          >
-            <div className="h-full overflow-y-auto scrollbar-thin">
-              {/* Sidebar Header */}
-              <div className="px-4 py-4 border-b border-blue-100">
-                <p className="text-[11px] font-semibold text-slate-500 tracking-wide uppercase">
-                  Campus Ambassador
-                </p>
-                <p
-                  className={`mt-1 font-semibold text-blue-950 ${
-                    isSidebarWide ? 'text-sm whitespace-normal break-words' : 'text-sm truncate'
-                  }`}
-                >
-                  {user?.name || user?.fullName || 'Dashboard'}
-                </p>
-              </div>
-
-              {/* Initial Login State: Only college list */}
-              {!selectedInstitute ? (
-                <div className="p-3">
-                  <p className="px-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                    Assigned Colleges
+          {!hideSidebar && (
+            <aside
+              ref={sidebarRef}
+              className="relative h-full border-r border-blue-100 bg-white flex-shrink-0"
+              style={{ width: sidebarWidth }}
+            >
+              <div className="h-full overflow-y-auto scrollbar-thin">
+                {/* Sidebar Header */}
+                <div className="px-4 py-4 border-b border-blue-100">
+                  <p className="text-[11px] font-semibold text-slate-500 tracking-wide uppercase">
+                    Campus Ambassador
                   </p>
+                  <p
+                    className={`mt-1 font-semibold text-blue-950 ${
+                      isSidebarWide ? 'text-sm whitespace-normal break-words' : 'text-sm truncate'
+                    }`}
+                  >
+                    {user?.name || user?.fullName || 'Dashboard'}
+                  </p>
+                </div>
 
-                  <div className="mt-2 space-y-1">
-                    {loading && institutes.length === 0 ? (
-                      <div className="px-3 py-10 text-center text-xs text-slate-600">
-                        Loading colleges...
-                      </div>
-                    ) : institutes.length === 0 ? (
-                      <div className="px-3 py-10 text-center text-xs text-slate-600">
-                        No colleges assigned yet.
-                      </div>
-                    ) : (
-                      institutes.map((institute) => (
-                        <button
-                          key={institute._id}
-                          onClick={() => handleInstituteSelect(institute)}
-                          className="w-full text-left rounded-lg border border-transparent hover:border-blue-100 hover:bg-blue-50/50 transition px-3 py-2"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                              {institute.campusBackgroundImage ? (
-                                <img
-                                  src={institute.campusBackgroundImage}
-                                  alt={institute.instituteName}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <Building2 size={16} className="text-blue-900" />
-                              )}
-                            </div>
+                {/* Initial Login State: Only college list */}
+                {!selectedInstitute ? (
+                  <div className="p-3">
+                    <p className="px-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                      Assigned Colleges
+                    </p>
 
-                            <div className="min-w-0 flex-1">
-                              <p
-                                className={`font-semibold text-blue-950 ${
-                                  isSidebarWide
-                                    ? 'text-sm whitespace-normal break-words leading-snug'
-                                    : 'text-xs truncate'
-                                }`}
-                              >
-                                {institute.instituteName}
-                              </p>
-                              <p
-                                className={`text-[11px] text-slate-600 ${
-                                  isSidebarWide ? 'whitespace-normal break-words' : 'truncate'
-                                }`}
-                              >
-                                {institute.instituteId}
-                              </p>
-                              <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
-                                <span className="inline-flex items-center gap-1">
-                                  <Users size={12} />
-                                  {institute.studentsCount || 0}
-                                </span>
-                                <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-900 capitalize">
-                                  {institute.instituteType}
-                                </span>
+                    <div className="mt-2 space-y-1">
+                      {loading && institutes.length === 0 ? (
+                        <div className="px-3 py-10 text-center text-xs text-slate-600">
+                          Loading colleges...
+                        </div>
+                      ) : institutes.length === 0 ? (
+                        <div className="px-3 py-10 text-center text-xs text-slate-600">
+                          No colleges assigned yet.
+                        </div>
+                      ) : (
+                        institutes.map((institute) => (
+                          <button
+                            key={institute._id}
+                            onClick={() => handleInstituteSelect(institute)}
+                            className="w-full text-left rounded-lg border border-transparent hover:border-blue-100 hover:bg-blue-50/50 transition px-3 py-2"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                {institute.campusBackgroundImage ? (
+                                  <img
+                                    src={institute.campusBackgroundImage}
+                                    alt={institute.instituteName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <Building2 size={16} className="text-blue-900" />
+                                )}
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className={`font-semibold text-blue-950 ${
+                                    isSidebarWide
+                                      ? 'text-sm whitespace-normal break-words leading-snug'
+                                      : 'text-xs truncate'
+                                  }`}
+                                >
+                                  {institute.instituteName}
+                                </p>
+                                <p
+                                  className={`text-[11px] text-slate-600 ${
+                                    isSidebarWide ? 'whitespace-normal break-words' : 'truncate'
+                                  }`}
+                                >
+                                  {institute.instituteId}
+                                </p>
+                                <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-600">
+                                  <span className="inline-flex items-center gap-1">
+                                    <Users size={12} />
+                                    {institute.studentsCount || 0}
+                                  </span>
+                                  <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-900 capitalize">
+                                    {institute.instituteType}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </button>
-                      ))
-                    )}
+                          </button>
+                        ))
+                      )}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="p-3">
-                  {/* College-specific menu only (6 items) */}
-                  <div className="px-1">
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                      {selectedInstitute.instituteName}
-                    </p>
-                    <p
-                      className={`text-[11px] text-slate-500 ${isSidebarWide ? 'whitespace-normal break-words' : 'truncate'}`}
-                    >
-                      {selectedInstitute.instituteId}
-                    </p>
+                ) : (
+                  <div className="p-3">
+                    {/* College-specific menu only (6 items) */}
+                    <div className="px-1">
+                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                        {selectedInstitute.instituteName}
+                      </p>
+                      <p
+                        className={`text-[11px] text-slate-500 ${isSidebarWide ? 'whitespace-normal break-words' : 'truncate'}`}
+                      >
+                        {selectedInstitute.instituteId}
+                      </p>
+                    </div>
+
+                    <nav className="mt-3 space-y-1">
+                      {menuItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = activePage === item.key;
+                        return (
+                          <button
+                            key={item.key}
+                            onClick={() => setActivePage(item.key)}
+                            className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition border ${
+                              isActive
+                                ? 'bg-blue-900 text-white border-blue-900'
+                                : 'bg-white text-slate-700 border-transparent hover:border-blue-100 hover:bg-blue-50/50'
+                            }`}
+                          >
+                            <Icon size={16} className={isActive ? 'text-white' : 'text-blue-900'} />
+                            <span className="font-medium">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </nav>
+
                   </div>
+                )}
+              </div>
 
-                  <nav className="mt-3 space-y-1">
-                    {menuItems.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = activePage === item.key;
-                      return (
-                        <button
-                          key={item.key}
-                          onClick={() => setActivePage(item.key)}
-                          className={`w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs transition border ${
-                            isActive
-                              ? 'bg-blue-900 text-white border-blue-900'
-                              : 'bg-white text-slate-700 border-transparent hover:border-blue-100 hover:bg-blue-50/50'
-                          }`}
-                        >
-                          <Icon size={16} className={isActive ? 'text-white' : 'text-blue-900'} />
-                          <span className="font-medium">{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </nav>
-
-                </div>
-              )}
-            </div>
-
-            {/* Resize Handle */}
-            <div
-              onMouseDown={handleResizeStart}
-              className="absolute top-0 right-0 h-full w-1 cursor-col-resize bg-transparent"
-              aria-hidden="true"
-            />
-          </aside>
+              {/* Resize Handle */}
+              <div
+                onMouseDown={handleResizeStart}
+                className="absolute top-0 right-0 h-full w-1 cursor-col-resize bg-transparent"
+                aria-hidden="true"
+              />
+            </aside>
+          )}
 
           {/* Right Content Area (Dynamic) */}
           <main className="flex-1 h-full overflow-hidden bg-blue-50/20">
@@ -333,40 +354,36 @@ const CampusAmbassadorDashboard = () => {
                   </div>
                 </div>
               ) : activePage === PAGES.UPLOAD_TEST ? (
-                <div className="p-6">
-                  <div className="rounded-2xl border border-blue-100 bg-white">
-                    <div className="px-6 py-4 border-b border-blue-100">
-                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Assessment</p>
-                      <h2 className="mt-1 text-lg font-semibold text-blue-950">Upload Test</h2>
-                      <p className="mt-1 text-xs text-slate-600">
-                        Upload questions via Excel and assign to institutes.
-                      </p>
-                    </div>
-                    <div className="p-6">
-                      <AssessmentUpload
-                        institutes={institutes}
-                        onUploadSuccess={() => {
-                          setActivePage(PAGES.OVERVIEW);
-                        }}
-                      />
+                <div className="px-6 py-6">
+                  <div className="w-full max-w-5xl mx-auto">
+                    <div className="rounded-2xl border border-blue-100 bg-white overflow-hidden">
+                      <div className="px-6 py-4 border-b border-blue-100">
+                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Assessment</p>
+                        <h2 className="mt-1 text-lg font-semibold text-blue-950">Upload Test</h2>
+                        <p className="mt-1 text-xs text-slate-600">
+                          Upload questions via Excel and assign to institutes.
+                        </p>
+                      </div>
+                      <div className="p-6">
+                        <AssessmentUpload
+                          institutes={institutes}
+                          onUploadSuccess={() => {
+                            setActivePage(PAGES.OVERVIEW);
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               ) : activePage === PAGES.COLLEGE_ASSIGNMENT ? (
-                <div className="p-6">
-                  <CollegeAssignmentPage institutes={institutes} selectedInstitute={selectedInstitute} />
+                <div className="px-6 py-6">
+                  <div className="w-full max-w-5xl mx-auto">
+                    <CollegeAssignmentPage institutes={institutes} selectedInstitute={selectedInstitute} />
+                  </div>
                 </div>
               ) : activePage === PAGES.ACTIVITY_PROFILE ? (
                 <div className="p-6">
-                  <div className="rounded-xl border border-blue-100 bg-white p-6 shadow-sm">
-                    <div className="mb-6">
-                      <h2 className="text-xl font-bold text-gray-900">Activity Profile</h2>
-                      <p className="mt-1 text-sm text-gray-600">
-                        Track all your actions and contributions as a campus ambassador
-                      </p>
-                    </div>
-                    <AmbassadorActivityProfile isAdminView={false} refreshTrigger={activityRefreshTrigger} />
-                  </div>
+                  <AmbassadorActivityProfile isAdminView={false} refreshTrigger={activityRefreshTrigger} />
                 </div>
               ) : !selectedInstitute ? (
                 <div className="h-[calc(100vh-72px)] flex items-center justify-center px-6">
@@ -413,69 +430,92 @@ const CampusAmbassadorDashboard = () => {
                   {/* University Profile (Top) */}
                   {showProfileHeader && (
                     <section className="relative w-full overflow-hidden rounded-2xl border border-blue-100">
-                      <div className="h-[330px] w-full">
-                        <img
-                          src={universityImage}
-                          alt={selectedInstitute.instituteName}
-                          className="h-full w-full object-cover object-top"
+                      <button
+                        type="button"
+                        aria-label={isProfileHeaderOpen ? 'Collapse banner' : 'Expand banner'}
+                        onClick={() => setIsProfileHeaderOpen((prev) => !prev)}
+                        className="absolute z-20 top-3 left-3 sm:top-4 sm:left-4 p-0 bg-transparent border-0 text-black/50 hover:text-black/70 transition-colors"
+                      >
+                        <ChevronDown
+                          className={`h-6 w-6 sm:h-7 sm:w-7 transition-transform duration-300 ${
+                            isProfileHeaderOpen ? 'rotate-180' : 'rotate-0'
+                          }`}
                         />
-                      </div>
+                      </button>
 
-                      <div className="absolute inset-0 bg-black/30" />
+                      <div
+                        className="relative w-full overflow-hidden transition-[max-height] duration-500 ease-in-out"
+                        style={{
+                          maxHeight: isProfileHeaderOpen
+                            ? `${PROFILE_HEADER_OPEN_HEIGHT_PX}px`
+                            : `${PROFILE_HEADER_COLLAPSED_HEIGHT_PX}px`,
+                        }}
+                      >
+                        <div className="h-[396px] w-full">
+                          <img
+                            src={universityImage}
+                            alt={selectedInstitute.instituteName}
+                            className="h-full w-full object-cover object-top"
+                          />
+                        </div>
 
-                      {/* Glass overlay */}
-                      <div className="absolute inset-0 flex items-end">
-                        <div className="w-full bg-white/20 backdrop-blur-md border-t border-white/20 px-6 py-5">
-                          <div className="overflow-hidden">
-                            <div className="ca-marquee-ltr whitespace-nowrap">
-                              <h2 className="text-2xl md:text-3xl font-semibold text-white">
-                                {selectedInstitute.instituteName}
-                              </h2>
+                        <div className="absolute inset-0 bg-black/30" />
+
+                        {/* Glass overlay */}
+                        <div className="absolute inset-0 flex items-end">
+                          <div className="w-full bg-white/20 backdrop-blur-md border-t border-white/20 px-6 py-5">
+                            <div className="overflow-hidden">
+                              <div className="ca-marquee-ltr whitespace-nowrap">
+                                <h2 className="text-2xl md:text-3xl font-semibold text-white">
+                                  {selectedInstitute.instituteName}
+                                </h2>
+                              </div>
                             </div>
+                            <p className="mt-1 text-xs text-white/90">
+                              {selectedInstitute.instituteId} · {selectedInstitute.instituteType}
+                            </p>
                           </div>
-                          <p className="mt-1 text-xs text-white/90">
-                            {selectedInstitute.instituteId} · {selectedInstitute.instituteType}
-                          </p>
                         </div>
                       </div>
                     </section>
                   )}
 
-                  {/* Stats Tabs */}
                   <section className="rounded-2xl border border-blue-100 bg-white">
-                    <div className="px-4 py-3 border-b border-blue-100">
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          {
-                            key: 'gold',
-                            label: 'Total Gold Coins',
-                            value: selectedInstitute.totalGoldenAssigned || 0
-                          },
-                          {
-                            key: 'silver',
-                            label: 'Total Silver Coins',
-                            value: selectedInstitute.totalSilverAssigned || 0
-                          },
-                          {
-                            key: 'students',
-                            label: 'Total Students',
-                            value: selectedInstitute.studentsCount || 0
-                          }
-                        ].map((stat) => (
-                          <div
-                            key={stat.key}
-                            className="px-3 py-2 rounded-lg border border-blue-100 bg-blue-50/50"
-                          >
-                            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                              {stat.label}
-                            </p>
-                            <p className="mt-0.5 text-sm font-semibold text-blue-950">
-                              {Number(stat.value).toLocaleString()}
-                            </p>
-                          </div>
-                        ))}
+                    {isProfileHeaderOpen && (
+                      <div className="px-4 py-3 border-b border-blue-100">
+                        <div className="flex flex-wrap gap-2">
+                          {[ 
+                            {
+                              key: 'gold',
+                              label: 'Total Gold Coins',
+                              value: selectedInstitute.totalGoldenAssigned || 0
+                            },
+                            {
+                              key: 'silver',
+                              label: 'Total Silver Coins',
+                              value: selectedInstitute.totalSilverAssigned || 0
+                            },
+                            {
+                              key: 'students',
+                              label: 'Total Students',
+                              value: selectedInstitute.studentsCount || 0
+                            }
+                          ].map((stat) => (
+                            <div
+                              key={stat.key}
+                              className="px-3 py-2 rounded-lg border border-blue-100 bg-blue-50/50"
+                            >
+                              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                                {stat.label}
+                              </p>
+                              <p className="mt-0.5 text-sm font-semibold text-blue-950">
+                                {Number(stat.value).toLocaleString()}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="p-4">
                       {activePage === PAGES.OVERVIEW && (

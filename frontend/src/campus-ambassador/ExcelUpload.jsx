@@ -278,6 +278,29 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
     }
   };
 
+  const downloadStudentTemplate = (templateType) => {
+    const isSchoolTemplate = templateType === 'school';
+
+    const rows = isSchoolTemplate
+      ? [{ name: 'Student Name', email: 'student@example.com', class: '10' }]
+      : [{ name: 'Student Name', email: 'student@example.com', course: 'BCA', semester: 1 }];
+
+    const sheet = XLSX.utils.json_to_sheet(rows, {
+      header: isSchoolTemplate
+        ? ['name', 'email', 'class']
+        : ['name', 'email', 'course', 'semester']
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet, 'Students');
+
+    const fileName = isSchoolTemplate
+      ? 'student_template_school.xlsx'
+      : 'student_template_college.xlsx';
+
+    XLSX.writeFile(wb, fileName);
+  };
+
   const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) {
@@ -484,7 +507,7 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
         className={
           isModal
             ? 'bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto border border-gray-200'
-            : 'bg-white rounded-2xl border border-slate-200 w-full overflow-y-auto'
+            : 'bg-white rounded-2xl border border-slate-200 w-full overflow-hidden'
         }
       >
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-white">
@@ -497,39 +520,39 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
         </div>
 
         {/* Mode Toggle */}
-        <div className="px-6 pt-4 pb-2">
+        <div className="px-6 pt-3 pb-2">
           <div className="flex gap-2 p-1 bg-gray-100 rounded-lg">
             <button
               onClick={() => setUploadMode('csv')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
                 uploadMode === 'csv'
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <Upload size={16} />
+              <Upload size={14} />
               CSV Upload
             </button>
             <button
               onClick={() => setUploadMode('manual')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-all ${
                 uploadMode === 'manual'
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <UserPlus size={16} />
+              <UserPlus size={14} />
               Add Single Student
             </button>
           </div>
         </div>
 
-        <div className="p-6">
-          <div className="mb-4">
-            <h3 className="font-semibold text-base text-gray-700 mb-1">
+        <div className="p-5">
+          <div className="mb-3">
+            <h3 className="font-semibold text-sm text-gray-800 mb-0.5">
               {instituteName}
             </h3>
-            <p className="text-gray-600 text-xs">
+            <p className="text-gray-600 text-xs leading-snug">
               {uploadMode === 'csv' 
                 ? 'Upload an Excel file with student information to onboard them to the platform.'
                 : 'Manually add a single student to the platform.'}
@@ -538,223 +561,285 @@ const ExcelUpload = ({ instituteId, instituteName, instituteType, onClose, onSuc
 
           {uploadMode === 'csv' ? (
             <>
-              {/* Excel Format Instructions */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                <h4 className="font-semibold text-sm text-blue-900 mb-2">Excel Format:</h4>
-                <div className="space-y-1.5 text-xs text-blue-700">
-                  <p className="font-medium">For Schools:</p>
-                  <ul className="list-disc list-inside ml-2">
-                    <li>name (required)</li>
-                    <li>email (required)</li>
-                    <li>class (required)</li>
-                  </ul>
-                  <p className="font-medium mt-1.5">For Colleges:</p>
-                  <ul className="list-disc list-inside ml-2">
-                    <li>name (required)</li>
-                    <li>email (required)</li>
-                    <li>course (required)</li>
-                    <li>semester (required)</li>
-                  </ul>
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-start">
+                {/* Left: Excel format (with internal vertical divider) */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h4 className="font-semibold text-sm text-blue-900">Excel Format</h4>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => downloadStudentTemplate('school')}
+                        className="inline-flex items-center rounded-md border border-blue-200 bg-white/70 px-2 py-1 text-[11px] font-semibold text-blue-800 hover:bg-white transition"
+                      >
+                        Download School Template
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => downloadStudentTemplate('college')}
+                        className="inline-flex items-center rounded-md border border-blue-200 bg-white/70 px-2 py-1 text-[11px] font-semibold text-blue-800 hover:bg-white transition"
+                      >
+                        Download College Template
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-semibold text-blue-900">For Schools</p>
+                      <ul className="mt-2 space-y-1 text-xs text-blue-800">
+                        <li className="flex items-center justify-between gap-2">
+                          <span>name</span>
+                          <span className="text-[10px] font-semibold text-blue-900/70">required</span>
+                        </li>
+                        <li className="flex items-center justify-between gap-2">
+                          <span>email</span>
+                          <span className="text-[10px] font-semibold text-blue-900/70">required</span>
+                        </li>
+                        <li className="flex items-center justify-between gap-2">
+                          <span>class</span>
+                          <span className="text-[10px] font-semibold text-blue-900/70">required</span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="sm:border-l sm:border-blue-200 sm:pl-4">
+                      <p className="text-xs font-semibold text-blue-900">For Colleges</p>
+                      <ul className="mt-2 space-y-1 text-xs text-blue-800">
+                        <li className="flex items-center justify-between gap-2">
+                          <span>name</span>
+                          <span className="text-[10px] font-semibold text-blue-900/70">required</span>
+                        </li>
+                        <li className="flex items-center justify-between gap-2">
+                          <span>email</span>
+                          <span className="text-[10px] font-semibold text-blue-900/70">required</span>
+                        </li>
+                        <li className="flex items-center justify-between gap-2">
+                          <span>course</span>
+                          <span className="text-[10px] font-semibold text-blue-900/70">required</span>
+                        </li>
+                        <li className="flex items-center justify-between gap-2">
+                          <span>semester</span>
+                          <span className="text-[10px] font-semibold text-blue-900/70">required</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Middle: Vertical divider (desktop only) */}
+                <div className="hidden lg:block w-px bg-slate-200 self-stretch" />
+
+                {/* Right: Coins + Upload (stacked, compact) */}
+                <div className="space-y-4">
+                  {/* Coin Distribution Inputs */}
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Coins className="text-yellow-700" size={18} />
+                        <h4 className="font-semibold text-sm text-yellow-900">Reward Coins</h4>
+                      </div>
+                      <span className="text-[11px] font-semibold text-yellow-900/70">optional</span>
+                    </div>
+                    <p className="mt-1.5 text-xs text-yellow-800 leading-snug">
+                      Coins will be <span className="font-bold">added</span> to each student's wallet incrementally
+                    </p>
+
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Silver / student
+                        </label>
+                        <input
+                          type="number"
+                          name="perStudentSilver"
+                          value={coinInputs.perStudentSilver}
+                          onChange={handleCoinChange}
+                          min="0"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Golden / student
+                        </label>
+                        <input
+                          type="number"
+                          name="perStudentGolden"
+                          value={coinInputs.perStudentGolden}
+                          onChange={handleCoinChange}
+                          min="0"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* File Upload */}
+                  <div className="border border-slate-200 rounded-lg p-4 bg-white">
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="block text-sm font-semibold text-gray-800">
+                        Select Excel File
+                      </label>
+                      {!loadingStudents && existingStudents.length > 0 && !file ? (
+                        <span className="text-[11px] font-semibold text-green-700">
+                          ✓ Ready ({existingStudents.length} loaded)
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {loadingStudents && (
+                      <div className="mt-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600" />
+                        <p className="text-xs text-blue-700">Loading existing student data…</p>
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={handleFileChange}
+                        disabled={loadingStudents}
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                      />
+                      <button
+                        onClick={handleUpload}
+                        disabled={!file || uploading}
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1.5 font-semibold"
+                      >
+                        <Upload size={16} />
+                        <span>{uploading ? 'Uploading…' : 'Upload'}</span>
+                      </button>
+                    </div>
+
+                    {file ? (
+                      <p className="mt-2 text-xs text-gray-600 truncate">Selected: {file.name}</p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </>
           ) : (
             <>
               {/* Manual Student Form */}
-              <form onSubmit={handleManualSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Student Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={manualStudent.name}
-                    onChange={(e) => setManualStudent(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter student name"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={manualStudent.email}
-                    onChange={(e) => setManualStudent(prev => ({ ...prev, email: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="student@example.com"
-                    required
-                  />
-                </div>
-
-                {instituteType === 'school' && (
+              <form onSubmit={handleManualSubmit} className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Class <span className="text-red-500">*</span>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Student Name <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      value={manualStudent.class}
-                      onChange={(e) => setManualStudent(prev => ({ ...prev, class: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    <input
+                      type="text"
+                      value={manualStudent.name}
+                      onChange={(e) => setManualStudent(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter student name"
                       required
-                    >
-                      <option value="">-- Select Class --</option>
-                      {instituteCourses.map(course => (
-                        <option key={course} value={course}>{course}</option>
-                      ))}
-                    </select>
+                    />
                   </div>
-                )}
 
-                {instituteType === 'college' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Course <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={manualStudent.course}
-                        onChange={(e) => setManualStudent(prev => ({ ...prev, course: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
-                      >
-                        <option value="">-- Select Course --</option>
-                        {instituteCourses.map(course => (
-                          <option key={course} value={course}>{course}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={manualStudent.email}
+                      onChange={(e) => setManualStudent(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="student@example.com"
+                      required
+                    />
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Semester <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={manualStudent.semester}
-                        onChange={(e) => setManualStudent(prev => ({ ...prev, semester: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required
-                      >
-                        <option value="">-- Select Semester --</option>
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sem => (
-                          <option key={sem} value={sem}>{sem}</option>
-                        ))}
-                      </select>
+                  {instituteType === 'school' && (
+                    <div className="md:col-span-2">
+                      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3">
+                        <div className="hidden md:block" />
+                        <div className="hidden md:block w-px bg-slate-200 self-stretch" />
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">
+                            Class <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={manualStudent.class}
+                            onChange={(e) => setManualStudent(prev => ({ ...prev, class: e.target.value }))}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required
+                          >
+                            <option value="">-- Select Class --</option>
+                            {instituteCourses.map((course) => (
+                              <option key={course} value={course}>
+                                {course}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                  </>
-                )}
+                  )}
+
+                  {instituteType === 'college' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Course <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={manualStudent.course}
+                          onChange={(e) => setManualStudent(prev => ({ ...prev, course: e.target.value }))}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        >
+                          <option value="">-- Select Course --</option>
+                          {instituteCourses.map((course) => (
+                            <option key={course} value={course}>
+                              {course}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Semester <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={manualStudent.semester}
+                          onChange={(e) => setManualStudent(prev => ({ ...prev, semester: e.target.value }))}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        >
+                          <option value="">-- Select Semester --</option>
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((sem) => (
+                            <option key={sem} value={sem}>
+                              {sem}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="mt-4">
+                  <button
+                    onClick={handleManualSubmit}
+                    disabled={manualSubmitting}
+                    className="w-full px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold text-sm"
+                  >
+                    <UserPlus size={18} />
+                    <span>{manualSubmitting ? 'Adding Student…' : 'Add Student'}</span>
+                  </button>
+                </div>
               </form>
             </>
           )}
 
-          {uploadMode === 'csv' && (
-            <>
-              {/* Excel Format Instructions - keeping original content */}
-            </>
-          )}
+          {/* Coin Distribution + File Upload are rendered inside the compact right column in CSV mode */}
 
-          {/* Continue with original Excel Format Instructions block if in CSV mode */}
-          {uploadMode === 'csv' ? null : null}
-
-          {/* Coin Distribution Inputs */}
-          <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Coins className="text-yellow-700" size={18} />
-              <h4 className="font-semibold text-sm text-yellow-900">Reward Coins (Optional)</h4>
-            </div>
-            <p className="text-xs text-yellow-800 mb-3">
-              Coins will be <span className="font-bold">added</span> to each student's wallet incrementally
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Silver Coins per Student
-                </label>
-                <input
-                  type="number"
-                  name="perStudentSilver"
-                  value={coinInputs.perStudentSilver}
-                  onChange={handleCoinChange}
-                  min="0"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                  Golden Coins per Student
-                </label>
-                <input
-                  type="number"
-                  name="perStudentGolden"
-                  value={coinInputs.perStudentGolden}
-                  onChange={handleCoinChange}
-                  min="0"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* File Upload - CSV Mode Only */}
-          {uploadMode === 'csv' && (
-            <>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Select Excel File
-                </label>
-                {loadingStudents && (
-                  <div className="mb-2 bg-blue-50 border border-blue-200 rounded-lg p-2 flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                    <p className="text-xs text-blue-700">Loading existing student data...</p>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={handleFileChange}
-                    disabled={loadingStudents}
-                    className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                  <button
-                    onClick={handleUpload}
-                    disabled={!file || uploading}
-                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-1.5 font-medium"
-                  >
-                    <Upload size={16} />
-                    <span>{uploading ? 'Uploading...' : 'Upload'}</span>
-                  </button>
-                </div>
-                {file && (
-                  <p className="text-xs text-gray-600 mt-1.5">
-                    Selected: {file.name}
-                  </p>
-                )}
-                {!loadingStudents && existingStudents.length > 0 && !file && (
-                  <p className="text-xs text-green-600 mt-1.5">
-                    ✓ Ready to validate ({existingStudents.length} existing students loaded)
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* Manual Student Submit Button */}
-          {uploadMode === 'manual' && (
-            <div className="mb-4">
-              <button
-                onClick={handleManualSubmit}
-                disabled={manualSubmitting}
-                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
-              >
-                <UserPlus size={18} />
-                <span>{manualSubmitting ? 'Adding Student...' : 'Add Student'}</span>
-              </button>
-            </div>
-          )}
+          {/* Manual submit button is rendered inside the Manual form */}
 
           {/* Validation Preview */}
           {validationPreview && validationPreview.loading && (
