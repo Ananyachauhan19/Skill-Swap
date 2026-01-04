@@ -278,16 +278,16 @@ const CampusStartSkillSwapSearchForm = () => {
 
   return (
     <>
-      {/* Campus Info Banner */}
+      {/* Campus Info Banner - Inter-Institute */}
       {user?.instituteName && (
-        <div className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4">
+        <div className="mb-6 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
               <Users className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900">Searching within your campus</p>
-              <p className="text-xs text-slate-600">{user.instituteName}</p>
+              <p className="text-sm font-semibold text-slate-900">Inter-Institute Search 🌐</p>
+              <p className="text-xs text-slate-600">Searching across all campus institutes • Your institute: {user.instituteName}</p>
             </div>
           </div>
         </div>
@@ -296,7 +296,7 @@ const CampusStartSkillSwapSearchForm = () => {
       <div className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-lg border border-slate-200/50">
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Find Campus Tutors</h2>
-          <p className="text-slate-600 text-sm">Connect with expert tutors from your institute</p>
+          <p className="text-slate-600 text-sm">Connect with expert tutors from all campus institutes</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
@@ -511,34 +511,40 @@ const CampusStartSkillSwapSearchForm = () => {
                 <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-600 font-medium mb-2">No campus tutors available</p>
                 <p className="text-sm text-slate-500">
-                  No online tutors found from your institute for this topic. Try different subjects or check back later.
+                  No online tutors found across campus institutes for this topic. Try different subjects or check back later.
                 </p>
               </div>
             ) : (
               <>
                 <div className="text-center mb-6">
-                  <p className="text-blue-900 font-semibold text-lg">
+                  <p className="text-purple-900 font-semibold text-lg">
                     Found {tutors.length} campus tutor{tutors.length > 1 ? 's' : ''} available
                   </p>
-                  <p className="text-sm text-slate-600 mt-1">All tutors are from {user?.instituteName}</p>
+                  <p className="text-sm text-slate-600 mt-1">Tutors from all campus institutes (inter-institute search)</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {tutors.map((tutor, idx) => (
-                    <TutorCard
-                      key={idx}
-                      tutor={{
-                        name: `${tutor.firstName} ${tutor.lastName}`,
-                        profilePic: tutor.profilePic || "",
-                        status: tutor.status,
-                        date: new Date().toISOString().split('T')[0],
-                        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                        skills: [courseValue, unitValue, topicValue].filter(Boolean),
-                        rating: tutor.rating || 4.5,
-                        userId: tutor.userId,
-                        socketId: tutor.socketId,
-                      }}
-                      onRequestSession={() => handleRequestSession(tutor)}
-                    />
+                    <div key={idx} className="relative">
+                      {tutor.instituteName && (
+                        <div className="absolute top-2 right-2 z-10 bg-purple-600 text-white text-xs px-2 py-1 rounded-full font-medium shadow-md">
+                          {tutor.instituteName}
+                        </div>
+                      )}
+                      <TutorCard
+                        tutor={{
+                          name: `${tutor.firstName} ${tutor.lastName}`,
+                          profilePic: tutor.profilePic || "",
+                          status: tutor.status,
+                          date: new Date().toISOString().split('T')[0],
+                          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                          skills: [courseValue, unitValue, topicValue].filter(Boolean),
+                          rating: tutor.rating || 4.5,
+                          userId: tutor.userId,
+                          socketId: tutor.socketId,
+                        }}
+                        onRequestSession={() => handleRequestSession(tutor)}
+                      />
+                    </div>
                   ))}
                 </div>
               </>

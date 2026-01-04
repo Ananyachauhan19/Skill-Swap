@@ -97,6 +97,7 @@ import AssessmentAttempt from './student/assesment/AssessmentAttempt.jsx';
 import AssessmentResult from './student/assesment/AssessmentResult.jsx';
 import CampusAmbassadors from './admin/CampusAmbassadors.jsx';
 import { CampusAmbassadorProvider } from './context/CampusAmbassadorContext.jsx';
+import StudentReportsTab from './student/StudentReportsTab.jsx';
 
 const collectVisitorData = () => {
   const getDeviceType = () => {
@@ -223,6 +224,7 @@ const appRoutes = [
   { path: '/campus-dashboard', element: <ProtectedRoute><HomeDashboard /></ProtectedRoute> },
   { path: '/campus/one-on-one', element: <ProtectedRoute><CampusOneOnOne /></ProtectedRoute> },
   { path: '/campus/assessment', element: <ProtectedRoute><CampusAssessment /></ProtectedRoute> },
+  { path: '/campus/reports', element: <ProtectedRoute><StudentReportsTab /></ProtectedRoute> },
   { path: '/student/assessment-attempt/:id', element: <ProtectedRoute><AssessmentAttempt /></ProtectedRoute> },
   { path: '/student/assessment-result/:id', element: <ProtectedRoute><AssessmentResult /></ProtectedRoute> },
   {

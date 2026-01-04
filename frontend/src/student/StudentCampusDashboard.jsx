@@ -10,6 +10,7 @@ import socket from '../socket.js';
 import CampusDashboardNavbar from './CampusDashboardNavbar';
 import CampusLogin from './CampusLogin';
 import AssessmentSection from './assesment/AssessmentSection';
+import StudentReportsTab from './StudentReportsTab';
 
 const StudentCampusDashboard = () => {
   const navigate = useNavigate();
@@ -236,6 +237,9 @@ const StudentCampusDashboard = () => {
           
           {/* Render Assessment Section when assessment tab is active */}
           {activeTab === 'assessment' && <AssessmentSection />}
+
+          {/* Render Reports Section when reports tab is active */}
+          {activeTab === 'reports' && <StudentReportsTab />}
 
           {/* Render Dashboard when dashboard tab is active */}
           {activeTab === 'dashboard' && dashboardStats && (

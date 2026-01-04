@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Building2, ChevronDown, Database, Gift, History, PencilLine, School, Upload, Users, FileText, Activity } from 'lucide-react';
+import { Building2, ChevronDown, Database, Gift, History, PencilLine, School, Upload, Users, FileText, Activity, ClipboardList } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CampusAmbassadorNavbar from './CampusAmbassadorNavbar';
 import CollegeAssignmentPage from './CollegeAssignmentPage';
@@ -10,6 +10,7 @@ import InstituteForm from './InstituteForm';
 import InstituteRewardsDashboard from './InstituteRewardsDashboard';
 import CollegeAssessmentsTab from './CollegeAssessmentsTab';
 import StudentDatabaseTab from './StudentDatabaseTab';
+import ReportsTab from './ReportsTab';
 import AmbassadorActivityProfile from '../components/AmbassadorActivityProfile';
 import { useAuth } from '../context/AuthContext';
 import { useCampusAmbassador } from '../context/CampusAmbassadorContext';
@@ -31,6 +32,7 @@ const PAGES = {
   COLLEGE_ASSIGNMENT: 'college_assignment',
   DATABASE: 'database',
   ASSESSMENTS: 'assessments',
+  REPORTS: 'reports',
   ACTIVITY_PROFILE: 'activity_profile'
 };
 
@@ -140,6 +142,7 @@ const CampusAmbassadorDashboard = () => {
   const menuItems = useMemo(
     () => [
       { key: PAGES.ASSESSMENTS, label: 'Assessments', icon: FileText },
+      { key: PAGES.REPORTS, label: 'Reports', icon: ClipboardList },
       { key: PAGES.UPLOAD_STUDENTS, label: 'Upload Students', icon: Upload },
       { key: PAGES.DISTRIBUTE_COINS, label: 'Distribute Coins', icon: Gift },
       { key: PAGES.REWARDS_HISTORY, label: 'Rewards History', icon: History },
@@ -577,6 +580,10 @@ const CampusAmbassadorDashboard = () => {
 
                       {activePage === PAGES.ASSESSMENTS && (
                         <CollegeAssessmentsTab institute={selectedInstitute} />
+                      )}
+
+                      {activePage === PAGES.REPORTS && (
+                        <ReportsTab institute={selectedInstitute} />
                       )}
 
                       {activePage === PAGES.DATABASE && (

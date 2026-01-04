@@ -985,7 +985,7 @@ module.exports = (io) => {
       }
     });
 
-    // Campus-specific tutor search - filters by institute
+    // Campus-specific tutor search - inter-institute (searches across all institutes)
     socket.on('find-campus-tutors', async (searchCriteria) => {
       try {
         const { subject: classValue, topic: subjectValue, subtopic: topicValue, instituteId } = searchCriteria;
@@ -998,7 +998,7 @@ module.exports = (io) => {
         const matchingTutors = [];
         const norm = (s) => (s || '').trim().toLowerCase();
 
-        console.log('[Find Campus Tutors] Search criteria:', { classValue, subjectValue, topicValue, instituteId });
+        console.log('[Find Campus Tutors] Search criteria (inter-institute):', { classValue, subjectValue, topicValue, requesterInstituteId: instituteId });
         console.log('[Find Campus Tutors] Online users count:', onlineUsers.size);
         
         for (const [socketId, userData] of onlineUsers.entries()) {
@@ -1015,9 +1015,10 @@ module.exports = (io) => {
           let userDoc = await User.findById(userData.userId).select('skillsToTeach isAvailableForSessions instituteId instituteName');
           if (!userDoc) continue;
 
-          // Filter by institute - CRITICAL for campus filtering
-          if (!userDoc.instituteId || userDoc.instituteId.toString() !== instituteId.toString()) {
-            console.log(`[Find Campus Tutors] Skipping ${userData.firstName} ${userData.lastName} - different institute (${userDoc.instituteId} vs ${instituteId})`);
+          // INTER-INSTITUTE LOGIC: Only check if tutor has an instituteId (must be campus student)
+          // No longer filtering by same institute - allows cross-institute matching
+          if (!userDoc.instituteId) {
+            console.log(`[Find Campus Tutors] Skipping ${userData.firstName} ${userData.lastName} - not a campus student (no instituteId)`);
             continue;
           }
 
@@ -1066,9 +1067,9 @@ module.exports = (io) => {
         }
 
         socket.emit('campus-tutors-found', { tutors: matchingTutors, searchCriteria });
-        console.log(`[Find Campus Tutors] Found ${matchingTutors.length} tutors from same institute`);
+        console.log(`[Find Campus Tutors] Found ${matchingTutors.length} tutors across all institutes (inter-institute search)`);
 
-        // Send email notifications to matching campus tutors
+        // Send email notifications to matching campus tutors (inter-institute)
         try {
           const requester = await User.findById(socket.userId).select('firstName lastName username instituteName');
           const requesterName = `${requester?.firstName || requester?.username || 'User'} ${requester?.lastName || ''}`.trim();
@@ -1081,7 +1082,7 @@ module.exports = (io) => {
                 subject: subjectValue || '',
                 topic: topicValue || ''
               });
-              console.info('[MAIL] Campus session request email', { to: tutorDoc.email, requesterName, institute: requester?.instituteName });
+              console.info('[MAIL] Inter-institute campus session request', { to: tutorDoc.email, requesterName, requesterInstitute: requester?.instituteName, tutorInstitute: t.instituteName });
               await sendMail({ to: tutorDoc.email, subject: tpl.subject, html: tpl.html });
             }
           }
