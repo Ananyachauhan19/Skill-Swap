@@ -17,8 +17,9 @@ exports.register = async (req, res) => {
   const user = await User.create({
     firstName, lastName, email, phone, gender, password: hashedPassword,
     username, role, skillsToTeach, skillsToLearn,
-    silverCoins: 100,
+    silverCoins: 0,
     goldCoins: 0,
+    bronzeCoins: 100,
   });
 
   // Link current anonymous visitor session (if any) to this new user for conversion analytics
@@ -97,12 +98,13 @@ exports.verifyOtp = async (req, res) => {
 
   // Ensure coins are set
   let updated = false;
-  if (typeof user.silverCoins !== 'number' || user.silverCoins < 100) {
-    user.silverCoins = 100;
-    updated = true;
-  }
   if (typeof user.goldCoins !== 'number') {
     user.goldCoins = 0;
+    updated = true;
+  }
+  // Initialize bronze coins on first login if missing or below 100
+  if (typeof user.bronzeCoins !== 'number' || user.bronzeCoins < 100) {
+    user.bronzeCoins = 100;
     updated = true;
   }
   if (updated) await user.save();
@@ -202,6 +204,7 @@ exports.verifyOtp = async (req, res) => {
     skillsToLearn: user.skillsToLearn,
     silverCoins: user.silverCoins,
     goldCoins: user.goldCoins,
+    bronzeCoins: user.bronzeCoins || 0,
     isAdmin,
   };
 

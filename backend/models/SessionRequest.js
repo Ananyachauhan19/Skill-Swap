@@ -36,10 +36,14 @@ const SessionRequestSchema = new mongoose.Schema({
   credits: { type: Number, default: 10 }, // Credits for the session (deprecated, use coinsSpent)
   coinType: { 
     type: String, 
-    enum: ['silver', 'gold'], 
+    enum: ['silver', 'gold', 'bronze'], 
     default: 'silver' 
   }, // Type of coin used
   coinsSpent: { type: Number, default: 10 }, // Number of coins spent
+  // Coin settlement summary (set when session is completed)
+  coinTypeUsed: { type: String, enum: ['silver', 'gold', 'bronze'], default: null },
+  coinsDeducted: { type: Number, default: 0 }, // Final coins deducted from requester
+  coinsCredited: { type: Number, default: 0 }, // Final coins credited to tutor
   // Backwards-compat single rating (kept for existing UIs - student rating)
   rating: { type: Number, min: 1, max: 5, default: null },
   reviewText: { type: String, default: '' },

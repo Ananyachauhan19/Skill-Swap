@@ -12,8 +12,8 @@ import socket from '../socket.js';
  * - Enhanced a11y and defensive refs
  */
 
-const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
-  console.info('[DEBUG] VideoCall: Init session:', sessionId, 'role:', userRole);
+const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
+  console.info('[DEBUG] VideoCall: Init session:', sessionId, 'role:', userRole, 'coinType:', coinType);
 
   const canvasRef = useRef(null);
   const contextRef = useRef(null);
@@ -44,6 +44,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
   const [goldCoins, setGoldCoins] = useState(0);
+  const [bronzeCoins, setBronzeCoins] = useState(0);
   const hasEndedRef = useRef(false);
 
   // AV controls
@@ -60,6 +61,32 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
   const videoShutoffTimeoutRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
   const networkQualityRef = useRef('good'); // 'good' | 'poor'
+
+  // Coin session state (requester-side only)
+  const [sessionBalance, setSessionBalance] = useState(null); // { remaining, earned, lastTickMinutes }
+  const [coinLowWarning, setCoinLowWarning] = useState(false);
+  const coinBaselineSetRef = useRef(false);
+
+  const normalizedCoinType = useMemo(
+    () => (coinType || '').toString().trim().toLowerCase(),
+    [coinType]
+  );
+
+  const isStudentPayer = useMemo(
+    () => userRole === 'student' && (normalizedCoinType === 'silver' || normalizedCoinType === 'bronze'),
+    [userRole, normalizedCoinType]
+  );
+
+  const spendPerMinute = useMemo(() => {
+    if (!isStudentPayer) return 0;
+    return normalizedCoinType === 'bronze' ? 4 : 1;
+  }, [isStudentPayer, normalizedCoinType]);
+
+  const earnPerMinute = useMemo(() => {
+    if (!isStudentPayer) return 0;
+    // Server uses 0.75x of spend; bronze 4 -> 3, silver 1 -> 0.75
+    return normalizedCoinType === 'bronze' ? 3 : 0.75;
+  }, [isStudentPayer, normalizedCoinType]);
 
   // Screen share / recording / background / fullscreen
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -322,9 +349,19 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
           }
         };
 
-        const onCoinUpdate = ({ silverCoins, goldCoins }) => {
+        const onCoinUpdate = ({ silverCoins, goldCoins, bronzeCoins }) => {
           if (silverCoins !== undefined) setSilverCoins(Number(silverCoins ?? 0));
           if (goldCoins !== undefined) setGoldCoins(Number(goldCoins ?? 0));
+          if (bronzeCoins !== undefined) setBronzeCoins(Number(bronzeCoins ?? 0));
+
+          // Initialize per-session balance for requester once, from wallet snapshot
+          if (isStudentPayer && !coinBaselineSetRef.current) {
+            const base = normalizedCoinType === 'bronze'
+              ? Number(bronzeCoins ?? 0)
+              : Number(silverCoins ?? 0);
+            setSessionBalance({ remaining: base, earned: 0, lastTickMinutes: 0 });
+            coinBaselineSetRef.current = true;
+          }
         };
 
         // Whiteboard sync events (both directions)
@@ -498,6 +535,63 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
     }, 1000);
     return () => clearInterval(id);
   }, [callStartTime]);
+
+  // Per-minute coin deduction for requester (student) based on elapsed time
+  useEffect(() => {
+    if (!isStudentPayer) return;
+    if (!callStartTime) return;
+    if (!sessionBalance) return;
+    if (!spendPerMinute || !earnPerMinute) return;
+
+    const minutes = Math.floor(elapsedSeconds / 60);
+    if (minutes <= 0) return;
+
+    if (minutes <= sessionBalance.lastTickMinutes) return;
+
+    const deltaMinutes = minutes - sessionBalance.lastTickMinutes;
+    const newRemaining = Math.max(0, sessionBalance.remaining - deltaMinutes * spendPerMinute);
+    const newEarned = sessionBalance.earned + deltaMinutes * earnPerMinute;
+
+    // Warn once at 5 coins remaining (>0)
+    if (!coinLowWarning && sessionBalance.remaining > 5 && newRemaining <= 5 && newRemaining > 0) {
+      setCoinLowWarning(true);
+    }
+
+    // Apply updated session balance
+    setSessionBalance(prev => {
+      if (!prev) return prev;
+      // Ensure we don't go backwards if another tick already updated
+      if (minutes <= prev.lastTickMinutes) return prev;
+      return {
+        remaining: newRemaining,
+        earned: newEarned,
+        lastTickMinutes: minutes,
+      };
+    });
+
+    // Auto-end when balance hits zero
+    if (newRemaining <= 0 && sessionBalance.remaining > 0 && !hasEndedRef.current) {
+      try {
+        alert('Your coins for this session are exhausted. The call will now end.');
+      } catch {
+        // ignore alert failures (e.g., server-side rendering)
+      }
+      // Use microtask to avoid conflicts with state updates
+      Promise.resolve().then(() => {
+        if (!hasEndedRef.current) {
+          handleEndCall();
+        }
+      });
+    }
+  }, [
+    elapsedSeconds,
+    isStudentPayer,
+    callStartTime,
+    sessionBalance,
+    spendPerMinute,
+    earnPerMinute,
+    coinLowWarning,
+  ]);
 
   // Keep chat scrolled
   useEffect(() => {
@@ -1429,6 +1523,20 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username }) => {
           )}
           {typeof goldCoins === 'number' && (
             <span className="ml-2 sm:ml-4" title="Your current gold coins">Gold: {goldCoins.toFixed(2)}</span>
+          )}
+          {typeof bronzeCoins === 'number' && (
+            <span className="ml-2 sm:ml-4" title="Your current bronze coins">Bronze: {bronzeCoins.toFixed(2)}</span>
+          )}
+          {isStudentPayer && sessionBalance && (
+            <span
+              className={`ml-2 sm:ml-4 px-2 py-1 rounded text-xs sm:text-sm ${
+                coinLowWarning ? 'bg-amber-600/80 animate-pulse' : 'bg-emerald-600/80'
+              }`}
+              title="Estimated coins remaining for this session (local only)"
+            >
+              {normalizedCoinType === 'bronze' ? 'Session BRONZE left: ' : 'Session SILVER left: '}
+              {Math.max(0, Math.floor(sessionBalance.remaining))}
+            </span>
           )}
           {/* Video Timer Display */}
           {isVideoEnabled && !isVideoOff && videoTimeRemaining > 0 && (

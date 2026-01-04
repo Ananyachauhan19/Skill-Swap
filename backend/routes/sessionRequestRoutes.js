@@ -12,6 +12,7 @@ const T = require('../utils/emailTemplates');
 
 // Coin rate configuration
 // If business rules change, update these in one place.
+// NOTE: Bronze coins use a higher spend rate but same earn multiplier ratio.
 const COIN_RATES = {
   silver: {
     spendPerMinute: 1,
@@ -21,7 +22,50 @@ const COIN_RATES = {
     spendPerMinute: 1,
     earnMultiplier: 0.75,
   },
+  bronze: {
+    spendPerMinute: 4,   // learner spends 4 bronze coins per minute
+    earnMultiplier: 0.75 // tutor earns 3 bronze coins per minute
+  },
 };
+
+// Minimum pre-session balance requirement (10 minutes worth of coins)
+const MIN_BALANCE = {
+  silver: 10,
+  gold: 10,
+  bronze: 40,
+};
+
+// Helper to check requester balance for a given SessionRequest
+async function checkRequesterBalance(sessionRequest) {
+  if (!sessionRequest || !sessionRequest.requester) {
+    return { ok: false, reason: 'session-or-requester-missing' };
+  }
+
+  const coinTypeKey = (sessionRequest.coinType || 'silver').toLowerCase();
+  const minRequired = MIN_BALANCE[coinTypeKey] || MIN_BALANCE.silver;
+
+  const requester = await User.findById(sessionRequest.requester).select('silverCoins goldCoins bronzeCoins');
+  if (!requester) {
+    return { ok: false, reason: 'requester-not-found' };
+  }
+
+  let field;
+  if (coinTypeKey === 'bronze') field = 'bronzeCoins';
+  else if (coinTypeKey === 'gold') field = 'goldCoins';
+  else field = 'silverCoins';
+
+  const balance = Number(requester[field] || 0);
+  const hasEnough = balance >= minRequired;
+
+  return {
+    ok: true,
+    coinTypeKey,
+    field,
+    balance,
+    minRequired,
+    hasEnough,
+  };
+}
 
 // Rate limiter for sensitive endpoints
 const requestLimiter = rateLimit({
@@ -84,7 +128,7 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
   }
 
   try {
-    const { tutorId, subject, topic, message } = req.body;
+    const { tutorId, subject, topic, message, coinType } = req.body;
     const requesterId = req.user._id;
 
     // Check if tutor exists (include email for SMTP)
@@ -115,6 +159,7 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
       subject,
       topic,
       message: message || '',
+      coinType: (coinType || 'silver').toLowerCase(),
       status: 'pending',
     });
 
@@ -471,6 +516,25 @@ router.post('/start/:requestId', requireAuth, requestLimiter, validateRequestId,
       return handleErrors(res, 404, 'Session request not found or not approved');
     }
 
+    // Backend safeguard: ensure requester has at least 10 minutes worth of selected coins
+    try {
+      const balanceCheck = await checkRequesterBalance(sessionRequest);
+      if (!balanceCheck.ok) {
+        return handleErrors(res, 400, 'Unable to validate coin balance for this session');
+      }
+      if (!balanceCheck.hasEnough) {
+        const prettyType = balanceCheck.coinTypeKey.charAt(0).toUpperCase() + balanceCheck.coinTypeKey.slice(1);
+        return handleErrors(
+          res,
+          400,
+          `Insufficient ${prettyType} balance to join session`
+        );
+      }
+    } catch (e) {
+      console.error('Error validating balance before start:', e);
+      return handleErrors(res, 500, 'Failed to validate coin balance before starting the session');
+    }
+
     sessionRequest.status = 'active';
     if (!sessionRequest.startedAt) {
       sessionRequest.startedAt = new Date();
@@ -545,15 +609,94 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
     const durationMinutes = Math.max(1, Math.round((sessionRequest.endedAt - sessionRequest.startedAt) / 60000));
     sessionRequest.duration = durationMinutes;
 
-    // Derive coins spent from duration if not already tracked
+    // Derive coins spent/earned from duration if not already tracked
     const coinTypeKey = (sessionRequest.coinType || 'silver').toLowerCase();
     const spendPerMinute = (COIN_RATES[coinTypeKey] || COIN_RATES.silver).spendPerMinute;
+    const earnMultiplier = (COIN_RATES[coinTypeKey] || COIN_RATES.silver).earnMultiplier;
+
     if (typeof sessionRequest.coinsSpent !== 'number' || sessionRequest.coinsSpent < 0) {
       sessionRequest.coinsSpent = durationMinutes * spendPerMinute;
     }
 
+    const coinsSpentFinal = Number(sessionRequest.coinsSpent || 0);
+    const coinsEarnedFinal = Number((coinsSpentFinal * earnMultiplier).toFixed(2));
+
+    // Persist summary fields for audit/history
+    sessionRequest.coinTypeUsed = coinTypeKey;
+    sessionRequest.coinsDeducted = coinsSpentFinal;
+    sessionRequest.coinsCredited = coinsEarnedFinal;
+
     sessionRequest.status = 'completed';
     await sessionRequest.save();
+
+    // Atomic-ish coin settlement at session end (single pass; no per-minute updates)
+    const requesterId = sessionRequest.requester;
+    const tutorId = sessionRequest.tutor;
+    const io = req.app.get('io');
+
+    try {
+      let debitField;
+      if (coinTypeKey === 'bronze') debitField = 'bronzeCoins';
+      else if (coinTypeKey === 'gold') debitField = 'goldCoins';
+      else debitField = 'silverCoins';
+
+      const debitAmount = coinsSpentFinal > 0 ? coinsSpentFinal : 0;
+      const creditAmount = coinsEarnedFinal > 0 ? coinsEarnedFinal : 0;
+
+      let updatedRequester = null;
+      let updatedTutor = null;
+
+      if (debitAmount > 0 && requesterId) {
+        const filter = { _id: requesterId };
+        filter[debitField] = { $gte: debitAmount };
+
+        updatedRequester = await User.findOneAndUpdate(
+          filter,
+          { $inc: { [debitField]: -debitAmount } },
+          { new: true }
+        );
+
+        if (!updatedRequester) {
+          console.error('[Coins] Failed to debit coins from requester due to insufficient balance or missing user.', {
+            requesterId: String(requesterId),
+            debitField,
+            debitAmount,
+          });
+        }
+      }
+
+      if (creditAmount > 0 && tutorId) {
+        updatedTutor = await User.findByIdAndUpdate(
+          tutorId,
+          { $inc: { [debitField]: creditAmount } },
+          { new: true }
+        );
+      }
+
+      // Emit realtime coin updates to both parties for UI refresh
+      try {
+        if (io) {
+          if (updatedRequester) {
+            io.to(String(requesterId)).emit('coin-update', {
+              silverCoins: updatedRequester.silverCoins || 0,
+              goldCoins: updatedRequester.goldCoins || 0,
+              bronzeCoins: updatedRequester.bronzeCoins || 0,
+            });
+          }
+          if (updatedTutor) {
+            io.to(String(tutorId)).emit('coin-update', {
+              silverCoins: updatedTutor.silverCoins || 0,
+              goldCoins: updatedTutor.goldCoins || 0,
+              bronzeCoins: updatedTutor.bronzeCoins || 0,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('[Coins] Non-fatal: failed to emit coin-update after settlement:', e && e.message);
+      }
+    } catch (e) {
+      console.error('[Coins] Error during final coin settlement:', e);
+    }
 
     // Populate user details
     await sessionRequest.populate('requester', 'firstName lastName profilePic username');
@@ -568,7 +711,6 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
       : sessionRequest.tutor;
 
     // Send notification to both parties and emit direct event for rating redirect
-    const io = req.app.get('io');
     const notificationMessage = `${completer.firstName} ${completer.lastName} has completed the session on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
     // Notify other party
     try {
@@ -940,6 +1082,47 @@ router.get('/:requestId', requireAuth, validateRequestId, async (req, res) => {
   } catch (e) {
     console.error('Fetch session by id error:', e);
     handleErrors(res, 500, 'Failed to fetch session');
+  }
+});
+
+/**
+ * @route GET /api/session-requests/validate-join/:requestId
+ * @desc Validate that the requester has enough coins to start/join the session
+ * @access Private
+ */
+router.get('/validate-join/:requestId', requireAuth, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return handleErrors(res, 400, errors.array()[0].msg);
+
+  try {
+    const { requestId } = req.params;
+    const sr = await SessionRequest.findById(requestId)
+      .select('requester tutor coinType');
+    if (!sr) return handleErrors(res, 404, 'Session not found');
+
+    const requesterId = String(sr.requester);
+    const tutorId = String(sr.tutor);
+    const currentUserId = String(req.user._id);
+
+    // Only participants may query validation
+    if (requesterId !== currentUserId && tutorId !== currentUserId) {
+      return handleErrors(res, 403, 'Not authorized');
+    }
+
+    const balanceCheck = await checkRequesterBalance(sr);
+    if (!balanceCheck.ok) {
+      return handleErrors(res, 400, 'Unable to validate coin balance for this session');
+    }
+
+    res.json({
+      coinType: balanceCheck.coinTypeKey,
+      availableBalance: balanceCheck.balance,
+      minRequired: balanceCheck.minRequired,
+      hasEnough: balanceCheck.hasEnough,
+    });
+  } catch (e) {
+    console.error('validate-join error:', e);
+    handleErrors(res, 500, 'Failed to validate coin balance');
   }
 });
 

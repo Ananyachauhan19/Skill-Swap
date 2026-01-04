@@ -619,7 +619,7 @@ module.exports = (io) => {
     // Handle session request
     socket.on('send-session-request', async (data) => {
       try {
-        const { tutorId, subject, topic, message, question, questionImageUrl } = data;
+        const { tutorId, subject, topic, message, question, questionImageUrl, coinType } = data;
         const requesterId = socket.userId;
 
         console.log('[Session Request] Data received:', { tutorId, subject, topic, requesterId });
@@ -667,6 +667,7 @@ module.exports = (io) => {
           message: message || '',
           questionText: question || '',
           questionImageUrl: questionImageUrl || '',
+          coinType: (coinType || 'silver').toLowerCase(),
           status: 'pending',
         });
 
@@ -1227,54 +1228,31 @@ module.exports = (io) => {
           const requesterId = s.requester ? String(s.requester) : null;
           const tutorId = s.creator ? String(s.creator) : null;
           if (!requesterId || !tutorId) return;
-          // Send initial balances before starting timer
+          // Send initial balances (single DB fetch; no per-minute updates)
           try {
             const [reqUser, tutUser] = await Promise.all([
-              User.findById(requesterId).select('silverCoins goldCoins'),
-              User.findById(tutorId).select('silverCoins goldCoins'),
+              User.findById(requesterId).select('silverCoins goldCoins bronzeCoins'),
+              User.findById(tutorId).select('silverCoins goldCoins bronzeCoins'),
             ]);
             if (reqUser) {
               getSocketIdsForUserId(requesterId).forEach(sid => {
-                io.to(sid).emit('coin-update', { silverCoins: reqUser.silverCoins || 0, goldCoins: reqUser.goldCoins || 0 });
+                io.to(sid).emit('coin-update', {
+                  silverCoins: reqUser.silverCoins || 0,
+                  goldCoins: reqUser.goldCoins || 0,
+                  bronzeCoins: reqUser.bronzeCoins || 0,
+                });
               });
             }
             if (tutUser) {
               getSocketIdsForUserId(tutorId).forEach(sid => {
-                io.to(sid).emit('coin-update', { silverCoins: tutUser.silverCoins || 0, goldCoins: tutUser.goldCoins || 0 });
+                io.to(sid).emit('coin-update', {
+                  silverCoins: tutUser.silverCoins || 0,
+                  goldCoins: tutUser.goldCoins || 0,
+                  bronzeCoins: tutUser.bronzeCoins || 0,
+                });
               });
             }
           } catch (_) {}
-
-          const timer = setInterval(async () => {
-            try {
-              const requester = await User.findById(requesterId);
-              if (requester && requester.silverCoins >= 1) {
-                requester.silverCoins -= 1;
-                await requester.save();
-                getSocketIdsForUserId(requesterId).forEach(sid => {
-                  io.to(sid).emit('coin-update', { silverCoins: requester.silverCoins, goldCoins: requester.goldCoins || 0 });
-                });
-              } else {
-                stopSessionTimer(sessionId);
-                io.to(sessionId).emit('end-call', { sessionId, reason: 'Insufficient coins' });
-                return;
-              }
-
-              const tutor = await User.findById(tutorId);
-              if (tutor) {
-                tutor.silverCoins += 0.75;
-                await tutor.save();
-                getSocketIdsForUserId(tutorId).forEach(sid => {
-                  io.to(sid).emit('coin-update', { silverCoins: tutor.silverCoins, goldCoins: tutor.goldCoins || 0 });
-                });
-              }
-            } catch (err) {
-              console.error('[Session Timer] Error updating coins:', err);
-              stopSessionTimer(sessionId);
-            }
-          }, 60 * 1000);
-          sessionTimers.set(sessionId, timer);
-          console.log(`[Session Timer] Started for session ${sessionId}`);
           return;
         }
 
@@ -1282,56 +1260,31 @@ module.exports = (io) => {
         const tutorId = sr.tutor ? String(sr.tutor) : null;
         if (!requesterId || !tutorId) return;
 
-        // Send initial balances before starting timer
+        // Send initial balances (single DB fetch; no per-minute updates)
         try {
           const [reqUser, tutUser] = await Promise.all([
-            User.findById(requesterId).select('silverCoins goldCoins'),
-            User.findById(tutorId).select('silverCoins goldCoins'),
+            User.findById(requesterId).select('silverCoins goldCoins bronzeCoins'),
+            User.findById(tutorId).select('silverCoins goldCoins bronzeCoins'),
           ]);
           if (reqUser) {
             getSocketIdsForUserId(requesterId).forEach(sid => {
-              io.to(sid).emit('coin-update', { silverCoins: reqUser.silverCoins || 0, goldCoins: reqUser.goldCoins || 0 });
+              io.to(sid).emit('coin-update', {
+                silverCoins: reqUser.silverCoins || 0,
+                goldCoins: reqUser.goldCoins || 0,
+                bronzeCoins: reqUser.bronzeCoins || 0,
+              });
             });
           }
           if (tutUser) {
             getSocketIdsForUserId(tutorId).forEach(sid => {
-              io.to(sid).emit('coin-update', { silverCoins: tutUser.silverCoins || 0, goldCoins: tutUser.goldCoins || 0 });
+              io.to(sid).emit('coin-update', {
+                silverCoins: tutUser.silverCoins || 0,
+                goldCoins: tutUser.goldCoins || 0,
+                bronzeCoins: tutUser.bronzeCoins || 0,
+              });
             });
           }
         } catch (_) {}
-
-        // Start timer for coin updates
-        const timer = setInterval(async () => {
-          try {
-            const requester = await User.findById(requesterId);
-            if (requester && requester.silverCoins >= 1) {
-              requester.silverCoins -= 1;
-              await requester.save();
-              getSocketIdsForUserId(requesterId).forEach(sid => {
-                io.to(sid).emit('coin-update', { silverCoins: requester.silverCoins, goldCoins: requester.goldCoins || 0 });
-              });
-            } else {
-              // Stop timer if requester has insufficient coins
-              stopSessionTimer(sessionId);
-              io.to(sessionId).emit('end-call', { sessionId, reason: 'Insufficient coins' });
-              return;
-            }
-
-            const tutor = await User.findById(tutorId);
-            if (tutor) {
-              tutor.silverCoins += 0.75;
-              await tutor.save();
-              getSocketIdsForUserId(tutorId).forEach(sid => {
-                io.to(sid).emit('coin-update', { silverCoins: tutor.silverCoins, goldCoins: tutor.goldCoins || 0 });
-              });
-            }
-          } catch (err) {
-            console.error('[Session Timer] Error updating coins:', err);
-            stopSessionTimer(sessionId);
-          }
-        }, 60 * 1000); // Every minute
-        sessionTimers.set(sessionId, timer);
-        console.log(`[Session Timer] Started for session ${sessionId}`);
       }
     });
 

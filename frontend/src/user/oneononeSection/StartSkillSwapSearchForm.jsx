@@ -163,6 +163,8 @@ const StartSkillSwapSearchForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [coinSelection, setCoinSelection] = useState({ open: false, tutor: null });
+  const [sendingRequest, setSendingRequest] = useState(false);
 
   useEffect(() => {
     if (user && user._id) {
@@ -222,6 +224,19 @@ const StartSkillSwapSearchForm = () => {
     try {
       setError("");
       setSuccessMessage("");
+      setCoinSelection({ open: true, tutor });
+    } catch {
+      setError("Failed to start session request. Please try again.");
+    }
+  };
+
+  const handleConfirmSessionRequest = async (coinType) => {
+    if (!coinSelection.tutor) return;
+    try {
+      setSendingRequest(true);
+      setError("");
+      setSuccessMessage("");
+      const tutor = coinSelection.tutor;
       socket.emit('send-session-request', {
         tutorId: tutor.userId,
         subject: unitValue,
@@ -230,9 +245,13 @@ const StartSkillSwapSearchForm = () => {
         questionImageUrl: questionImageUrl || '',
         questionPhoto: questionPhoto ? questionPhoto.name : null,
         message: `I would like to learn ${unitValue} - ${topicValue}${questionValue ? `: ${questionValue}` : ''}`,
+        coinType,
       });
+      setCoinSelection({ open: false, tutor: null });
     } catch {
       setError("Failed to send session request. Please try again.");
+    } finally {
+      setSendingRequest(false);
     }
   };
 
@@ -502,6 +521,41 @@ const StartSkillSwapSearchForm = () => {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {coinSelection.open && coinSelection.tutor && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full mx-4 p-6 border border-slate-200">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Choose coins for this session</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              How would you like to pay for this one-on-one session? You can use Silver Coins (1 per minute) or Bronze Coins (4 per minute).
+            </p>
+            <div className="space-y-3">
+              <button
+                disabled={sendingRequest}
+                onClick={() => handleConfirmSessionRequest('silver')}
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-800 hover:border-blue-900 hover:bg-blue-50 transition-colors disabled:opacity-50"
+              >
+                Join with Silver Coins (1/min)
+              </button>
+              <button
+                disabled={sendingRequest}
+                onClick={() => handleConfirmSessionRequest('bronze')}
+                className="w-full px-4 py-2.5 rounded-lg border border-amber-300 text-sm font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors disabled:opacity-50"
+              >
+                Join with Bronze Coins (4/min)
+              </button>
+            </div>
+            <button
+              type="button"
+              disabled={sendingRequest}
+              onClick={() => setCoinSelection({ open: false, tutor: null })}
+              className="mt-4 text-xs text-slate-500 hover:text-slate-700 font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </>

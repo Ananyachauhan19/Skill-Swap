@@ -75,6 +75,7 @@ const userSchema = new mongoose.Schema({
   credits: { type: Number, default: 1200, required: false },
   goldCoins: { type: Number, default: 0, required: false },
   silverCoins: { type: Number, default: 0, required: false },
+  bronzeCoins: { type: Number, default: 100, required: false },
   badges: [{ type: String, default: ['Starter', 'Helper'], required: false }],
   rank: { type: String, default: 'Bronze', required: false },
   skillMates: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],

@@ -179,20 +179,45 @@ export default function JoinSession() {
 
   const isBeforeStart = Boolean(sessionMeta?.startAt) && remainingMs > 0;
 
+  const [coinValidation, setCoinValidation] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!sessionMeta || kind !== 'request') return;
+      try {
+        const res = await api.get(`/api/session-requests/validate-join/${sessionMeta.id}`);
+        if (cancelled) return;
+        setCoinValidation(res.data || null);
+      } catch (e) {
+        if (cancelled) return;
+        // Soft-fail: keep join buttons enabled but surface any message if needed
+        const msg = e?.response?.data?.message || null;
+        setCoinValidation(prev => prev || (msg ? { error: msg } : null));
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionMeta, kind]);
+
   const canStart = useMemo(() => {
     if (!sessionMeta) return false;
     if (sessionMeta.myRole !== 'host') return false;
     if (sessionMeta.status !== 'approved') return false;
     if (isBeforeStart) return false;
+    if (kind === 'request' && coinValidation && coinValidation.hasEnough === false) return false;
     return true;
-  }, [sessionMeta, isBeforeStart]);
+  }, [sessionMeta, isBeforeStart, kind, coinValidation]);
 
   const canJoin = useMemo(() => {
     if (!sessionMeta) return false;
     if (sessionMeta.status !== 'active') return false;
     if (isBeforeStart) return false;
+    if (kind === 'request' && coinValidation && coinValidation.hasEnough === false) return false;
     return true;
-  }, [sessionMeta, isBeforeStart]);
+  }, [sessionMeta, isBeforeStart, kind, coinValidation]);
 
   const handleStart = async () => {
     try {
@@ -459,6 +484,13 @@ export default function JoinSession() {
                   Join/Start is disabled until the scheduled time.
                 </div>
               )}
+
+              {kind === 'request' && coinValidation && coinValidation.hasEnough === false && (
+                <div className="mt-4 text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+                  {`Insufficient ${String(coinValidation.coinType || 'silver').toUpperCase()} balance to join session. `}
+                  Please add more coins or create a new request with a different coin type.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -485,6 +517,7 @@ export default function JoinSession() {
             userRole={sessionMeta.myRole === 'host' ? 'teacher' : 'student'}
             username={user?.username || user?.firstName || ''}
             onEndCall={handleEndCall}
+            coinType={kind === 'request' ? (data.coinType || 'silver') : 'silver'}
           />
         </div>
       )}

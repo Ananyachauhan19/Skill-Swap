@@ -882,13 +882,14 @@ router.get('/user/public/:username', async (req, res) => {
 // Coins endpoint
 router.get('/coins', requireAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('goldCoins silverCoins');
+    const user = await User.findById(req.user._id).select('goldCoins silverCoins bronzeCoins');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
     res.json({
       golden: user.goldCoins || 0,
-      silver: user.silverCoins || 0
+      silver: user.silverCoins || 0,
+      bronze: user.bronzeCoins || 0,
     });
   } catch (error) {
     console.error('[DEBUG] Coins error:', error);

@@ -51,7 +51,8 @@ if (hasGoogleOauth) {
               twitter: '',
               credits: 1200,
               goldCoins: 0,
-              silverCoins: 100,
+              silverCoins: 0,
+              bronzeCoins: 100,
               badges: ['Starter', 'Helper'],
               rank: 'Bronze'
             });
@@ -62,12 +63,13 @@ if (hasGoogleOauth) {
               user.provider = 'google';
               updated = true;
             }
-            if (typeof user.silverCoins !== 'number' || user.silverCoins < 100) {
-              user.silverCoins = 100;
-              updated = true;
-            }
             if (typeof user.goldCoins !== 'number') {
               user.goldCoins = 0;
+              updated = true;
+            }
+            // Ensure bronze coins are initialized for legacy users (no auto top-up of silver coins)
+            if (typeof user.bronzeCoins !== 'number') {
+              user.bronzeCoins = 100;
               updated = true;
             }
             if (updated) await user.save();

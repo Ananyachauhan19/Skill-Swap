@@ -372,7 +372,7 @@ router.get('/users/:userId/coin-history', async (req, res) => {
 
     // Get user's current coin balance
     const user = await User.findById(userId)
-      .select('goldCoins silverCoins firstName lastName')
+      .select('goldCoins silverCoins bronzeCoins firstName lastName')
       .lean();
 
     if (!user) {
@@ -381,8 +381,9 @@ router.get('/users/:userId/coin-history', async (req, res) => {
 
     // Coin rates for calculation
     const COIN_RATES = {
-      gold: { spendPerMinute: 2, earnMultiplier: 0.75 },
-      silver: { spendPerMinute: 1, earnMultiplier: 0.75 }
+      gold:   { spendPerMinute: 2, earnMultiplier: 0.75 },
+      silver: { spendPerMinute: 1, earnMultiplier: 0.75 },
+      bronze: { spendPerMinute: 4, earnMultiplier: 0.75 },
     };
 
     // Get completed sessions where user was student (coins spent)
@@ -463,7 +464,8 @@ router.get('/users/:userId/coin-history', async (req, res) => {
       transactions: allTransactions,
       currentBalance: {
         gold: user.goldCoins || 0,
-        silver: user.silverCoins || 0
+        silver: user.silverCoins || 0,
+        bronze: user.bronzeCoins || 0,
       },
       summary: {
         totalSpent: formattedLearning.reduce((sum, t) => sum + t.amount, 0),

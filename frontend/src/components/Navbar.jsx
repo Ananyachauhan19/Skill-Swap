@@ -11,7 +11,7 @@ import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 
 // useSessionSocketNotifications hook for handling socket notifications
-function useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins) {
+function useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins, setBronzeCoins) {
   useEffect(() => {
     const userCookie = Cookies.get('user');
     const user = userCookie ? JSON.parse(userCookie) : null;
@@ -304,6 +304,9 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall, set
         if (data && typeof data.golden === 'number' && typeof data.silver === 'number') {
           setGoldenCoins(data.golden);
           setSilverCoins(data.silver);
+          if (typeof setBronzeCoins === 'function' && typeof data.bronze === 'number') {
+            setBronzeCoins(data.bronze);
+          }
         }
       });
     }
@@ -340,6 +343,7 @@ const Navbar = () => {
   const [notifications, setNotifications] = useState([]);
   const [goldenCoins, setGoldenCoins] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
+  const [bronzeCoins, setBronzeCoins] = useState(0);
   const [user, setUser] = useState(null);
   const [isAvailable, setIsAvailable] = useState(true);
   const [isToggling, setIsToggling] = useState(false);
@@ -407,7 +411,8 @@ const Navbar = () => {
         console.log('[Navbar] Coins data received:', data);
         setGoldenCoins(data.golden || 0);
         setSilverCoins(data.silver || 0);
-        console.log('[Navbar] Coins state updated - Golden:', data.golden, 'Silver:', data.silver);
+        setBronzeCoins(data.bronze || 0);
+        console.log('[Navbar] Coins state updated - Golden:', data.golden, 'Silver:', data.silver, 'Bronze:', data.bronze);
       } else {
         console.warn('[Navbar] Coins fetch failed with status:', response.status);
       }
@@ -766,7 +771,7 @@ const Navbar = () => {
     };
   }, []);
 
-  useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins);
+  useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins, setBronzeCoins);
 
   // Listen for request count updates from SessionRequests page (dual approach)
   useEffect(() => {
@@ -1070,6 +1075,12 @@ const Navbar = () => {
                             <span className="text-[10px] font-bold text-blue-900">S</span>
                           </div>
                           <span className="text-gray-800">Silver: {silverCoins}</span>
+                        </div>
+                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
+                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-orange-200 via-orange-400 to-orange-600 shadow-inner flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-blue-900">B</span>
+                          </div>
+                          <span className="text-gray-800">Bronze: {bronzeCoins}</span>
                         </div>
                         <button
                           onClick={(e) => {
