@@ -644,10 +644,90 @@ const SideBarPublic = ({ username, setNotFound }) => {
                       <p className="mt-2 text-sm text-gray-700 line-clamp-3">
                         {profile?.bio || "Your bio goes here, set it in Setup Profile."}
                       </p>
+                      
+                      {/* Action Buttons - Desktop Only (below bio) */}
+                      <div className="hidden sm:flex items-center gap-2 mt-3 relative">
+                        {pendingRequest?.isRequester && !isSkillMate ? (
+                          <>
+                            <button
+                              className="px-3 py-2 rounded-xl border text-xs font-semibold transition bg-yellow-50 border-yellow-300 text-yellow-800 shadow-sm"
+                              disabled
+                              title="Request Pending"
+                            >
+                              Pending
+                            </button>
+                            <button
+                              className="px-3 py-2 rounded-xl border text-xs font-semibold transition bg-white border-blue-200 text-blue-900 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                              onClick={handleCancelRequest}
+                              disabled={requestLoading}
+                              title="Cancel Request"
+                            >
+                              {requestLoading ? "Cancelling" : "Cancel"}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            className={
+                              `px-6 py-2.5 rounded-2xl border text-sm font-bold transition shadow-md ${
+                                isSkillMate
+                                  ? "bg-blue-50 border-blue-300 text-blue-900 hover:bg-blue-100 hover:shadow-lg"
+                                  : pendingRequest
+                                  ? "bg-yellow-50 border-yellow-300 text-yellow-800 hover:bg-yellow-100 hover:shadow-lg"
+                                  : "bg-blue-900 text-white border-blue-900 hover:bg-blue-800 hover:shadow-lg"
+                              }`
+                            }
+                            onClick={
+                              isSkillMate
+                                ? toggleDropdown
+                                : pendingRequest
+                                ? handleApproveRequest
+                                : handleAddSkillMate
+                            }
+                            disabled={requestLoading}
+                            title={
+                              isSkillMate
+                                ? "Manage SkillMate"
+                                : pendingRequest
+                                ? "Approve Request"
+                                : "Add SkillMate"
+                            }
+                          >
+                            {requestLoading
+                              ? "Processing"
+                              : isSkillMate
+                              ? "SkillMate"
+                              : pendingRequest
+                              ? "Approve"
+                              : "Add SkillMate"}
+                            {isSkillMate && <FaChevronDown className="text-xs ml-1.5 inline" />}
+                          </button>
+                        )}
+                        
+                        {isSkillMate && (
+                          <button
+                            className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-4 py-2 rounded-xl text-xs font-semibold transition shadow-sm hover:shadow-md"
+                            onClick={() => navigate('/chat', { state: { skillMateId: profile?._id } })}
+                            title="Message"
+                          >
+                            Message
+                          </button>
+                        )}
+                        
+                        {!isSkillMate && (
+                          <button
+                            className="border border-blue-200 text-blue-900 bg-white hover:bg-blue-50 px-2.5 py-2.5 rounded-xl text-base font-bold transition shadow-sm hover:shadow-md"
+                            onClick={toggleDropdown}
+                            title="More options"
+                            aria-label="More options"
+                          >
+                            ⋮
+                          </button>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center justify-between w-full relative">
+                    {/* Action Buttons - Mobile Only (same as before) */}
+                    <div className="sm:hidden flex items-center justify-between w-full relative">
                       {/* Left: Pending and Cancel (if applicable) */}
                       <div className="flex items-center gap-2">
                         {pendingRequest?.isRequester && !isSkillMate && (
