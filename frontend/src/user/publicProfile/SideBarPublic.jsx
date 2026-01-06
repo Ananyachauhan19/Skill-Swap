@@ -5,8 +5,6 @@ import {
   FaTwitter,
   FaGlobe,
   FaSearch,
-  FaBars,
-  FaTimes,
   FaUser,
   FaGraduationCap,
   FaBriefcase,
@@ -27,26 +25,6 @@ import PublicLive from "./PublicLive";
 import PublicVideos from "./PublicVideos";
 
 export const ProfileContext = createContext();
-
-const contributions = {
-  "2024-01-01": 5,
-  "2024-01-02": 2,
-};
-
-const months = [
-  { name: "Jan", year: 2024, days: 31 },
-  { name: "Feb", year: 2024, days: 29 },
-];
-
-const currentDate = new Date();
-
-const getContributionColor = (count) => {
-  if (count === 0) return "bg-gray-100";
-  if (count <= 2) return "bg-blue-100";
-  if (count <= 5) return "bg-blue-300";
-  if (count <= 8) return "bg-blue-500";
-  return "bg-blue-700";
-};
 
 const fetchUserProfile = async (
   username,
@@ -88,9 +66,12 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const navigate = useNavigate();
   const { username: paramUsername } = useParams();
   const [activeTab, setActiveTab] = useState("home");
-  const activeTabStyle =
-    "border-b-4 border-blue-600 text-gray-900 font-bold -mb-0.5";
-  const normalTabStyle = "text-gray-500 hover:text-gray-900 font-medium";
+
+  // Desktop sidebar sizing (resizable)
+  const layoutRef = useRef(null);
+  const [sidebarWidth, setSidebarWidth] = useState(288); // default ~w-72
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const [sidebarBottomPx, setSidebarBottomPx] = useState(0);
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,6 +86,55 @@ const SideBarPublic = ({ username, setNotFound }) => {
   const dropdownRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const { addToast } = useToast();
+
+  const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+  useEffect(() => {
+    if (!isResizingSidebar) return;
+
+    const onMove = (e) => {
+      const next = e.clientX;
+      setSidebarWidth(clamp(next, 240, 420));
+    };
+
+    const onUp = () => setIsResizingSidebar(false);
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [isResizingSidebar]);
+
+  useEffect(() => {
+    const updateSidebarBottomOffset = () => {
+      const footer = document.getElementById("app-footer");
+      if (!footer) {
+        setSidebarBottomPx(0);
+        return;
+      }
+
+      const rect = footer.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || 0;
+
+      if (rect.top >= viewportHeight) {
+        setSidebarBottomPx(0);
+        return;
+      }
+
+      const overlap = viewportHeight - rect.top;
+      setSidebarBottomPx(Math.max(0, Math.round(overlap)));
+    };
+
+    updateSidebarBottomOffset();
+    window.addEventListener("resize", updateSidebarBottomOffset);
+    window.addEventListener("scroll", updateSidebarBottomOffset, { passive: true });
+    return () => {
+      window.removeEventListener("resize", updateSidebarBottomOffset);
+      window.removeEventListener("scroll", updateSidebarBottomOffset);
+    };
+  }, []);
 
   useEffect(() => {
     const targetUsername = paramUsername || username;
@@ -186,8 +216,8 @@ const SideBarPublic = ({ username, setNotFound }) => {
     if (!profile || !profile._id) return;
     setRequestLoading(true);
     try {
-      await sendSkillMateRequest(profile._id);
-      setPendingRequest({ isRequester: true });
+      const res = await sendSkillMateRequest(profile._id);
+      setPendingRequest({ id: res?.skillMate?._id, isRequester: true });
       addToast({
         title: "Request Sent",
         message: "SkillMate request sent successfully.",
@@ -241,6 +271,48 @@ const SideBarPublic = ({ username, setNotFound }) => {
       addToast({
         title: "Error",
         message: error.message || "Failed to remove SkillMate",
+        variant: "error",
+        timeout: 4000,
+      });
+    } finally {
+      setRequestLoading(false);
+    }
+  };
+
+  const cancelSkillMateRequest = async (requestId) => {
+    const response = await fetch(
+      `${BACKEND_URL}/api/skillmates/requests/cancel/${requestId}`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to cancel SkillMate request");
+    }
+
+    return await response.json();
+  };
+
+  const handleCancelRequest = async () => {
+    if (!pendingRequest?.id) return;
+    setRequestLoading(true);
+    try {
+      await cancelSkillMateRequest(pendingRequest.id);
+      setPendingRequest(null);
+      setShowDropdown(false);
+      addToast({
+        title: "Cancelled",
+        message: "SkillMate request cancelled.",
+        variant: "success",
+        timeout: 3000,
+      });
+    } catch (error) {
+      addToast({
+        title: "Error",
+        message: error.message || "Failed to cancel SkillMate request",
         variant: "error",
         timeout: 4000,
       });
@@ -318,19 +390,37 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
   return (
     <ProfileContext.Provider value={{ searchQuery, setSearchQuery, profileUserId: profile?._id }}>
-      <div className="flex flex-col sm:flex-row min-h-screen w-full bg-[#f8f9fb] font-sans">
-        {/* Sidebar - Web Version */}
-        <aside className="hidden sm:flex sm:w-72 min-h-screen bg-white px-6 pt-8 border-r border-gray-200 shadow-sm">
-          <div className="w-full">
+      <div
+        ref={layoutRef}
+        className="min-h-screen w-full bg-blue-50 font-sans sm:pl-[var(--sidebar-w)]"
+        style={{ "--sidebar-w": `${sidebarWidth}px` }}
+      >
+        {/* Sidebar - Web Version (fixed, resize-only) */}
+        <aside
+          className="hidden sm:flex fixed left-0 top-0 z-30 border-r border-blue-100 bg-white/70 shadow-sm ring-1 ring-blue-100/60 overflow-y-auto scrollbar-hide px-5 pt-6 pb-6"
+          style={{ width: sidebarWidth, bottom: sidebarBottomPx }}
+          aria-label="Public profile sidebar"
+        >
+          <div className="w-full relative">
+            {/* Resize handle */}
+            <div
+              className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize bg-blue-100/70 hover:bg-blue-200/70"
+              onMouseDown={() => setIsResizingSidebar(true)}
+              onDoubleClick={() => setSidebarWidth(288)}
+              role="separator"
+              aria-label="Resize sidebar"
+              title="Drag to resize"
+            />
+
             <div className="mb-7">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Connect</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Connect</h3>
               <div className="flex flex-col gap-3">
                 {profile?.linkedin && (
                   <a
                     href={`https://linkedin.com/in/${profile.linkedin}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-gray-600 hover:text-blue-600 text-sm font-medium transition-colors duration-200 p-2 rounded-lg hover:bg-gray-50"
+                    className="flex items-center gap-3 text-gray-700 hover:text-blue-900 text-sm font-medium transition-colors duration-200 p-2 rounded-xl hover:bg-blue-50 border border-transparent hover:border-blue-100"
                   >
                     <FaLinkedin className="text-xl text-blue-600" />
                     <span>LinkedIn</span>
@@ -341,7 +431,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     href={`https://github.com/${profile.github}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-gray-600 hover:text-gray-900 text-sm font-medium transition-colors duration-200 p-2 rounded-lg hover:bg-gray-50"
+                    className="flex items-center gap-3 text-gray-700 hover:text-blue-900 text-sm font-medium transition-colors duration-200 p-2 rounded-xl hover:bg-blue-50 border border-transparent hover:border-blue-100"
                   >
                     <FaGithub className="text-xl text-gray-900" />
                     <span>GitHub</span>
@@ -352,7 +442,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     href={`https://twitter.com/${profile.twitter}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-gray-600 hover:text-blue-500 text-sm font-medium transition-colors duration-200 p-2 rounded-lg hover:bg-gray-50"
+                    className="flex items-center gap-3 text-gray-700 hover:text-blue-900 text-sm font-medium transition-colors duration-200 p-2 rounded-xl hover:bg-blue-50 border border-transparent hover:border-blue-100"
                   >
                     <FaTwitter className="text-xl text-blue-500" />
                     <span>Twitter</span>
@@ -367,7 +457,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-gray-600 hover:text-green-600 text-sm font-medium transition-colors duration-200 p-2 rounded-lg hover:bg-gray-50"
+                    className="flex items-center gap-3 text-gray-700 hover:text-blue-900 text-sm font-medium transition-colors duration-200 p-2 rounded-xl hover:bg-blue-50 border border-transparent hover:border-blue-100"
                   >
                     <FaGlobe className="text-xl text-green-600" />
                     <span>Website</span>
@@ -377,7 +467,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
 
             <div className="mb-7">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Education</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Education</h3>
               {loading ? (
                 <span className="text-gray-500 text-sm">Loading...</span>
               ) : error ? (
@@ -406,7 +496,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
 
             <div className="mb-7">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Experience</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Experience</h3>
               {loading ? (
                 <span className="text-gray-500 text-sm">Loading...</span>
               ) : error ? (
@@ -428,7 +518,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
 
             <div className="mb-7">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Skills</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Skills</h3>
               {loading ? (
                 <span className="text-gray-500 text-sm">Loading...</span>
               ) : error ? (
@@ -438,7 +528,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   {profile.skills.map((skill, i) => (
                     <span
                       key={i}
-                      className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-200 hover:bg-gray-200 transition-colors duration-200"
+                      className="bg-white/70 text-gray-800 px-3 py-1.5 rounded-xl text-xs font-medium border border-blue-100 hover:border-blue-200 hover:bg-blue-50 transition-colors duration-200"
                     >
                       {skill}
                     </span>
@@ -450,7 +540,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
             </div>
 
             <div className="mb-7">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">What I Can Teach</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">What I Can Teach</h3>
               {loading ? (
                 <span className="text-gray-500 text-sm">Loading...</span>
               ) : error ? (
@@ -460,7 +550,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   {profile.skillsToTeach.map((s, i) => (
                     <li
                       key={i}
-                      className="bg-green-50 text-green-800 px-3 py-1.5 rounded-lg text-xs font-medium border border-green-200 hover:bg-green-100 transition-colors duration-200"
+                      className="bg-white/70 text-green-800 px-3 py-1.5 rounded-xl text-xs font-medium border border-green-200 hover:bg-green-50 transition-colors duration-200"
                     >
                       {s.class ? `${s.class} • ` : ""}
                       {s.subject}{" "}
@@ -481,119 +571,150 @@ const SideBarPublic = ({ username, setNotFound }) => {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-h-screen pt-4 sm:pt-10 pb-4 sm:pb-8 px-0 sm:px-10">
-          <div className="max-w-6xl mx-auto">
-            {/* Profile Section */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-start mb-4 sm:mb-10 bg-white rounded-none sm:rounded-2xl p-3 sm:p-8 shadow-none sm:shadow-sm border-0 sm:border border-gray-200">
-              {loading ? (
-                <div className="w-[60px] h-[60px] sm:w-[180px] sm:h-[180px] mx-auto">
-                  <div className="w-6 h-6 sm:w-12 sm:h-12 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : error ? (
-                <div className="flex flex-col items-center gap-2 mx-auto">
-                  <span className="text-red-500 text-xs sm:text-sm">{error}</span>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="text-dark-blue px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium bg-blue-50 hover:bg-blue-100"
-                    aria-label="Retry loading profile"
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : (
-                <>
+        <main className="min-h-screen pb-10 max-w-6xl mx-auto lg:mx-0 px-4 sm:px-6 pt-4">
+            {/* Cover Image */}
+            <div className="relative">
+              <div className="h-28 sm:h-36 md:h-44 w-full rounded-2xl overflow-hidden border border-blue-100 bg-blue-100">
+                {loading ? (
+                  <div className="w-full h-full animate-pulse bg-blue-100" />
+                ) : error ? (
+                  <div className="w-full h-full flex items-center justify-center text-sm text-red-600 bg-transparent">
+                    Failed to load profile
+                  </div>
+                ) : profile?.coverImageUrl ? (
                   <img
-                    src={
-                      profile?.profilePic ||
-                      "https://placehold.co/100x100?text=User"
-                    }
-                    alt={`${profile?.fullName || "User"}'s profile picture`}
-                    className="w-[80px] h-[80px] sm:w-[200px] sm:h-[200px] rounded-full object-cover border-2 sm:border-4 border-gray-200 shadow-sm sm:shadow-lg mx-auto sm:mx-0"
+                    src={profile.coverImageUrl}
+                    alt="Profile cover"
+                    className="w-full h-full object-cover"
                   />
-                  <div className="mt-3 sm:mt-0 sm:ml-8 flex-1 flex flex-col items-center sm:items-start relative">
-                    <h1 className="text-lg sm:text-4xl font-bold text-gray-900 text-center sm:text-left mb-1 sm:mb-2">
-                      {profile?.fullName || "Full Name"}
-                    </h1>
-                    <p className="text-sm sm:text-base text-blue-600 font-medium text-center sm:text-left mb-2 sm:mb-3">
-                      {profile?.username ? `@${profile.username}` : "@username"}
-                    </p>
-                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mt-1 max-w-xl text-center sm:text-left">
-                      {profile?.bio ||
-                        "Your bio goes here, set it in Setup Profile."}
-                    </p>
-                    <div className="mt-3 sm:mt-6 flex flex-row gap-2 sm:gap-3 justify-center sm:justify-start relative z-10 w-full sm:w-auto">
-                      <button
-                        className={`border px-3 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold flex-1 sm:flex-initial sm:max-w-xs flex items-center justify-center sm:justify-between transition-all duration-200 shadow-sm hover:shadow-md ${
-                          isSkillMate
-                            ? "bg-green-50 border-green-300 text-green-700 hover:bg-green-100"
-                            : pendingRequest
-                            ? "bg-yellow-50 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
-                            : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-                        }`}
-                        onClick={
-                          isSkillMate
-                            ? toggleDropdown
-                            : pendingRequest
-                            ? pendingRequest.isRequester
-                              ? null
-                              : handleApproveRequest
-                            : handleAddSkillMate
-                        }
-                        disabled={
-                          requestLoading ||
-                          (pendingRequest && pendingRequest.isRequester)
-                        }
-                        title={
-                          isSkillMate
-                            ? "Manage SkillMate"
-                            : pendingRequest
-                            ? pendingRequest.isRequester
-                              ? "Request Pending"
-                              : "Approve Request"
-                            : "Add SkillMate"
-                        }
-                      >
-                        {requestLoading ? (
-                          <span className="flex items-center justify-center w-full">
-                            <svg
-                              className="animate-spin h-3 w-3 sm:h-4 sm:w-4"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
+                ) : (
+                  <div className="w-full h-full bg-blue-100" />
+                )}
+              </div>
+            </div>
+
+            {/* Profile Header */}
+            <div className="mt-3 sm:mt-4 mb-4">
+              {/* Back Button - Positioned in top right corner */}
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-900 text-white text-xs font-semibold hover:bg-blue-800 transition shadow-sm"
+                  aria-label="Go back"
+                  title="Back"
+                >
+                  <FaArrowLeft className="text-xs" />
+                  <span>Back</span>
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+                {/* Profile Picture - 35% overlap on mobile, 6% on web */}
+                <div className="-mt-14 sm:-mt-2 shrink-0">
+                  {loading ? (
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-3 sm:border-4 border-white shadow-xl bg-blue-100 animate-pulse" />
+                  ) : (
+                    <div className="relative w-24 h-24 sm:w-32 sm:h-32 rounded-full border-3 sm:border-4 border-white shadow-xl overflow-hidden bg-blue-100">
+                      {profile?.profilePic ? (
+                        <img
+                          src={profile.profilePic}
+                          alt={`${profile?.fullName || "User"} profile`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <FaUser className="text-blue-900 text-2xl sm:text-3xl" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Profile Info & Actions */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col gap-3">
+                    {/* Name and Bio */}
+                    <div className="min-w-0">
+                      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                        {profile?.fullName || "User"}
+                      </h1>
+                      <p className="text-sm text-gray-600 truncate mt-0.5">
+                        {profile?.username ? `@${profile.username}` : "@user"}
+                      </p>
+                      <p className="mt-2 text-sm text-gray-700 line-clamp-3">
+                        {profile?.bio || "Your bio goes here, set it in Setup Profile."}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center justify-between w-full relative">
+                      {/* Left: Pending and Cancel (if applicable) */}
+                      <div className="flex items-center gap-2">
+                        {pendingRequest?.isRequester && !isSkillMate && (
+                          <>
+                            <button
+                              className="px-3 py-2 rounded-xl border text-xs font-semibold transition bg-yellow-50 border-yellow-300 text-yellow-800 shadow-sm"
+                              disabled
+                              title="Request Pending"
                             >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            <span className="ml-2 hidden sm:inline">Processing...</span>
-                          </span>
-                        ) : (
-                          <span className="flex-1 text-center">
-                            {isSkillMate
+                              Pending
+                            </button>
+                            <button
+                              className="px-3 py-2 rounded-xl border text-xs font-semibold transition bg-white border-blue-200 text-blue-900 hover:bg-blue-50 hover:border-blue-300 shadow-sm"
+                              onClick={handleCancelRequest}
+                              disabled={requestLoading}
+                              title="Cancel Request"
+                            >
+                              {requestLoading ? "Cancelling" : "Cancel"}
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Center: Main Action Button */}
+                      {!(pendingRequest?.isRequester && !isSkillMate) && (
+                        <div className="flex-1 flex justify-center">
+                          <button
+                            className={
+                              `px-6 py-2.5 rounded-2xl border text-sm font-bold transition shadow-md ${
+                                isSkillMate
+                                  ? "bg-blue-50 border-blue-300 text-blue-900 hover:bg-blue-100 hover:shadow-lg"
+                                  : pendingRequest
+                                  ? "bg-yellow-50 border-yellow-300 text-yellow-800 hover:bg-yellow-100 hover:shadow-lg"
+                                  : "bg-blue-900 text-white border-blue-900 hover:bg-blue-800 hover:shadow-lg"
+                              }`
+                            }
+                            onClick={
+                              isSkillMate
+                                ? toggleDropdown
+                                : pendingRequest
+                                ? handleApproveRequest
+                                : handleAddSkillMate
+                            }
+                            disabled={requestLoading}
+                            title={
+                              isSkillMate
+                                ? "Manage SkillMate"
+                                : pendingRequest
+                                ? "Approve Request"
+                                : "Add SkillMate"
+                            }
+                          >
+                            {requestLoading
+                              ? "Processing"
+                              : isSkillMate
                               ? "SkillMate"
                               : pendingRequest
-                              ? pendingRequest.isRequester
-                                ? "Pending"
-                                : "Approve"
+                              ? "Approve"
                               : "Add SkillMate"}
-                          </span>
-                        )}
-                        {isSkillMate && <FaChevronDown className="text-xs sm:text-sm ml-1" />}
-                      </button>
+                            {isSkillMate && <FaChevronDown className="text-xs ml-1.5 inline" />}
+                          </button>
+                        </div>
+                      )}
                       {showDropdown && (
                         <div
                           ref={dropdownRef}
-                          className="absolute z-20 mt-12 w-44 bg-blue-50 border border-blue-200 rounded-lg shadow-lg"
+                          className="absolute top-full right-0 mt-2 w-48 bg-white border border-blue-200 rounded-xl shadow-xl z-50"
                         >
                           {isSkillMate && (
                             <>
@@ -655,32 +776,37 @@ const SideBarPublic = ({ username, setNotFound }) => {
                           </button>
                         </div>
                       )}
-                      {isSkillMate && (
-                        <button
-                          className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-3 sm:px-8 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md flex-1 sm:flex-initial"
-                          onClick={() => navigate('/chat', { state: { skillMateId: profile?._id } })}
-                          title="Message"
-                        >
-                          Message
-                        </button>
-                      )}
-                      {!isSkillMate && (
-                        <button
-                          className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-2 sm:px-3 py-2 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow-md relative"
-                          onClick={toggleDropdown}
-                          title="More options"
-                        >
-                          ⋮
-                        </button>
-                      )}
+                      {/* Right: Message (if SkillMate) or Three Dots */}
+                      <div className="flex items-center gap-2">
+                        {isSkillMate && (
+                          <button
+                            className="border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-4 py-2 rounded-xl text-xs font-semibold transition shadow-sm hover:shadow-md"
+                            onClick={() => navigate('/chat', { state: { skillMateId: profile?._id } })}
+                            title="Message"
+                          >
+                            Message
+                          </button>
+                        )}
+                        {!isSkillMate && (
+                          <button
+                            className="border border-blue-200 text-blue-900 bg-white hover:bg-blue-50 px-2.5 py-2.5 rounded-xl text-base font-bold transition shadow-sm hover:shadow-md"
+                            onClick={toggleDropdown}
+                            title="More options"
+                            aria-label="More options"
+                          >
+                            ⋮
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </>
-              )}
+                </div>
+              </div>
             </div>
 
+
             {/* Social Section (Mobile) */}
-            <div className="sm:hidden mb-4 px-2">
+            <div className="sm:hidden mb-6 mt-4">
               <div className="flex flex-col gap-3 w-full">
                 {/* Social Links */}
                 {(profile?.linkedin || profile?.github || profile?.twitter || profile?.website) && (
@@ -737,10 +863,10 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 )}
 
                 {/* Education Section - Mobile */}
-                <div id="education" className="bg-white rounded-md p-2.5 shadow-sm border border-blue-100">
+                <div id="education" className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-blue-100/50">
                   <div className="flex items-center gap-1.5 mb-2">
                     <FaGraduationCap className="text-base text-blue-600" />
-                    <h3 className="font-semibold text-dark-blue text-sm">Education</h3>
+                    <h3 className="font-semibold text-gray-900 text-sm">Education</h3>
                   </div>
                   {loading ? (
                     <span className="text-gray-600 text-xs">Loading...</span>
@@ -749,25 +875,28 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   ) : profile?.education && profile.education.length > 0 ? (
                     <ul className="flex flex-col gap-2">
                       {profile.education.map((edu, i) => (
-                        <li key={i} className="text-xs text-gray-700 bg-blue-50 p-2 rounded-md">
-                          {edu.course && <div className="font-medium text-xs">{edu.course}</div>}
-                          {edu.branch && <div className="text-gray-600 text-[10px]">{edu.branch}</div>}
-                          {edu.college && <div className="text-gray-600 text-[10px]">{edu.college}</div>}
-                          {edu.city && <div className="text-gray-500 text-[9px]">{edu.city}</div>}
-                          {edu.passingYear && <div className="text-gray-500 text-[9px]">{edu.passingYear}</div>}
+                        <li key={i} className="text-xs text-gray-700 bg-blue-50/50 p-2 rounded-md">
+                          {edu.course && <div className="font-semibold text-xs text-gray-900">{edu.course}</div>}
+                          {edu.branch && <div className="text-blue-600 text-[10px] mt-0.5">{edu.branch}</div>}
+                          {edu.college && <div className="text-gray-600 text-[10px] mt-0.5">{edu.college}</div>}
+                          {(edu.city || edu.passingYear) && (
+                            <div className="text-gray-500 text-[10px] mt-0.5">
+                              {edu.city}{edu.city && edu.passingYear && ' • '}{edu.passingYear}
+                            </div>
+                          )}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <span className="text-sm text-gray-500">Not added yet</span>
+                    <span className="text-xs text-gray-500">Not added yet</span>
                   )}
                 </div>
 
                 {/* Experience Section - Mobile */}
-                <div id="experience" className="bg-white rounded-md p-2.5 shadow-sm border border-blue-100">
+                <div id="experience" className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-blue-100/50">
                   <div className="flex items-center gap-1.5 mb-2">
                     <FaBriefcase className="text-base text-blue-600" />
-                    <h3 className="font-semibold text-dark-blue text-sm">Experience</h3>
+                    <h3 className="font-semibold text-gray-900 text-sm">Experience</h3>
                   </div>
                   {loading ? (
                     <span className="text-gray-600 text-xs">Loading...</span>
@@ -776,35 +905,35 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   ) : profile?.experience && profile.experience.length > 0 ? (
                     <ul className="flex flex-col gap-2">
                       {profile.experience.map((exp, i) => (
-                        <li key={i} className="text-xs text-gray-700 bg-blue-50 p-2 rounded-md">
-                          {exp.position && <div className="font-medium text-xs">{exp.position}</div>}
-                          {exp.company && <div className="text-gray-600 text-[10px]">{exp.company}</div>}
-                          {exp.duration && <div className="text-gray-500 text-[9px]">{exp.duration}</div>}
-                          {exp.description && <div className="text-gray-600 text-[10px] mt-0.5">{exp.description}</div>}
+                        <li key={i} className="text-xs text-gray-700 bg-blue-50/50 p-2 rounded-md">
+                          {exp.position && <div className="font-semibold text-xs text-gray-900">{exp.position}</div>}
+                          {exp.company && <div className="text-blue-600 text-[10px] mt-0.5">{exp.company}</div>}
+                          {exp.duration && <div className="text-gray-500 text-[10px] mt-0.5">{exp.duration}</div>}
+                          {exp.description && <div className="text-gray-600 text-[10px] mt-0.5 line-clamp-2">{exp.description}</div>}
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <span className="text-sm text-gray-500">Not added yet</span>
+                    <span className="text-xs text-gray-500">Not added yet</span>
                   )}
                 </div>
 
                 {/* Skills Section - Mobile */}
-                <div id="skills" className="bg-white rounded-md p-2.5 shadow-sm border border-blue-100">
+                <div id="skills" className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-blue-100/50">
                   <div className="flex items-center gap-1.5 mb-2">
                     <FaCode className="text-base text-blue-600" />
-                    <h3 className="font-semibold text-dark-blue text-sm">Skills</h3>
+                    <h3 className="font-semibold text-gray-900 text-sm">Skills</h3>
                   </div>
                   {loading ? (
                     <span className="text-gray-600 text-xs">Loading...</span>
                   ) : error ? (
                     <span className="text-red-500 text-xs">{error}</span>
                   ) : profile?.skills && profile.skills.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {profile.skills.map((skill, i) => (
                         <span
                           key={i}
-                          className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full text-[9px] font-medium border border-blue-200"
+                          className="bg-blue-100/70 text-blue-800 px-2.5 py-1 rounded-full text-[10px] font-semibold border border-blue-200/50"
                         >
                           {skill}
                         </span>
@@ -816,21 +945,21 @@ const SideBarPublic = ({ username, setNotFound }) => {
                 </div>
 
                 {/* What I Can Teach Section - Mobile */}
-                <div id="teach" className="bg-white rounded-md p-2.5 shadow-sm border border-blue-100">
+                <div id="teach" className="bg-white/60 backdrop-blur-sm rounded-lg p-3 border border-blue-100/50">
                   <div className="flex items-center gap-1.5 mb-2">
                     <FaChalkboardTeacher className="text-base text-blue-600" />
-                    <h3 className="font-semibold text-dark-blue text-sm">What I Can Teach</h3>
+                    <h3 className="font-semibold text-gray-900 text-sm">What I Can Teach</h3>
                   </div>
                   {loading ? (
                     <span className="text-gray-600 text-xs">Loading...</span>
                   ) : error ? (
                     <span className="text-red-500 text-xs">{error}</span>
                   ) : profile?.skillsToTeach && profile.skillsToTeach.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1.5">
                       {profile.skillsToTeach.map((s, i) => (
                         <span
                           key={i}
-                          className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[9px] font-medium border border-green-200"
+                          className="bg-green-100/70 text-green-800 px-2.5 py-1 rounded-full text-[10px] font-semibold border border-green-200/50"
                         >
                           {s.class ? `${s.class} • ` : ""}
                           {s.subject}{" "}
@@ -844,7 +973,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                       ))}
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-500">Not added yet</span>
+                    <span className="text-xs text-gray-500">Not added yet</span>
                   )}
                 </div>
               </div>
@@ -852,75 +981,74 @@ const SideBarPublic = ({ username, setNotFound }) => {
 
             {/* Contribution Calendar removed here; appears in Home tab only */}
 
-            {/* Tab Navigation */}
-            <div className="px-2 sm:px-0 pt-3 sm:pt-8">
-              <div className="flex items-center gap-2 sm:gap-6 border-b border-gray-200 mb-4 sm:mb-8">
-                {/* Back Button - Mobile Only */}
-                <button
-                  onClick={() => navigate(-1)}
-                  className="sm:hidden flex items-center gap-1 pb-2 px-1 text-xs font-medium text-blue-600 hover:text-blue-800"
-                  aria-label="Go back"
-                >
-                  <FaArrowLeft className="text-xs" />
-                </button>
-                
-                <div className="flex flex-wrap gap-3 sm:gap-6">
+            {/* Navigation Tabs (transparent, pill) */}
+            <div className="mt-4 pt-2 pb-2 border-b border-blue-100">
+              <div className="flex items-center justify-between gap-3">
+                <nav className="flex flex-nowrap gap-2 sm:gap-3 overflow-x-auto scrollbar-hide -mx-2 px-2">
                   <button
-                    onClick={() => setActiveTab('home')}
-                    className={`pb-2 sm:pb-3 px-1 sm:px-2 text-xs sm:text-base ${
-                      activeTab === 'home' ? activeTabStyle : normalTabStyle
-                    }`}
+                    onClick={() => setActiveTab("home")}
+                    className={
+                      `shrink-0 whitespace-nowrap inline-flex items-center justify-center px-2.5 sm:px-3 py-1.5 text-[13px] sm:text-sm font-semibold rounded-xl border transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                        activeTab === "home"
+                          ? "text-blue-900 border-blue-900 bg-blue-50 shadow-sm"
+                          : "text-gray-700 border-gray-200 bg-transparent hover:text-blue-900 hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm"
+                      }`
+                    }
+                    aria-current={activeTab === "home" ? "page" : undefined}
                   >
                     Home
                   </button>
                   <button
-                    onClick={() => setActiveTab('live')}
-                    className={`pb-2 sm:pb-3 px-1 sm:px-2 text-xs sm:text-base ${
-                      activeTab === 'live' ? activeTabStyle : normalTabStyle
-                    }`}
+                    onClick={() => setActiveTab("live")}
+                    className={
+                      `shrink-0 whitespace-nowrap inline-flex items-center justify-center px-2.5 sm:px-3 py-1.5 text-[13px] sm:text-sm font-semibold rounded-xl border transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                        activeTab === "live"
+                          ? "text-blue-900 border-blue-900 bg-blue-50 shadow-sm"
+                          : "text-gray-700 border-gray-200 bg-transparent hover:text-blue-900 hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm"
+                      }`
+                    }
+                    aria-current={activeTab === "live" ? "page" : undefined}
                   >
                     Live
                   </button>
                   <button
-                    onClick={() => setActiveTab('videos')}
-                    className={`pb-2 sm:pb-3 px-1 sm:px-2 text-xs sm:text-base ${
-                      activeTab === 'videos' ? activeTabStyle : normalTabStyle
-                    }`}
+                    onClick={() => setActiveTab("videos")}
+                    className={
+                      `shrink-0 whitespace-nowrap inline-flex items-center justify-center px-2.5 sm:px-3 py-1.5 text-[13px] sm:text-sm font-semibold rounded-xl border transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
+                        activeTab === "videos"
+                          ? "text-blue-900 border-blue-900 bg-blue-50 shadow-sm"
+                          : "text-gray-700 border-gray-200 bg-transparent hover:text-blue-900 hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm"
+                      }`
+                    }
+                    aria-current={activeTab === "videos" ? "page" : undefined}
                   >
                     Videos
                   </button>
+                </nav>
+
+                <div className="flex items-center gap-2 pr-1">
+                  <button
+                    onClick={toggleSearchBar}
+                    className="p-2 rounded-md border border-blue-200 text-blue-900 hover:border-blue-300 transition"
+                    aria-label="Toggle search bar"
+                    title="Search"
+                  >
+                    <FaSearch className="text-sm" />
+                  </button>
                 </div>
               </div>
+
+              {showSearchBar && (
+                <div className="mt-2 px-2">
+                  <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+                </div>
+              )}
             </div>
 
             {/* Tab Content */}
-            <div className="relative min-h-[calc(100vh-28rem)] sm:min-h-[calc(100vh-32rem)]">
-              <div className="absolute top-0 right-0 p-2 sm:p-4 flex items-center space-x-2">
-                <button
-                  onClick={toggleSearchBar}
-                  className="text-dark-blue hover:text-blue-700"
-                  aria-label="Toggle search bar"
-                >
-                  <FaSearch className="text-xl" />
-                </button>
-                <div
-                  className={`transition-all duration-300 ease-in-out ${
-                    showSearchBar
-                      ? "translate-x-0 opacity-100"
-                      : "translate-x-10 opacity-0"
-                  }`}
-                >
-                  {showSearchBar && (
-                    <SearchBar
-                      searchQuery={searchQuery}
-                      setSearchQuery={setSearchQuery}
-                    />
-                  )}
-                </div>
-              </div>
+            <div className="relative">
               {renderTabContent()}
             </div>
-          </div>
         </main>
       </div>
     </ProfileContext.Provider>

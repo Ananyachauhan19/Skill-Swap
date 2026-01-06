@@ -5,7 +5,7 @@ const Footer = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-white border-t border-gray-700 relative overflow-hidden">
+    <div id="app-footer" className="bg-gradient-to-br from-gray-900 via-slate-800 to-gray-900 text-white border-t border-gray-700 relative overflow-hidden">
       {/* Animated Background Pattern */}
       <div className="absolute inset-0 opacity-5">
         <div className="absolute inset-0" style={{ 

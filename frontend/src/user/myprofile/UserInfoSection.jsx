@@ -13,7 +13,7 @@ const SkillMateHeaderAction = () => {
     <div className="w-full flex justify-end -mt-2">
       <button
         onClick={() => navigate('/chat')}
-        className="inline-flex items-center gap-2 bg-blue-700 text-white px-3 py-1.5 rounded-md hover:bg-blue-800 shadow-sm"
+        className="inline-flex items-center gap-2 bg-blue-700 text-white text-sm px-3 py-1.5 rounded-md hover:bg-blue-800 shadow-sm"
         aria-label="Open chats"
       >
         <span>SkillMates</span>
@@ -215,10 +215,10 @@ const UserInfoSection = ({
   }, [editingField, profile.skillsToTeach]);
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 sm:p-8 flex flex-col md:flex-row gap-4 sm:gap-8 items-center mb-2">
+    <div className="bg-transparent rounded-2xl border border-blue-100 p-4 sm:p-6 flex flex-col md:flex-row gap-4 sm:gap-6 items-start mt-3">
       <div className="flex-1 flex flex-col gap-2 w-full">
-        <div className="flex items-center justify-between mb-2">
-          <div className="font-semibold text-blue-900 text-lg">User Info</div>
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="font-semibold text-blue-900 text-base">User Info</div>
           <div className="flex items-center gap-2">
             <SkillMateHeaderAction />
             {editingField !== 'userInfo' && (

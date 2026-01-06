@@ -8,17 +8,17 @@ const AboutSection = ({ profile, editingField, fieldDraft, setFieldDraft, startE
     if (onSaveEdit) onSaveEdit({ ...profile, bio: fieldDraft.bio });
   };
   return (
-    <div className={`bg-white rounded-2xl shadow-lg border border-blue-100 p-4 sm:p-8 mb-2`}>
-      <div className="flex items-center justify-between">
-        <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2">About</h3>
+    <div className="bg-transparent rounded-2xl border border-blue-100 p-4 sm:p-6 mt-3">
+      <div className="flex justify-between items-start gap-3 mb-3">
+        <h3 className="text-base font-semibold text-blue-900">About</h3>
         {editingField !== 'bio' && (
           <button onClick={() => startEdit('bio')} className="text-blue-600 hover:text-blue-800"><Edit2 size={16}/></button>
         )}
       </div>
       {editingField === 'bio' ? (
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-start">
           <textarea
-            className="w-full border border-blue-300 rounded-md p-2 text-gray-700 focus:outline-none focus:border-blue-600 min-h-[60px] bg-blue-50 shadow-sm"
+            className="w-full border border-blue-200 rounded-xl p-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400 min-h-[72px] bg-blue-50/70"
             value={fieldDraft.bio}
             onChange={e => setFieldDraft(d => ({ ...d, bio: e.target.value }))}
             placeholder="Write something about yourself..."

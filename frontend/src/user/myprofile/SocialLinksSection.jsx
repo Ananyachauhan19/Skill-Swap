@@ -7,9 +7,9 @@ const SocialLinksSection = ({ profile, editingField, fieldDraft, setFieldDraft, 
     if (onSaveEdit) onSaveEdit({ ...profile, ...fieldDraft });
   };
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 sm:p-8 mb-2">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base sm:text-lg font-semibold text-blue-900 mb-2">Social Links</h3>
+    <div className="bg-transparent rounded-2xl border border-blue-100 p-4 sm:p-6 mt-3">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <h3 className="text-base font-semibold text-blue-900">Social Links</h3>
         {editingField !== 'links' && (
           <button onClick={() => startEdit('links')} className="text-blue-600 hover:text-blue-800"><Edit2 size={16}/></button>
         )}
@@ -17,36 +17,36 @@ const SocialLinksSection = ({ profile, editingField, fieldDraft, setFieldDraft, 
       {editingField === 'links' ? (
         <div className="flex flex-col gap-2">
           <input
-            className="border-b border-blue-200 focus:outline-none focus:border-blue-600 bg-blue-50 px-1 py-0.5 rounded text-sm"
+            className="border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50/70 px-2 py-1.5 rounded-xl text-sm text-gray-800"
             value={fieldDraft.linkedin}
             onChange={e => setFieldDraft(d => ({ ...d, linkedin: e.target.value }))}
             placeholder="LinkedIn username"
           />
           <input
-            className="border-b border-blue-200 focus:outline-none focus:border-blue-600 bg-blue-50 px-1 py-0.5 rounded text-sm"
+            className="border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50/70 px-2 py-1.5 rounded-xl text-sm text-gray-800"
             value={fieldDraft.github}
             onChange={e => setFieldDraft(d => ({ ...d, github: e.target.value }))}
             placeholder="GitHub username"
           />
           <input
-            className="border-b border-blue-200 focus:outline-none focus:border-blue-600 bg-blue-50 px-1 py-0.5 rounded text-sm"
+            className="border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50/70 px-2 py-1.5 rounded-xl text-sm text-gray-800"
             value={fieldDraft.twitter}
             onChange={e => setFieldDraft(d => ({ ...d, twitter: e.target.value }))}
             placeholder="Twitter username"
           />
           <input
-            className="border-b border-blue-200 focus:outline-none focus:border-blue-600 bg-blue-50 px-1 py-0.5 rounded text-sm"
+            className="border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50/70 px-2 py-1.5 rounded-xl text-sm text-gray-800"
             value={fieldDraft.website}
             onChange={e => setFieldDraft(d => ({ ...d, website: e.target.value }))}
             placeholder="Website URL"
           />
           <div className="flex gap-2 mt-2">
-            <button onClick={handleSave} className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 flex items-center gap-1"><Save size={16}/>Save</button>
-            <button onClick={cancelEdit} className="bg-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-400 flex items-center gap-1"><XCircle size={16}/>Cancel</button>
+            <button onClick={handleSave} className="bg-green-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-green-700 flex items-center gap-1"><Save size={16}/>Save</button>
+            <button onClick={cancelEdit} className="bg-gray-200 text-gray-800 text-sm px-3 py-1.5 rounded-lg hover:bg-gray-300 flex items-center gap-1"><XCircle size={16}/>Cancel</button>
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 text-sm text-gray-800">
           <div className="flex items-center gap-3">
             <Linkedin size={16} className="text-blue-900" />
             {profile.linkedin ? (

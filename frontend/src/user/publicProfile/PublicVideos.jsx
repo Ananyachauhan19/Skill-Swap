@@ -116,8 +116,8 @@ const PublicVideos = () => {
   };
 
   return (
-    <div className="w-full bg-gradient-to-br from-blue-50 to-cream-100 min-h-screen py-2 sm:py-6 px-0 sm:px-6 lg:px-8">
-      <div className="max-w-4xl w-full mx-auto px-2 sm:px-0">
+    <div className="w-full py-3 sm:py-6">
+      <div className="max-w-6xl w-full mx-auto lg:mx-0">
         {loading && <p className="text-gray-600 text-xs sm:text-sm py-2 sm:py-4">Loading...</p>}
         {error && <p className="text-red-500 text-xs sm:text-sm py-2 sm:py-4">{error}</p>}
         {videos.length === 0 && !loading && (

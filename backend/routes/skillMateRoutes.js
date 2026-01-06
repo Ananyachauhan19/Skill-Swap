@@ -220,6 +220,36 @@ router.get('/requests/sent', requireAuth, async (req, res) => {
   }
 });
 
+// Cancel a SkillMate request (requester withdraws a pending request)
+router.post('/requests/cancel/:requestId', requireAuth, async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const userId = req.user._id;
+
+    const skillMateRequest = await SkillMate.findOne({
+      _id: requestId,
+      requester: userId,
+      status: 'pending'
+    });
+
+    if (!skillMateRequest) {
+      return res.status(404).json({ message: 'SkillMate request not found or already processed' });
+    }
+
+    await Notification.deleteMany({
+      type: 'skillmate-requested',
+      requestId: skillMateRequest._id
+    });
+
+    await skillMateRequest.deleteOne();
+
+    res.json({ message: 'SkillMate request cancelled successfully' });
+  } catch (error) {
+    console.error('Error cancelling SkillMate request:', error);
+    res.status(500).json({ message: 'Failed to cancel SkillMate request', error: error.message });
+  }
+});
+
 // Approve a SkillMate request
 router.post('/requests/approve/:requestId', requireAuth, async (req, res) => {
   try {

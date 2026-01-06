@@ -43,6 +43,9 @@ const userSchema = new mongoose.Schema({
   // New Cloudinary-based profile image fields (profilePic kept for backward compatibility)
   profileImageUrl: { type: String, default: '', required: false },
   profileImagePublicId: { type: String, default: '', required: false },
+  // Private profile cover/banner image (Cloudinary)
+  coverImageUrl: { type: String, default: '', required: false },
+  coverImagePublicId: { type: String, default: '', required: false },
   education: [
     {
       course: { type: String, required: false },

@@ -131,8 +131,8 @@ const PublicLive = () => {
   };
 
   return (
-    <div className="w-full bg-gradient-to-br from-blue-50 to-cream-100 min-h-screen py-2 sm:py-6 px-0 sm:px-6 lg:px-8">
-      <div className="max-w-4xl w-full mx-auto px-2 sm:px-0">
+    <div className="w-full py-3 sm:py-6">
+      <div className="max-w-6xl w-full mx-auto lg:mx-0">
         <h2 className="text-base sm:text-2xl lg:text-3xl font-bold mb-3 sm:mb-6 text-dark-blue tracking-tight">Live & Scheduled Videos</h2>
         {loading && <div className="text-gray-600 text-xs sm:text-sm py-3 sm:py-8">Loading...</div>}
         {error && <div className="text-red-500 text-xs sm:text-sm py-3 sm:py-8">{error}</div>}

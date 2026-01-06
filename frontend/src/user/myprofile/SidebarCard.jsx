@@ -138,9 +138,9 @@ const SidebarCard = ({
   };
 
   return (
-    <div className="w-full md:w-1/4 bg-white rounded-2xl shadow-lg border border-blue-100 p-6 sm:p-8 flex flex-col gap-8 md:-ml-6">
+    <div className="w-full md:w-1/4 bg-transparent rounded-2xl border border-blue-100 p-4 sm:p-6 flex flex-col gap-6 md:-ml-6 text-sm">
       <div className="flex flex-col items-center">
-        <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-6">
+        <div className="relative w-24 h-24 sm:w-32 sm:h-32 mb-4">
           {profile.profilePicPreview && typeof profile.profilePicPreview === 'string' && profile.profilePicPreview.startsWith('http') ? (
             <img
               src={profile.profilePicPreview}
@@ -173,11 +173,11 @@ const SidebarCard = ({
             <Edit2 size={16} />
           </button>
         </div>
-        <div className="text-sm text-gray-500 mb-4">Profile: No file chosen</div>
+        <div className="text-xs text-gray-500 mb-3">Profile: No file chosen</div>
         {editingField === "fullName" ? (
           <div className="flex items-center gap-2 w-full">
             <input
-              className="text-lg sm:text-xl font-semibold text-blue-900 text-center break-words border-b border-blue-200 focus:outline-none focus:border-blue-600 bg-blue-50 px-2 py-1 rounded w-full"
+              className="text-base sm:text-lg font-semibold text-blue-900 text-center break-words border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50/70 px-2 py-1.5 rounded-xl w-full"
               value={fieldDraft.fullName}
               onChange={(e) => setFieldDraft((d) => ({ ...d, fullName: e.target.value }))}
               placeholder="Your Name"
@@ -197,7 +197,7 @@ const SidebarCard = ({
           </div>
         ) : (
           <div className="flex items-center gap-2 w-full">
-            <h2 className="text-lg sm:text-xl font-semibold text-blue-900 text-center break-words flex-1">
+            <h2 className="text-base sm:text-lg font-semibold text-blue-900 text-center break-words flex-1">
               {profile.fullName || "Your Name"}
             </h2>
             <button
@@ -217,7 +217,7 @@ const SidebarCard = ({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <div className="font-semibold text-blue-900">User ID</div>
+            <div className="font-semibold text-blue-900 text-sm">User ID</div>
             {editingField !== "userId" && (
               <button
                 onClick={() => startEdit("userId")}

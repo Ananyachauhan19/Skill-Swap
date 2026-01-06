@@ -8,17 +8,19 @@ import Archive from './Archive';
 import Saved from './Saved';
 import Analytics from './Analytics';
 import History from './History';
-import Home from './HomePage'
+import Home from './HomePage';
+import ContributionTab from './ContributionTab';
 
 const privateProfileChildren = [
-  { path: '', element: <Navigate to="panel/your-home" replace /> },
-  { path: 'panel', element: <Navigate to="panel/your-home" replace /> },
+  { path: '', element: <Navigate to="panel/home" replace /> },
+  { path: 'panel', element: <Navigate to="panel/home" replace /> },
   {
     path: 'panel',
     element: <Panel />,
     children: [
-      { index: true, element: <Navigate to="your-home" replace />  },
-      { path: 'your-home', element: <Home /> },
+      { index: true, element: <Navigate to="home" replace /> },
+      { path: 'contribution', element: <ContributionTab /> },
+      { path: 'home', element: <Home /> },
       { path: 'live', element: <Live /> },
       { path: 'videos', element: <Videos /> },
     ],

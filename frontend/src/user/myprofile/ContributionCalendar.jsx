@@ -67,9 +67,10 @@ const buildContributionMap = (currentDate, items) => {
   return map;
 };
 
-// Professional blue heatmap with 4 shades - clean, no borders or shadows
+// Professional blue heatmap with clean, minimal separation
 const getContributionColor = (count) => {
-  if (count <= 0) return 'bg-gray-100 hover:bg-gray-200';
+  // Empty day: white cell with subtle outline (premium, not noisy)
+  if (count <= 0) return 'bg-white ring-1 ring-gray-200';
   if (count <= 2) return 'bg-blue-200 hover:bg-blue-300';
   if (count <= 5) return 'bg-blue-400 hover:bg-blue-500';
   if (count <= 9) return 'bg-blue-600 hover:bg-blue-700';
@@ -85,11 +86,11 @@ const getIntensityLabel = (count) => {
   return 'Very high activity';
 };
 
-const ContributionCalendar = ({ userId: propUserId }) => {
+const ContributionCalendar = ({ userId: propUserId, variant = 'card' }) => {
   const [contributions, setContributions] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [hoveredDay, setHoveredDay] = useState(null);
+  const [dayPopover, setDayPopover] = useState(null);
   const [contributionStats, setContributionStats] = useState({
     total: 0,
     maxStreak: 0,
@@ -105,6 +106,37 @@ const ContributionCalendar = ({ userId: propUserId }) => {
   });
   const { user } = useAuth();
   const effectiveUserId = propUserId || (user && user._id);
+  const isTransparent = variant === 'transparent';
+
+  const statCardClass =
+    'bg-blue-50 rounded-lg sm:rounded-2xl p-1.5 sm:p-3 border border-blue-100 ring-1 ring-blue-100/40 shadow-sm min-w-0 ' +
+    'transition-all duration-200 ease-out hover:-translate-y-0.5 hover:shadow-md hover:border-blue-200';
+
+  const showDayPopover = useCallback((e, payload, preferredPlacement) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+
+    const tooltipWidth = 220;
+    const gutter = 10;
+
+    let left = rect.left + rect.width / 2;
+    const minLeft = gutter + tooltipWidth / 2;
+    const maxLeft = window.innerWidth - gutter - tooltipWidth / 2;
+    left = Math.max(minLeft, Math.min(maxLeft, left));
+
+    let placement = preferredPlacement || 'top';
+    if (placement !== 'bottom' && rect.top < 90) placement = 'bottom';
+
+    const top = placement === 'bottom' ? rect.bottom + 10 : rect.top - 10;
+
+    setDayPopover({
+      ...payload,
+      left,
+      top,
+      placement,
+    });
+  }, []);
+
+  const hideDayPopover = useCallback(() => setDayPopover(null), []);
   
   // Memoize current date and months to prevent unnecessary recalculations
   const currentDate = useMemo(() => new Date(), []);
@@ -232,14 +264,14 @@ const ContributionCalendar = ({ userId: propUserId }) => {
   return (
     <>
       {loading ? (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-7 animate-pulse">
+        <div className={isTransparent ? "bg-transparent p-0 animate-pulse" : "bg-white rounded-2xl border border-gray-200 p-6 sm:p-7 animate-pulse"}>
           <div className="h-7 bg-gray-200 rounded w-56 mb-5"></div>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 mb-5">
             {[...Array(10)].map((_, i) => (
               <div key={i} className="bg-gray-100 rounded-xl p-3 h-20"></div>
             ))}
           </div>
-          <div className="flex gap-2 overflow-hidden bg-gray-50 rounded-xl p-4">
+          <div className={isTransparent ? "flex gap-2 overflow-hidden bg-transparent rounded-xl p-0" : "flex gap-2 overflow-hidden bg-gray-50 rounded-xl p-4"}>
             {[...Array(12)].map((_, i) => (
               <div key={i} className="min-w-[60px] space-y-1">
                 <div className="h-4 bg-gray-200 rounded mb-2"></div>
@@ -257,12 +289,22 @@ const ContributionCalendar = ({ userId: propUserId }) => {
       ) : error ? (
         <p className="text-red-600 text-sm">{error}</p>
       ) : (
-        <div className="bg-white rounded-none sm:rounded-2xl border-0 sm:border border-gray-200 shadow-none sm:shadow-sm p-3 sm:p-7">
+        <div
+          className={
+            isTransparent
+              ? "bg-transparent border-0 shadow-none p-0"
+              : "bg-white rounded-none sm:rounded-2xl border-0 sm:border border-gray-200 shadow-none sm:shadow-sm p-3 sm:p-7"
+          }
+        >
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-6">
-            <h3 className="text-base sm:text-xl lg:text-2xl font-bold text-gray-900">Contribution Activity</h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
+            <h3 className="text-sm sm:text-lg lg:text-xl font-bold text-gray-900">Contribution Activity</h3>
             <select
-              className="bg-white border border-gray-300 text-gray-700 text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg hover:border-blue-500 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={
+                isTransparent
+                  ? "bg-transparent border border-gray-300 text-gray-700 text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg hover:border-blue-500 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  : "bg-white border border-gray-300 text-gray-700 text-[10px] sm:text-xs px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg hover:border-blue-500 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+              }
               value={`${currentDate.getFullYear() - 1}-${currentDate.getFullYear()}`}
               onChange={(e) => e.preventDefault()}
             >
@@ -270,56 +312,56 @@ const ContributionCalendar = ({ userId: propUserId }) => {
             </select>
           </div>
 
-          {/* Compact Statistics Grid - Professional Gray Theme - Mobile: 5 cols, Tablet: 4 cols, Desktop: 5 cols */}
-          <div className="grid grid-cols-5 sm:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-3 mb-3 sm:mb-6">
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+          {/* Compact Statistics Grid - Mobile/Tablet: 5 cols per row */}
+          <div className="grid grid-cols-5 sm:grid-cols-5 lg:grid-cols-5 gap-1.5 sm:gap-3 mb-5 sm:mb-7">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Active Days</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.activeDays}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.activeDays}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">of {contributionStats.totalDays}</p>
             </div>
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Current Streak</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.currentStreak}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.currentStreak}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">days</p>
             </div>
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Best Streak</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.maxStreak}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.maxStreak}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">days</p>
             </div>
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">1:1 Sessions</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.oneOnOneSessions}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.oneOnOneSessions}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">completed</p>
             </div>
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Interviews</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.interviewSessions}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.interviewSessions}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">completed</p>
             </div>
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">SkillMates</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.skillMateConnections}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.skillMateConnections}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">connections</p>
             </div>
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Daily Logins</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.dailyLogins}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.dailyLogins}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">days</p>
             </div>
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Questions</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.questionsPosted}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.questionsPosted}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">posted</p>
             </div>
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Videos</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.videosUploaded}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.videosUploaded}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">uploaded</p>
             </div>
-            <div className="bg-gray-50 rounded-md sm:rounded-xl p-1.5 sm:p-3 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all duration-200">
+            <div className={statCardClass}>
               <p className="text-[9px] sm:text-xs text-gray-500 font-medium mb-0.5 sm:mb-1 truncate">Total</p>
-              <p className="text-sm sm:text-xl lg:text-2xl font-bold text-gray-900">{contributionStats.total}</p>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">{contributionStats.total}</p>
               <p className="text-[7px] sm:text-[10px] text-gray-500 truncate">contributions</p>
             </div>
           </div>
@@ -338,7 +380,14 @@ const ContributionCalendar = ({ userId: propUserId }) => {
           </div>
 
           {/* Calendar Grid - Compact & Professional */}
-          <div className="overflow-x-auto bg-gray-50 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-gray-200" style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}>
+          <div
+            className={
+              isTransparent
+                ? "overflow-x-auto bg-transparent rounded-lg sm:rounded-xl p-2 sm:p-4 border border-gray-200 shadow-sm"
+                : "overflow-x-auto bg-gray-50 rounded-lg sm:rounded-xl p-2 sm:p-4 border border-gray-200 shadow-sm"
+            }
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             <div className="flex gap-1 sm:gap-2.5 py-1" style={{maxWidth: '100%'}}>
               {months.map((month, monthIdx) => {
                 const { name, year, days, monthIndex } = month;
@@ -358,7 +407,7 @@ const ContributionCalendar = ({ userId: propUserId }) => {
                   grid[dayIndex][weekIndex] = day;
                 }
 
-                const boxClass = "w-2 h-2 sm:w-3 sm:h-3 rounded transition-all duration-200";
+                const boxClass = "w-2 h-2 sm:w-3 sm:h-3 rounded-sm transition-all duration-200";
 
                 return (
                   <div key={monthIdx} className="flex-shrink-0">
@@ -386,15 +435,25 @@ const ContributionCalendar = ({ userId: propUserId }) => {
 
                             const count = contributions[dateStr] || 0;
 
+                            const payload = {
+                              date: dateStr,
+                              count,
+                              label: `${name} ${day}, ${year}`,
+                            };
+
                             return (
                               <div
                                 key={colIdx}
-                                className={`${boxClass} ${getContributionColor(
-                                  count
-                                )} hover:scale-110 hover:z-10 cursor-pointer relative group`}
-                                title={`${name} ${day}, ${year}\n${count} contribution${count !== 1 ? 's' : ''}\n${getIntensityLabel(count)}`}
-                                onMouseEnter={() => setHoveredDay({ date: dateStr, count, label: `${name} ${day}, ${year}` })}
-                                onMouseLeave={() => setHoveredDay(null)}
+                                className={`${boxClass} ${getContributionColor(count)} ${isTransparent ? 'cursor-pointer relative group' : 'hover:scale-110 hover:z-10 cursor-pointer relative group'}`}
+                                onMouseEnter={(e) => showDayPopover(e, payload)}
+                                onMouseLeave={hideDayPopover}
+                                onClick={(e) => {
+                                  if (dayPopover && dayPopover.date === payload.date) {
+                                    setDayPopover(null);
+                                    return;
+                                  }
+                                  showDayPopover(e, payload, 'bottom');
+                                }}
                               />
                             );
                           })}
@@ -405,18 +464,24 @@ const ContributionCalendar = ({ userId: propUserId }) => {
                 );
               })}
             </div>
-          </div>
 
-          {/* Hover Tooltip */}
-          {hoveredDay && (
-            <div className="mt-3 sm:mt-5 p-2.5 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-200">
-              <p className="text-xs sm:text-sm font-bold text-gray-900">{hoveredDay.label}</p>
-              <p className="text-[10px] sm:text-xs text-gray-600 mt-0.5 sm:mt-1">
-                <span className="font-bold text-sm sm:text-base text-blue-600">{hoveredDay.count}</span> contribution{hoveredDay.count !== 1 ? 's' : ''}
-              </p>
-              <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{getIntensityLabel(hoveredDay.count)}</p>
-            </div>
-          )}
+            {/* Day details popover (single tooltip only) */}
+            {dayPopover && (
+              <div
+                className="fixed z-50 w-[220px]"
+                style={{ left: dayPopover.left, top: dayPopover.top, transform: dayPopover.placement === 'bottom' ? 'translate(-50%, 0)' : 'translate(-50%, -100%)' }}
+                onMouseLeave={hideDayPopover}
+              >
+                <div className="bg-white border border-gray-200 shadow-sm rounded-lg px-3 py-2">
+                  <p className="text-xs font-bold text-gray-900">{dayPopover.label}</p>
+                  <p className="text-[10px] text-gray-600 mt-0.5">
+                    <span className="font-bold text-sm text-blue-600">{dayPopover.count}</span> contribution{dayPopover.count !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{getIntensityLabel(dayPopover.count)}</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>

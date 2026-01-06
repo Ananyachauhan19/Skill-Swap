@@ -424,7 +424,7 @@ const Profile = () => {
       <Toaster position="top-center" />
       {loading && <div>Loading...</div>}
       {error && <div className="text-red-500">{error}</div>}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-8">
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-4 md:gap-6">
         <SidebarCard
           profile={profile}
           editingField={editingField}
@@ -443,7 +443,7 @@ const Profile = () => {
           handleArrayRemove={handleArrayRemove}
           onSaveEdit={handleSectionSave}
         />
-        <div className="7xl md:w-3/4 flex flex-col gap-8">
+        <div className="7xl md:w-3/4 flex flex-col gap-4 md:gap-6">
           <CoinsBadges silver={silver} gold={gold} bronze={bronze} profile={profile} />
           <AboutSection
             profile={profile}

@@ -511,6 +511,7 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       role: user.role,
       profilePic: user.profilePic,
       profileImageUrl: user.profileImageUrl,
+      coverImageUrl: user.coverImageUrl,
       bio: user.bio,
       skillsToTeach: user.skillsToTeach,
       skillsToLearn: user.skillsToLearn,
@@ -644,6 +645,7 @@ router.get('/profile', requireAuth, async (req, res) => {
       username: user.username,
       email: user.email,
       profilePic: user.profilePic,
+      coverImageUrl: user.coverImageUrl,
       bio: user.bio,
       skillsToTeach: user.skillsToTeach,
       skillsToLearn: user.skillsToLearn,
@@ -741,6 +743,7 @@ router.put('/profile', requireAuth, async (req, res) => {
       updateData.experience = sanitizeArrayFields(experience, ['company', 'position', 'duration', 'description']);
     }
     if (certificates !== undefined) {
+      coverImageUrl: user.coverImageUrl,
       updateData.certificates = sanitizeArrayFields(certificates, ['name', 'issuer', 'date', 'url']);
     }
 
@@ -859,7 +862,9 @@ router.get('/user/public/:username', async (req, res) => {
       username: user.username,
       profilePic: user.profilePic,
       profileImageUrl: user.profileImageUrl,
+      coverImageUrl: user.coverImageUrl,
       bio: user.bio,
+      skills: user.skillsToLearn, // Map skillsToLearn to skills for frontend compatibility
       skillsToTeach: user.skillsToTeach,
       skillsToLearn: user.skillsToLearn,
       country: user.country,
