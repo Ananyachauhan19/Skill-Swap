@@ -536,9 +536,8 @@ router.post('/start/:requestId', requireAuth, requestLimiter, validateRequestId,
     }
 
     sessionRequest.status = 'active';
-    if (!sessionRequest.startedAt) {
-      sessionRequest.startedAt = new Date();
-    }
+    // Note: startedAt is now set in socket.js when both users join the video call
+    // This ensures accurate duration tracking based on actual call time, not acceptance time
     await sessionRequest.save();
 
     // Populate user details
@@ -583,12 +582,41 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
 
   try {
     const { requestId } = req.params;
-    const sessionRequest = await SessionRequest.findOne({
-      _id: requestId,
-      status: 'active',
+    
+    // Compute real duration and coin usage BEFORE modifying the session
+    const now = new Date();
+    let durationMinutes;
+
+    // Prefer client-provided duration (from VideoCall) when available
+    const rawDuration = req.body && req.body.durationMinutes;
+    const parsedDuration = Number(rawDuration);
+
+    console.log('[DURATION DEBUG]', {
+      rawDuration,
+      parsedDuration,
+      isFinite: Number.isFinite(parsedDuration),
+      requestBody: req.body,
     });
 
+    // First, atomically transition from 'active' to 'completed' to prevent race conditions
+    const sessionRequest = await SessionRequest.findOneAndUpdate(
+      { _id: requestId, status: 'active' },
+      { status: 'completed' },
+      { new: false } // Return the OLD document so we can work with active state
+    );
+
     if (!sessionRequest) {
+      // Either session doesn't exist or already completed
+      const existing = await SessionRequest.findById(requestId);
+      if (existing && existing.status === 'completed') {
+        console.log('[SESSION COMPLETE] Session already completed, skipping duplicate call:', requestId);
+        await existing.populate('requester', 'firstName lastName profilePic username');
+        await existing.populate('tutor', 'firstName lastName profilePic username');
+        return res.status(200).json({
+          message: 'Session already completed',
+          sessionRequest: existing,
+        });
+      }
       return handleErrors(res, 404, 'Active session not found');
     }
 
@@ -599,34 +627,62 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
       return handleErrors(res, 403, 'Not authorized to complete this session');
     }
 
-    // Compute real duration and coin usage
-    const now = new Date();
-    if (!sessionRequest.startedAt) {
-      // If for some reason start was not stamped, assume a minimal 1-minute session starting now
-      sessionRequest.startedAt = new Date(now.getTime() - 60 * 1000);
+    // Now compute duration and coins (we own the transition to 'completed')
+
+    if (Number.isFinite(parsedDuration) && parsedDuration > 0) {
+      durationMinutes = Math.max(1, Math.floor(parsedDuration));
+      sessionRequest.endedAt = now;
+      // Backfill startedAt for logging / analytics if missing
+      if (!sessionRequest.startedAt) {
+        sessionRequest.startedAt = new Date(now.getTime() - durationMinutes * 60000);
+      }
+      console.log('[DURATION] Using client-provided:', durationMinutes, 'minutes');
+    } else {
+      if (!sessionRequest.startedAt) {
+        // If for some reason start was not stamped, assume a minimal 1-minute session starting now
+        console.warn('[SESSION COMPLETE] No startedAt timestamp found for session', requestId, '- using 1 minute fallback');
+        sessionRequest.startedAt = new Date(now.getTime() - 60 * 1000);
+      }
+      sessionRequest.endedAt = now;
+      durationMinutes = Math.max(1, Math.floor((sessionRequest.endedAt - sessionRequest.startedAt) / 60000));
+      console.log('[DURATION] Falling back to timestamp-based:', durationMinutes, 'minutes from', Math.floor((sessionRequest.endedAt - sessionRequest.startedAt) / 1000), 'seconds');
     }
-    sessionRequest.endedAt = now;
-    const durationMinutes = Math.max(1, Math.round((sessionRequest.endedAt - sessionRequest.startedAt) / 60000));
+
     sessionRequest.duration = durationMinutes;
 
-    // Derive coins spent/earned from duration if not already tracked
+    console.log('[SESSION COMPLETE]', {
+      sessionId: requestId,
+      startedAt: sessionRequest.startedAt,
+      endedAt: sessionRequest.endedAt,
+      durationSeconds: Math.floor((sessionRequest.endedAt - sessionRequest.startedAt) / 1000),
+      durationMinutes,
+      coinType: sessionRequest.coinType,
+    });
+
+    // Derive coins spent/earned purely from duration (ignore any stale coinsSpent defaults)
     const coinTypeKey = (sessionRequest.coinType || 'silver').toLowerCase();
     const spendPerMinute = (COIN_RATES[coinTypeKey] || COIN_RATES.silver).spendPerMinute;
     const earnMultiplier = (COIN_RATES[coinTypeKey] || COIN_RATES.silver).earnMultiplier;
 
-    if (typeof sessionRequest.coinsSpent !== 'number' || sessionRequest.coinsSpent < 0) {
-      sessionRequest.coinsSpent = durationMinutes * spendPerMinute;
-    }
+    sessionRequest.coinsSpent = durationMinutes * spendPerMinute;
 
     const coinsSpentFinal = Number(sessionRequest.coinsSpent || 0);
     const coinsEarnedFinal = Number((coinsSpentFinal * earnMultiplier).toFixed(2));
+
+    console.log('[COIN CALCULATION]', {
+      coinTypeKey,
+      spendPerMinute,
+      earnMultiplier,
+      coinsSpentFinal,
+      coinsEarnedFinal,
+    });
 
     // Persist summary fields for audit/history
     sessionRequest.coinTypeUsed = coinTypeKey;
     sessionRequest.coinsDeducted = coinsSpentFinal;
     sessionRequest.coinsCredited = coinsEarnedFinal;
-
-    sessionRequest.status = 'completed';
+    
+    // Status was already set to 'completed' atomically above
     await sessionRequest.save();
 
     // Atomic-ish coin settlement at session end (single pass; no per-minute updates)
@@ -647,6 +703,8 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
       let updatedTutor = null;
 
       if (debitAmount > 0 && requesterId) {
+        const beforeRequester = await User.findById(requesterId).select('silverCoins goldCoins bronzeCoins');
+        
         const filter = { _id: requesterId };
         filter[debitField] = { $gte: debitAmount };
 
@@ -662,15 +720,29 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
             debitField,
             debitAmount,
           });
+        } else {
+          console.log('[STUDENT DEBIT]', {
+            before: beforeRequester[debitField],
+            debitAmount,
+            after: updatedRequester[debitField],
+          });
         }
       }
 
       if (creditAmount > 0 && tutorId) {
+        const beforeTutor = await User.findById(tutorId).select('silverCoins goldCoins bronzeCoins');
+        
         updatedTutor = await User.findByIdAndUpdate(
           tutorId,
           { $inc: { [debitField]: creditAmount } },
           { new: true }
         );
+        
+        console.log('[TUTOR CREDIT]', {
+          before: beforeTutor[debitField],
+          creditAmount,
+          after: updatedTutor[debitField],
+        });
       }
 
       // Emit realtime coin updates to both parties for UI refresh
@@ -697,6 +769,8 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
     } catch (e) {
       console.error('[Coins] Error during final coin settlement:', e);
     }
+
+    // Populate user details
 
     // Populate user details
     await sessionRequest.populate('requester', 'firstName lastName profilePic username');

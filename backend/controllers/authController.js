@@ -96,14 +96,14 @@ exports.verifyOtp = async (req, res) => {
 
   console.log('OTP verification successful for user:', user._id);
 
-  // Ensure coins are set
+  // Ensure coins are set (only if undefined, don't reset existing values)
   let updated = false;
   if (typeof user.goldCoins !== 'number') {
     user.goldCoins = 0;
     updated = true;
   }
-  // Initialize bronze coins on first login if missing or below 100
-  if (typeof user.bronzeCoins !== 'number' || user.bronzeCoins < 100) {
+  // Initialize bronze coins ONLY if missing (not if user spent them)
+  if (typeof user.bronzeCoins !== 'number') {
     user.bronzeCoins = 100;
     updated = true;
   }

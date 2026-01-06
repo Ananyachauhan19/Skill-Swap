@@ -45,7 +45,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   const [silverCoins, setSilverCoins] = useState(0);
   const [goldCoins, setGoldCoins] = useState(0);
   const [bronzeCoins, setBronzeCoins] = useState(0);
+  const [initialCoins, setInitialCoins] = useState({ silver: 0, gold: 0, bronze: 0 }); // Store initial values
   const hasEndedRef = useRef(false);
+  const sessionStartCoinsRef = useRef(null); // Track coins at session start for accurate backend calculation
 
   // AV controls
   const [isMuted, setIsMuted] = useState(false);
@@ -66,6 +68,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   const [sessionBalance, setSessionBalance] = useState(null); // { remaining, earned, lastTickMinutes }
   const [coinLowWarning, setCoinLowWarning] = useState(false);
   const coinBaselineSetRef = useRef(false);
+  
+  // Tutor earnings tracking (tutor-side only)
+  const [tutorEarnings, setTutorEarnings] = useState(null); // { earned, lastTickMinutes }
+  const tutorBaselineSetRef = useRef(false);
 
   const normalizedCoinType = useMemo(
     () => (coinType || '').toString().trim().toLowerCase(),
@@ -73,9 +79,15 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   );
 
   const isStudentPayer = useMemo(
-    () => userRole === 'student' && (normalizedCoinType === 'silver' || normalizedCoinType === 'bronze'),
+    () => (userRole === 'student' || userRole === 'learner') && (normalizedCoinType === 'silver' || normalizedCoinType === 'bronze'),
     [userRole, normalizedCoinType]
   );
+  
+  const isTutorEarner = useMemo(() => {
+    const isEarner = (userRole === 'tutor' || userRole === 'teacher') && (normalizedCoinType === 'silver' || normalizedCoinType === 'bronze');
+    console.log('[TUTOR EARNER CHECK]', { userRole, normalizedCoinType, isEarner });
+    return isEarner;
+  }, [userRole, normalizedCoinType]);
 
   const spendPerMinute = useMemo(() => {
     if (!isStudentPayer) return 0;
@@ -83,10 +95,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   }, [isStudentPayer, normalizedCoinType]);
 
   const earnPerMinute = useMemo(() => {
-    if (!isStudentPayer) return 0;
     // Server uses 0.75x of spend; bronze 4 -> 3, silver 1 -> 0.75
     return normalizedCoinType === 'bronze' ? 3 : 0.75;
-  }, [isStudentPayer, normalizedCoinType]);
+  }, [normalizedCoinType]);
 
   // Screen share / recording / background / fullscreen
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -350,9 +361,25 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
         };
 
         const onCoinUpdate = ({ silverCoins, goldCoins, bronzeCoins }) => {
-          if (silverCoins !== undefined) setSilverCoins(Number(silverCoins ?? 0));
-          if (goldCoins !== undefined) setGoldCoins(Number(goldCoins ?? 0));
-          if (bronzeCoins !== undefined) setBronzeCoins(Number(bronzeCoins ?? 0));
+          // Store original values if this is the first update (for backend calculation accuracy)
+          if (!sessionStartCoinsRef.current) {
+            sessionStartCoinsRef.current = {
+              silver: Number(silverCoins ?? 0),
+              gold: Number(goldCoins ?? 0),
+              bronze: Number(bronzeCoins ?? 0),
+            };
+          }
+
+          // Only update coin display during initial setup (before call starts) or after call ends
+          // During active call, frontend handles real-time updates to prevent double counting
+          const isInitialSetup = !coinBaselineSetRef.current && !tutorBaselineSetRef.current;
+          const callHasEnded = hasEndedRef.current;
+          
+          if (isInitialSetup || callHasEnded) {
+            if (silverCoins !== undefined) setSilverCoins(Number(silverCoins ?? 0));
+            if (goldCoins !== undefined) setGoldCoins(Number(goldCoins ?? 0));
+            if (bronzeCoins !== undefined) setBronzeCoins(Number(bronzeCoins ?? 0));
+          }
 
           // Initialize per-session balance for requester once, from wallet snapshot
           if (isStudentPayer && !coinBaselineSetRef.current) {
@@ -360,7 +387,23 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
               ? Number(bronzeCoins ?? 0)
               : Number(silverCoins ?? 0);
             setSessionBalance({ remaining: base, earned: 0, lastTickMinutes: 0 });
+            setInitialCoins({ 
+              silver: Number(silverCoins ?? 0), 
+              gold: Number(goldCoins ?? 0), 
+              bronze: Number(bronzeCoins ?? 0) 
+            });
             coinBaselineSetRef.current = true;
+          }
+          
+          // Initialize tutor earnings tracking once
+          if (isTutorEarner && !tutorBaselineSetRef.current) {
+            setTutorEarnings({ earned: 0, lastTickMinutes: 0 });
+            setInitialCoins({ 
+              silver: Number(silverCoins ?? 0), 
+              gold: Number(goldCoins ?? 0), 
+              bronze: Number(bronzeCoins ?? 0) 
+            });
+            tutorBaselineSetRef.current = true;
           }
         };
 
@@ -542,6 +585,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     if (!callStartTime) return;
     if (!sessionBalance) return;
     if (!spendPerMinute || !earnPerMinute) return;
+    if (hasEndedRef.current) return; // Stop updates once call has ended
 
     const minutes = Math.floor(elapsedSeconds / 60);
     if (minutes <= 0) return;
@@ -549,11 +593,21 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     if (minutes <= sessionBalance.lastTickMinutes) return;
 
     const deltaMinutes = minutes - sessionBalance.lastTickMinutes;
-    const newRemaining = Math.max(0, sessionBalance.remaining - deltaMinutes * spendPerMinute);
+    const coinsSpent = deltaMinutes * spendPerMinute;
+
+    // Update wallet balance display in real-time (visual only, backend handles actual deduction)
+    if (normalizedCoinType === 'bronze') {
+      setBronzeCoins(Math.max(0, initialCoins.bronze - minutes * spendPerMinute));
+    } else {
+      setSilverCoins(Math.max(0, initialCoins.silver - minutes * spendPerMinute));
+    }
+
+    const newRemaining = Math.max(0, sessionBalance.remaining - coinsSpent);
     const newEarned = sessionBalance.earned + deltaMinutes * earnPerMinute;
 
-    // Warn once at 5 coins remaining (>0)
-    if (!coinLowWarning && sessionBalance.remaining > 5 && newRemaining <= 5 && newRemaining > 0) {
+    // Warn once at 5 coins remaining (>0) - for bronze, warn at 20 (5 minutes)
+    const warnThreshold = normalizedCoinType === 'bronze' ? 20 : 5;
+    if (!coinLowWarning && sessionBalance.remaining > warnThreshold && newRemaining <= warnThreshold && newRemaining > 0) {
       setCoinLowWarning(true);
     }
 
@@ -591,6 +645,62 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     spendPerMinute,
     earnPerMinute,
     coinLowWarning,
+    normalizedCoinType,
+    initialCoins,
+  ]);
+  
+  // Per-minute coin earning for tutor based on elapsed time
+  useEffect(() => {
+    if (!isTutorEarner) return;
+    if (!callStartTime) return;
+    if (!tutorEarnings) return;
+    if (!earnPerMinute) return;
+    if (hasEndedRef.current) return; // Stop updates once call has ended
+
+    const minutes = Math.floor(elapsedSeconds / 60);
+    if (minutes <= 0) return;
+
+    if (minutes <= tutorEarnings.lastTickMinutes) return;
+
+    const deltaMinutes = minutes - tutorEarnings.lastTickMinutes;
+    const coinsEarned = deltaMinutes * earnPerMinute;
+
+    console.log('[TUTOR EARNINGS]', { 
+      minutes, 
+      deltaMinutes, 
+      coinsEarned, 
+      earnPerMinute,
+      initialCoins: initialCoins.bronze,
+      newTotal: initialCoins.bronze + minutes * earnPerMinute 
+    });
+
+    // Update wallet balance display in real-time (visual only, backend handles actual credit)
+    if (normalizedCoinType === 'bronze') {
+      setBronzeCoins(initialCoins.bronze + minutes * earnPerMinute);
+    } else {
+      setSilverCoins(initialCoins.silver + minutes * earnPerMinute);
+    }
+
+    const newEarned = tutorEarnings.earned + coinsEarned;
+
+    // Apply updated earnings
+    setTutorEarnings(prev => {
+      if (!prev) return prev;
+      // Ensure we don't go backwards if another tick already updated
+      if (minutes <= prev.lastTickMinutes) return prev;
+      return {
+        earned: newEarned,
+        lastTickMinutes: minutes,
+      };
+    });
+  }, [
+    elapsedSeconds,
+    isTutorEarner,
+    callStartTime,
+    tutorEarnings,
+    earnPerMinute,
+    normalizedCoinType,
+    initialCoins,
   ]);
 
   // Keep chat scrolled
@@ -1078,11 +1188,13 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   const handleEndCall = () => {
     if (hasEndedRef.current) return;
     hasEndedRef.current = true;
-  try { socket.emit('end-call', { sessionId }); } catch { /* ignore */ }
+    try { socket.emit('end-call', { sessionId }); } catch { /* ignore */ }
+    // Bill based purely on elapsed wall-clock time, always rounding down
+    const minutes = Math.max(1, Math.floor(elapsedSeconds / 60));
     cleanup();
     setCallStartTime(null);
     setElapsedSeconds(0);
-    onEndCall && onEndCall(sessionId);
+    onEndCall && onEndCall(sessionId, minutes);
   };
 
   const toggleMute = () => {
@@ -1518,24 +1630,18 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
           ) : (
             <span>Waiting for connection...</span>
           )}
-          {typeof silverCoins === 'number' && (
+          {normalizedCoinType === 'silver' && typeof silverCoins === 'number' && (
             <span className="ml-2 sm:ml-4" title="Your current silver coins">Silver: {silverCoins.toFixed(2)}</span>
           )}
-          {typeof goldCoins === 'number' && (
-            <span className="ml-2 sm:ml-4" title="Your current gold coins">Gold: {goldCoins.toFixed(2)}</span>
-          )}
-          {typeof bronzeCoins === 'number' && (
+          {normalizedCoinType === 'bronze' && typeof bronzeCoins === 'number' && (
             <span className="ml-2 sm:ml-4" title="Your current bronze coins">Bronze: {bronzeCoins.toFixed(2)}</span>
           )}
-          {isStudentPayer && sessionBalance && (
+          {isTutorEarner && tutorEarnings && (
             <span
-              className={`ml-2 sm:ml-4 px-2 py-1 rounded text-xs sm:text-sm ${
-                coinLowWarning ? 'bg-amber-600/80 animate-pulse' : 'bg-emerald-600/80'
-              }`}
-              title="Estimated coins remaining for this session (local only)"
+              className="ml-2 sm:ml-4 px-2 py-1 rounded text-xs sm:text-sm bg-green-600/80"
+              title="Coins earned this session"
             >
-              {normalizedCoinType === 'bronze' ? 'Session BRONZE left: ' : 'Session SILVER left: '}
-              {Math.max(0, Math.floor(sessionBalance.remaining))}
+              +{Math.max(0, tutorEarnings.earned.toFixed(2))} {normalizedCoinType === 'bronze' ? 'Bronze' : 'Silver'}
             </span>
           )}
           {/* Video Timer Display */}

@@ -243,11 +243,12 @@ export default function JoinSession() {
     }
   };
 
-  const handleEndCall = async () => {
+  const handleEndCall = async (_sessionIdFromCall, durationMinutesFromCall) => {
     // For SessionRequest-based sessions, ending the call must mark it complete.
     if (kind === 'request' && sessionMeta?.id) {
       try {
-        await api.post(`/api/session-requests/complete/${sessionMeta.id}`);
+        const safeMinutes = Math.max(1, Number.isFinite(durationMinutesFromCall) ? Math.floor(durationMinutesFromCall) : 1);
+        await api.post(`/api/session-requests/complete/${sessionMeta.id}` , { durationMinutes: safeMinutes });
         try {
           localStorage.setItem('pendingRatingSessionId', String(sessionMeta.id));
         } catch {

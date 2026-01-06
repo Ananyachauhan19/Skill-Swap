@@ -1220,7 +1220,7 @@ module.exports = (io) => {
       if (userIds.length === 2 && !sessionTimers.has(sessionId)) {
         // Prefer using SessionRequest as the canonical source for participants.
         // Do NOT create a Session here to avoid validation on required fields (date/time/subtopic).
-        let sr = await SessionRequest.findById(sessionId).select('requester tutor');
+        let sr = await SessionRequest.findById(sessionId).select('requester tutor startedAt status');
         if (!sr) {
           // If not a SessionRequest room, try Session as a fallback (legacy rooms)
           const s = await Session.findById(sessionId).select('requester creator');
@@ -1305,8 +1305,20 @@ module.exports = (io) => {
     });
 
     // WebRTC Signaling
-    socket.on('offer', ({ sessionId, offer }) => {
+    socket.on('offer', async ({ sessionId, offer }) => {
       socket.to(sessionId).emit('offer', { sessionId, offer });
+      
+      // Set startedAt timestamp when WebRTC connection initiates (for accurate duration tracking)
+      try {
+        const sr = await SessionRequest.findById(sessionId).select('status startedAt');
+        if (sr && sr.status === 'active' && !sr.startedAt) {
+          sr.startedAt = new Date();
+          await sr.save();
+          console.log('[SESSION] Set startedAt timestamp on WebRTC offer for session:', sessionId);
+        }
+      } catch (err) {
+        console.error('[SESSION] Failed to update startedAt on offer:', err);
+      }
     });
 
     socket.on('answer', ({ sessionId, answer }) => {
