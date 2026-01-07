@@ -105,6 +105,12 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     const { email, password } = form;
     if (!email || !password) return setError("Please fill in all fields.");
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return setError("Please enter a valid email address.");
+    }
+
     try {
       setIsLoading(true);
       setError("");
@@ -131,10 +137,14 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
           setError("");
           return; // We'll proceed with OTP verification as employee
         } catch (empErr) {
-          setError(empErr.response?.data?.message || empErr.message || err.response?.data?.message || "Login failed. Please try again.");
+          // Display the specific backend error message
+          const errorMessage = err.response?.data?.message || empErr.response?.data?.message || "Login failed";
+          setError(errorMessage);
         }
       } else {
-        setError(err.response?.data?.message || "Login failed. Please try again.");
+        // Display the specific backend error message
+        const errorMessage = err.response?.data?.message || "Login failed. Please try again.";
+        setError(errorMessage);
       }
     } finally {
       setIsLoading(false);
@@ -216,7 +226,9 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.message || "OTP verification failed.");
+      // Display specific backend error message
+      const errorMessage = err.response?.data?.message || "OTP verification failed. Please try again.";
+      setError(errorMessage);
     }
   };
 

@@ -128,6 +128,23 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     if (!firstName || !username || !email || !phone || !gender || !password || !confirmPassword) {
       return setError("Please fill in all required fields.");
     }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return setError("Please enter a valid email address.");
+    }
+
+    // Validate phone number (basic validation)
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(phone.replace(/\D/g, '').slice(-10))) {
+      return setError("Please enter a valid 10-digit phone number.");
+    }
+
+    if (password.length < 6) {
+      return setError("Password must be at least 6 characters long.");
+    }
+
     if (password !== confirmPassword) {
       return setError("Passwords do not match.");
     }
@@ -152,9 +169,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
       setShowOtp(true);
       setError("");
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Registration failed. Please try again."
-      );
+      // Display specific backend error message (e.g., "Email already registered", "Username already taken")
+      const errorMessage = err.response?.data?.message || "Registration failed. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -188,7 +205,9 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         navigate('/home');
       }
     } catch (err) {
-      setError(err.response?.data?.message || "OTP verification failed.");
+      // Display specific backend error message
+      const errorMessage = err.response?.data?.message || "OTP verification failed. Please try again.";
+      setError(errorMessage);
     }
   };
 

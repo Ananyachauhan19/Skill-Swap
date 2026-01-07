@@ -497,15 +497,16 @@ const StartSkillSwapSearchForm = () => {
             </div>
           ) : (
             <>
-              <div className="text-center text-blue-900 font-semibold mb-6">
+              <div className="text-center text-blue-900 font-semibold text-sm sm:text-base mb-3 sm:mb-4 md:mb-6">
                 Found {tutors.length} online tutor{tutors.length > 1 ? 's' : ''} for your search
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2 sm:space-y-3 md:space-y-4">
                 {tutors.map((tutor, idx) => (
                   <TutorCard
                     key={idx}
                     tutor={{
                       name: `${tutor.firstName} ${tutor.lastName}`,
+                      username: tutor.username,
                       profilePic: tutor.profilePic || "",
                       status: tutor.status,
                       date: new Date().toISOString().split('T')[0],

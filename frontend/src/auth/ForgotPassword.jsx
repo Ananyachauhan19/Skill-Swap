@@ -82,6 +82,14 @@ const ForgotPassword = () => {
       setError('Please enter your registered email.');
       return;
     }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
     setError('');
     try {
       setIsLoading(true);
@@ -90,14 +98,19 @@ const ForgotPassword = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setSubmitted(true);
-        toast.success('If the account exists, an email has been sent');
+        toast.success(data?.message || 'If the account exists, an email has been sent');
       } else {
-        toast.error('Failed to send reset email');
+        const errorMessage = data?.message || 'Failed to send reset email';
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
-    } catch {
-      toast.error('Network error');
+    } catch (err) {
+      const errorMessage = 'Network error. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

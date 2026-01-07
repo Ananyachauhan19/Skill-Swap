@@ -153,16 +153,19 @@ export default function ResetPassword() {
         body: JSON.stringify({ token, password }),
       });
 
+      const data = await res.json().catch(() => ({}));
+      
       if (res.ok) {
-        toast.success('Password reset successful');
+        toast.success(data?.message || 'Password reset successful');
         navigate('/login');
         return;
       }
 
-      const data = await res.json().catch(() => ({}));
-      toast.error(data?.message || 'Failed to reset password');
+      const errorMessage = data?.message || 'Failed to reset password';
+      toast.error(errorMessage);
     } catch (e) {
-      toast.error('Network error');
+      const errorMessage = 'Network error. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
