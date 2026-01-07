@@ -317,11 +317,15 @@ router.get('/stats/public', async (req, res) => {
     const ApprovedInterviewer = require('../models/ApprovedInterviewer');
     const expertInterviewers = await ApprovedInterviewer.countDocuments();
 
+    // Count all registered users in the database
+    const registeredUsers = await User.countDocuments();
+
     res.json({
       totalUsers,
       totalSessions,
       expertUsers,
-      expertInterviewers
+      expertInterviewers,
+      registeredUsers
     });
   } catch (error) {
     console.error('Error fetching public stats:', error);
