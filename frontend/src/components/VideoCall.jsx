@@ -1370,6 +1370,79 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     setShowReactionsMenu(false);
   };
 
+  // --- Save coin transaction to backend
+  const saveCoinTransaction = async (durationSeconds, durationMinutes) => {
+    try {
+      // Determine transaction type and amount based on role
+      let transactionType, amount, balanceBefore, balanceAfter;
+      
+      if (isStudentPayer) {
+        // Student/learner spending coins
+        transactionType = 'spent';
+        amount = durationMinutes * spendPerMinute;
+        
+        if (normalizedCoinType === 'silver') {
+          balanceBefore = initialCoins.silver;
+          balanceAfter = silverCoins;
+        } else if (normalizedCoinType === 'bronze') {
+          balanceBefore = initialCoins.bronze;
+          balanceAfter = bronzeCoins;
+        }
+      } else if (isTutorEarner) {
+        // Tutor earning coins
+        transactionType = 'earned';
+        amount = durationMinutes * earnPerMinute;
+        
+        if (normalizedCoinType === 'silver') {
+          balanceBefore = initialCoins.silver;
+          balanceAfter = silverCoins;
+        } else if (normalizedCoinType === 'bronze') {
+          balanceBefore = initialCoins.bronze;
+          balanceAfter = bronzeCoins;
+        }
+      } else {
+        // No transaction for this role/coin type combination
+        console.info('[COIN-TRANSACTION] No transaction to save for role:', userRole);
+        return;
+      }
+
+      const transactionData = {
+        sessionId,
+        transactionType,
+        coinType: normalizedCoinType,
+        amount,
+        balanceBefore,
+        balanceAfter,
+        sessionDuration: durationSeconds,
+        userRole,
+        partnerName: username, // Will be improved with actual partner name from session
+        sessionStartTime: callStartTime,
+        sessionEndTime: new Date()
+      };
+
+      console.info('[COIN-TRANSACTION] Saving:', transactionData);
+
+      const response = await fetch('/api/coin-transactions/save-transaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(transactionData)
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        console.info('[COIN-TRANSACTION] Transaction saved successfully');
+      } else {
+        console.error('[COIN-TRANSACTION] Failed to save:', data.message);
+      }
+    } catch (error) {
+      console.error('[COIN-TRANSACTION] Error saving transaction:', error);
+    }
+  };
+
   // --- Call controls
 
   const handleEndCall = () => {
@@ -1386,6 +1459,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     const minutes = Math.max(1, Math.floor(finalElapsed / 60));
     
     console.info('[CALL-END] Final duration:', minutes, 'minutes');
+    
+    // Save coin transaction to backend
+    saveCoinTransaction(finalElapsed, minutes);
     
     try { 
       socket.emit('end-call', { sessionId, minutes, elapsedSeconds: finalElapsed }); 

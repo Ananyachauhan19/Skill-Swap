@@ -49,6 +49,7 @@ const quizementRoutes = require('./routes/quizementRoutes');
 const quizementEmployeeRoutes = require('./routes/quizementEmployeeRoutes');
 const dataRoutes = require('./routes/dataRoutes');
 const googleDataRoutes = require('./routes/googleDataRoutes');
+const coinTransactionRoutes = require('./routes/coinTransactionRoutes');
 const cron = require('node-cron');
 const Session = require('./models/Session');
 const User = require('./models/User');
@@ -171,6 +172,7 @@ app.use('/api', quizementRoutes);
 app.use('/api', quizementEmployeeRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/google-data', googleDataRoutes);
+app.use('/api/coin-transactions', coinTransactionRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');

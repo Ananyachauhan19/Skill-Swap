@@ -11,7 +11,8 @@ import {
   FaHandshake,
   FaHome,
   FaBars,
-  FaFileAlt
+  FaFileAlt,
+  FaCoins
 } from 'react-icons/fa';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket';
@@ -19,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import SessionRatingModal from '../components/SessionRatingModal.jsx';
 import DateTimePicker from '../components/DateTimePicker.jsx';
 import { useToast } from '../components/ToastContext';
+import CoinHistory from '../components/CoinHistory.jsx';
 
 const SessionRequests = () => {
   const [interviewRequests, setInterviewRequests] = useState({ received: [], sent: [] });
@@ -50,11 +52,11 @@ const SessionRequests = () => {
       const view = params.get('view');
       
       // Set request type from tab param
-      if (tab === 'session' || tab === 'expert' || tab === 'skillmate' || tab === 'interview') {
+      if (tab === 'session' || tab === 'expert' || tab === 'skillmate' || tab === 'interview' || tab === 'coinhistory') {
         setRequestType(tab);
       }
       
-      // Set active tab from view param
+      // Set active tab from view param (not applicable for coinhistory)
       if (view === 'sent' || view === 'received') {
         setActiveTab(view);
       }
@@ -1849,6 +1851,21 @@ const SessionRequests = () => {
                 </span>
               )}
             </button>
+
+            <button
+              onClick={() => {
+                setRequestType('coinhistory');
+                navigate('/session-requests?tab=coinhistory', { replace: true });
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
+                requestType === 'coinhistory'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'hover:bg-slate-50 text-slate-600'
+              }`}
+            >
+              <FaCoins className="text-xs" />
+              <span className="font-medium">Coin History</span>
+            </button>
           </nav>
         </div>
 
@@ -2090,61 +2107,65 @@ const SessionRequests = () => {
           />
 
           {/* Tabs */}
-          <div className="mb-4 sm:mb-6">
-            <div className="inline-flex gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-lg w-full sm:w-auto">
-              <button
-                onClick={() => {
-                  setActiveTab('received');
-                  navigate(`/session-requests?tab=${requestType}&view=received`, { replace: true });
-                }}
-                className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 font-medium transition-all rounded-lg text-xs sm:text-sm ${
-                  activeTab === 'received'
-                    ? 'bg-white text-teal-700 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                  <span>Received</span>
-                  <span className="px-1 sm:px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-slate-200 text-slate-600">
-                    {requestType === 'session'
-                      ? requests.received.length
-                      : requestType === 'expert'
-                        ? expertSessionRequests.received.length
-                      : requestType === 'skillmate'
-                        ? skillMateRequests.received.length
-                        : (interviewRequests?.received || []).length}
-                  </span>
-                </div>
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('sent');
-                  navigate(`/session-requests?tab=${requestType}&view=sent`, { replace: true });
-                }}
-                className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 font-medium transition-all rounded-lg text-xs sm:text-sm ${
-                  activeTab === 'sent'
-                    ? 'bg-white text-teal-700 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                <div className="flex items-center justify-center gap-1.5 sm:gap-2">
-                  <span>Sent</span>
-                  <span className="px-1 sm:px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-slate-200 text-slate-600">
-                    {requestType === 'session'
-                      ? requests.sent.length
-                      : requestType === 'expert'
-                        ? expertSessionRequests.sent.length
-                      : requestType === 'skillmate'
-                        ? skillMateRequests.sent.length
-                        : (interviewRequests?.sent || []).length}
-                  </span>
-                </div>
-              </button>
+          {requestType !== 'coinhistory' && (
+            <div className="mb-4 sm:mb-6">
+              <div className="inline-flex gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-lg w-full sm:w-auto">
+                <button
+                  onClick={() => {
+                    setActiveTab('received');
+                    navigate(`/session-requests?tab=${requestType}&view=received`, { replace: true });
+                  }}
+                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 font-medium transition-all rounded-lg text-xs sm:text-sm ${
+                    activeTab === 'received'
+                      ? 'bg-white text-teal-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                    <span>Received</span>
+                    <span className="px-1 sm:px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-slate-200 text-slate-600">
+                      {requestType === 'session'
+                        ? requests.received.length
+                        : requestType === 'expert'
+                          ? expertSessionRequests.received.length
+                        : requestType === 'skillmate'
+                          ? skillMateRequests.received.length
+                          : (interviewRequests?.received || []).length}
+                    </span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveTab('sent');
+                    navigate(`/session-requests?tab=${requestType}&view=sent`, { replace: true });
+                  }}
+                  className={`flex-1 sm:flex-none px-3 sm:px-4 py-1.5 sm:py-2 font-medium transition-all rounded-lg text-xs sm:text-sm ${
+                    activeTab === 'sent'
+                      ? 'bg-white text-teal-700 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2">
+                    <span>Sent</span>
+                    <span className="px-1 sm:px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium bg-slate-200 text-slate-600">
+                      {requestType === 'session'
+                        ? requests.sent.length
+                        : requestType === 'expert'
+                          ? expertSessionRequests.sent.length
+                        : requestType === 'skillmate'
+                          ? skillMateRequests.sent.length
+                          : (interviewRequests?.sent || []).length}
+                    </span>
+                  </div>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-3">
-            {requestType === 'session' ? (
+            {requestType === 'coinhistory' ? (
+              <CoinHistory />
+            ) : requestType === 'session' ? (
               activeTab === 'received' ? (
                 requests.received.length === 0 ? (
                   <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
