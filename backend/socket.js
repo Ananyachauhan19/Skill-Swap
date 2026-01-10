@@ -1331,6 +1331,12 @@ module.exports = (io) => {
       socket.to(sessionId).emit('ice-candidate', { sessionId, candidate });
     });
 
+    // Video state synchronization
+    socket.on('video-state-changed', ({ sessionId, isVideoOn }) => {
+      console.log('[VIDEO-STATE] Relaying video state change:', { sessionId, isVideoOn });
+      socket.to(sessionId).emit('video-state-changed', { isVideoOn });
+    });
+
     // Whiteboard events
     socket.on('whiteboard-draw', ({ sessionId, fromX, fromY, toX, toY, color, size, tool }) => {
       socket.to(sessionId).emit('whiteboard-draw', {
@@ -1427,8 +1433,10 @@ module.exports = (io) => {
     });
 
     // End call (handles both 1:1 sessions and interview calls)
-    socket.on('end-call', async ({ sessionId }) => {
+    socket.on('end-call', async ({ sessionId, minutes, elapsedSeconds }) => {
       try {
+        console.log(`[END-CALL] Received for session ${sessionId}, minutes: ${minutes}, elapsed: ${elapsedSeconds}s`);
+        
         stopSessionTimer(sessionId);
         io.to(sessionId).emit('end-call', { sessionId });
 
@@ -1439,7 +1447,7 @@ module.exports = (io) => {
             session.status = 'completed';
             await session.save();
             io.to(sessionId).emit('session-completed', { sessionId });
-            console.log(`[Session] Marked as completed: ${sessionId}`);
+            console.log(`[Session] Marked as completed: ${sessionId}, duration: ${minutes} minutes`);
 
             // Award contribution credits for both tutor (creator) and learner (requester)
             try {
@@ -1483,9 +1491,25 @@ module.exports = (io) => {
           return;
         }
 
-        // 2) If this is a one-on-one SessionRequest-based room, clean up any stored question image
-        const sr = await SessionRequest.findById(sessionId).select('questionImageUrl');
+        // 2) If this is a one-on-one SessionRequest-based room, clean up any stored question image and record endedAt
+        const sr = await SessionRequest.findById(sessionId).select('questionImageUrl startedAt endedAt status');
         if (sr) {
+          // Record endedAt timestamp if not already set
+          if (!sr.endedAt) {
+            sr.endedAt = new Date();
+            console.log(`[SessionRequest] Recording endedAt for session ${sessionId}`);
+            
+            // Calculate actual duration if startedAt exists
+            if (sr.startedAt) {
+              const actualDuration = Math.floor((sr.endedAt - sr.startedAt) / 1000 / 60); // minutes
+              console.log(`[SessionRequest] Actual call duration: ${actualDuration} minutes (client reported: ${minutes} minutes)`);
+              
+              // Use the smaller of the two to prevent over-billing
+              const finalMinutes = minutes ? Math.min(minutes, actualDuration) : actualDuration;
+              console.log(`[SessionRequest] Final duration for billing: ${finalMinutes} minutes`);
+            }
+          }
+          
           if (sr.questionImageUrl) {
             try {
               const parsed = parseSupabasePublicUrl(sr.questionImageUrl);
@@ -1504,8 +1528,12 @@ module.exports = (io) => {
             }
             // Clear URL so we do not try to delete again
             sr.questionImageUrl = '';
-            await sr.save().catch(() => {});
           }
+          
+          // Save changes (endedAt and cleared questionImageUrl)
+          await sr.save().catch((err) => {
+            console.error('[SessionRequest] Failed to save endedAt:', err);
+          });
           return;
         }
 

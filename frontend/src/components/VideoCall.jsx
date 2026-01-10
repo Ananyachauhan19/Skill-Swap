@@ -1,15 +1,23 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import socket from '../socket.js';
+import { 
+  FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, 
+  FaDesktop, FaPhone, FaComments, FaChalkboard, FaExpand, 
+  FaCompress, FaCircle, FaVolumeUp, FaVolumeMute, FaImage,
+  FaArrowLeft, FaSmile, FaTimes, FaUser, FaEraser, FaArrowRight, FaPlus,
+  FaChevronDown, FaChevronUp
+} from 'react-icons/fa';
 
 /**
- * VideoCall (Updated)
- * - Whiteboard syncs both ways (teacher ↔ student)
- * - New "Add Question" button for image upload (gallery/file picker)
- * - Image displays on student's view where teacher's face is, with remove option
- * - Fixed whiteboard pen/eraser for mobile (improved touch handling)
- * - Mobile-responsive UI with better touch support
- * - Removed session info to save space
- * - Enhanced a11y and defensive refs
+ * VideoCall - Redesigned Professional Version
+ * - Both cameras OFF by default
+ * - Small video tiles at top-right corner
+ * - Expandable view with back button
+ * - Question photo or whiteboard as main view
+ * - 2-minute auto-off for cameras
+ * - Professional icons and modern UI
+ * - Fully responsive for mobile
+ * - No camera switch on web
  */
 
 const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
@@ -51,18 +59,27 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
 
   // AV controls
   const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOff, setIsVideoOff] = useState(true); // Start with video OFF
+  const [isVideoOff, setIsVideoOff] = useState(true); // Both cameras OFF by default
+  const [isRemoteVideoOff, setIsRemoteVideoOff] = useState(true); // Remote camera OFF by default
   const [isVideoEnabled, setIsVideoEnabled] = useState(false); // Track if video has been added to stream
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
-  const [isCameraSwitched, setIsCameraSwitched] = useState(false);
   
-  // Controlled video feature
+  // Controlled video feature - 2 minute auto-off
   const [videoTimeRemaining, setVideoTimeRemaining] = useState(0); // seconds remaining
   const [isVideoShuttingDown, setIsVideoShuttingDown] = useState(false);
   const videoTimerRef = useRef(null);
   const videoShutoffTimeoutRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
   const networkQualityRef = useRef('good'); // 'good' | 'poor'
+  
+  // New layout states
+  const [isVideoExpanded, setIsVideoExpanded] = useState(false); // Toggle between small tiles and expanded view
+  
+  // Draggable video tiles state
+  const [videoTilesPosition, setVideoTilesPosition] = useState({ x: 0, y: 0 }); // Position offset from top-right
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const videoTilesRef = useRef(null);
 
   // Coin session state (requester-side only)
   const [sessionBalance, setSessionBalance] = useState(null); // { remaining, earned, lastTickMinutes }
@@ -111,6 +128,8 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   const [sharedImage, setSharedImage] = useState(null);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [isAnnotationsEnabled, setIsAnnotationsEnabled] = useState(false);
+  const [sessionQuestionImageFetched, setSessionQuestionImageFetched] = useState(false);
+  const [isWhiteboardToolbarOpen, setIsWhiteboardToolbarOpen] = useState(true); // Toolbar visibility
   const [showChat, setShowChat] = useState(false);
 
   // Whiteboard state
@@ -219,6 +238,58 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     };
   }, []);
 
+  // Fetch session question image on mount
+  useEffect(() => {
+    const fetchSessionDetails = async () => {
+      if (!sessionId || sessionQuestionImageFetched) return;
+      
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          console.warn('[SESSION-FETCH] No auth token found');
+          // Set whiteboard as default if no image
+          setShowWhiteboard(true);
+          setSessionQuestionImageFetched(true);
+          return;
+        }
+
+        const response = await fetch(`/api/session-requests/${sessionId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const sessionData = await response.json();
+          console.info('[SESSION-FETCH] Session details:', sessionData);
+          
+          // Check if question image exists
+          if (sessionData.questionImageUrl && sessionData.questionImageUrl.trim()) {
+            console.info('[SESSION-FETCH] Question image found:', sessionData.questionImageUrl);
+            setSharedImage(sessionData.questionImageUrl);
+            setShowWhiteboard(false); // Hide whiteboard when question image exists
+          } else {
+            console.info('[SESSION-FETCH] No question image, showing whiteboard as default');
+            setShowWhiteboard(true); // Show whiteboard by default if no question image
+          }
+        } else {
+          console.warn('[SESSION-FETCH] Failed to fetch session:', response.status);
+          // Default to whiteboard on error
+          setShowWhiteboard(true);
+        }
+      } catch (error) {
+        console.error('[SESSION-FETCH] Error fetching session details:', error);
+        // Default to whiteboard on error
+        setShowWhiteboard(true);
+      } finally {
+        setSessionQuestionImageFetched(true);
+      }
+    };
+
+    fetchSessionDetails();
+  }, [sessionId, sessionQuestionImageFetched]);
+
   // Initial media + socket setup
   useEffect(() => {
     let mounted = true;
@@ -260,10 +331,12 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
         const onSharedImage = (data) => {
           if (data && data.imageUrl) {
             setSharedImage(data.imageUrl);
+            setShowWhiteboard(false); // Hide whiteboard when image is shared
           }
         };
         const onRemoveImage = () => {
           setSharedImage(null);
+          setShowWhiteboard(true); // Show whiteboard when image is removed
         };
         socket.on('shared-image', onSharedImage);
         socket.on('remove-image', onRemoveImage);
@@ -515,6 +588,12 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
         socket.on('annotation-draw', handleRemoteDraw);
         socket.on('annotation-clear', handleRemoteClear);
 
+        // Video state synchronization
+        socket.on('video-state-changed', ({ isVideoOn }) => {
+          console.info('[VIDEO-STATE] Remote peer video state changed:', isVideoOn);
+          setIsRemoteVideoOff(!isVideoOn);
+        });
+
         setIsConnected(true);
       } catch (error) {
         console.error('[DEBUG] Error accessing media devices:', error);
@@ -558,9 +637,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
 
       socket.off('annotation-draw');
       socket.off('annotation-clear');
+      socket.off('video-state-changed');
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, userRole, username, isCameraSwitched]);
+  }, [sessionId, userRole, username]);
 
   // Start the timer when both streams are present
   useEffect(() => {
@@ -570,12 +650,89 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     }
   }, [isConnected, localStream, remoteStream, callStartTime]);
 
-  // Tick timer
+  // Monitor remote stream for video track changes
+  useEffect(() => {
+    if (!remoteStream) {
+      setIsRemoteVideoOff(true);
+      return;
+    }
+
+    const videoTracks = remoteStream.getVideoTracks();
+    if (videoTracks.length === 0) {
+      console.info('[VIDEO-STATE] Remote stream has no video tracks');
+      setIsRemoteVideoOff(true);
+    } else {
+      const videoTrack = videoTracks[0];
+      console.info('[VIDEO-STATE] Remote video track status:', { 
+        enabled: videoTrack.enabled, 
+        readyState: videoTrack.readyState 
+      });
+      setIsRemoteVideoOff(!videoTrack.enabled || videoTrack.readyState === 'ended');
+      
+      // Listen for track state changes
+      const handleTrackEnded = () => {
+        console.info('[VIDEO-STATE] Remote video track ended');
+        setIsRemoteVideoOff(true);
+      };
+      
+      const handleTrackMute = () => {
+        console.info('[VIDEO-STATE] Remote video track muted');
+        setIsRemoteVideoOff(true);
+      };
+      
+      const handleTrackUnmute = () => {
+        console.info('[VIDEO-STATE] Remote video track unmuted');
+        setIsRemoteVideoOff(false);
+      };
+      
+      videoTrack.addEventListener('ended', handleTrackEnded);
+      videoTrack.addEventListener('mute', handleTrackMute);
+      videoTrack.addEventListener('unmute', handleTrackUnmute);
+      
+      return () => {
+        videoTrack.removeEventListener('ended', handleTrackEnded);
+        videoTrack.removeEventListener('mute', handleTrackMute);
+        videoTrack.removeEventListener('unmute', handleTrackUnmute);
+      };
+    }
+  }, [remoteStream]);
+
+  // Sync timer when tab becomes visible again (prevent drift)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && callStartTime && !hasEndedRef.current) {
+        // Recalculate elapsed time when tab becomes active
+        const actualElapsed = Math.floor((Date.now() - callStartTime) / 1000);
+        setElapsedSeconds(actualElapsed);
+        console.info('[TIMER-SYNC] Tab visible, synced elapsed time:', actualElapsed);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [callStartTime]);
+
+  // Tick timer with proper stop conditions
   useEffect(() => {
     if (!callStartTime) return;
+    if (hasEndedRef.current) return; // Stop timer if call has ended
+    
     const id = setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - callStartTime) / 1000));
+      // Stop timer if call has ended
+      if (hasEndedRef.current) {
+        clearInterval(id);
+        return;
+      }
+      
+      // Pause timer if tab is hidden (save resources)
+      if (document.hidden) {
+        return;
+      }
+      
+      const newElapsed = Math.floor((Date.now() - callStartTime) / 1000);
+      setElapsedSeconds(newElapsed);
     }, 1000);
+    
     return () => clearInterval(id);
   }, [callStartTime]);
 
@@ -887,7 +1044,31 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
 
     // Remote track
     pc.ontrack = (event) => {
+      console.info('[PEER-CONNECTION] ontrack event:', event.track.kind, event.track.enabled);
       const [stream] = event.streams || [];
+      
+      // Check if remote has video track enabled
+      if (event.track.kind === 'video') {
+        console.info('[VIDEO-STATE] Remote video track detected, enabled:', event.track.enabled);
+        setIsRemoteVideoOff(!event.track.enabled);
+        
+        // Monitor track enabled/disabled changes
+        event.track.onended = () => {
+          console.info('[VIDEO-STATE] Remote video track ended');
+          setIsRemoteVideoOff(true);
+        };
+        
+        event.track.onmute = () => {
+          console.info('[VIDEO-STATE] Remote video track muted');
+          setIsRemoteVideoOff(true);
+        };
+        
+        event.track.onunmute = () => {
+          console.info('[VIDEO-STATE] Remote video track unmuted');
+          setIsRemoteVideoOff(false);
+        };
+      }
+      
       setRemoteStream(stream || null);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = stream || null;
@@ -1131,6 +1312,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   const addPage = () => {
     const maxNum = Math.max(...pages.map(p => p.number), 0);
     const newNum = maxNum + 1;
+    if (newNum > 50) {
+      alert('Maximum 50 pages allowed');
+      return;
+    }
     setPages([...pages, { number: newNum, paths: [] }]);
     setCurrentPageNumber(newNum);
     socket.emit('whiteboard-add-page', { sessionId, pageNumber: newNum });
@@ -1151,6 +1336,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     }
     const imageUrl = URL.createObjectURL(file);
     setSharedImage(imageUrl);
+    setShowWhiteboard(false); // Hide whiteboard when image is uploaded
     socket.emit('shared-image', { sessionId, imageUrl });
   // no-op: picker UI removed, image shared immediately
   };
@@ -1159,6 +1345,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     if (sharedImage) {
       URL.revokeObjectURL(sharedImage);
       setSharedImage(null);
+      setShowWhiteboard(true); // Show whiteboard when image is removed
       socket.emit('remove-image', { sessionId });
     }
   };
@@ -1186,14 +1373,32 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   // --- Call controls
 
   const handleEndCall = () => {
-    if (hasEndedRef.current) return;
+    if (hasEndedRef.current) {
+      console.warn('[CALL-END] Call already ended, ignoring duplicate call');
+      return;
+    }
+    
+    console.info('[CALL-END] Ending call, elapsed seconds:', elapsedSeconds);
     hasEndedRef.current = true;
-    try { socket.emit('end-call', { sessionId }); } catch { /* ignore */ }
-    // Bill based purely on elapsed wall-clock time, always rounding down
-    const minutes = Math.max(1, Math.floor(elapsedSeconds / 60));
+    
+    // Calculate final duration based on elapsed time
+    const finalElapsed = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : elapsedSeconds;
+    const minutes = Math.max(1, Math.floor(finalElapsed / 60));
+    
+    console.info('[CALL-END] Final duration:', minutes, 'minutes');
+    
+    try { 
+      socket.emit('end-call', { sessionId, minutes, elapsedSeconds: finalElapsed }); 
+    } catch (err) { 
+      console.error('[CALL-END] Failed to emit end-call:', err);
+    }
+    
+    // Stop timer and cleanup
     cleanup();
     setCallStartTime(null);
     setElapsedSeconds(0);
+    
+    // Notify parent component
     onEndCall && onEndCall(sessionId, minutes);
   };
 
@@ -1213,7 +1418,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
         if (videoTrack) {
           videoTrack.enabled = true;
           setIsVideoOff(false);
-          startVideoTimer();
+          startVideoTimer(); // Start fresh 2-minute timer
           return;
         }
       }
@@ -1224,8 +1429,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
       const videoConstraints = {
         width: { ideal: 640, max: 640 },    // 360p width
         height: { ideal: 360, max: 360 },   // 360p height
-        frameRate: { ideal: 15, max: 15 },  // Low FPS to save bandwidth
-        facingMode: isCameraSwitched ? 'environment' : 'user'
+        frameRate: { ideal: 15, max: 15 }   // Low FPS to save bandwidth
       };
 
       // Get video track separately
@@ -1274,10 +1478,13 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
       setIsVideoEnabled(true);
       setIsVideoOff(false);
       
-      // Start auto-shutoff timer (3-5 minutes)
+      // Notify remote peer that video is now ON
+      socket.emit('video-state-changed', { sessionId, isVideoOn: true });
+      
+      // Start auto-shutoff timer - 2 minutes, restarts each time camera is enabled
       startVideoTimer();
       
-      console.info('[VIDEO-CONTROL] Video enabled successfully with 360p@15fps');
+      console.info('[VIDEO-CONTROL] Video enabled successfully with 360p@15fps, 2-min auto-shutoff timer started');
     } catch (error) {
       console.error('[VIDEO-CONTROL] Failed to enable video:', error);
       alert('Unable to enable video. Please check camera permissions.');
@@ -1293,6 +1500,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
       if (videoTrack) {
         videoTrack.enabled = false;
         setIsVideoOff(true);
+        
+        // Notify remote peer that video is now OFF
+        socket.emit('video-state-changed', { sessionId, isVideoOn: false });
       }
       
       // Clear timers
@@ -1306,15 +1516,17 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
       }
       
       setVideoTimeRemaining(0);
-      setIsVideoShuttingDown(false);
+      setIsVideoShuttingDown(false); // Reset state so user can re-enable camera
+      
+      console.info('[VIDEO-CONTROL] Video disabled, camera button remains active for re-enabling');
     } catch (error) {
       console.error('[VIDEO-CONTROL] Failed to disable video:', error);
     }
   };
 
-  // Start video timer with auto-shutoff after 3-5 minutes
+  // Start video timer with auto-shutoff after 2 minutes
   const startVideoTimer = () => {
-    const VIDEO_DURATION = 180; // 3 minutes (180 seconds) - configurable
+    const VIDEO_DURATION = 120; // 2 minutes (120 seconds)
     const WARNING_TIME = 30; // Show warning 30 seconds before shutoff
     
     setVideoTimeRemaining(VIDEO_DURATION);
@@ -1353,61 +1565,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     }
   };
 
-  const switchCamera = async () => {
-    try {
-      if (!isVideoEnabled || isVideoOff) {
-        console.warn('[VIDEO-CONTROL] Cannot switch camera - video is not enabled');
-        return;
-      }
-
-      setIsCameraSwitched(prev => !prev);
-      
-      // Stop only video track, keep audio
-      const videoTrack = localStreamRef.current?.getVideoTracks?.()?.[0];
-      if (videoTrack) {
-        videoTrack.stop();
-        localStreamRef.current.removeTrack(videoTrack);
-      }
-
-      // Get new video track with switched camera (with low bandwidth constraints)
-      const videoStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 640, max: 640 },
-          height: { ideal: 360, max: 360 },
-          frameRate: { ideal: 15, max: 15 },
-          facingMode: !isCameraSwitched ? 'environment' : 'user'
-        },
-        audio: false
-      });
-
-      const newVideoTrack = videoStream.getVideoTracks()[0];
-      localStreamRef.current.addTrack(newVideoTrack);
-      
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = localStreamRef.current;
-      }
-
-      // Replace track in peer connection
-      const sender = peerConnectionRef.current
-        ?.getSenders()
-        ?.find(s => s.track?.kind === 'video');
-      if (sender && newVideoTrack) {
-        await sender.replaceTrack(newVideoTrack);
-        
-        // Reapply bitrate constraints
-        const parameters = sender.getParameters();
-        if (!parameters.encodings) {
-          parameters.encodings = [{}];
-        }
-        parameters.encodings[0].maxBitrate = 300000;
-        await sender.setParameters(parameters);
-      }
-      
-      console.info('[VIDEO-CONTROL] Camera switched successfully');
-    } catch (err) {
-      console.error('[VIDEO-CONTROL] switchCamera error:', err);
-    }
-  };
+  // Camera switch removed for web version
 
   const toggleSpeaker = async () => {
     const newOn = !isSpeakerOn;
@@ -1615,522 +1773,654 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     ),
   };
 
+  // Drag handlers for video tiles
+  const handleDragStart = (e) => {
+    e.stopPropagation();
+    setIsDragging(true);
+    const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+    setDragStart({ 
+      x: clientX - videoTilesPosition.x, 
+      y: clientY - videoTilesPosition.y 
+    });
+  };
+
+  const handleDragMove = (e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+    
+    const newX = clientX - dragStart.x;
+    const newY = clientY - dragStart.y;
+    
+    // Constrain to viewport bounds with smaller margin on mobile
+    if (videoTilesRef.current) {
+      const rect = videoTilesRef.current.getBoundingClientRect();
+      const margin = window.innerWidth < 640 ? 8 : 12; // 8px on mobile, 12px on larger screens
+      const maxX = window.innerWidth - rect.width - margin;
+      const maxY = window.innerHeight - rect.height - margin;
+      
+      setVideoTilesPosition({
+        x: Math.max(-maxX, Math.min(0, newX)),
+        y: Math.max(0, Math.min(maxY, newY))
+      });
+    }
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
+
+  // Add/remove drag listeners
+  useEffect(() => {
+    if (isDragging) {
+      const handleMove = (e) => handleDragMove(e);
+      const handleEnd = () => handleDragEnd();
+      
+      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mouseup', handleEnd);
+      window.addEventListener('touchmove', handleMove, { passive: false });
+      window.addEventListener('touchend', handleEnd);
+      
+      return () => {
+        window.removeEventListener('mousemove', handleMove);
+        window.removeEventListener('mouseup', handleEnd);
+        window.removeEventListener('touchmove', handleMove);
+        window.removeEventListener('touchend', handleEnd);
+      };
+    }
+  }, [isDragging, dragStart, videoTilesPosition]);
+
   // --- Render
   return (
-    <div className="fixed inset-0 bg-gray-900 text-white flex flex-col h-screen w-screen overflow-hidden font-sans">
+    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white flex flex-col h-screen w-screen overflow-hidden">
       {/* Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-center p-2 sm:p-4 bg-gray-800 shadow-md">
-        <div className="text-sm sm:text-lg font-semibold mb-2 sm:mb-0">
-          {callStartTime ? (
-            <span aria-live="polite">
-              Call Time:&nbsp;
-              {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:
-              {String(elapsedSeconds % 60).padStart(2, '0')}
+      <header className="flex flex-wrap justify-between items-center px-3 sm:px-6 py-3 bg-slate-800/95 backdrop-blur-sm shadow-lg border-b border-slate-700/50">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm sm:text-base">
+          <div className="flex items-center gap-2">
+            <FaCircle className="text-red-500 animate-pulse" size={10} />
+            <span className="font-semibold">
+              {callStartTime ? (
+                <>
+                  {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:
+                  {String(elapsedSeconds % 60).padStart(2, '0')}
+                </>
+              ) : (
+                'Connecting...'
+              )}
             </span>
-          ) : (
-            <span>Waiting for connection...</span>
+          </div>
+          
+          {normalizedCoinType === 'silver' && (
+            <span className="px-2 py-1 bg-slate-700/80 rounded-full text-xs font-medium">
+              💰 Silver: {silverCoins.toFixed(2)}
+            </span>
           )}
-          {normalizedCoinType === 'silver' && typeof silverCoins === 'number' && (
-            <span className="ml-2 sm:ml-4" title="Your current silver coins">Silver: {silverCoins.toFixed(2)}</span>
-          )}
-          {normalizedCoinType === 'bronze' && typeof bronzeCoins === 'number' && (
-            <span className="ml-2 sm:ml-4" title="Your current bronze coins">Bronze: {bronzeCoins.toFixed(2)}</span>
+          {normalizedCoinType === 'bronze' && (
+            <span className="px-2 py-1 bg-amber-700/80 rounded-full text-xs font-medium">
+              🥉 Bronze: {bronzeCoins.toFixed(2)}
+            </span>
           )}
           {isTutorEarner && tutorEarnings && (
-            <span
-              className="ml-2 sm:ml-4 px-2 py-1 rounded text-xs sm:text-sm bg-green-600/80"
-              title="Coins earned this session"
-            >
-              +{Math.max(0, tutorEarnings.earned.toFixed(2))} {normalizedCoinType === 'bronze' ? 'Bronze' : 'Silver'}
+            <span className="px-2 py-1 bg-green-600/80 rounded-full text-xs font-medium">
+              +{tutorEarnings.earned.toFixed(2)}
             </span>
           )}
-          {/* Video Timer Display */}
           {isVideoEnabled && !isVideoOff && videoTimeRemaining > 0 && (
             <span 
-              className={`ml-2 sm:ml-4 px-2 py-1 rounded text-xs sm:text-sm ${
-                isVideoShuttingDown 
-                  ? 'bg-red-600/80 animate-pulse' 
-                  : 'bg-blue-600/80'
+              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                isVideoShuttingDown ? 'bg-red-600/80 animate-pulse' : 'bg-blue-600/80'
               }`}
-              title="Video will auto-shutoff to save bandwidth"
             >
-              📹 {Math.floor(videoTimeRemaining / 60)}:{String(videoTimeRemaining % 60).padStart(2, '0')}
+              <FaVideo className="inline mr-1" size={10} />
+              {Math.floor(videoTimeRemaining / 60)}:{String(videoTimeRemaining % 60).padStart(2, '0')}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <h2 className="text-sm sm:text-lg">{username} <span className="opacity-70">({userRole})</span></h2>
+        <div className="flex items-center gap-2 sm:gap-3 mt-2 sm:mt-0">
+          <span className="text-xs sm:text-sm font-medium">
+            {username} <span className="text-slate-400">({userRole})</span>
+          </span>
           <button
             onClick={handleEndCall}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-red-600 hover:bg-red-700 active:bg-red-800 transition-colors font-semibold focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 text-sm sm:text-base"
-            aria-label="End Call"
+            className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-all text-xs sm:text-sm shadow-lg"
             title="End Call"
           >
+            <FaPhone className="rotate-135" size={14} />
             End Call
           </button>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="flex flex-1 overflow-hidden" ref={videoContainerRef}>
-        {/* Video Area */}
-        <section className="flex-1 p-2 sm:p-4 flex flex-col gap-2 sm:gap-4 overflow-y-auto">
-          {/* Video Grid */}
-          <div className={`grid gap-2 sm:gap-4 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-            {/* Local */}
-            <div className={`relative rounded-xl overflow-hidden shadow-lg ${viewMode === 'local-full' ? 'h-[60vh] sm:h-[80vh]' : viewMode === 'remote-full' ? 'hidden' : 'h-40 sm:h-80'}`}>
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-full bg-gray-800 object-cover"
-                aria-label="Your video"
-              />
-              <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black/60 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs">
-                You ({username})
-              </div>
-              {/* Audio-Only Mode Indicator */}
-              {isVideoOff && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90">
-                  <div className="text-center">
-                    <div className="text-5xl sm:text-7xl mb-2">🎙️</div>
-                    <p className="text-sm sm:text-base font-semibold">Audio Only</p>
-                    <p className="text-xs sm:text-sm text-gray-300 mt-1">
-                      {!isVideoEnabled 
-                        ? 'Click camera button to enable video' 
-                        : 'Saving bandwidth'
-                      }
-                    </p>
-                  </div>
-                </div>
-              )}
-              <button
-                onClick={makeLocalFullScreen}
-                className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
-                title="Focus on self"
-                aria-label="Focus on self video"
-              >
-                <Icon.Full />
-              </button>
-              {viewMode !== 'grid' && (
-                <button
-                  onClick={resetViewMode}
-                  className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
-                  title="Exit Focus"
-                  aria-label="Exit focus mode"
-                >
-                  <Icon.Full on />
-                </button>
-              )}
-            </div>
-
-            {/* Remote */}
-            <div className={`relative rounded-xl overflow-hidden shadow-lg ${viewMode === 'remote-full' ? 'h-[60vh] sm:h-[80vh]' : viewMode === 'local-full' ? 'hidden' : 'h-40 sm:h-80'}`}>
-              <video
-                ref={remoteVideoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full bg-gray-800 object-cover"
-                aria-label="Partner video"
-              />
-              <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black/60 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs">
-                Partner
-              </div>
-              <button
-                onClick={makeRemoteFullScreen}
-                className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
-                title="Focus on partner"
-                aria-label="Focus on partner video"
-              >
-                <Icon.Full />
-              </button>
-              {viewMode !== 'grid' && (
-                <button
-                  onClick={resetViewMode}
-                  className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
-                  title="Exit Focus"
-                  aria-label="Exit focus mode"
-                >
-                  <Icon.Full on />
-                </button>
-              )}
-              {!remoteStream && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                  <div className="text-white text-center">
-                    <div className="animate-spin rounded-full h-6 sm:h-9 w-6 sm:w-9 border-t-2 border-white mx-auto mb-2 sm:mb-3"></div>
-                    <p className="text-xs sm:text-base">Waiting for partner...</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Shared image panel (below, so both videos stay visible) */}
-          {sharedImage && (
-            <div className="mt-2 sm:mt-3 w-full bg-gray-900 rounded-xl p-2 sm:p-3">
-              <div className="relative w-full h-44 sm:h-60 md:h-72 lg:h-80">
+      {/* Main Content */}
+      <main className="flex-1 relative overflow-hidden">
+        {/* Main View Area - Question Photo or Whiteboard */}
+        <section className="absolute inset-0 bg-slate-900">
+          {sharedImage ? (
+            /* Question Photo View */
+            <div className="w-full h-full flex items-center justify-center p-4">
+              <div className="relative max-w-full max-h-full">
                 <img
                   src={sharedImage}
-                  alt="Shared question"
-                  className="w-full h-full object-contain bg-gray-800 rounded-lg"
+                  alt="Question"
+                  className="max-w-full max-h-[calc(100vh-200px)] object-contain rounded-xl shadow-2xl border border-slate-700"
                 />
-                <a
-                  href={sharedImage}
-                  download
-                  target="_blank"
-                  rel="noreferrer"
-                  className="absolute bottom-2 right-2 px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded-md text-xs sm:text-sm"
-                  title="Download image"
-                  aria-label="Download shared image"
-                >
-                  Download
-                </a>
                 {userRole === 'tutor' && (
                   <button
                     onClick={removeSharedImage}
-                    className="absolute top-2 right-2 p-1 sm:p-2 bg-red-600 hover:bg-red-700 rounded-full focus:outline-none focus:ring-2 focus:ring-white"
-                    title="Remove shared image"
-                    aria-label="Remove shared image"
+                    className="absolute top-3 right-3 p-2 bg-red-600 hover:bg-red-700 rounded-full shadow-lg transition-all"
+                    title="Remove question image"
                   >
-                    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2"/>
-                    </svg>
+                    <FaTimes size={16} />
                   </button>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* Screen Share */}
-          {isScreenSharing && (
-            <div className="mt-2">
-              <h3 className="text-sm sm:text-lg font-semibold mb-1 sm:mb-2">Screen Share</h3>
-              <div className="relative rounded-xl overflow-hidden shadow-lg">
-                <video
-                  ref={screenVideoRef}
-                  autoPlay
-                  muted
-                  playsInline
-                  className="w-full h-40 sm:h-80 bg-gray-800 object-cover"
-                  aria-label="Shared screen"
-                />
-                {isAnnotationsEnabled && (
-                  <canvas
-                    ref={annotationCanvasRef}
-                    onMouseDown={(e) => startDrawing(e, true)}
-                    onMouseMove={(e) => draw(e, true)}
-                    onMouseUp={() => stopDrawing(true)}
-                    onMouseLeave={() => stopDrawing(true)}
-                    onTouchStart={(e) => startDrawing(e, true)}
-                    onTouchMove={(e) => draw(e, true)}
-                    onTouchEnd={() => stopDrawing(true)}
-                    className="absolute inset-0 w-full h-full cursor-crosshair"
-                    style={{ touchAction: 'none', pointerEvents: isAnnotationsEnabled ? 'auto' : 'none' }}
-                    aria-label="Screen annotations canvas"
-                  />
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2 mt-1 sm:mt-2">
-                <button
-                  onClick={toggleAnnotations}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm ${isAnnotationsEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-600'}`}
-                  aria-pressed={isAnnotationsEnabled}
-                  title={isAnnotationsEnabled ? 'Disable annotations' : 'Enable annotations'}
-                >
-                  {isAnnotationsEnabled ? 'Disable Annotations' : 'Enable Annotations'}
-                </button>
-                {isAnnotationsEnabled && (
-                  <button
-                    onClick={() => clearWhiteboard(true)}
-                    className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-red-600 hover:bg-red-700"
-                    title="Clear annotations"
-                  >
-                    Clear Annotations
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Whiteboard */}
-          {showWhiteboard && (
-            <div className="mt-2">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-1 sm:mb-2 gap-2">
-                <h3 className="text-sm sm:text-lg font-semibold">Whiteboard</h3>
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={currentPageNumber}
-                    onChange={(e) => switchPage(Number(e.target.value))}
-                    className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 rounded-md text-xs focus:outline-none"
-                    aria-label="Select page"
-                  >
-                    {pages.map(p => (
-                      <option key={p.number} value={p.number}>
-                        Page {p.number}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={addPage}
-                    className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-green-600 hover:bg-green-700"
-                    title="Add new page"
-                  >
-                    + Add Page
-                  </button>
-                  <label className="flex items-center gap-1 sm:gap-2">
-                    <span className="text-xs opacity-80">Color</span>
-                    <input
-                      type="color"
-                      value={drawingColor}
-                      onChange={(e) => setDrawingColor(e.target.value)}
-                      className="w-6 sm:w-8 h-6 sm:h-8 rounded-md border cursor-pointer"
-                      title="Choose color"
-                      aria-label="Choose pen color"
-                    />
-                  </label>
-                  <label className="flex items-center gap-1 sm:gap-2">
-                    <span className="text-xs opacity-80">Size</span>
-                    <select
-                      value={brushSize}
-                      onChange={(e) => setBrushSize(Number(e.target.value))}
-                      className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 rounded-md text-xs focus:outline-none"
-                      aria-label="Brush size"
-                    >
-                      {[1,3,5,10,20].map(s => <option key={s} value={s}>{s}px</option>)}
-                    </select>
-                  </label>
-                  <label className="flex items-center gap-1 sm:gap-2">
-                    <span className="text-xs opacity-80">Tool</span>
-                    <select
-                      value={drawingTool}
-                      onChange={(e) => setDrawingTool(e.target.value)}
-                      className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 rounded-md text-xs focus:outline-none"
-                      aria-label="Drawing tool"
-                    >
-                      <option value="pen">Pen</option>
-                      <option value="highlighter">Highlighter</option>
-                      <option value="eraser">Eraser</option>
-                    </select>
-                  </label>
-                  <button
-                    onClick={() => clearWhiteboard()}
-                    className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-red-600 hover:bg-red-700"
-                    title="Clear page"
-                  >
-                    Clear Page
-                  </button>
+                <div className="absolute bottom-3 left-3 px-3 py-2 bg-black/80 rounded-lg text-sm font-medium backdrop-blur-sm">
+                  <FaImage className="inline mr-2" />
+                  Question Image
                 </div>
               </div>
-              <div ref={whiteboardContainerRef} className="overflow-auto w-full h-[200px] sm:h-[400px] bg-white border-2 border-gray-700 rounded-xl shadow-lg">
+            </div>
+          ) : showWhiteboard ? (
+            /* Whiteboard View */
+            <div className="w-full h-full flex flex-col p-2 sm:p-3 md:p-4">
+              {/* Toolbar Toggle Button (Mobile) */}
+              <button
+                onClick={() => setIsWhiteboardToolbarOpen(!isWhiteboardToolbarOpen)}
+                className="md:hidden absolute top-2 left-2 z-10 p-2 bg-slate-700/95 hover:bg-slate-600 rounded-lg shadow-lg transition-all backdrop-blur-sm border border-slate-600"
+                title={isWhiteboardToolbarOpen ? 'Hide toolbar' : 'Show toolbar'}
+              >
+                {isWhiteboardToolbarOpen ? <FaChevronUp size={14} /> : <FaChevronDown size={14} />}
+              </button>
+              
+              {/* Toolbar - Collapsible on mobile */}
+              <div className={`flex flex-wrap items-center gap-2 bg-slate-800/90 p-2 sm:p-3 rounded-lg backdrop-blur-sm border border-slate-700/50 transition-all duration-300 ${
+                isWhiteboardToolbarOpen ? 'mb-2 sm:mb-3 opacity-100' : 'mb-0 h-0 p-0 opacity-0 overflow-hidden md:opacity-100 md:h-auto md:p-3 md:mb-3'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <FaChalkboard className="text-blue-400" />
+                  <span className="font-semibold text-sm">Whiteboard</span>
+                  <span className="text-xs text-slate-400">Page {currentPageNumber}</span>
+                </div>
+                <div className="flex-1" />
+                
+                {/* Tool Selection */}
+                <div className="flex items-center gap-1 bg-slate-700/50 rounded p-1">
+                  <button
+                    onClick={() => setDrawingTool('pen')}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                      drawingTool === 'pen' ? 'bg-blue-600 text-white' : 'hover:bg-slate-600'
+                    }`}
+                    title="Pen"
+                  >
+                    ✏️ Pen
+                  </button>
+                  <button
+                    onClick={() => setDrawingTool('eraser')}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-all flex items-center gap-1 ${
+                      drawingTool === 'eraser' ? 'bg-blue-600 text-white' : 'hover:bg-slate-600'
+                    }`}
+                    title="Eraser"
+                  >
+                    <FaEraser size={12} /> Eraser
+                  </button>
+                </div>
+                
+                <label className="flex items-center gap-2">
+                  <span className="text-xs font-medium">Color:</span>
+                  <input
+                    type="color"
+                    value={drawingColor}
+                    onChange={(e) => setDrawingColor(e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer border border-slate-600"
+                    disabled={drawingTool === 'eraser'}
+                  />
+                </label>
+                <label className="flex items-center gap-2">
+                  <span className="text-xs font-medium">Size:</span>
+                  <select
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(Number(e.target.value))}
+                    className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-xs focus:ring-2 focus:ring-blue-500"
+                  >
+                    {drawingTool === 'eraser' ? 
+                      [10, 20, 30, 40, 50].map(s => <option key={s} value={s}>{s}px</option>) :
+                      [1, 3, 5, 10, 20].map(s => <option key={s} value={s}>{s}px</option>)
+                    }
+                  </select>
+                </label>
+                
+                {/* Page Navigation */}
+                <div className="flex items-center gap-1 bg-slate-700/50 rounded p-1">
+                  <button
+                    onClick={() => {
+                      if (currentPageNumber > 1) {
+                        switchPage(currentPageNumber - 1);
+                      }
+                    }}
+                    disabled={currentPageNumber <= 1}
+                    className="p-1.5 hover:bg-slate-600 rounded transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Previous Page"
+                  >
+                    <FaArrowLeft size={12} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (currentPageNumber < 50 && !pages.find(p => p.number === currentPageNumber + 1)) {
+                        addPage();
+                      } else if (pages.find(p => p.number === currentPageNumber + 1)) {
+                        switchPage(currentPageNumber + 1);
+                      }
+                    }}
+                    disabled={currentPageNumber >= 50}
+                    className="p-1.5 hover:bg-slate-600 rounded transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                    title={pages.find(p => p.number === currentPageNumber + 1) ? 'Next Page' : 'Add New Page'}
+                  >
+                    {pages.find(p => p.number === currentPageNumber + 1) ? 
+                      <FaArrowRight size={12} /> : 
+                      <FaPlus size={12} />
+                    }
+                  </button>
+                </div>
+                
+                <button
+                  onClick={clearWhiteboard}
+                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 rounded font-medium text-xs transition-all"
+                >
+                  Clear Page
+                </button>
+              </div>
+              
+              <div className={`bg-white rounded-xl shadow-2xl overflow-hidden border-2 border-slate-700 transition-all duration-300 ${
+                isWhiteboardToolbarOpen ? 'flex-1' : 'absolute inset-0 md:relative md:flex-1'
+              }`}>
                 <canvas
                   ref={canvasRef}
-                  onMouseDown={(e) => { startDrawing(e); handleErase(e); }}
-                  onMouseMove={(e) => draw(e)}
-                  onMouseUp={() => stopDrawing()}
-                  onMouseLeave={() => stopDrawing()}
-                  onTouchStart={(e) => { startDrawing(e); handleErase(e); }}
-                  onTouchMove={(e) => draw(e)}
-                  onTouchEnd={() => stopDrawing()}
-                  className="w-full h-full touch-none"
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                  className="w-full h-full cursor-crosshair"
                   style={{ touchAction: 'none' }}
-                  aria-label="Collaborative whiteboard canvas"
                 />
+              </div>
+            </div>
+          ) : (
+            /* Empty State */
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="text-center text-slate-400">
+                <FaChalkboard size={64} className="mx-auto mb-4 opacity-30" />
+                <p className="text-lg font-medium">Waiting for content...</p>
+                <p className="text-sm mt-2">Question image or whiteboard will appear here</p>
+              </div>
+            </div>
+          )}
+
+          {/* Screen Share Overlay */}
+          {isScreenSharing && screenStream && (
+            <div className="absolute bottom-4 left-4 w-64 sm:w-80 h-48 sm:h-60 bg-black rounded-xl shadow-2xl overflow-hidden border-2 border-blue-500 z-10">
+              <video
+                ref={screenVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-2 left-2 px-2 py-1 bg-blue-600 text-xs font-medium rounded flex items-center gap-1">
+                <FaDesktop size={12} />
+                Screen Share
               </div>
             </div>
           )}
         </section>
 
+        {/* Small Video Tiles - Responsive (Default) */}
+        {!isVideoExpanded && (
+          <div 
+            ref={videoTilesRef}
+            className="absolute flex flex-col gap-0 z-20 select-none touch-none"
+            style={{
+              top: `${8 + videoTilesPosition.y}px`,
+              right: `${8 - videoTilesPosition.x}px`,
+              cursor: isDragging ? 'grabbing' : 'grab'
+            }}
+            onMouseDown={handleDragStart}
+            onTouchStart={handleDragStart}
+          >
+            {/* Drag Handle Indicator */}
+            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 px-2 py-0.5 bg-slate-700/90 rounded-t-lg text-[10px] sm:text-xs font-medium backdrop-blur-sm opacity-0 hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+              Drag to move
+            </div>
+            
+            {/* Local Video Tile */}
+            <div 
+              onClick={(e) => {
+                if (!isDragging) {
+                  e.stopPropagation();
+                  setIsVideoExpanded(true);
+                }
+              }}
+              className="relative w-24 h-20 xs:w-28 xs:h-24 sm:w-36 sm:h-28 md:w-44 md:h-36 bg-slate-800 rounded-lg sm:rounded-xl shadow-2xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all border border-slate-700 group"
+              title="Click to expand videos"
+            >
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              {isVideoOff && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
+                  <div className="text-center">
+                    <FaVideoSlash className="mx-auto mb-1 text-slate-500" size={16} />
+                    <p className="text-[9px] sm:text-xs text-slate-400">Camera Off</p>
+                  </div>
+                </div>
+              )}
+              <div className="absolute bottom-1 left-1 sm:bottom-2 sm:left-2 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-black/80 rounded text-[9px] sm:text-xs font-medium backdrop-blur-sm">
+                <FaUser className="inline mr-0.5 sm:mr-1" size={8} />
+                You
+              </div>
+              <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/10 transition-colors flex items-center justify-center">
+                <FaExpand className="opacity-0 group-hover:opacity-100 transition-opacity" size={16} />
+              </div>
+            </div>
+
+            {/* Remote Video Tile */}
+            <div 
+              onClick={(e) => {
+                if (!isDragging) {
+                  e.stopPropagation();
+                  setIsVideoExpanded(true);
+                }
+              }}
+              className="relative w-24 h-20 xs:w-28 xs:h-24 sm:w-36 sm:h-28 md:w-44 md:h-36 bg-slate-800 rounded-lg sm:rounded-xl shadow-2xl overflow-hidden cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all border border-slate-700 group"
+              title="Click to expand videos"
+            >
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              {!remoteStream && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-t-2 border-blue-500 mx-auto mb-1"></div>
+                    <p className="text-[9px] sm:text-xs text-slate-400">Waiting...</p>
+                  </div>
+                </div>
+              )}
+              {remoteStream && isRemoteVideoOff && (
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95 backdrop-blur-sm">
+                  <div className="text-center">
+                    <FaVideoSlash className="mx-auto mb-1 text-slate-500" size={16} />
+                    <p className="text-[9px] sm:text-xs text-slate-400">Camera Off</p>
+                  </div>
+                </div>
+              )}
+              <div className="absolute bottom-1 left-1 sm:bottom-2 sm:left-2 px-1.5 py-0.5 sm:px-2 sm:py-1 bg-black/80 rounded text-[9px] sm:text-xs font-medium backdrop-blur-sm">
+                <FaUser className="inline mr-0.5 sm:mr-1" size={8} />
+                Partner
+              </div>
+              <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/10 transition-colors flex items-center justify-center">
+                <FaExpand className="opacity-0 group-hover:opacity-100 transition-opacity" size={16} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Expanded Video View */}
+        {isVideoExpanded && (
+          <div className="absolute inset-0 z-30 bg-slate-900/98 backdrop-blur-md flex flex-col p-2 sm:p-4">
+            <button
+              onClick={() => setIsVideoExpanded(false)}
+              className="self-start flex items-center gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-slate-700 hover:bg-slate-600 rounded-lg mb-2 sm:mb-4 transition-all shadow-lg font-medium text-sm"
+            >
+              <FaArrowLeft size={14} />
+              <span className="hidden xs:inline">Back to Session</span>
+              <span className="xs:hidden">Back</span>
+            </button>
+            
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
+              {/* Local Video (Expanded) */}
+              <div className="relative bg-slate-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+                {isVideoOff && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95">
+                    <div className="text-center">
+                      <FaVideoSlash className="mx-auto mb-2 sm:mb-4 text-slate-500" size={40} />
+                      <p className="text-base sm:text-xl font-semibold">Camera Off</p>
+                      <p className="text-xs sm:text-sm text-slate-400 mt-1 sm:mt-2 px-4">Click camera button to enable video</p>
+                    </div>
+                  </div>
+                )}
+                <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 px-2 py-1 sm:px-4 sm:py-2 bg-black/80 rounded-lg sm:rounded-xl backdrop-blur-sm text-xs sm:text-base">
+                  <FaUser className="inline mr-1 sm:mr-2" size={12} />
+                  <span className="hidden xs:inline">You ({username})</span>
+                  <span className="xs:hidden">You</span>
+                </div>
+              </div>
+
+              {/* Remote Video (Expanded) */}
+              <div className="relative bg-slate-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl border border-slate-700">
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+                {!remoteStream && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-t-4 border-blue-500 mx-auto mb-2 sm:mb-4"></div>
+                      <p className="text-sm sm:text-lg">Waiting for partner...</p>
+                    </div>
+                  </div>
+                )}
+                {remoteStream && isRemoteVideoOff && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-900/95">
+                    <div className="text-center">
+                      <FaVideoSlash className="mx-auto mb-2 sm:mb-4 text-slate-500" size={40} />
+                      <p className="text-base sm:text-xl font-semibold">Partner's Camera Off</p>
+                      <p className="text-xs sm:text-sm text-slate-400 mt-1 sm:mt-2 px-4">Waiting for partner to enable video</p>
+                    </div>
+                  </div>
+                )}
+                <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4 px-2 py-1 sm:px-4 sm:py-2 bg-black/80 rounded-lg sm:rounded-xl backdrop-blur-sm text-xs sm:text-base">
+                  <FaUser className="inline mr-1 sm:mr-2" size={12} />
+                  Partner
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Chat Sidebar */}
         {showChat && (
-          <aside className="w-full sm:w-64 md:w-80 bg-gray-800 p-2 sm:p-4 flex flex-col shadow-lg">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm sm:text-lg font-semibold">Chat</h3>
+          <aside className="absolute top-0 right-0 bottom-0 w-full sm:w-80 md:w-96 bg-slate-800/95 backdrop-blur-md border-l border-slate-700 flex flex-col z-40 shadow-2xl">
+            <div className="flex justify-between items-center p-4 border-b border-slate-700 bg-slate-900/50">
+              <h3 className="font-semibold flex items-center gap-2">
+                <FaComments className="text-blue-400" />
+                Chat
+              </h3>
               <button
                 onClick={() => setShowChat(false)}
-                className="px-1 sm:px-2 py-0.5 sm:py-1 text-gray-300 hover:text-white rounded text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-white"
-                title="Close chat"
-                aria-label="Close chat panel"
+                className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
               >
-                Close
+                <FaTimes />
               </button>
             </div>
+            
             <div
               ref={chatContainerRef}
-              className="flex-1 bg-gray-700 rounded-lg p-2 sm:p-3 overflow-y-auto text-white text-xs sm:text-sm space-y-2"
-              aria-live="polite"
+              className="flex-1 overflow-y-auto p-4 space-y-3"
             >
               {messages.map((msg, i) => {
                 const mine = msg.sender === username;
                 return (
                   <div
-                    key={`${i}-${msg.timestamp}`}
-                    className={`p-2 rounded-lg max-w-[85%] ${mine ? 'bg-blue-600 ml-auto' : 'bg-gray-600'}`}
+                    key={i}
+                    className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
                   >
-                    <p className="text-xs font-semibold">{msg.sender}</p>
-                    <p>{msg.text}</p>
-                    <p className="text-[10px] text-gray-200 mt-1">
-                      {new Date(msg.timestamp).toLocaleTimeString()}
-                    </p>
+                    <div
+                      className={`max-w-[85%] p-3 rounded-xl ${
+                        mine ? 'bg-blue-600 rounded-br-sm' : 'bg-slate-700 rounded-bl-sm'
+                      }`}
+                    >
+                      <p className="text-xs font-semibold mb-1 opacity-80">{msg.sender}</p>
+                      <p className="text-sm">{msg.text}</p>
+                      <p className="text-[10px] opacity-60 mt-1">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </p>
+                    </div>
                   </div>
                 );
               })}
               {messages.length === 0 && (
-                <div className="text-center text-gray-300 text-xs sm:text-sm">No messages yet</div>
+                <div className="text-center text-slate-400 mt-8">
+                  <FaComments size={48} className="mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No messages yet</p>
+                </div>
               )}
             </div>
-            <form className="mt-2 flex" onSubmit={sendMessage}>
-              <input
-                type="text"
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 px-2 sm:px-3 py-1 sm:py-2 bg-gray-600 text-white rounded-l-lg text-xs sm:text-sm focus:outline-none"
-                aria-label="Chat message input"
-              />
-              <button
-                type="submit"
-                className="px-2 sm:px-4 py-1 sm:py-2 bg-blue-600 hover:bg-blue-700 rounded-r-lg transition-colors font-semibold text-xs sm:text-sm"
-                aria-label="Send message"
-                title="Send"
-              >
-                Send
-              </button>
+
+            <form className="p-4 border-t border-slate-700 bg-slate-900/50" onSubmit={sendMessage}>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium text-sm transition-all"
+                >
+                  Send
+                </button>
+              </div>
             </form>
           </aside>
         )}
       </main>
 
       {/* Reactions */}
-      <div className="pointer-events-none absolute top-1/4 right-2 flex flex-col gap-2">
+      <div className="pointer-events-none absolute top-24 right-4 flex flex-col gap-2 z-30">
         {reactions.map((r, idx) => (
           <div
-            key={`${r.username}-${r.timestamp}-${idx}`}
-            className="pointer-events-auto bg-gray-800/90 text-white px-1 sm:px-2 py-0.5 sm:py-1 rounded-full animate-bounce text-xs sm:text-base"
-            role="status"
+            key={`${r.timestamp}-${idx}`}
+            className="pointer-events-auto bg-slate-800/95 backdrop-blur-sm px-3 py-2 rounded-full shadow-lg animate-bounce text-xl border border-slate-700"
           >
-            {r.type} {r.username}
+            {r.type}
           </div>
         ))}
       </div>
 
-      {/* Controls */}
-      <footer className="flex flex-wrap justify-center gap-1 sm:gap-2 p-1 sm:p-2 bg-gray-800 shadow-md">
+      {/* Control Bar */}
+      <footer className="flex flex-wrap justify-center items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-800/95 backdrop-blur-sm border-t border-slate-700/50">
         <button
           onClick={toggleMute}
-          className={`p-1 sm:p-2 rounded-full transition-colors ${isMuted ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
-          aria-pressed={isMuted}
-          aria-label="Toggle microphone"
+          className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg ${
+            isMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-700 hover:bg-slate-600'
+          }`}
+          title={isMuted ? 'Unmute' : 'Mute'}
         >
-          <Icon.Mic off={isMuted} />
+          {isMuted ? <FaMicrophoneSlash size={18} /> : <FaMicrophone size={18} />}
         </button>
+
         <button
           onClick={toggleVideo}
-          className={`p-1 sm:p-2 rounded-full transition-colors relative ${
-            isVideoOff 
-              ? 'bg-yellow-600 hover:bg-yellow-700' 
-              : 'bg-green-600 hover:bg-green-700'
+          className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg relative ${
+            isVideoOff ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'
           }`}
-          title={isVideoOff ? '📹 Enable Video (Audio-only mode saves bandwidth)' : '📹 Disable Video (Keep audio running)'}
-          aria-pressed={!isVideoOff}
-          aria-label={isVideoOff ? 'Enable video' : 'Disable video'}
+          title={isVideoOff ? 'Enable Camera' : 'Disable Camera'}
         >
-          <Icon.Cam off={isVideoOff} />
+          {isVideoOff ? <FaVideoSlash size={18} /> : <FaVideo size={18} />}
           {isVideoOff && !isVideoEnabled && (
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse" title="Video not enabled yet"></span>
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
           )}
         </button>
+
         <button
-          onClick={switchCamera}
-          className="p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
-          title="Switch camera"
-          aria-label="Switch camera"
+          onClick={toggleSpeaker}
+          className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg ${
+            isSpeakerOn ? 'bg-slate-700 hover:bg-slate-600' : 'bg-red-600 hover:bg-red-700'
+          }`}
+          title={isSpeakerOn ? 'Mute Speaker' : 'Unmute Speaker'}
         >
-          <Icon.Switch />
+          {isSpeakerOn ? <FaVolumeUp size={18} /> : <FaVolumeMute size={18} />}
         </button>
-        <div className="relative">
-          <button
-            onClick={toggleSpeaker}
-            className={`p-1 sm:p-2 rounded-full transition-colors ${isSpeakerOn ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600'}`}
-            title={isSpeakerOn ? 'Mute speaker' : 'Unmute speaker'}
-            aria-pressed={!isSpeakerOn}
-            aria-label="Toggle speaker output"
-          >
-            <Icon.Speaker off={!isSpeakerOn} />
-          </button>
-          {audioDevices.length > 0 && (
-            <button
-              onClick={() => { /* device menu placeholder */ }} // Close image picker if open
-              className="ml-0.5 sm:ml-1 p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
-              title="Choose speaker device"
-              aria-expanded={false}
-              aria-label="Open speaker device menu"
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2"/>
-              </svg>
-            </button>
-          )}
-        </div>
+
         <button
           onClick={toggleScreenShare}
-          className={`p-1 sm:p-2 rounded-full transition-colors ${isScreenSharing ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          title={isScreenSharing ? 'Stop sharing screen' : 'Share screen'}
-          aria-pressed={isScreenSharing}
-          aria-label="Toggle screen sharing"
+          className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg ${
+            isScreenSharing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-700 hover:bg-slate-600'
+          }`}
+          title="Screen Share"
         >
-          <Icon.Share />
+          <FaDesktop size={18} />
         </button>
+
         <button
           onClick={toggleRecording}
-          className={`p-1 sm:p-2 rounded-full transition-colors ${isRecording ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          title={isRecording ? 'Stop recording' : 'Start recording'}
-          aria-pressed={isRecording}
-          aria-label="Toggle recording"
+          className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg relative ${
+            isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-700 hover:bg-slate-600'
+          }`}
+          title={isRecording ? 'Stop Recording' : 'Start Recording'}
         >
-          <Icon.Record />
+          <FaCircle size={isRecording ? 18 : 14} className={isRecording ? 'animate-pulse' : ''} />
         </button>
+
         <button
           onClick={toggleWhiteboard}
-          className={`p-1 sm:p-2 rounded-full transition-colors ${showWhiteboard ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          title={showWhiteboard ? 'Hide whiteboard' : 'Show whiteboard'}
-          aria-pressed={showWhiteboard}
-          aria-label="Toggle whiteboard"
+          className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg ${
+            showWhiteboard ? 'bg-green-600 hover:bg-green-700' : 'bg-slate-700 hover:bg-slate-600'
+          }`}
+          title="Whiteboard"
         >
-          <Icon.Board />
+          <FaChalkboard size={18} />
         </button>
+
         <button
           onClick={() => setShowChat(prev => !prev)}
-          className={`p-1 sm:p-2 rounded-full transition-colors ${showChat ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          title={showChat ? 'Hide chat' : 'Show chat'}
-          aria-pressed={showChat}
-          aria-label="Toggle chat"
+          className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg ${
+            showChat ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-700 hover:bg-slate-600'
+          }`}
+          title="Chat"
         >
-          <Icon.Chat />
+          <FaComments size={18} />
         </button>
+
         <div className="relative">
           <button
             onClick={() => setShowReactionsMenu(prev => !prev)}
-            className="p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
-            title="Send reaction"
-            aria-expanded={showReactionsMenu}
-            aria-label="Open reactions"
+            className="p-2.5 sm:p-3 rounded-full bg-slate-700 hover:bg-slate-600 transition-all shadow-lg"
+            title="Reactions"
           >
-            <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-              <path d="M12 17a4 4 0 0 1-4-4M9 9h.01M15 9h.01" stroke="currentColor" strokeWidth="2" fill="none"/>
-              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" fill="none"/>
-            </svg>
+            <FaSmile size={18} />
           </button>
           {showReactionsMenu && (
-            <div className="fixed top-2 left-1/2 -translate-x-1/2 bg-gray-900 border border-gray-700 rounded-md p-1 sm:p-2 flex flex-row gap-1 sm:gap-2 z-[1000] shadow-lg">
-              {['😊', '👍', '👏', '❤️', '😂', '😮', '😢', '😡'].map((emoji) => (
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 rounded-xl p-2 flex gap-2 shadow-2xl backdrop-blur-md">
+              {['😊', '👍', '👏', '❤️', '😂', '😮'].map((emoji) => (
                 <button
                   key={emoji}
                   onClick={() => sendReaction(emoji)}
-                  className="p-1 rounded hover:bg-gray-700 text-sm sm:text-lg transition-colors"
-                  aria-label={`Send ${emoji}`}
+                  className="p-2 hover:bg-slate-700 rounded-lg text-xl transition-all hover:scale-110"
                 >
                   {emoji}
                 </button>
@@ -2138,33 +2428,25 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
             </div>
           )}
         </div>
-        <button
-          onClick={() => toggleBackground(virtualBackground === 'blur' ? 'none' : 'blur')}
-          className={`p-1 sm:p-2 rounded-full transition-colors ${virtualBackground !== 'none' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          title={virtualBackground !== 'none' ? 'Remove background blur' : 'Apply background blur'}
-          aria-pressed={virtualBackground !== 'none'}
-          aria-label="Toggle background blur"
-        >
-          <Icon.Blur />
-        </button>
+
         <button
           onClick={toggleFullScreen}
-          className={`p-1 sm:p-2 rounded-full transition-colors ${isFullScreen ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`}
-          title={isFullScreen ? 'Exit full screen' : 'Enter full screen'}
-          aria-pressed={isFullScreen}
-          aria-label="Toggle fullscreen"
+          className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg ${
+            isFullScreen ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-700 hover:bg-slate-600'
+          }`}
+          title="Fullscreen"
         >
-          <Icon.Full on={isFullScreen} />
+          {isFullScreen ? <FaCompress size={18} /> : <FaExpand size={18} />}
         </button>
+
         {userRole === 'tutor' && (
           <div className="relative">
             <button
               onClick={() => imageInputRef.current?.click()}
-              className="p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors"
-              title="Add question image"
-              aria-label="Add question image"
+              className="p-2.5 sm:p-3 rounded-full bg-slate-700 hover:bg-slate-600 transition-all shadow-lg"
+              title="Add Question Image"
             >
-              <Icon.Question />
+              <FaImage size={18} />
             </button>
             <input
               ref={imageInputRef}
@@ -2172,7 +2454,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
               accept="image/*"
               onChange={handleImageUpload}
               className="hidden"
-              aria-hidden="true"
             />
           </div>
         )}
