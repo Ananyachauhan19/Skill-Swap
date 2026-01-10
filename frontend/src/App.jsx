@@ -97,7 +97,20 @@ import AssessmentAttempt from './student/assesment/AssessmentAttempt.jsx';
 import AssessmentResult from './student/assesment/AssessmentResult.jsx';
 import CampusAmbassadors from './admin/CampusAmbassadors.jsx';
 import { CampusAmbassadorProvider } from './context/CampusAmbassadorContext.jsx';
+import QuizementEmployeeAuthProvider from './context/QuizementEmployeeAuthContext.jsx';
+import QuizementEmployeeRoute from './routes/QuizementEmployeeRoute.jsx';
+import QuizementEmployeeLayout from './quizementEmployee/QuizementEmployeeLayout.jsx';
+import QuizementEmployeeDashboard from './quizementEmployee/QuizementEmployeeDashboard.jsx';
+import QuizementEmployeeCreateQuiz from './quizementEmployee/QuizementEmployeeCreateQuiz.jsx';
+import QuizementEmployeeMyQuizzes from './quizementEmployee/QuizementEmployeeMyQuizzes.jsx';
+import QuizementEmployeeQuizResults from './quizementEmployee/QuizementEmployeeQuizResults.jsx';
 import StudentReportsTab from './student/StudentReportsTab.jsx';
+import QuizementLanding from './quizement/QuizementLanding.jsx';
+import QuizementAvailableTests from './quizement/QuizementAvailableTests.jsx';
+import QuizementUpload from './quizement/QuizementUpload.jsx';
+import QuizementAttempt from './quizement/QuizementAttempt.jsx';
+import QuizementResult from './quizement/QuizementResult.jsx';
+import AdminQuizement from './admin/AdminQuizement.jsx';
 
 const collectVisitorData = () => {
   const getDeviceType = () => {
@@ -227,6 +240,27 @@ const appRoutes = [
   { path: '/campus/reports', element: <ProtectedRoute><StudentReportsTab /></ProtectedRoute> },
   { path: '/student/assessment-attempt/:id', element: <ProtectedRoute><AssessmentAttempt /></ProtectedRoute> },
   { path: '/student/assessment-result/:id', element: <ProtectedRoute><AssessmentResult /></ProtectedRoute> },
+  { path: '/quizement', element: <ProtectedRoute><QuizementLanding /></ProtectedRoute> },
+  { path: '/quizement/tests', element: <ProtectedRoute><QuizementAvailableTests /></ProtectedRoute> },
+  { path: '/quizement/upload', element: <ProtectedRoute><QuizementUpload /></ProtectedRoute> },
+  { path: '/quizement/attempt/:testId', element: <ProtectedRoute><QuizementAttempt /></ProtectedRoute> },
+  { path: '/quizement/result/:testId', element: <ProtectedRoute><QuizementResult /></ProtectedRoute> },
+  {
+    path: '/quizement-employee',
+    element: <QuizementEmployeeRoute />,
+    children: [
+      {
+        element: <QuizementEmployeeLayout />,
+        children: [
+          { index: true, element: <QuizementEmployeeDashboard /> },
+          { path: 'dashboard', element: <QuizementEmployeeDashboard /> },
+          { path: 'create-quiz', element: <QuizementEmployeeCreateQuiz /> },
+          { path: 'quizzes', element: <QuizementEmployeeMyQuizzes /> },
+          { path: 'results', element: <QuizementEmployeeQuizResults /> },
+        ],
+      },
+    ],
+  },
   {
     path: '/employee',
     element: <EmployeeRoute />,
@@ -295,6 +329,7 @@ const adminOnlyRoutes = [
           { path: 'visitors', element: <Visitors /> },
           { path: 'employees', element: <Employees /> },
           { path: 'employees/:employeeId', element: <EmployeeDetail /> },
+          { path: 'quizzment', element: <AdminQuizement /> },
           { path: 'packages', element: <AdminPackages /> },
           { path: 'reports', element: <Reports /> },
           { path: 'help-support', element: <AdminHelpSupport /> },
@@ -347,6 +382,7 @@ function App() {
   const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
   const isRatingPage = location.pathname.startsWith('/rate/');
   const isAssessmentAttemptPage = location.pathname.startsWith('/student/assessment-attempt/');
+  const isQuizementAttemptPage = location.pathname.startsWith('/quizement/attempt/');
   const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'skillswaphubb@gmail.com').toLowerCase();
   const isAdminUser = !!(user && user.email && user.email.toLowerCase() === adminEmail);
   
@@ -590,8 +626,9 @@ function App() {
       <ModalProvider>
         <SkillMatesProvider>
           <CampusAmbassadorProvider>
-            <ModalBodyScrollLock />
-            <GlobalModals />
+            <QuizementEmployeeAuthProvider>
+              <ModalBodyScrollLock />
+              <GlobalModals />
             {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && <CookieConsent />}
             {/* Main content with fade-in transition */}
             <div
@@ -599,10 +636,11 @@ function App() {
                 showContent ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Navbar />}
+              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && <Navbar />}
               {element}
-              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && <Footer />}
+              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && <Footer />}
             </div>
+            </QuizementEmployeeAuthProvider>
           </CampusAmbassadorProvider>
         </SkillMatesProvider>
       </ModalProvider>
