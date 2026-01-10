@@ -27,12 +27,12 @@ function InterviewerCard({ interviewer: m, onBookSession, navigate, onModalActio
 
   return (
     <>
-      <div className="w-full bg-gradient-to-br from-violet-50/50 via-white to-blue-50/30 rounded-lg border-2 border-violet-200 hover:border-violet-400 hover:shadow-violet-100 hover:shadow-xl transition-all duration-300 overflow-hidden group">
+      <div className="w-full bg-white rounded-lg border border-slate-200 hover:border-blue-200 hover:shadow-lg transition-all duration-300 overflow-hidden group">
         <div className="flex flex-col lg:flex-row items-stretch">
           {/* Left Section - Profile & Basic Info */}
           <div 
             onClick={handleProfileClick}
-            className="flex items-center gap-3 p-3 sm:p-4 bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-700 hover:from-violet-700 hover:via-purple-700 hover:to-indigo-800 text-white cursor-pointer transition-all duration-300 lg:w-56 xl:w-64 flex-shrink-0"
+            className="flex items-start gap-3 p-3 sm:p-4 bg-white hover:bg-slate-50 text-slate-900 cursor-pointer transition-all duration-300 lg:w-56 xl:w-64 flex-shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200"
           >
             <div className="relative flex-shrink-0">
               <img
@@ -46,23 +46,45 @@ function InterviewerCard({ interviewer: m, onBookSession, navigate, onModalActio
             </div>
 
             <div className="flex-1 min-w-0">
-              <h3 className="text-sm sm:text-base font-bold truncate mb-1 group-hover:text-violet-100 transition-colors">{displayName}</h3>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 ring-1 ring-violet-300 shadow-sm">
+              <h3 className="text-sm sm:text-base font-bold truncate mb-1 group-hover:text-slate-900 transition-colors">{displayName}</h3>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-white text-blue-900 ring-1 ring-blue-200 shadow-sm">
                 <FaGraduationCap size={10} />
                 Interviewer
               </span>
+
+              <div className="mt-2 space-y-1">
+                <div className="text-[11px] sm:text-xs text-slate-600 leading-tight truncate">
+                  <span className="font-semibold text-slate-700">Company:</span>{' '}
+                  <span className="text-slate-600">
+                    {m.application?.company || m.user?.college || 'Not specified'}
+                  </span>
+                </div>
+
+                <div className="text-[11px] sm:text-xs text-slate-600 leading-tight truncate">
+                  <span className="font-semibold text-slate-700">Position:</span>{' '}
+                  <span className="text-slate-600">
+                    {m.application?.position || m.application?.qualification || 'Not specified'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 text-[11px] sm:text-xs text-slate-600 leading-tight">
+                  <FaStar className="text-amber-500" size={12} />
+                  <span className="font-semibold text-slate-700">Rating:</span>
+                  <span className="text-slate-600">{(m.stats?.averageRating || 0).toFixed(1)}</span>
+                </div>
+              </div>
             </div>
 
             <div className="hidden lg:block">
-              <FaUser className="text-white/70 text-sm group-hover:text-white/90 transition-colors" />
+              <FaUser className="text-slate-400 text-sm group-hover:text-slate-600 transition-colors" />
             </div>
           </div>
 
           {/* Middle Section - Details */}
           <div className="flex-1 p-3 sm:p-4 flex flex-wrap items-center gap-x-4 gap-y-2.5 bg-white/80 backdrop-blur-sm">
             <div className="flex items-center gap-2 min-w-[150px] sm:min-w-[180px]">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-violet-50 flex items-center justify-center flex-shrink-0 ring-1 ring-violet-100">
-                <FaBriefcase className="text-violet-600 text-xs sm:text-sm" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 ring-1 ring-blue-100">
+                <FaBriefcase className="text-blue-700 text-xs sm:text-sm" />
               </div>
               <div className="flex-1">
                 <p className="text-[10px] sm:text-xs text-slate-500 leading-none mb-0.5 font-medium">Company</p>
@@ -116,7 +138,7 @@ function InterviewerCard({ interviewer: m, onBookSession, navigate, onModalActio
           </div>
 
           {/* Right Section - Action Buttons */}
-          <div className="flex lg:flex-col gap-2 p-3 sm:p-4 bg-gradient-to-br from-slate-50/80 to-violet-50/80 backdrop-blur-sm border-t lg:border-t-0 lg:border-l border-slate-200/50 lg:w-40 xl:w-44 flex-shrink-0">
+          <div className="flex lg:flex-col gap-2 p-3 sm:p-4 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 lg:w-40 xl:w-44 flex-shrink-0">
             <button
               onClick={() => {
                 onBookSession({
@@ -124,7 +146,7 @@ function InterviewerCard({ interviewer: m, onBookSession, navigate, onModalActio
                 });
                 if (onModalAction) onModalAction();
               }}
-              className="flex-1 lg:flex-none py-2 px-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg font-bold hover:from-violet-700 hover:to-purple-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg text-xs sm:text-sm transform hover:-translate-y-0.5 active:translate-y-0 ring-2 ring-violet-200"
+              className="flex-1 lg:flex-none py-2 px-3 bg-blue-900 text-white rounded-lg font-bold hover:bg-blue-950 transition-all duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg text-xs sm:text-sm transform hover:-translate-y-0.5 active:translate-y-0 ring-2 ring-blue-100"
             >
               <FaCheckCircle size={13} />
               <span>Book</span>
