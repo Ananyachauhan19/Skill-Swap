@@ -7,14 +7,16 @@ import Cookies from 'js-cookie';
 import { BACKEND_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
 import { useEmployeeAuth } from '../context/EmployeeAuthContext.jsx';
+import { useQuizementEmployeeAuth } from '../context/QuizementEmployeeAuthContext.jsx';
 
 const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const navigate = useNavigate();
   const { openRegister } = useModal();
   const { setUser } = useAuth();
   const { setEmployee } = useEmployeeAuth();
+  const { setEmployee: setQuizementEmployee } = useQuizementEmployeeAuth() || {};
 
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ identifier: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -102,22 +104,33 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { email, password } = form;
-    if (!email || !password) return setError("Please fill in all fields.");
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return setError("Please enter a valid email address.");
-    }
+    const { identifier, password } = form;
+    if (!identifier || !password) return setError("Please fill in all fields.");
 
     try {
       setIsLoading(true);
       setError("");
+      // First, try Quizzment employee login (email or employeeId)
+      try {
+        const resQuiz = await axios.post(
+          `${BACKEND_URL}/api/quizement-employee/login`,
+          { identifier, password },
+          { withCredentials: true }
+        );
+        const emp = resQuiz.data?.employee;
+        if (emp && setQuizementEmployee) {
+          setQuizementEmployee(emp);
+        }
+        if (isModal && onClose) onClose();
+        navigate('/quizement-employee/dashboard');
+        return;
+      } catch (_) {
+        // fall through to user/employee login
+      }
 
-      // First, try regular user login (with OTP flow)
-      await axios.post(`${BACKEND_URL}/api/auth/login`, { email, password }, { withCredentials: true });
-      setEmailForOtp(email);
+      // Next, try regular user login (with OTP flow)
+      await axios.post(`${BACKEND_URL}/api/auth/login`, { email: identifier, password }, { withCredentials: true });
+      setEmailForOtp(identifier);
       setIsEmployeeOtp(false);
       setShowOtp(true);
       setError("");
@@ -127,11 +140,11 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
       if (status >= 400 && status < 500) {
         try {
           await axios.post(`${BACKEND_URL}/api/employee/login`, {
-            identifier: email,
+            identifier,
             password,
           }, { withCredentials: true });
 
-          setEmailForOtp(email);
+          setEmailForOtp(identifier);
           setIsEmployeeOtp(true);
           setShowOtp(true);
           setError("");
@@ -240,7 +253,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
     window.location.href = `${BACKEND_URL}/api/auth/${provider}`;
   };
 
-  const isFormValid = form.email && form.password;
+  const isFormValid = form.identifier && form.password;
   const loginButtonColor = isFormValid
     ? "bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950"
     : "bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700";
@@ -316,13 +329,13 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email or Employee ID</label>
                 <input
                   type="text"
-                  name="email"
-                  value={form.email}
+                  name="identifier"
+                  value={form.identifier}
                   onChange={handleChange}
-                  placeholder="Enter your email "
+                  placeholder="Enter your email or Employee ID"
                   className="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 text-sm sm:text-base"
                 />
               </div>

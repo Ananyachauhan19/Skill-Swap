@@ -916,6 +916,7 @@ const Navbar = () => {
               { path: '/one-on-one', label: '1-on-1' },
               { path: '/interview', label: 'Interview' },
               { path: '/session-requests', label: 'Requests' },
+              { path: '/quizement', label: 'Quizement' },
             ].map(({ path, label }) => (
               <button
                 key={path}
