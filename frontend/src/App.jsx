@@ -70,6 +70,7 @@ import YourInterviews from './user/YourInterviews';
 import RatingPage from './user/RatingPage.jsx';
 import TutorApplication from './tutor/TutorApplication.jsx';
 import TutorVerificationStatus from './tutor/TutorVerificationStatus.jsx';
+import InterviewerVerificationStatus from './interview/InterviewerVerificationStatus.jsx';
 import TutorVerification from './admin/TutorVerification.jsx';
 import ForgotPassword from './auth/ForgotPassword.jsx';
 import ResetPassword from './auth/ResetPassword.jsx';
@@ -198,6 +199,7 @@ const appRoutes = [
   { path: '/register', element: <Register /> },
   { path: '/tutor/apply', element: <ProtectedRoute><TutorApplication /></ProtectedRoute> },
   { path: '/tutor/status', element: <ProtectedRoute><TutorVerificationStatus /></ProtectedRoute> },
+  { path: '/interviewer/status', element: <ProtectedRoute><InterviewerVerificationStatus /></ProtectedRoute> },
   { path: '/privacy-policy', element: <PrivacyPolicy /> },
   { path: '/community', element: <Community /> },
   { path: '/about', element: <About /> },

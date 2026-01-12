@@ -78,8 +78,13 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
   const [interviewerName, setInterviewerName] = useState('');
   const [interviewData, setInterviewData] = useState(null);
   const [isWaitingForCompletion, setIsWaitingForCompletion] = useState(false);
+  
+  // Fullscreen permission and notification state
+  const [showFullscreenPermission, setShowFullscreenPermission] = useState(true);
+  const [showFullscreenNotification, setShowFullscreenNotification] = useState(false);
   const hasEndedRef = useRef(false);
   const completionTimeoutRef = useRef(null);
+  const fullscreenAttemptedRef = useRef(false);
 
   // Constants for whiteboard
   const CANVAS_WIDTH = 2000;
@@ -137,16 +142,53 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
     });
   }, [currentPage]);
 
-  // Fullscreen listeners
+  // Fullscreen listeners - NO AUTO-ENTER, wait for user permission
   useEffect(() => {
-    const handleFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
+    const handleFullScreenChange = () => {
+      const isNowFullscreen = !!document.fullscreenElement;
+      setIsFullScreen(isNowFullscreen);
+      
+      // Show notification when entering fullscreen
+      if (isNowFullscreen) {
+        setShowFullscreenNotification(true);
+        setTimeout(() => setShowFullscreenNotification(false), 5000);
+      }
+    };
+    
     document.addEventListener('fullscreenchange', handleFullScreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullScreenChange);
+
     return () => {
       document.removeEventListener('fullscreenchange', handleFullScreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullScreenChange);
     };
   }, []);
+
+  // Function to enter fullscreen
+  const enterFullscreen = async () => {
+    if (fullscreenAttemptedRef.current) return;
+    fullscreenAttemptedRef.current = true;
+    
+    try {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        await elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        await elem.webkitRequestFullscreen();
+      } else if (elem.mozRequestFullScreen) {
+        await elem.mozRequestFullScreen();
+      } else if (elem.msRequestFullscreen) {
+        await elem.msRequestFullscreen();
+      }
+      console.log('[FULLSCREEN] Entered fullscreen mode');
+      setShowFullscreenPermission(false);
+    } catch (err) {
+      console.error('[FULLSCREEN] Failed to enter fullscreen:', err);
+      fullscreenAttemptedRef.current = false;
+      // Show error message
+      alert('Unable to enter fullscreen mode. Please try clicking the fullscreen button in the controls.');
+    }
+  };
 
   // Initial media + socket setup
   useEffect(() => {
@@ -583,7 +625,32 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
 
   const toggleBackground = (type) => { setVirtualBackground(type); };
 
-  const toggleFullScreen = () => { const el = videoContainerRef.current; if (!el) return; if (!isFullScreen) { if (el.requestFullscreen) el.requestFullscreen(); else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen(); } else { if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); } };
+  const toggleFullScreen = async () => { 
+    if (!isFullScreen) { 
+      // Entering fullscreen
+      try {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          await elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          await elem.webkitRequestFullscreen();
+        } else if (elem.mozRequestFullScreen) {
+          await elem.mozRequestFullScreen();
+        } else if (elem.msRequestFullscreen) {
+          await elem.msRequestFullscreen();
+        }
+      } catch (err) {
+        console.error('[FULLSCREEN] Toggle fullscreen failed:', err);
+      }
+    } else { 
+      // Exiting fullscreen
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        await document.webkitExitFullscreen();
+      }
+    } 
+  };
 
   const makeRemoteFullScreen = () => setViewMode('remote-full');
   const makeLocalFullScreen = () => setViewMode('local-full');
@@ -594,87 +661,851 @@ const InterviewCall = ({ sessionId, userRole = 'participant', username = 'You', 
   const toggleWhiteboard = () => { const next = !showWhiteboard; setShowWhiteboard(next); socket.emit('whiteboard-toggle', { sessionId, open: next }); if (next) { setTimeout(() => { smoothScrollIntoView(canvasRef.current); socket.emit('whiteboard-focus', { sessionId }); }, 60); } };
 
   const Icon = {
-    Mic: ({ off = false, ...p }) => off ? (<svg viewBox="0 0 24 24" width="24" height="24" {...p} aria-hidden="true"><path d="M12 14a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Zm-7 0a7 7 0 0 0 14 0" fill="none" stroke="currentColor" strokeWidth="2" /><path d="M4 4l16 16" stroke="currentColor" strokeWidth="2" /></svg>) : (<svg viewBox="0 0 24 24" width="24" height="24" {...p} aria-hidden="true"><path d="M12 14a4 4 0 0 0 4-4V6a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Zm-7 0a7 7 0 0 0 14 0" fill="none" stroke="currentColor" strokeWidth="2"/></svg>),
-    Cam: ({ off = false, ...p }) => off ? (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M3 7h10a2 2 0 0 1 2 2v1l4-2v8l-4-2v1a2 2 0 0 1-2 2H3z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M4 4l16 16" stroke="currentColor" strokeWidth="2"/></svg>) : (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M3 7h10a2 2 0 0 1 2 2v1l4-2v8l-4-2v1a2 2 0 0 1-2 2H3z" fill="none" stroke="currentColor" strokeWidth="2"/></svg>),
-    Switch: (p) => (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M8 6h10l-3-3m3 3-3 3M16 18H6l3 3m-3-3 3-3" fill="none" stroke="currentColor" strokeWidth="2"/></svg>),
-    Speaker: ({ off = false, ...p }) => off ? (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M4 9v6h4l6 4V5L8 9H4z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M16 12h4" stroke="currentColor" strokeWidth="2"/></svg>) : (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M4 9v6h4l6 4V5L8 9H4z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M18 9a6 6 0 0 1 0 6" fill="none" stroke="currentColor" strokeWidth="2"/></svg>),
-    Share: (p) => (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M3 5h18v10H3zM9.5 21h5" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M12 13V7m0 0l-3 3m3-3 3 3" fill="none" stroke="currentColor" strokeWidth="2"/></svg>),
-    Record: (p) => (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><circle cx="12" cy="12" r="5" fill="currentColor"/><rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" strokeWidth="2"/></svg>),
-    Board: (p) => (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><rect x="3" y="4" width="18" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M8 19l2-3m6 3l-2-3" stroke="currentColor" strokeWidth="2"/><path d="M7 8h6m-6 3h10" stroke="currentColor" strokeWidth="2"/></svg>),
-    Chat: (p) => (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M4 5h16v10H7l-3 3z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M8 9h.01M12 9h.01M16 9h.01" stroke="currentColor" strokeWidth="2"/></svg>),
-    Blur: (p) => (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M12 3c5 6 5 12 0 18-5-6-5-12 0-18z" fill="none" stroke="currentColor" strokeWidth="2"/></svg>),
-    Full: ({ on = false, ...p }) => on ? (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2"/></svg>) : (<svg viewBox="0 0 24 24" width="24" height="24" {...p}><path d="M4 9V5h4M20 9V5h-4M4 15v4h4m12-4v4h-4" stroke="currentColor" strokeWidth="2"/></svg>),
-    End: (p) => (<svg viewBox="0 0 24 24" width="24" height="24" {...p} aria-hidden="true"><path d="M4 14c0-4.418 3.582-8 8-8s8 3.582 8 8" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M7 14l-3 3m13-3l3 3" stroke="currentColor" strokeWidth="2"/></svg>),
-    Question: (p) => (<svg viewBox="0 0 24 24" width="24" height="24" {...p} aria-hidden="true"><path d="M12 4a8 8 0 0 1 8 8 8 8 0 0 1-8 8 8 8 0 0 1-8-8 8 8 0 0 1 8-8zm0 4c-1.1 0-2 .9-2 2 0 .7.4 1.3 1 1.7v1.3h2v-1.3c.6-.4 1-1 1-1.7 0-1.1-.9-2-2-2zm0 8h2v2h-2v-2z" fill="currentColor"/></svg>),
+    Mic: ({ off = false, ...p }) => off ? (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/>
+        <path d="M19 11a7 7 0 0 1-14 0"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+        <line x1="2" y1="2" x2="22" y2="22"/>
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/>
+        <path d="M19 11a7 7 0 0 1-14 0"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    ),
+    Cam: ({ off = false, ...p }) => off ? (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2"/>
+        <path d="M23 12l-7-5v10l7-5z"/>
+        <line x1="1" y1="1" x2="23" y2="23"/>
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M23 7l-7 5 7 5V7z"/>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+      </svg>
+    ),
+    Switch: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+    ),
+    Speaker: ({ off = false, ...p }) => off ? (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <line x1="23" y1="9" x2="17" y2="15"/>
+        <line x1="17" y1="9" x2="23" y2="15"/>
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+      </svg>
+    ),
+    Share: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+        <path d="M12 10v3"/>
+        <path d="M12 10L9 13"/>
+        <path d="M12 10l3 3"/>
+      </svg>
+    ),
+    Record: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="6" fill="currentColor"/>
+      </svg>
+    ),
+    Chat: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        <line x1="9" y1="10" x2="15" y2="10"/>
+        <line x1="9" y1="14" x2="13" y2="14"/>
+      </svg>
+    ),
+    Blur: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="8" cy="10" r="1.5" fill="currentColor"/>
+        <circle cx="16" cy="10" r="1.5" fill="currentColor"/>
+        <path d="M9 16s1 2 3 2 3-2 3-2"/>
+      </svg>
+    ),
+    Full: ({ on = false, ...p }) => on ? (
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+      </svg>
+    ) : (
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+      </svg>
+    ),
+    End: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <path d="M23 1L17 7"/>
+        <path d="M17 1L23 7"/>
+        <path d="M3.59 7.44a6.5 6.5 0 0 0 9.97 8.47m6.85-8.97a6.5 6.5 0 0 1-9.97 8.47"/>
+        <path d="M12 1a4 4 0 0 1 4 4v1m-8-1a4 4 0 0 0-4 4v1"/>
+      </svg>
+    ),
+    Question: (p) => (
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}>
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    ),
+    Expand: (p) => (
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" {...p}>
+        <path d="M15 3h6v6l-2-2-4 4-2-2 4-4-2-2z"/>
+        <path d="M9 21H3v-6l2 2 4-4 2 2-4 4 2 2z"/>
+      </svg>
+    ),
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-gray-900 text-white flex flex-col h-screen w-screen overflow-hidden font-sans">
-      <header className="flex flex-col sm:flex-row justify-between items-center p-2 sm:p-4 bg-gray-800 shadow-md">
-        <div className="text-sm sm:text-lg font-semibold mb-2 sm:mb-0">
-          {isWaitingForCompletion ? (
-            <span className="text-blue-400">Interview ended - Processing...</span>
-          ) : callStartTime ? (
-            <span aria-live="polite">Call Time: &nbsp; {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:{String(elapsedSeconds % 60).padStart(2, '0')}</span>
-          ) : (
-            <span>Waiting for connection...</span>
-          )}
+    <div className="fixed inset-0 z-[9999] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white flex flex-col h-screen w-screen overflow-hidden font-sans">
+      {/* Custom Fullscreen Permission Dialog */}
+      {showFullscreenPermission && (
+        <div className="fixed inset-0 z-[10000] bg-black/80 backdrop-blur-lg flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl max-w-md w-full border-2 border-blue-500/30 overflow-hidden animate-slideUp">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white">Enable Fullscreen Mode</h3>
+                <p className="text-blue-100 text-sm">For better interview experience</p>
+              </div>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              <p className="text-gray-300 text-base leading-relaxed">
+                For the best interview experience, we recommend using fullscreen mode. This helps you:
+              </p>
+              
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                  <span className="text-gray-300 text-sm">Stay focused without distractions</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                  <span className="text-gray-300 text-sm">See video and controls clearly</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#22c55e" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                  <span className="text-gray-300 text-sm">Professional interview environment</span>
+                </li>
+              </ul>
+
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mt-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                  </svg>
+                  <span className="text-blue-400 font-semibold text-sm">Quick Tip</span>
+                </div>
+                <p className="text-blue-200 text-xs">
+                  Press <kbd className="px-2 py-1 bg-gray-800/80 rounded border border-gray-700 font-mono text-blue-300">ESC</kbd> anytime to exit fullscreen
+                </p>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setShowFullscreenPermission(false)}
+                className="flex-1 px-5 py-3 rounded-xl bg-gray-700/50 hover:bg-gray-700/70 text-gray-300 hover:text-white font-semibold transition-all border border-gray-600/50 hover:border-gray-600"
+              >
+                Skip for now
+              </button>
+              <button
+                onClick={enterFullscreen}
+                className="flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold transition-all shadow-lg hover:shadow-blue-500/50 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                </svg>
+                Enable Fullscreen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Professional Header */}
+      <header className="flex flex-col sm:flex-row justify-between items-center px-3 sm:px-6 py-3 sm:py-4 bg-gray-900/95 backdrop-blur-md shadow-2xl border-b border-gray-700/50">
+        <div className="flex items-center gap-3 mb-2 sm:mb-0">
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="white">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-white">{username}</h2>
+            <p className="text-xs text-gray-400 capitalize">{userRole}</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
-          <h2 className="text-sm sm:text-lg">{username} <span className="opacity-70">({userRole})</span></h2>
-          <button onClick={handleEndCall} className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg bg-red-600 hover:bg-red-700 active:bg-red-800 transition-colors font-semibold focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 text-sm sm:text-base" aria-label="End Call" title="End Call">End Call</button>
+        <div className="flex items-center gap-3 sm:gap-4">
+          {callStartTime ? (
+            <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-800/80 rounded-full border border-gray-700/50">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+              <span className="text-sm sm:text-base font-mono font-semibold text-white" aria-live="polite">
+                {String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:{String(elapsedSeconds % 60).padStart(2, '0')}
+              </span>
+            </div>
+          ) : (
+            <div className="px-3 sm:px-4 py-2 bg-yellow-500/20 rounded-full border border-yellow-500/30 text-yellow-300 text-xs sm:text-sm">
+              <span>Connecting...</span>
+            </div>
+          )}
+          <button 
+            onClick={handleEndCall} 
+            className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 active:scale-95 transition-all font-semibold shadow-lg hover:shadow-red-500/50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900 text-sm sm:text-base flex items-center gap-2" 
+            aria-label="End Call" 
+            title="End Call"
+          >
+            <Icon.End />
+            <span className="hidden sm:inline">End</span>
+          </button>
         </div>
       </header>
 
-      <main className="flex flex-1 overflow-hidden" ref={videoContainerRef}>
-        <section className="flex-1 p-2 sm:p-4 flex flex-col gap-2 sm:gap-4 overflow-y-auto">
-          <div className={`grid gap-2 sm:gap-4 ${viewMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
-            <div className={`relative rounded-xl overflow-hidden shadow-lg ${viewMode === 'local-full' ? 'h-[60vh] sm:h-[80vh]' : viewMode === 'remote-full' ? 'hidden' : 'h-40 sm:h-80'}`}>
-              <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full bg-gray-800 object-cover" aria-label="Your video" />
-              <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black/60 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs">You ({username})</div>
-              <button onClick={makeLocalFullScreen} className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white" title="Focus on self" aria-label="Focus on self video"><Icon.Full /></button>
-              {viewMode !== 'grid' && (<button onClick={resetViewMode} className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white" title="Exit Focus" aria-label="Exit focus mode"><Icon.Full on /></button>)}
+      {/* Main Video Area - 50/50 Split */}
+      <main className="flex-1 flex flex-col lg:flex-row gap-2 sm:gap-3 p-2 sm:p-4 overflow-hidden" ref={videoContainerRef}>
+        {/* Your Video (50%) */}
+        <section className="flex-1 relative group">
+          <div className="relative h-full w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-gray-700/50 hover:border-blue-500/50 transition-all duration-300">
+            <video 
+              ref={localVideoRef} 
+              autoPlay 
+              muted 
+              playsInline 
+              className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 object-cover" 
+              aria-label="Your video" 
+            />
+            
+            {/* Video Label */}
+            <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full border border-gray-700/50">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span className="text-xs sm:text-sm font-semibold text-white">You ({username})</span>
             </div>
 
-            <div className={`relative rounded-xl overflow-hidden shadow-lg ${viewMode === 'remote-full' ? 'h-[60vh] sm:h-[80vh]' : viewMode === 'local-full' ? 'hidden' : 'h-40 sm:h-80'}`}>
-              <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full bg-gray-800 object-cover" aria-label="Partner video" />
-              <div className="absolute bottom-1 sm:bottom-2 left-1 sm:left-2 bg-black/60 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md text-xs">Partner</div>
-              <button onClick={makeRemoteFullScreen} className="absolute top-1 sm:top-2 right-1 sm:right-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white" title="Focus on partner" aria-label="Focus on partner video"><Icon.Full /></button>
-              {viewMode !== 'grid' && (<button onClick={resetViewMode} className="absolute top-1 sm:top-2 left-1 sm:left-2 p-1 sm:p-2 bg-black/50 hover:bg-black/60 rounded-full focus:outline-none focus:ring-2 focus:ring-white" title="Exit Focus" aria-label="Exit focus mode"><Icon.Full on /></button>)}
-              {!remoteStream && (<div className="absolute inset-0 flex items-center justify-center bg-gray-800"><div className="text-white text-center"><div className="animate-spin rounded-full h-6 sm:h-9 w-6 sm:w-9 border-t-2 border-white mx-auto mb-2 sm:mb-3"></div><p className="text-xs sm:text-base">Waiting for partner...</p></div></div>)}
-            </div>
+            {/* Fullscreen Button */}
+            <button 
+              onClick={makeLocalFullScreen} 
+              className="absolute top-3 right-3 p-2 sm:p-2.5 bg-black/70 hover:bg-black/90 backdrop-blur-md rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white shadow-xl hover:scale-110" 
+              title="Expand your video" 
+              aria-label="Expand your video"
+            >
+              <Icon.Expand />
+            </button>
+
+            {viewMode === 'local-full' && (
+              <button 
+                onClick={resetViewMode} 
+                className="absolute top-3 left-3 p-2 sm:p-2.5 bg-black/70 hover:bg-black/90 backdrop-blur-md rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white shadow-xl hover:scale-110 z-10" 
+                title="Exit fullscreen" 
+                aria-label="Exit fullscreen mode"
+              >
+                <Icon.Full on />
+              </button>
+            )}
+
+            {/* Video Status */}
+            {(isMuted || isVideoOff) && (
+              <div className="absolute bottom-3 left-3 flex gap-2">
+                {isMuted && (
+                  <div className="px-3 py-1.5 bg-red-600/90 backdrop-blur-sm rounded-full flex items-center gap-2">
+                    <Icon.Mic off />
+                    <span className="text-xs font-semibold">Muted</span>
+                  </div>
+                )}
+                {isVideoOff && (
+                  <div className="px-3 py-1.5 bg-red-600/90 backdrop-blur-sm rounded-full flex items-center gap-2">
+                    <Icon.Cam off />
+                    <span className="text-xs font-semibold">Camera Off</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-
-          {sharedImage && (<div className="mt-2 sm:mt-3 w-full bg-gray-900 rounded-xl p-2 sm:p-3"><div className="relative w-full h-44 sm:h-60 md:h-72 lg:h-80"><img src={sharedImage} alt="Shared question" className="w-full h-full object-contain bg-gray-800 rounded-lg" /><a href={sharedImage} download target="_blank" rel="noreferrer" className="absolute bottom-2 right-2 px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded-md text-xs sm:text-sm" title="Download image" aria-label="Download shared image">Download</a>{userRole === 'tutor' && (<button onClick={removeSharedImage} className="absolute top-2 right-2 p-1 sm:p-2 bg-red-600 hover:bg-red-700 rounded-full focus:outline-none focus:ring-2 focus:ring-white" title="Remove shared image" aria-label="Remove shared image"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2"/></svg></button>)}</div></div>)}
-
-          {isScreenSharing && (<div className="mt-2"><h3 className="text-sm sm:text-lg font-semibold mb-1 sm:mb-2">Screen Share</h3><div className="relative rounded-xl overflow-hidden shadow-lg"><video ref={screenVideoRef} autoPlay muted playsInline className="w-full h-40 sm:h-80 bg-gray-800 object-cover" aria-label="Shared screen" />{isAnnotationsEnabled && (<canvas ref={annotationCanvasRef} onMouseDown={(e) => startDrawing(e, true)} onMouseMove={(e) => draw(e, true)} onMouseUp={() => stopDrawing(true)} onMouseLeave={() => stopDrawing(true)} onTouchStart={(e) => startDrawing(e, true)} onTouchMove={(e) => draw(e, true)} onTouchEnd={() => stopDrawing(true)} className="absolute inset-0 w-full h-full cursor-crosshair" style={{ touchAction: 'none', pointerEvents: isAnnotationsEnabled ? 'auto' : 'none' }} aria-label="Screen annotations canvas" />)}</div><div className="flex flex-wrap gap-2 mt-1 sm:mt-2"><button onClick={toggleAnnotations} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm ${isAnnotationsEnabled ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-700 hover:bg-gray-600'}`} aria-pressed={isAnnotationsEnabled} title={isAnnotationsEnabled ? 'Disable annotations' : 'Enable annotations'}>{isAnnotationsEnabled ? 'Disable Annotations' : 'Enable Annotations'}</button>{isAnnotationsEnabled && (<button onClick={() => clearWhiteboard(true)} className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-red-600 hover:bg-red-700" title="Clear annotations">Clear Annotations</button>)}</div></div>)}
-
-          {showWhiteboard && (<div className="mt-2"><div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-1 sm:mb-2 gap-2"><h3 className="text-sm sm:text-lg font-semibold">Whiteboard</h3><div className="flex flex-wrap items-center gap-2"><select value={currentPageNumber} onChange={(e) => switchPage(Number(e.target.value))} className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 rounded-md text-xs focus:outline-none" aria-label="Select page">{pages.map(p => (<option key={p.number} value={p.number}>Page {p.number}</option>))}</select><button onClick={addPage} className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-green-600 hover:bg-green-700" title="Add new page">+ Add Page</button><label className="flex items-center gap-1 sm:gap-2"><span className="text-xs opacity-80">Color</span><input type="color" value={drawingColor} onChange={(e) => setDrawingColor(e.target.value)} className="w-6 sm:w-8 h-6 sm:h-8 rounded-md border cursor-pointer" title="Choose color" aria-label="Choose pen color"/></label><label className="flex items-center gap-1 sm:gap-2"><span className="text-xs opacity-80">Size</span><select value={brushSize} onChange={(e) => setBrushSize(Number(e.target.value))} className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 rounded-md text-xs focus:outline-none" aria-label="Brush size">{[1,3,5,10,20].map(s => <option key={s} value={s}>{s}px</option>)}</select></label><label className="flex items-center gap-1 sm:gap-2"><span className="text-xs opacity-80">Tool</span><select value={drawingTool} onChange={(e) => setDrawingTool(e.target.value)} className="px-1 sm:px-2 py-0.5 sm:py-1 bg-gray-700 rounded-md text-xs focus:outline-none" aria-label="Drawing tool"><option value="pen">Pen</option><option value="highlighter">Highlighter</option><option value="eraser">Eraser</option></select></label><button onClick={() => clearWhiteboard()} className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm bg-red-600 hover:bg-red-700" title="Clear page">Clear Page</button></div></div><div ref={whiteboardContainerRef} className="overflow-auto w-full h-[200px] sm:h-[400px] bg-white border-2 border-gray-700 rounded-xl shadow-lg"><canvas ref={canvasRef} onMouseDown={(e) => { startDrawing(e); handleErase(e); }} onMouseMove={(e) => draw(e)} onMouseUp={() => stopDrawing()} onMouseLeave={() => stopDrawing()} onTouchStart={(e) => { startDrawing(e); handleErase(e); }} onTouchMove={(e) => draw(e)} onTouchEnd={() => stopDrawing()} className="w-full h-full touch-none" style={{ touchAction: 'none' }} aria-label="Collaborative whiteboard canvas"/></div></div>)}
         </section>
 
-        {showChat && (<aside className="w-full sm:w-64 md:w-80 bg-gray-800 p-2 sm:p-4 flex flex-col shadow-lg"><div className="flex justify-between items-center mb-2"><h3 className="text-sm sm:text-lg font-semibold">Chat</h3><button onClick={() => setShowChat(false)} className="px-1 sm:px-2 py-0.5 sm:py-1 text-gray-300 hover:text-white rounded text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-white" title="Close chat" aria-label="Close chat panel">Close</button></div><div ref={chatContainerRef} className="flex-1 bg-gray-700 rounded-lg p-2 sm:p-3 overflow-y-auto text-white text-xs sm:text-sm space-y-2" aria-live="polite">{messages.map((msg, i) => { const mine = msg.sender === username; return (<div key={`${i}-${msg.timestamp}`} className={`p-2 rounded-lg max-w-[85%] ${mine ? 'bg-blue-600 ml-auto' : 'bg-gray-600'}`}><p className="text-xs font-semibold">{msg.sender}</p><p>{msg.text}</p><p className="text-[10px] text-gray-200 mt-1">{new Date(msg.timestamp).toLocaleTimeString()}</p></div>); })}{messages.length === 0 && (<div className="text-center text-gray-300 text-xs sm:text-sm">No messages yet</div>)}</div><form className="mt-2 flex" onSubmit={sendMessage}><input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 px-2 sm:px-3 py-1 sm:py-2 bg-gray-600 text-white rounded-l-lg text-xs sm:text-sm focus:outline-none" aria-label="Chat message input"/><button type="submit" className="px-2 sm:px-4 py-1 sm:py-2 bg-blue-600 hover:bg-blue-700 rounded-r-lg transition-colors font-semibold text-xs sm:text-sm" aria-label="Send message" title="Send">Send</button></form></aside>)}
+        {/* Partner Video (50%) */}
+        <section className="flex-1 relative group">
+          <div className="relative h-full w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-gray-700/50 hover:border-purple-500/50 transition-all duration-300">
+            <video 
+              ref={remoteVideoRef} 
+              autoPlay 
+              playsInline 
+              className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 object-cover" 
+              aria-label="Partner video" 
+            />
+            
+            {/* Video Label */}
+            <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full border border-gray-700/50">
+              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              <span className="text-xs sm:text-sm font-semibold text-white">
+                {userRole === 'interviewer' ? 'Candidate' : 'Interviewer'}
+              </span>
+            </div>
+
+            {/* Fullscreen Button */}
+            <button 
+              onClick={makeRemoteFullScreen} 
+              className="absolute top-3 right-3 p-2 sm:p-2.5 bg-black/70 hover:bg-black/90 backdrop-blur-md rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white shadow-xl hover:scale-110" 
+              title="Expand partner video" 
+              aria-label="Expand partner video"
+            >
+              <Icon.Expand />
+            </button>
+
+            {viewMode === 'remote-full' && (
+              <button 
+                onClick={resetViewMode} 
+                className="absolute top-3 left-3 p-2 sm:p-2.5 bg-black/70 hover:bg-black/90 backdrop-blur-md rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white shadow-xl hover:scale-110 z-10" 
+                title="Exit fullscreen" 
+                aria-label="Exit fullscreen mode"
+              >
+                <Icon.Full on />
+              </button>
+            )}
+
+            {/* Waiting for Partner */}
+            {!remoteStream && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-sm">
+                <div className="relative">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <svg className="w-8 h-8 sm:w-10 sm:h-10 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                    </svg>
+                  </div>
+                </div>
+                <p className="mt-4 text-sm sm:text-base text-gray-300 font-medium">Waiting for partner...</p>
+                <p className="mt-1 text-xs text-gray-400">Connecting to {userRole === 'interviewer' ? 'candidate' : 'interviewer'}</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Chat Sidebar */}
+        {showChat && (
+          <aside className="w-full lg:w-80 xl:w-96 bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-700/50 flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700/50">
+              <div className="flex items-center gap-2">
+                <Icon.Chat />
+                <h3 className="text-base sm:text-lg font-bold text-white">Chat</h3>
+              </div>
+              <button 
+                onClick={() => setShowChat(false)} 
+                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all" 
+                title="Close chat" 
+                aria-label="Close chat panel"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            
+            <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto space-y-3" aria-live="polite">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                  <Icon.Chat />
+                  <p className="mt-2 text-sm">No messages yet</p>
+                  <p className="text-xs mt-1">Start the conversation!</p>
+                </div>
+              ) : (
+                messages.map((msg, i) => {
+                  const mine = msg.sender === username;
+                  return (
+                    <div key={`${i}-${msg.timestamp}`} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] rounded-2xl px-4 py-2 shadow-lg ${
+                        mine 
+                          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white' 
+                          : 'bg-gray-800 text-white border border-gray-700/50'
+                      }`}>
+                        <p className="text-xs font-semibold mb-1 opacity-90">{msg.sender}</p>
+                        <p className="text-sm break-words">{msg.text}</p>
+                        <p className="text-[10px] mt-1 opacity-70">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            
+            <form className="p-4 border-t border-gray-700/50" onSubmit={sendMessage}>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newMessage} 
+                  onChange={(e) => setNewMessage(e.target.value)} 
+                  placeholder="Type a message..." 
+                  className="flex-1 px-4 py-3 bg-gray-800 text-white rounded-xl border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-500 text-sm"
+                  aria-label="Chat message input"
+                />
+                <button 
+                  type="submit" 
+                  className="px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl transition-all font-semibold shadow-lg hover:shadow-blue-500/50 active:scale-95 text-sm" 
+                  aria-label="Send message" 
+                  title="Send"
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </aside>
+        )}
       </main>
 
-      <div className="pointer-events-none absolute top-1/4 right-2 flex flex-col gap-2">{reactions.map((r, idx) => (<div key={`${r.username}-${r.timestamp}-${idx}`} className="pointer-events-auto bg-gray-800/90 text-white px-1 sm:px-2 py-0.5 sm:py-1 rounded-full animate-bounce text-xs sm:text-base" role="status">{r.type} {r.username}</div>))}</div>
+      {/* Screen Share Display - Full Width Below Main Area */}
+      {isScreenSharing && screenStream && (
+        <section className="px-2 sm:px-4 pb-2 sm:pb-4">
+          <div className="bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden">
+            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700/50 bg-gray-800/50">
+              <div className="flex items-center gap-2">
+                <Icon.Share />
+                <h3 className="text-sm sm:text-base font-bold text-white">Screen Share</h3>
+                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+              </div>
+              <div className="flex items-center gap-2">
+                {isAnnotationsEnabled && (
+                  <span className="text-xs text-gray-400">Annotations enabled</span>
+                )}
+                <button 
+                  onClick={toggleAnnotations} 
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    isAnnotationsEnabled 
+                      ? 'bg-blue-600/80 hover:bg-blue-700/80 text-white' 
+                      : 'bg-gray-700/80 hover:bg-gray-600/80 text-gray-300'
+                  }`}
+                  aria-pressed={isAnnotationsEnabled}
+                  title={isAnnotationsEnabled ? 'Disable annotations' : 'Enable annotations'}
+                >
+                  {isAnnotationsEnabled ? 'Disable Annotations' : 'Enable Annotations'}
+                </button>
+                {isAnnotationsEnabled && (
+                  <button 
+                    onClick={() => clearWhiteboard(true)} 
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-600/80 hover:bg-red-700/80 text-white transition-all"
+                    title="Clear annotations"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="relative bg-gray-800">
+              <video 
+                ref={screenVideoRef} 
+                autoPlay 
+                muted 
+                playsInline 
+                className="w-full h-auto max-h-[50vh] object-contain" 
+                aria-label="Shared screen" 
+              />
+              {isAnnotationsEnabled && (
+                <canvas 
+                  ref={annotationCanvasRef} 
+                  onMouseDown={(e) => startDrawing(e, true)} 
+                  onMouseMove={(e) => draw(e, true)} 
+                  onMouseUp={() => stopDrawing(true)} 
+                  onMouseLeave={() => stopDrawing(true)} 
+                  onTouchStart={(e) => startDrawing(e, true)} 
+                  onTouchMove={(e) => draw(e, true)} 
+                  onTouchEnd={() => stopDrawing(true)} 
+                  className="absolute inset-0 w-full h-full cursor-crosshair" 
+                  style={{ touchAction: 'none', pointerEvents: isAnnotationsEnabled ? 'auto' : 'none' }} 
+                  aria-label="Screen annotations canvas" 
+                />
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
-      <footer className="flex flex-wrap justify-center gap-1 sm:gap-2 p-1 sm:p-2 bg-gray-800 shadow-md">
-        <button onClick={toggleMute} className={`p-1 sm:p-2 rounded-full transition-colors ${isMuted ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={isMuted ? 'Unmute microphone' : 'Mute microphone'} aria-pressed={isMuted} aria-label="Toggle microphone"><Icon.Mic off={isMuted} /></button>
-        <button onClick={toggleVideo} className={`p-1 sm:p-2 rounded-full transition-colors ${isVideoOff ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={isVideoOff ? 'Turn on camera' : 'Turn off camera'} aria-pressed={isVideoOff} aria-label="Toggle camera"><Icon.Cam off={isVideoOff} /></button>
-        <button onClick={switchCamera} className="p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors" title="Switch camera" aria-label="Switch camera"><Icon.Switch /></button>
-        <div className="relative"> <button onClick={toggleSpeaker} className={`p-1 sm:p-2 rounded-full transition-colors ${isSpeakerOn ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600'}`} title={isSpeakerOn ? 'Mute speaker' : 'Unmute speaker'} aria-pressed={!isSpeakerOn} aria-label="Toggle speaker output"><Icon.Speaker off={!isSpeakerOn} /></button>{audioDevices.length > 0 && (<button onClick={() => {}} className="ml-0.5 sm:ml-1 p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors" title="Choose speaker device" aria-expanded={false} aria-label="Open speaker device menu"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2"/></svg></button>) }</div>
-        <button onClick={toggleScreenShare} className={`p-1 sm:p-2 rounded-full transition-colors ${isScreenSharing ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={isScreenSharing ? 'Stop sharing screen' : 'Share screen'} aria-pressed={isScreenSharing} aria-label="Toggle screen sharing"><Icon.Share /></button>
-        <button onClick={toggleRecording} className={`p-1 sm:p-2 rounded-full transition-colors ${isRecording ? 'bg-red-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={isRecording ? 'Stop recording' : 'Start recording'} aria-pressed={isRecording} aria-label="Toggle recording"><Icon.Record /></button>
-        <button onClick={toggleWhiteboard} className={`p-1 sm:p-2 rounded-full transition-colors ${showWhiteboard ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={showWhiteboard ? 'Hide whiteboard' : 'Show whiteboard'} aria-pressed={showWhiteboard} aria-label="Toggle whiteboard"><Icon.Board /></button>
-        <button onClick={() => setShowChat(prev => !prev)} className={`p-1 sm:p-2 rounded-full transition-colors ${showChat ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={showChat ? 'Hide chat' : 'Show chat'} aria-pressed={showChat} aria-label="Toggle chat"><Icon.Chat /></button>
+      {/* Shared Image Display */}
+      {sharedImage && (
+        <section className="px-2 sm:px-4 pb-2 sm:pb-4">
+          <div className="bg-gray-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden">
+            <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700/50 bg-gray-800/50">
+              <div className="flex items-center gap-2">
+                <Icon.Question />
+                <h3 className="text-sm sm:text-base font-bold text-white">Shared Question</h3>
+              </div>
+              {userRole === 'tutor' && (
+                <button 
+                  onClick={removeSharedImage} 
+                  className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-all" 
+                  title="Remove shared image" 
+                  aria-label="Remove shared image"
+                >
+                  <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+            <div className="relative p-4 bg-gray-800">
+              <img 
+                src={sharedImage} 
+                alt="Shared question" 
+                className="w-full h-auto max-h-[60vh] object-contain rounded-lg" 
+              />
+              <a 
+                href={sharedImage} 
+                download 
+                target="_blank" 
+                rel="noreferrer" 
+                className="absolute bottom-6 right-6 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium transition-all shadow-lg flex items-center gap-2" 
+                title="Download image" 
+                aria-label="Download shared image"
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                </svg>
+                Download
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Reactions Overlay */}
+      <div className="pointer-events-none absolute top-24 right-3 sm:right-6 flex flex-col gap-2 z-50">
+        {reactions.map((r, idx) => (
+          <div 
+            key={`${r.username}-${r.timestamp}-${idx}`} 
+            className="pointer-events-auto bg-gray-900/90 backdrop-blur-md text-white px-3 py-2 rounded-full animate-bounce shadow-2xl border border-gray-700/50" 
+            role="status"
+          >
+            <span className="text-lg">{r.type}</span>
+            <span className="text-xs ml-2 opacity-80">{r.username}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Professional Footer Controls */}
+      <footer className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-4 bg-gray-900/95 backdrop-blur-md shadow-2xl border-t border-gray-700/50">
+        {/* Microphone */}
+        <button 
+          onClick={toggleMute} 
+          className={`group relative p-3 sm:p-3.5 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            isMuted 
+              ? 'bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-500' 
+              : 'bg-gray-800/80 hover:bg-gray-700/90 focus:ring-gray-600'
+          }`}
+          title={isMuted ? 'Unmute microphone' : 'Mute microphone'}
+          aria-pressed={isMuted}
+          aria-label="Toggle microphone"
+        >
+          <Icon.Mic off={isMuted} />
+          <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+            {isMuted ? 'Unmute' : 'Mute'}
+          </span>
+        </button>
+
+        {/* Camera */}
+        <button 
+          onClick={toggleVideo} 
+          className={`group relative p-3 sm:p-3.5 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            isVideoOff 
+              ? 'bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-500' 
+              : 'bg-gray-800/80 hover:bg-gray-700/90 focus:ring-gray-600'
+          }`}
+          title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
+          aria-pressed={isVideoOff}
+          aria-label="Toggle camera"
+        >
+          <Icon.Cam off={isVideoOff} />
+          <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+            {isVideoOff ? 'Turn On' : 'Turn Off'}
+          </span>
+        </button>
+
+        {/* Switch Camera */}
+        <button 
+          onClick={switchCamera} 
+          className="group relative p-3 sm:p-3.5 rounded-2xl bg-gray-800/80 hover:bg-gray-700/90 transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:ring-offset-2 focus:ring-offset-gray-900"
+          title="Switch camera"
+          aria-label="Switch camera"
+        >
+          <Icon.Switch />
+          <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+            Switch
+          </span>
+        </button>
+
+        {/* Speaker */}
+        <button 
+          onClick={toggleSpeaker} 
+          className={`group relative p-3 sm:p-3.5 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            !isSpeakerOn 
+              ? 'bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-500' 
+              : 'bg-gray-800/80 hover:bg-gray-700/90 focus:ring-gray-600'
+          }`}
+          title={isSpeakerOn ? 'Mute speaker' : 'Unmute speaker'}
+          aria-pressed={!isSpeakerOn}
+          aria-label="Toggle speaker output"
+        >
+          <Icon.Speaker off={!isSpeakerOn} />
+          <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+            {isSpeakerOn ? 'Mute' : 'Unmute'}
+          </span>
+        </button>
+
+        {/* Divider */}
+        <div className="hidden sm:block w-px h-10 bg-gray-700/50"></div>
+
+        {/* Screen Share */}
+        <button 
+          onClick={toggleScreenShare} 
+          className={`group relative p-3 sm:p-3.5 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            isScreenSharing 
+              ? 'bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500' 
+              : 'bg-gray-800/80 hover:bg-gray-700/90 focus:ring-gray-600'
+          }`}
+          title={isScreenSharing ? 'Stop sharing screen' : 'Share screen'}
+          aria-pressed={isScreenSharing}
+          aria-label="Toggle screen sharing"
+        >
+          <Icon.Share />
+          <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+            {isScreenSharing ? 'Stop Share' : 'Share'}
+          </span>
+        </button>
+
+        {/* Recording */}
+        <button 
+          onClick={toggleRecording} 
+          className={`group relative p-3 sm:p-3.5 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            isRecording 
+              ? 'bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 focus:ring-red-500 animate-pulse' 
+              : 'bg-gray-800/80 hover:bg-gray-700/90 focus:ring-gray-600'
+          }`}
+          title={isRecording ? 'Stop recording' : 'Start recording'}
+          aria-pressed={isRecording}
+          aria-label="Toggle recording"
+        >
+          <Icon.Record />
+          <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+            {isRecording ? 'Stop' : 'Record'}
+          </span>
+        </button>
+
+        {/* Chat */}
+        <button 
+          onClick={() => setShowChat(prev => !prev)} 
+          className={`group relative p-3 sm:p-3.5 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            showChat 
+              ? 'bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500' 
+              : 'bg-gray-800/80 hover:bg-gray-700/90 focus:ring-gray-600'
+          }`}
+          title={showChat ? 'Hide chat' : 'Show chat'}
+          aria-pressed={showChat}
+          aria-label="Toggle chat"
+        >
+          <Icon.Chat />
+          <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+            Chat
+          </span>
+        </button>
+
+        {/* Reactions */}
         <div className="relative">
-          <button onClick={() => setShowReactionsMenu(prev => !prev)} className="p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors" title="Send reaction" aria-expanded={showReactionsMenu} aria-label="Open reactions"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 17a4 4 0 0 1-4-4M9 9h.01M15 9h.01" stroke="currentColor" strokeWidth="2" fill="none"/><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" fill="none"/></svg></button>
-          {showReactionsMenu && (<div className="fixed top-2 left-1/2 -translate-x-1/2 bg-gray-900 border border-gray-700 rounded-md p-1 sm:p-2 flex flex-row gap-1 sm:gap-2 z-[1000] shadow-lg">{['😊', '👍', '👏', '❤️', '😂', '😮', '😢', '😡'].map((emoji) => (<button key={emoji} onClick={() => sendReaction(emoji)} className="p-1 rounded hover:bg-gray-700 text-sm sm:text-lg transition-colors" aria-label={`Send ${emoji}`}>{emoji}</button>))}</div>)}
+          <button 
+            onClick={() => setShowReactionsMenu(prev => !prev)} 
+            className="group relative p-3 sm:p-3.5 rounded-2xl bg-gray-800/80 hover:bg-gray-700/90 transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:ring-offset-2 focus:ring-offset-gray-900"
+            title="Send reaction"
+            aria-expanded={showReactionsMenu}
+            aria-label="Open reactions"
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24">
+              <path d="M12 17a4 4 0 0 1-4-4M9 9h.01M15 9h.01" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" fill="none"/>
+            </svg>
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+              React
+            </span>
+          </button>
+          {showReactionsMenu && (
+            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-900/95 backdrop-blur-md border border-gray-700/50 rounded-2xl p-2 flex gap-2 z-[1000] shadow-2xl">
+              {['😊', '👍', '👏', '❤️', '😂', '😮', '😢', '😡'].map((emoji) => (
+                <button 
+                  key={emoji} 
+                  onClick={() => sendReaction(emoji)} 
+                  className="p-2 rounded-xl hover:bg-gray-800/80 text-xl transition-all hover:scale-110 active:scale-95" 
+                  aria-label={`Send ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-        <button onClick={() => toggleBackground(virtualBackground === 'blur' ? 'none' : 'blur')} className={`p-1 sm:p-2 rounded-full transition-colors ${virtualBackground !== 'none' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={virtualBackground !== 'none' ? 'Remove background blur' : 'Apply background blur'} aria-pressed={virtualBackground !== 'none'} aria-label="Toggle background blur"><Icon.Blur /></button>
-        <button onClick={toggleFullScreen} className={`p-1 sm:p-2 rounded-full transition-colors ${isFullScreen ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'}`} title={isFullScreen ? 'Exit full screen' : 'Enter full screen'} aria-pressed={isFullScreen} aria-label="Toggle fullscreen"><Icon.Full on={isFullScreen} /></button>
-        {userRole === 'tutor' && (<div className="relative"><button onClick={() => imageInputRef.current?.click()} className="p-1 sm:p-2 rounded-full bg-gray-700 hover:bg-gray-600 transition-colors" title="Add question image" aria-label="Add question image"><Icon.Question /></button><input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" aria-hidden="true" /></div>)}
+
+        {/* Divider */}
+        <div className="hidden sm:block w-px h-10 bg-gray-700/50"></div>
+
+        {/* Background Blur */}
+        <button 
+          onClick={() => toggleBackground(virtualBackground === 'blur' ? 'none' : 'blur')} 
+          className={`group relative p-3 sm:p-3.5 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            virtualBackground !== 'none' 
+              ? 'bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500' 
+              : 'bg-gray-800/80 hover:bg-gray-700/90 focus:ring-gray-600'
+          }`}
+          title={virtualBackground !== 'none' ? 'Remove background blur' : 'Apply background blur'}
+          aria-pressed={virtualBackground !== 'none'}
+          aria-label="Toggle background blur"
+        >
+          <Icon.Blur />
+          <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+            {virtualBackground !== 'none' ? 'Remove Blur' : 'Blur'}
+          </span>
+        </button>
+
+        {/* Fullscreen */}
+        <button 
+          onClick={toggleFullScreen} 
+          className={`group relative p-3 sm:p-3.5 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 ${
+            isFullScreen 
+              ? 'bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-blue-500' 
+              : 'bg-gray-800/80 hover:bg-gray-700/90 focus:ring-gray-600'
+          }`}
+          title={isFullScreen ? 'Exit full screen' : 'Enter full screen'}
+          aria-pressed={isFullScreen}
+          aria-label="Toggle fullscreen"
+        >
+          <Icon.Full on={isFullScreen} />
+          <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+            {isFullScreen ? 'Exit' : 'Fullscreen'}
+          </span>
+        </button>
+
+        {/* Question Image Upload (Tutor only) */}
+        {userRole === 'tutor' && (
+          <div className="relative">
+            <button 
+              onClick={() => imageInputRef.current?.click()} 
+              className="group relative p-3 sm:p-3.5 rounded-2xl bg-gray-800/80 hover:bg-gray-700/90 transition-all shadow-lg hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:ring-offset-2 focus:ring-offset-gray-900"
+              title="Add question image"
+              aria-label="Add question image"
+            >
+              <Icon.Question />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-gray-900/95 backdrop-blur-md px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none shadow-xl border border-gray-700/50 z-50">
+                Question
+              </span>
+            </button>
+            <input 
+              ref={imageInputRef} 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageUpload} 
+              className="hidden" 
+              aria-hidden="true" 
+            />
+          </div>
+        )}
       </footer>
+
+      {/* Fullscreen Notification - ESC to Exit */}
+      {showFullscreenNotification && (
+        <div 
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-[10000] transition-all duration-500 ease-out"
+          style={{ animation: 'slideDown 0.5s ease-out' }}
+        >
+          <div className="bg-gray-900/95 backdrop-blur-md border-2 border-blue-500/50 rounded-2xl px-6 py-4 shadow-2xl flex items-center gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-white font-semibold text-sm">Fullscreen Mode Active</p>
+              <p className="text-gray-300 text-xs mt-0.5">Press <kbd className="px-2 py-0.5 bg-gray-800 rounded border border-gray-700 font-mono text-blue-400">ESC</kbd> to exit</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <style>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -20px);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, 0);
+          }
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        
+        .animate-slideUp {
+          animation: slideUp 0.4s ease-out;
+        }
+      `}</style>
 
       {/* Waiting for completion overlay */}
       {isWaitingForCompletion && (

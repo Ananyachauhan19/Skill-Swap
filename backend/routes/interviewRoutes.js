@@ -8,6 +8,9 @@ const ctrl = require('../controllers/interviewController');
 // Create interview request (by logged-in user)
 router.post('/create', requireAuth, ctrl.submitRequest);
 
+// Upload resume for interview request
+router.post('/upload-resume', requireAuth, ctrl.uploadResume);
+
 // Apply to become an interviewer (upload resume)
 router.post('/apply', requireAuth, ctrl.applyInterviewer);
 
@@ -24,6 +27,9 @@ router.get('/employee/applications', requireEmployee, requireEmployeeAccess('int
 
 // Get current user's application
 router.get('/application', requireAuth, ctrl.getMyApplication);
+
+// Get interviewer verification status
+router.get('/verification-status', requireAuth, ctrl.getInterviewerStatus);
 
 // Admin approve application
 router.post('/applications/:id/approve', requireAuth, requireAdmin, ctrl.approveApplication);

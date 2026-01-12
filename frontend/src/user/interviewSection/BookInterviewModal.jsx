@@ -6,7 +6,6 @@ import { BACKEND_URL } from '../../config.js';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ToastContext';
 import { COMPANIES, POSITIONS } from '../../constants/interviewData';
-import { supabase } from '../../lib/supabaseClient';
 
 function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilledData }) {
   const [company, setCompany] = useState('');
@@ -98,11 +97,11 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
     setResumeError('');
     setResumeFile(file);
     
-    // Auto-upload resume to Supabase
-    await uploadResumeToSupabase(file);
+    // Auto-upload resume to backend (Cloudinary)
+    await uploadResumeToBackend(file);
   };
 
-  const uploadResumeToSupabase = async (file) => {
+  const uploadResumeToBackend = async (file) => {
     if (!user?._id) {
       setResumeError('User not authenticated');
       return;
@@ -112,40 +111,44 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
     setResumeError('');
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const timestamp = Date.now();
-      const fileName = `${timestamp}_resume.${fileExt}`;
-      const filePath = `${user._id}/${fileName}`;
+      const formData = new FormData();
+      formData.append('resume', file);
 
-      const { data, error } = await supabase.storage
-        .from('bookresume')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      const response = await fetch(`${BACKEND_URL}/api/interview/upload-resume`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
 
-      if (error) {
-        console.error('Supabase upload error:', error);
-        setResumeError('Failed to upload resume. Please try again.');
-        setResumeFile(null);
-        return;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to upload resume');
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('bookresume')
-        .getPublicUrl(filePath);
-
-      if (urlData?.publicUrl) {
-        setResumeUrl(urlData.publicUrl);
-        setResumeFileName(file.name);
+      const data = await response.json();
+      
+      if (data.resumeUrl) {
+        setResumeUrl(data.resumeUrl);
+        setResumeFileName(data.resumeFileName || file.name);
+        addToast({
+          title: 'Resume Uploaded',
+          message: 'Your resume has been uploaded successfully.',
+          variant: 'success',
+          timeout: 3000,
+        });
       } else {
-        setResumeError('Failed to get resume URL');
+        throw new Error('No resume URL returned from server');
       }
     } catch (err) {
       console.error('Resume upload error:', err);
-      setResumeError('Upload failed. Please try again.');
+      setResumeError(err.message || 'Upload failed. Please try again.');
       setResumeFile(null);
+      addToast({
+        title: 'Upload Failed',
+        message: err.message || 'Failed to upload resume. Please try again.',
+        variant: 'error',
+        timeout: 4000,
+      });
     } finally {
       setResumeUploading(false);
     }

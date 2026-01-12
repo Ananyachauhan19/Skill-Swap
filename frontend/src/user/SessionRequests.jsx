@@ -11,8 +11,7 @@ import {
   FaHandshake,
   FaHome,
   FaBars,
-  FaFileAlt,
-  FaCoins
+  FaFileAlt
 } from 'react-icons/fa';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket';
@@ -20,7 +19,6 @@ import { useAuth } from '../context/AuthContext';
 import SessionRatingModal from '../components/SessionRatingModal.jsx';
 import DateTimePicker from '../components/DateTimePicker.jsx';
 import { useToast } from '../components/ToastContext';
-import CoinHistory from '../components/CoinHistory.jsx';
 
 const SessionRequests = () => {
   const [interviewRequests, setInterviewRequests] = useState({ received: [], sent: [] });
@@ -52,11 +50,11 @@ const SessionRequests = () => {
       const view = params.get('view');
       
       // Set request type from tab param
-      if (tab === 'session' || tab === 'expert' || tab === 'skillmate' || tab === 'interview' || tab === 'coinhistory') {
+      if (tab === 'session' || tab === 'expert' || tab === 'skillmate' || tab === 'interview') {
         setRequestType(tab);
       }
       
-      // Set active tab from view param (not applicable for coinhistory)
+      // Set active tab from view param
       if (view === 'sent' || view === 'received') {
         setActiveTab(view);
       }
@@ -1851,21 +1849,6 @@ const SessionRequests = () => {
                 </span>
               )}
             </button>
-
-            <button
-              onClick={() => {
-                setRequestType('coinhistory');
-                navigate('/session-requests?tab=coinhistory', { replace: true });
-              }}
-              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
-                requestType === 'coinhistory'
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                  : 'hover:bg-slate-50 text-slate-600'
-              }`}
-            >
-              <FaCoins className="text-xs" />
-              <span className="font-medium">Coin History</span>
-            </button>
           </nav>
         </div>
 
@@ -2107,8 +2090,7 @@ const SessionRequests = () => {
           />
 
           {/* Tabs */}
-          {requestType !== 'coinhistory' && (
-            <div className="mb-4 sm:mb-6">
+          <div className="mb-4 sm:mb-6">
               <div className="inline-flex gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-lg w-full sm:w-auto">
                 <button
                   onClick={() => {
@@ -2163,9 +2145,7 @@ const SessionRequests = () => {
           )}
 
           <div className="space-y-3">
-            {requestType === 'coinhistory' ? (
-              <CoinHistory />
-            ) : requestType === 'session' ? (
+            {requestType === 'session' ? (
               activeTab === 'received' ? (
                 requests.received.length === 0 ? (
                   <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">

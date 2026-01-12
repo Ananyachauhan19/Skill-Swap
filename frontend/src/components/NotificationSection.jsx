@@ -463,10 +463,19 @@ const NotificationSection = ({ userId }) => {
           n.type === 'expert-session-rejected' ||
           n.type === 'expert-session-reminder' ||
           n.type === 'interview-requested' ||
+          n.type === 'interview-assigned' ||
           n.type === 'interview-approved' ||
           n.type === 'interview-rejected' ||
           n.type === 'interview-started' ||
-          n.type === 'interview-cancelled'
+          n.type === 'interview-cancelled' ||
+          n.type === 'interview-scheduled' ||
+          n.type === 'interview-rescheduled' ||
+          n.type === 'interview-slots-suggested' ||
+          n.type === 'interview-slots-accepted' ||
+          n.type === 'interview-alternate-suggested' ||
+          n.type === 'interview-alternate-rejected' ||
+          n.type === 'interview-approved-confirmation' ||
+          n.type?.includes('interview')
       );
     } else if (activeTab === 'skillmate') {
       filtered = filtered.filter(
@@ -495,10 +504,18 @@ const NotificationSection = ({ userId }) => {
       'expert-session-rejected',
       'expert-session-reminder',
       'interview-requested',
+      'interview-assigned',
       'interview-approved',
       'interview-rejected',
       'interview-started',
       'interview-cancelled',
+      'interview-scheduled',
+      'interview-rescheduled',
+      'interview-slots-suggested',
+      'interview-slots-accepted',
+      'interview-alternate-suggested',
+      'interview-alternate-rejected',
+      'interview-approved-confirmation',
     ];
     const skillmateTypes = [
       'skillmate-requested',
@@ -508,7 +525,7 @@ const NotificationSection = ({ userId }) => {
       'chat-message',
     ];
     const allUnread = notifications.filter((n) => n && !n.read).length;
-    const sessionUnread = notifications.filter((n) => n && !n.read && sessionTypes.includes(n.type)).length;
+    const sessionUnread = notifications.filter((n) => n && !n.read && (sessionTypes.includes(n.type) || n.type?.includes('interview'))).length;
     const skillmateUnread = notifications.filter((n) => n && !n.read && skillmateTypes.includes(n.type)).length;
     return { all: allUnread, session: sessionUnread, skillmate: skillmateUnread };
   };
@@ -900,12 +917,24 @@ const NotificationSection = ({ userId }) => {
                       <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'You have a new interview request.'}
                       </p>
-                      <button
-                        onClick={() => handleNotificationRead(n._id, idx)}
-                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                      >
-                        Mark as Read
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setShow(false);
+                            navigate('/session-requests?tab=interview&view=received');
+                            handleNotificationRead(n._id, idx);
+                          }}
+                          className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          View Request
+                        </button>
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   ) : n.type === 'interview-approved' ? (
                     <div className="p-4">
@@ -934,12 +963,24 @@ const NotificationSection = ({ userId }) => {
                       <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'Your interview request has been approved.'}
                       </p>
-                      <button
-                        onClick={() => handleNotificationRead(n._id, idx)}
-                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                      >
-                        Mark as Read
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setShow(false);
+                            navigate('/session-requests?tab=interview&view=sent');
+                            handleNotificationRead(n._id, idx);
+                          }}
+                          className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   ) : n.type === 'interview-rejected' ? (
                     <div className="p-4">
@@ -968,12 +1009,24 @@ const NotificationSection = ({ userId }) => {
                       <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'Your interview request has been rejected.'}
                       </p>
-                      <button
-                        onClick={() => handleNotificationRead(n._id, idx)}
-                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                      >
-                        Mark as Read
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setShow(false);
+                            navigate('/session-requests?tab=interview&view=sent');
+                            handleNotificationRead(n._id, idx);
+                          }}
+                          className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   ) : n.type === 'interview-started' ? (
                     <div className="p-4">
@@ -1050,12 +1103,24 @@ const NotificationSection = ({ userId }) => {
                       <p className="text-sm text-gray-700 mb-3">
                         {n.message || 'Your interview has been cancelled.'}
                       </p>
-                      <button
-                        onClick={() => handleNotificationRead(n._id, idx)}
-                        className="text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                      >
-                        Mark as Read
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setShow(false);
+                            navigate('/session-requests?tab=interview');
+                            handleNotificationRead(n._id, idx);
+                          }}
+                          className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          View Interviews
+                        </button>
+                        <button
+                          onClick={() => handleNotificationRead(n._id, idx)}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-lg transition-colors duration-200"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
                     </div>
                   ) : n.type === 'skillmate-requested' && n.skillMateRequest ? (
                     <div className="p-4">

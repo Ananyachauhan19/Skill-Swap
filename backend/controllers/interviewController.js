@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const supabase = require('../utils/supabaseClient');
+const cloudinary = require('../utils/cloudinary');
 const { sendMail } = require('../utils/sendMail');
 const T = require('../utils/emailTemplates');
 const { expireOverdueInterviews } = require('../cron/expireInterviews');
@@ -215,17 +216,71 @@ async function maybeAutoScheduleInterview(reqDoc, app) {
   }
 }
 
-// Multer memory storage for uploading resume directly to Supabase
-// Accept only PDF up to 2MB
+// Multer memory storage for uploading resume
+// Accept PDF, DOC, DOCX up to 5MB
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (ext !== '.pdf') return cb(new Error('Resume must be a PDF'));
+    const allowedExts = ['.pdf', '.doc', '.docx'];
+    if (!allowedExts.includes(ext)) {
+      return cb(new Error('Resume must be PDF, DOC, or DOCX'));
+    }
     cb(null, true);
   }
 });
+
+// Upload resume to Cloudinary for interview request
+exports.uploadResume = [upload.single('resume'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No resume file provided' });
+    }
+
+    const userId = req.user._id;
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    const timestamp = Date.now();
+    const fileName = `resume_${userId}_${timestamp}`;
+    const uploadFolder = process.env.CLOUDINARY_RESUME_FOLDER || 'SkillSwaphub/interview-resumes';
+
+    // Upload to Cloudinary
+    const uploadPromise = new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: uploadFolder,
+          public_id: fileName,
+          resource_type: 'raw', // For PDF and DOC files
+          format: ext.substring(1), // Remove the dot from extension
+        },
+        (error, result) => {
+          if (error) {
+            console.error('[Cloudinary] Resume upload failed:', error);
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    const result = await uploadPromise;
+
+    res.status(200).json({
+      message: 'Resume uploaded successfully',
+      resumeUrl: result.secure_url,
+      resumeFileName: req.file.originalname,
+      resumeUploadedAt: new Date()
+    });
+  } catch (err) {
+    console.error('uploadResume error', err);
+    res.status(500).json({ 
+      message: 'Failed to upload resume',
+      error: err.message 
+    });
+  }
+}];
 
 // Create a new interview request (by requester)
 exports.submitRequest = async (req, res) => {
@@ -396,27 +451,39 @@ exports.applyInterviewer = [upload.single('resume'), async (req, res) => {
     const userId = req.user._id;
     let resumePublicUrl = '';
 
-    // Upload resume to Supabase storage if provided
+    // Upload resume to Cloudinary if provided
     if (req.file) {
       try {
         const ext = path.extname(req.file.originalname).toLowerCase();
-        const fileName = `${userId}-${Date.now()}${ext}`;
-        const bucket = process.env.SUPABASE_INTERVIEWER_RESUMES_BUCKET || 'interviewer-resumes';
+        const timestamp = Date.now();
+        const fileName = `interviewer_resume_${userId}_${timestamp}`;
+        const uploadFolder = process.env.CLOUDINARY_INTERVIEWER_RESUME_FOLDER || 'SkillSwaphub/interviewer-resumes';
 
-        const { error: uploadErr } = await supabase.storage
-          .from(bucket)
-          .upload(fileName, req.file.buffer, {
-            contentType: 'application/pdf',
-            upsert: false,
-          });
-        if (uploadErr) {
-          console.error('[Supabase] Resume upload failed:', uploadErr);
-          return res.status(500).json({ message: 'Failed to upload resume', detail: uploadErr.message, bucket });
-        }
-        const { data: pub } = supabase.storage.from(bucket).getPublicUrl(fileName);
-        resumePublicUrl = pub.publicUrl;
+        const uploadPromise = new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: uploadFolder,
+              public_id: fileName,
+              resource_type: 'raw', // For PDF and DOC files
+              format: ext.substring(1), // Remove the dot from extension
+            },
+            (error, result) => {
+              if (error) {
+                console.error('[Cloudinary] Interviewer resume upload failed:', error);
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          );
+          stream.end(req.file.buffer);
+        });
+
+        const result = await uploadPromise;
+        resumePublicUrl = result.secure_url;
+        console.log('[Cloudinary] Interviewer resume uploaded:', resumePublicUrl);
       } catch (uploadCatch) {
-        console.error('[Supabase] Unexpected resume upload error', uploadCatch);
+        console.error('[Cloudinary] Unexpected interviewer resume upload error', uploadCatch);
         return res.status(500).json({ message: 'Unexpected error uploading resume' });
       }
     }
@@ -957,6 +1024,25 @@ exports.getMyApplication = async (req, res) => {
   } catch (err) {
     console.error('getMyApplication error', err);
     res.status(500).json({ message: 'Failed to fetch application' });
+  }
+};
+
+// Get interviewer verification status (for status page)
+exports.getInterviewerStatus = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    
+    const application = await InterviewerApplication.findOne({ user: userId });
+    
+    if (!application) {
+      return res.status(404).json({ message: 'No application found' });
+    }
+    
+    res.json({ application });
+  } catch (err) {
+    console.error('getInterviewerStatus error', err);
+    res.status(500).json({ message: 'Failed to fetch status' });
   }
 };
 
