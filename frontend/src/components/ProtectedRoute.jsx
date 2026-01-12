@@ -26,7 +26,7 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (adminOnly && (!user?.isAdmin || user?.email !== 'skillswaphubb@gmail.com')) {
+  if (adminOnly && (!user?.isAdmin || user?.email !== 'info@skillswaphub.in')) {
     return <Navigate to="/home" replace />;
   }
 

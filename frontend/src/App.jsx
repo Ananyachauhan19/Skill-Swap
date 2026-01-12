@@ -385,7 +385,7 @@ function App() {
   const isRatingPage = location.pathname.startsWith('/rate/');
   const isAssessmentAttemptPage = location.pathname.startsWith('/student/assessment-attempt/');
   const isQuizementAttemptPage = location.pathname.startsWith('/quizement/attempt/');
-  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'skillswaphubb@gmail.com').toLowerCase();
+  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'info@skillswaphub.in').toLowerCase();
   const isAdminUser = !!(user && user.email && user.email.toLowerCase() === adminEmail);
   
   // App initialization state with fade transition

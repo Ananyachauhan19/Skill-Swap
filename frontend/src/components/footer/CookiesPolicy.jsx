@@ -126,7 +126,7 @@ const CookiesPolicy = () => (
       If you have any questions or concerns about our use of cookies, please contact us at:
     </p>
     <p className="mb-1 text-xs sm:text-sm leading-relaxed">
-      📧 <a href="mailto:skillswaphubb@gmail.com" className="text-blue-600 underline hover:text-blue-800">skillswaphubb@gmail.com</a>
+      📧 <a href="mailto:info@skillswaphub.in" className="text-blue-600 underline hover:text-blue-800">info@skillswaphub.in</a>
     </p>
     <p className="mb-6 text-xs sm:text-sm leading-relaxed">
       🌐 <a href="https://www.skillswaphub.in" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">https://www.skillswaphub.in</a>

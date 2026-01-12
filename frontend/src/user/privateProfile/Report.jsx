@@ -139,7 +139,7 @@ const ReportPage = () => {
                 </p>
                 <p className="text-xs sm:text-sm text-blue-700 mt-1">
                   All reports are sent to{" "}
-                  <span className="font-semibold">skillswaphubb@gmail.com</span>
+                  <span className="font-semibold">info@skillswaphub.in</span>
                 </p>
               </div>
             </div>

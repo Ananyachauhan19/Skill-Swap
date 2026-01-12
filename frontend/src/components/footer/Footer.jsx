@@ -232,10 +232,10 @@ const Footer = () => {
                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                   </svg>
                   <a
-                    href="mailto:skillswaphubb@gmail.com"
+                    href="mailto:info@skillswaphub.in"
                     className="text-gray-300 hover:text-white hover:underline text-sm break-all"
                   >
-                    skillswaphubb@gmail.com
+                    info@skillswaphub.in
                   </a>
                 </div>
               </div>

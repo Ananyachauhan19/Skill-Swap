@@ -130,7 +130,7 @@ const Reports = () => {
     <div className="p-3 sm:p-4 lg:p-6 bg-gray-50 min-h-screen">
       <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-1">Reports</h1>
       <p className="text-xs sm:text-sm text-slate-600 mb-3">
-        All reports submitted by users are sent to <span className="font-semibold">skillswaphubb@gmail.com</span> and listed here.
+        All reports submitted by users are sent to <span className="font-semibold">info@skillswaphub.in</span> and listed here.
       </p>
 
       {/* Filters */}

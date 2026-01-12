@@ -23,7 +23,7 @@ const ToastSocketBridge = () => {
       .trim();
   };
 
-  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'skillswaphubb@gmail.com').toLowerCase();
+  const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL || 'info@skillswaphub.in').toLowerCase();
   const isAdminUser = !!(user && user.email && user.email.toLowerCase() === adminEmail);
   const interviewRequestsReceivedPath = isAdminUser ? '/admin/interview-requests' : '/session-requests?tab=interview&view=received';
   const interviewRequestsSentPath = isAdminUser ? '/admin/interview-requests' : '/session-requests?tab=interview&view=sent';
