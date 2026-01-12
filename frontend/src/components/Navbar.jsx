@@ -11,7 +11,7 @@ import { BACKEND_URL } from '../config.js';
 import socket from '../socket.js';
 
 // useSessionSocketNotifications hook for handling socket notifications
-function useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins, setBronzeCoins) {
+function useSessionSocketNotifications(setNotifications, setActiveVideoCall, setSilverCoins, setBronzeCoins) {
   useEffect(() => {
     const userCookie = Cookies.get('user');
     const user = userCookie ? JSON.parse(userCookie) : null;
@@ -299,10 +299,9 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall, set
     });
 
     // Listen for coin balance updates
-    if (typeof setGoldenCoins === 'function' && typeof setSilverCoins === 'function') {
+    if (typeof setSilverCoins === 'function') {
       socket.on('coins-updated', (data) => {
-        if (data && typeof data.golden === 'number' && typeof data.silver === 'number') {
-          setGoldenCoins(data.golden);
+        if (data && typeof data.silver === 'number') {
           setSilverCoins(data.silver);
           if (typeof setBronzeCoins === 'function' && typeof data.bronze === 'number') {
             setBronzeCoins(data.bronze);
@@ -323,11 +322,11 @@ function useSessionSocketNotifications(setNotifications, setActiveVideoCall, set
       socket.off('skillmate-request-sent');
       socket.off('skillmate-request-approved');
       socket.off('skillmate-request-rejected');
-      if (typeof setGoldenCoins === 'function' && typeof setSilverCoins === 'function') {
+      if (typeof setSilverCoins === 'function') {
         socket.off('coins-updated');
       }
     };
-  }, [setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins]);
+  }, [setNotifications, setActiveVideoCall, setSilverCoins]);
 }
 
 const Navbar = () => {
@@ -341,7 +340,6 @@ const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [notifications, setNotifications] = useState([]);
-  const [goldenCoins, setGoldenCoins] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
   const [bronzeCoins, setBronzeCoins] = useState(0);
   const [user, setUser] = useState(null);
@@ -409,10 +407,9 @@ const Navbar = () => {
       if (response.ok) {
         const data = await response.json();
         console.log('[Navbar] Coins data received:', data);
-        setGoldenCoins(data.golden || 0);
         setSilverCoins(data.silver || 0);
         setBronzeCoins(data.bronze || 0);
-        console.log('[Navbar] Coins state updated - Golden:', data.golden, 'Silver:', data.silver, 'Bronze:', data.bronze);
+        console.log('[Navbar] Coins state updated - Silver:', data.silver, 'Bronze:', data.bronze);
       } else {
         console.warn('[Navbar] Coins fetch failed with status:', response.status);
       }
@@ -654,7 +651,6 @@ const Navbar = () => {
             socket.emit('register', user._id);
           }
         } else {
-          setGoldenCoins(0);
           setSilverCoins(0);
           setNotifications([]);
         }
@@ -771,7 +767,7 @@ const Navbar = () => {
     };
   }, []);
 
-  useSessionSocketNotifications(setNotifications, setActiveVideoCall, setGoldenCoins, setSilverCoins, setBronzeCoins);
+  useSessionSocketNotifications(setNotifications, setActiveVideoCall, setSilverCoins, setBronzeCoins);
 
   // Listen for request count updates from SessionRequests page (dual approach)
   useEffect(() => {
@@ -1066,12 +1062,6 @@ const Navbar = () => {
                     <div className="absolute right-0 mt-2 w-44 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50">
                       <div className="p-3 space-y-2 text-xs font-medium text-gray-700">
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-blue-900">G</span>
-                          </div>
-                          <span className="text-gray-800">Golden: {goldenCoins}</span>
-                        </div>
-                        <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
                           <div className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
                             <span className="text-[10px] font-bold text-blue-900">S</span>
                           </div>
@@ -1200,7 +1190,6 @@ const Navbar = () => {
           menuRef={menuRef}
           setMenuOpen={setMenuOpen}
           ProfileDropdown={ProfileDropdown}
-          goldenCoins={goldenCoins}
           silverCoins={silverCoins}
           notifications={notifications}
           setNotifications={setNotifications}

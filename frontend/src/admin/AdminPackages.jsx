@@ -15,7 +15,6 @@ const AdminPackages = () => {
     description: '',
     type: 'ONLY_SILVER',
     silverCoins: 0,
-    goldenCoins: 0,
     displayOrder: 0
   });
 
@@ -55,7 +54,6 @@ const AdminPackages = () => {
       description: '',
       type: 'ONLY_SILVER',
       silverCoins: 0,
-      goldenCoins: 0,
       displayOrder: 0
     });
     setEditingPackage(null);
@@ -68,7 +66,6 @@ const AdminPackages = () => {
         description: pkg.description,
         type: pkg.type,
         silverCoins: pkg.silverCoins,
-        goldenCoins: pkg.goldenCoins,
         displayOrder: pkg.displayOrder || 0
       });
       setEditingPackage(pkg);
@@ -87,7 +84,7 @@ const AdminPackages = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'silverCoins' || name === 'goldenCoins' || name === 'displayOrder'
+      [name]: name === 'silverCoins' || name === 'displayOrder'
         ? parseInt(value) || 0
         : value
     }));
@@ -97,15 +94,12 @@ const AdminPackages = () => {
     const type = e.target.value;
     setFormData(prev => ({
       ...prev,
-      type,
-      // Reset coins based on type
-      silverCoins: type === 'ONLY_GOLDEN' ? 0 : prev.silverCoins,
-      goldenCoins: type === 'ONLY_SILVER' ? 0 : prev.goldenCoins
+      type
     }));
   };
 
   const calculatePrice = () => {
-    return (formData.silverCoins * 0.25) + (formData.goldenCoins * 2);
+    return (formData.silverCoins * 0.25);
   };
 
   const handleSubmit = async (e) => {
@@ -113,15 +107,7 @@ const AdminPackages = () => {
 
     // Validation
     if (formData.type === 'ONLY_SILVER' && formData.silverCoins <= 0) {
-      showMessage('error', 'Silver-only packages must have silver coins');
-      return;
-    }
-    if (formData.type === 'ONLY_GOLDEN' && formData.goldenCoins <= 0) {
-      showMessage('error', 'Golden-only packages must have golden coins');
-      return;
-    }
-    if (formData.type === 'COMBO' && (formData.silverCoins <= 0 || formData.goldenCoins <= 0)) {
-      showMessage('error', 'Combo packages must have both silver and golden coins');
+      showMessage('error', 'Silver packages must have silver coins');
       return;
     }
 
@@ -301,12 +287,6 @@ const AdminPackages = () => {
                     <span className="font-semibold">{pkg.silverCoins} Silver Coins</span>
                   </div>
                 )}
-                {pkg.goldenCoins > 0 && (
-                  <div className="flex items-center text-yellow-700">
-                    <GiTwoCoins className="text-yellow-500 mr-2" />
-                    <span className="font-semibold">{pkg.goldenCoins} Golden Coins</span>
-                  </div>
-                )}
               </div>
 
               {/* Price */}
@@ -378,16 +358,14 @@ const AdminPackages = () => {
                     required
                   >
                     <option value="ONLY_SILVER">Silver Only</option>
-                    <option value="ONLY_GOLDEN">Golden Only</option>
-                    <option value="COMBO">Combo (Silver + Golden)</option>
                   </select>
                 </div>
 
                 {/* Coins */}
-                <div className="grid grid-cols-2 gap-4">
+                <div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Silver Coins {formData.type !== 'ONLY_GOLDEN' && '*'}
+                      Silver Coins *
                     </label>
                     <input
                       type="number"
@@ -395,28 +373,10 @@ const AdminPackages = () => {
                       value={formData.silverCoins}
                       onChange={handleInputChange}
                       min="0"
-                      disabled={formData.type === 'ONLY_GOLDEN'}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                      required={formData.type !== 'ONLY_GOLDEN'}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
                     />
                     <p className="text-xs text-gray-500 mt-1">₹0.25 per coin</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Golden Coins {formData.type !== 'ONLY_SILVER' && '*'}
-                    </label>
-                    <input
-                      type="number"
-                      name="goldenCoins"
-                      value={formData.goldenCoins}
-                      onChange={handleInputChange}
-                      min="0"
-                      disabled={formData.type === 'ONLY_SILVER'}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                      required={formData.type !== 'ONLY_SILVER'}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">₹2 per coin</p>
                   </div>
                 </div>
 

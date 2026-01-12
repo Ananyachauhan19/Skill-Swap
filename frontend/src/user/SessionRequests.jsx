@@ -2142,7 +2142,7 @@ const SessionRequests = () => {
                 </button>
               </div>
             </div>
-          )}
+          
 
           <div className="space-y-3">
             {requestType === 'session' ? (

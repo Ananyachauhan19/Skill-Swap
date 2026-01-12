@@ -18,7 +18,6 @@ const MobileMenu = ({
   menuRef,
   setMenuOpen,
   ProfileDropdown,
-  goldenCoins,
   silverCoins,
   notifications,
   setNotifications,
@@ -75,15 +74,6 @@ const MobileMenu = ({
         <div className="px-4 py-3 border-b border-blue-100 flex-shrink-0 bg-gradient-to-r from-blue-50/50 to-transparent">
           <h3 className="text-xs font-bold text-blue-900 mb-3 uppercase tracking-wide">SkillCoin Balance</h3>
           <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-300 via-yellow-400 to-yellow-600 shadow-md flex items-center justify-center flex-shrink-0 border-2 border-yellow-200">
-                  <span className="text-xs font-bold text-yellow-900">G</span>
-                </div>
-                <span className="text-sm font-bold text-gray-800">Golden Coins</span>
-              </div>
-              <span className="text-lg font-bold text-yellow-700">{goldenCoins}</span>
-            </div>
             <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-gray-50 to-slate-50 border border-gray-300 shadow-sm hover:shadow-md transition-all">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-600 shadow-md flex items-center justify-center flex-shrink-0 border-2 border-gray-300">

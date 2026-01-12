@@ -51,9 +51,8 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   const [callStartTime, setCallStartTime] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
-  const [goldCoins, setGoldCoins] = useState(0);
   const [bronzeCoins, setBronzeCoins] = useState(0);
-  const [initialCoins, setInitialCoins] = useState({ silver: 0, gold: 0, bronze: 0 }); // Store initial values
+  const [initialCoins, setInitialCoins] = useState({ silver: 0, bronze: 0 }); // Store initial values
   const hasEndedRef = useRef(false);
   const sessionStartCoinsRef = useRef(null); // Track coins at session start for accurate backend calculation
 
@@ -433,12 +432,11 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
           }
         };
 
-        const onCoinUpdate = ({ silverCoins, goldCoins, bronzeCoins }) => {
+        const onCoinUpdate = ({ silverCoins, bronzeCoins }) => {
           // Store original values if this is the first update (for backend calculation accuracy)
           if (!sessionStartCoinsRef.current) {
             sessionStartCoinsRef.current = {
               silver: Number(silverCoins ?? 0),
-              gold: Number(goldCoins ?? 0),
               bronze: Number(bronzeCoins ?? 0),
             };
           }
@@ -450,7 +448,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
           
           if (isInitialSetup || callHasEnded) {
             if (silverCoins !== undefined) setSilverCoins(Number(silverCoins ?? 0));
-            if (goldCoins !== undefined) setGoldCoins(Number(goldCoins ?? 0));
             if (bronzeCoins !== undefined) setBronzeCoins(Number(bronzeCoins ?? 0));
           }
 
@@ -462,7 +459,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
             setSessionBalance({ remaining: base, earned: 0, lastTickMinutes: 0 });
             setInitialCoins({ 
               silver: Number(silverCoins ?? 0), 
-              gold: Number(goldCoins ?? 0), 
               bronze: Number(bronzeCoins ?? 0) 
             });
             coinBaselineSetRef.current = true;
@@ -473,7 +469,6 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
             setTutorEarnings({ earned: 0, lastTickMinutes: 0 });
             setInitialCoins({ 
               silver: Number(silverCoins ?? 0), 
-              gold: Number(goldCoins ?? 0), 
               bronze: Number(bronzeCoins ?? 0) 
             });
             tutorBaselineSetRef.current = true;

@@ -10,7 +10,8 @@ const ActivityStatsSection = () => {
     totalUsers: 0,
     totalSessions: 0,
     expertUsers: 0,
-    expertInterviewers: 0
+    expertInterviewers: 0,
+    registeredUsers: 0
   });
   const [loading, setLoading] = useState(true);
   const { ref, inView } = useInView({
@@ -32,7 +33,8 @@ const ActivityStatsSection = () => {
           totalUsers: 0,
           totalSessions: 0,
           expertUsers: 0,
-          expertInterviewers: 0
+          expertInterviewers: 0,
+          registeredUsers: 0
         });
       } finally {
         setLoading(false);
@@ -72,11 +74,11 @@ const ActivityStatsSection = () => {
     },
     {
       id: 4,
-      label: 'Sessions Completed',
-      value: stats.totalSessions,
-      icon: <FaLayerGroup className="text-white" />,
+      label: 'Total Users',
+      value: stats.registeredUsers,
+      icon: <FaUsers className="text-white" />,
       color: 'green',
-      description: 'Knowledge shared daily',
+      description: 'Registered members',
       backgroundImage: 'https://res.cloudinary.com/dbltazdsa/image/upload/v1766589381/webimages/activesession/completesession.jpeg'
     }
   ];
