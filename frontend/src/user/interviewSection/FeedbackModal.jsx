@@ -40,11 +40,11 @@ function FeedbackModal({ isOpen, onClose, interviewer }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-900 to-blue-800 text-white p-6 rounded-t-xl z-10">
+        <div className="sticky top-0 bg-gradient-to-r from-blue-900 to-blue-800 text-white p-4 sm:p-6 rounded-t-xl z-10">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-xl font-bold">Feedback for {interviewerName}</h3>
-              <p className="text-blue-100 text-sm mt-1">
+              <h3 className="text-lg sm:text-xl font-bold">Feedback for {interviewerName}</h3>
+              <p className="text-blue-100 text-xs sm:text-sm mt-1">
                 {interviewer.application?.company || interviewer.user?.college || 'Company'} • {interviewer.application?.position || 'Position'}
               </p>
             </div>
@@ -58,7 +58,7 @@ function FeedbackModal({ isOpen, onClose, interviewer }) {
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+        <div className="p-3 sm:p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 140px)' }}>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-12 h-12 border-4 border-blue-900 border-t-transparent rounded-full animate-spin"></div>
@@ -66,21 +66,21 @@ function FeedbackModal({ isOpen, onClose, interviewer }) {
           ) : feedbackData && feedbackData.totalCount > 0 ? (
             <>
               {/* Rating Distribution */}
-              <div className="bg-gradient-to-br from-blue-50 to-slate-50 rounded-xl p-6 mb-6 border border-blue-100">
+              <div className="bg-gradient-to-br from-blue-50 to-slate-50 rounded-xl p-4 sm:p-6 mb-6 border border-blue-100">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h4 className="text-2xl font-bold text-slate-900 mb-1">Customer Reviews</h4>
+                    <h4 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">Customer Reviews</h4>
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">
                         {[...Array(5)].map((_, i) => (
                           <FaStar 
                             key={i} 
                             className={i < Math.round(feedbackData.averageRating) ? 'text-yellow-500' : 'text-gray-300'} 
-                            size={20} 
+                            size={16} 
                           />
                         ))}
                       </div>
-                      <span className="text-xl font-bold text-slate-900">
+                      <span className="text-base sm:text-xl font-bold text-slate-900">
                         {feedbackData.averageRating.toFixed(1)} out of 5
                       </span>
                     </div>
