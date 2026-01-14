@@ -10,6 +10,7 @@ router.post('/quizement/upload', requireEmployee, quizementController.uploadTest
 
 // User routes
 router.get('/quizement/tests', requireAuth, quizementController.listTestsForUser);
+router.get('/quizement/weekly-quizzes', requireAuth, quizementController.getWeeklyQuizzes);
 router.get('/quizement/leaderboard', requireAuth, quizementController.getLeaderboard);
 router.post('/quizement/tests/:testId/unlock', requireAuth, quizementController.unlockTest);
 router.post('/quizement/tests/:testId/start', requireAuth, quizementController.startAttempt);

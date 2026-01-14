@@ -158,6 +158,23 @@ const QuizementEmployeeMyQuizzes = () => {
                       >
                         {quiz.isActive ? 'Active' : 'Inactive'}
                       </span>
+                      {quiz.isPaid && (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                          💰 Paid
+                          {quiz.bronzeCost > 0 && ` 🥉${quiz.bronzeCost}`}
+                          {quiz.silverCost > 0 && ` 🥈${quiz.silverCost}`}
+                        </span>
+                      )}
+                      {!quiz.isPaid && (
+                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                          ✨ Free
+                        </span>
+                      )}
+                      {quiz.course && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          📚 {quiz.course}
+                        </span>
+                      )}
                     </div>
 
                     {quiz.description && (

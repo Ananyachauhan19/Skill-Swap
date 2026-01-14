@@ -99,8 +99,79 @@ exports.getLeaderboard = async (req, res) => {
     const leaders = await fetchQuizementLeaderboard({ type, limit });
     return res.json({ type, leaders });
   } catch (error) {
-    console.error('Quizement leaderboard error:', error);
+    console.error('Leaderboard error:', error);
     return res.status(500).json({ message: 'Failed to load leaderboard' });
+  }
+};
+
+// Get active weekly quizzes (not expired)
+exports.getWeeklyQuizzes = async (req, res) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Find active weekly quizzes that haven't expired
+    const now = new Date();
+    const tests = await QuizementTest.find({
+      isWeeklyQuiz: true,
+      isActive: true,
+      $or: [
+        { expiresAt: { $gt: now } },
+        { expiresAt: null }
+      ]
+    })
+    .populate('createdByQuizementEmployee', 'fullName')
+    .lean();
+
+    // Get user's attempts
+    const attempts = await QuizementAttempt.find({ userId }).lean();
+    const attemptMap = new Map();
+    attempts.forEach((a) => {
+      attemptMap.set(String(a.testId), a);
+    });
+
+    const weeklyQuizzes = tests.map((t) => {
+      const a = attemptMap.get(String(t._id));
+      let status = 'locked';
+      
+      const isFreeQuiz = !!t.createdByQuizementEmployee && !t.isPaid;
+      
+      if (a) {
+        if (a.finished) status = 'attempted';
+        else if (a.started) status = 'in-progress';
+        else if (a.unlocked) status = 'unlocked';
+      } else if (isFreeQuiz) {
+        status = 'unlocked';
+      }
+      
+      return {
+        id: t._id,
+        name: t.name || t.title,
+        description: t.description,
+        duration: t.duration,
+        bronzeCost: isFreeQuiz ? 0 : (t.bronzeCost || 0),
+        silverCost: isFreeQuiz ? 0 : (t.silverCost || 0),
+        totalMarks: t.totalMarks,
+        questionCount: t.questions?.length || 0,
+        status,
+        isFreeQuiz,
+        isPaid: t.isPaid || false,
+        course: t.course || '',
+        isWeeklyQuiz: true,
+        expiresAt: t.expiresAt,
+        daysRemaining: t.expiresAt ? Math.ceil((new Date(t.expiresAt) - now) / (1000 * 60 * 60 * 24)) : null,
+        createdBy: t.createdByQuizementEmployee 
+          ? `${t.createdByQuizementEmployee.fullName} (Quizzment)` 
+          : 'SkillSwap'
+      };
+    });
+
+    return res.json({ weeklyQuizzes });
+  } catch (error) {
+    console.error('Weekly quizzes error:', error);
+    return res.status(500).json({ message: 'Failed to load weekly quizzes' });
   }
 };
 
@@ -286,8 +357,8 @@ exports.listTestsForUser = async (req, res) => {
       const a = attemptMap.get(String(t._id));
       let status = 'locked';
       
-      // If created by Quizzment employee, it's free and unlocked by default
-      const isFreeQuiz = !!t.createdByQuizementEmployee;
+      // Check if quiz is free (either not paid or explicitly marked as free)
+      const isFreeQuiz = !!t.createdByQuizementEmployee && !t.isPaid;
       
       if (a) {
         if (a.finished) status = 'attempted';
@@ -309,6 +380,8 @@ exports.listTestsForUser = async (req, res) => {
         questionCount: t.questions?.length || 0,
         status,
         isFreeQuiz,
+        isPaid: t.isPaid || false,
+        course: t.course || '',
         createdBy: t.createdByQuizementEmployee 
           ? `${t.createdByQuizementEmployee.fullName} (Quizzment)` 
           : 'SkillSwap'
@@ -339,8 +412,8 @@ exports.unlockTest = async (req, res) => {
 
     let attempt = await QuizementAttempt.findOne({ testId: testId, userId: user._id });
     
-    // If it's a free quiz (created by Quizzment employee), auto-unlock without cost
-    const isFreeQuiz = !!test.createdByQuizementEmployee;
+    // If it's a free quiz (created by Quizzment employee and not marked as paid), auto-unlock without cost
+    const isFreeQuiz = !!test.createdByQuizementEmployee && !test.isPaid;
     
     if (isFreeQuiz) {
       if (attempt && attempt.unlocked) {
@@ -373,6 +446,7 @@ exports.unlockTest = async (req, res) => {
       return res.status(400).json({ message: 'Invalid coin type' });
     }
 
+    // Use bronzeCost/silverCost based on coin type
     const cost = coinType === 'bronze' ? (test.bronzeCost || 0) : (test.silverCost || 0);
     const field = coinType === 'bronze' ? 'bronzeCoins' : 'silverCoins';
 
@@ -434,8 +508,8 @@ exports.startAttempt = async (req, res) => {
 
     let attempt = await QuizementAttempt.findOne({ testId: testId, userId: req.user._id });
     
-    // If it's a free quiz and no attempt exists, auto-create and unlock
-    const isFreeQuiz = !!test.createdByQuizementEmployee;
+    // If it's a free quiz (not paid) and no attempt exists, auto-create and unlock
+    const isFreeQuiz = !!test.createdByQuizementEmployee && !test.isPaid;
     
     if (isFreeQuiz && !attempt) {
       attempt = new QuizementAttempt({
