@@ -262,7 +262,7 @@ router.post('/quizement-employee/quizzes', requireQuizementEmployee, (req, res) 
     }
 
     try {
-      const { title, description, duration } = req.body;
+      const { title, description, duration, isPaid, coinCost, course } = req.body;
       
       if (!req.file) {
         return res.status(400).json({ message: 'Excel file is required' });
@@ -270,6 +270,15 @@ router.post('/quizement-employee/quizzes', requireQuizementEmployee, (req, res) 
 
       if (!title || !duration) {
         return res.status(400).json({ message: 'Title and duration are required' });
+      }
+
+      // Validate paid quiz fields
+      const isPaidQuiz = isPaid === 'true' || isPaid === true;
+      const parsedBronzeCost = parseInt(req.body.bronzeCoinCost) || 0;
+      const parsedSilverCost = parseInt(req.body.silverCoinCost) || 0;
+      
+      if (isPaidQuiz && parsedBronzeCost <= 0 && parsedSilverCost <= 0) {
+        return res.status(400).json({ message: 'At least one coin cost (Bronze or Silver) must be greater than 0 for paid quizzes' });
       }
 
       // Parse Excel file
@@ -339,17 +348,20 @@ router.post('/quizement-employee/quizzes', requireQuizementEmployee, (req, res) 
         return res.status(400).json({ message: 'No valid questions found in the Excel file' });
       }
 
-      // Create quiz (free for users - no coin cost)
+      // Create quiz with new fields
       const quiz = await QuizementTest.create({
         name: title.trim(),
         description: description?.trim() || '',
         duration: parseInt(duration),
-        bronzeCost: 0,  // Free quiz
-        silverCost: 0,  // Free quiz
+        bronzeCost: isPaidQuiz ? parsedBronzeCost : 0,
+        silverCost: isPaidQuiz ? parsedSilverCost : 0,
         totalMarks,
         questions,
         createdByQuizementEmployee: req.quizementEmployee._id,
-        isActive: true
+        isActive: true,
+        // New fields
+        isPaid: isPaidQuiz,
+        course: course?.trim() || ''
       });
 
       return res.status(201).json({
@@ -361,12 +373,157 @@ router.post('/quizement-employee/quizzes', requireQuizementEmployee, (req, res) 
           duration: quiz.duration,
           totalMarks: quiz.totalMarks,
           questions: quiz.questions,
-          isActive: quiz.isActive
+          isActive: quiz.isActive,
+          isPaid: quiz.isPaid,
+          bronzeCost: quiz.bronzeCost,
+          silverCost: quiz.silverCost,
+          course: quiz.course
         }
       });
     } catch (error) {
       console.error('Create quiz error:', error);
       return res.status(500).json({ message: 'Failed to create quiz' });
+    }
+  });
+});
+
+// Create WEEKLY quiz via Excel upload (auto-expires after 7 days)
+router.post('/quizement-employee/weekly-quizzes', requireQuizementEmployee, (req, res) => {
+  quizUpload(req, res, async function(err) {
+    if (err instanceof multer.MulterError) {
+      return res.status(400).json({ message: 'File upload error: ' + err.message });
+    } else if (err) {
+      return res.status(400).json({ message: err.message });
+    }
+
+    try {
+      const { title, description, duration, isPaid, course } = req.body;
+      
+      if (!req.file) {
+        return res.status(400).json({ message: 'Excel file is required' });
+      }
+
+      if (!title || !duration) {
+        return res.status(400).json({ message: 'Title and duration are required' });
+      }
+
+      // Validate paid quiz fields
+      const isPaidQuiz = isPaid === 'true' || isPaid === true;
+      const parsedBronzeCost = parseInt(req.body.bronzeCoinCost) || 0;
+      const parsedSilverCost = parseInt(req.body.silverCoinCost) || 0;
+      
+      if (isPaidQuiz && parsedBronzeCost <= 0 && parsedSilverCost <= 0) {
+        return res.status(400).json({ message: 'At least one coin cost (Bronze or Silver) must be greater than 0 for paid quizzes' });
+      }
+
+      // Parse Excel file
+      const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet);
+
+      if (!data.length) {
+        return res.status(400).json({ message: 'Excel file is empty' });
+      }
+
+      // Validate and transform questions
+      const questions = [];
+      const errors = [];
+      let totalMarks = 0;
+
+      data.forEach((row, index) => {
+        const rowNum = index + 2;
+        
+        if (!row.Question || !row.Question.toString().trim()) {
+          errors.push(`Row ${rowNum}: Question text is required`);
+          return;
+        }
+
+        if (!row['Option A'] || !row['Option B'] || !row['Option C'] || !row['Option D']) {
+          errors.push(`Row ${rowNum}: All 4 options (A, B, C, D) are required`);
+          return;
+        }
+
+        const correctAnswer = row['Correct Answer']?.toString().toUpperCase().trim();
+        if (!['A', 'B', 'C', 'D'].includes(correctAnswer)) {
+          errors.push(`Row ${rowNum}: Correct answer must be A, B, C, or D`);
+          return;
+        }
+
+        const marks = parseInt(row.Marks);
+        if (isNaN(marks) || marks < 1) {
+          errors.push(`Row ${rowNum}: Marks must be a positive number`);
+          return;
+        }
+
+        questions.push({
+          questionText: row.Question.toString().trim(),
+          options: [
+            row['Option A'].toString().trim(),
+            row['Option B'].toString().trim(),
+            row['Option C'].toString().trim(),
+            row['Option D'].toString().trim()
+          ],
+          correctAnswer,
+          marks
+        });
+
+        totalMarks += marks;
+      });
+
+      if (errors.length > 0) {
+        return res.status(400).json({ 
+          message: 'Validation errors found',
+          errors 
+        });
+      }
+
+      if (questions.length === 0) {
+        return res.status(400).json({ message: 'No valid questions found in the Excel file' });
+      }
+
+      // Calculate expiry date (7 days from now)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      // Create weekly quiz
+      const quiz = await QuizementTest.create({
+        name: title.trim(),
+        description: description?.trim() || '',
+        duration: parseInt(duration),
+        bronzeCost: isPaidQuiz ? parsedBronzeCost : 0,
+        silverCost: isPaidQuiz ? parsedSilverCost : 0,
+        totalMarks,
+        questions,
+        createdByQuizementEmployee: req.quizementEmployee._id,
+        isActive: true,
+        isPaid: isPaidQuiz,
+        course: course?.trim() || '',
+        isWeeklyQuiz: true,
+        expiresAt: expiresAt
+      });
+
+      return res.status(201).json({
+        message: 'Weekly quiz created successfully! It will auto-expire in 7 days.',
+        quiz: {
+          _id: quiz._id,
+          title: quiz.name,
+          description: quiz.description,
+          duration: quiz.duration,
+          totalMarks: quiz.totalMarks,
+          questions: quiz.questions,
+          isActive: quiz.isActive,
+          isPaid: quiz.isPaid,
+          bronzeCost: quiz.bronzeCost,
+          silverCost: quiz.silverCost,
+          course: quiz.course,
+          isWeeklyQuiz: quiz.isWeeklyQuiz,
+          expiresAt: quiz.expiresAt
+        }
+      });
+    } catch (error) {
+      console.error('Create weekly quiz error:', error);
+      return res.status(500).json({ message: 'Failed to create weekly quiz' });
     }
   });
 });
@@ -377,7 +534,7 @@ router.get('/quizement-employee/quizzes/mine', requireQuizementEmployee, async (
     const quizzes = await QuizementTest.find({
       createdByQuizementEmployee: req.quizementEmployee._id
     })
-    .select('name description duration totalMarks isActive createdAt')
+    .select('name description duration totalMarks isActive isPaid bronzeCost silverCost course createdAt')
     .sort({ createdAt: -1 })
     .lean();
 
@@ -386,7 +543,15 @@ router.get('/quizement-employee/quizzes/mine', requireQuizementEmployee, async (
     const quizzesWithStats = await Promise.all(
       quizzes.map(async (quiz) => {
         const attemptCount = await QuizementAttempt.countDocuments({ testId: quiz._id, finished: true });
-        return { ...quiz, title: quiz.name, attemptCount };  // Add 'title' for frontend
+        return { 
+          ...quiz, 
+          title: quiz.name, 
+          attemptCount,
+          isPaid: quiz.isPaid || false,
+          bronzeCost: quiz.bronzeCost || 0,
+          silverCost: quiz.silverCost || 0,
+          course: quiz.course || ''
+        };
       })
     );
 
@@ -412,7 +577,15 @@ router.get('/quizement-employee/quizzes/:id', requireQuizementEmployee, async (r
     const QuizementAttempt = require('../models/QuizementAttempt');
     const attemptCount = await QuizementAttempt.countDocuments({ testId: quiz._id, finished: true });
 
-    return res.json({ ...quiz, title: quiz.name, attemptCount });  // Add 'title' for frontend
+    return res.json({ 
+      ...quiz, 
+      title: quiz.name, 
+      attemptCount,
+      isPaid: quiz.isPaid || false,
+      bronzeCost: quiz.bronzeCost || 0,
+      silverCost: quiz.silverCost || 0,
+      course: quiz.course || ''
+    });
   } catch (error) {
     console.error('Get quiz error:', error);
     return res.status(500).json({ message: 'Failed to fetch quiz' });
@@ -528,6 +701,54 @@ router.get('/quizement-employee/quizzes/:id/results', requireQuizementEmployee, 
   } catch (error) {
     console.error('Get quiz results error:', error);
     return res.status(500).json({ message: 'Failed to fetch quiz results' });
+  }
+});
+
+// ==================== COURSES API ====================
+
+// Get available courses from CSV (for quiz creation)
+router.get('/quizement-employee/courses', requireQuizementEmployee, async (req, res) => {
+  try {
+    const csvUrl = process.env.GOOGLE_DEGREE_CSV_URL;
+    if (!csvUrl) {
+      // Fallback courses if CSV URL not configured
+      return res.json({
+        courses: ['BCA', 'BSc CS', 'BCom', 'BA', 'BTech', 'MTech', 'MCA', 'MBA', 'BBA', 'BSc Maths', 'Other']
+      });
+    }
+
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(csvUrl);
+    if (!response.ok) {
+      throw new Error('Failed to fetch courses CSV');
+    }
+
+    const text = await response.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    // Skip header row and parse courses
+    // CSV format: DEGREE_CODE,Full Name,Type,Category
+    // We only want the Full Name (second column)
+    const courseList = lines.slice(1).map(line => {
+      const columns = line.split(',');
+      if (columns.length >= 2) {
+        // Extract second column (Full Name) and remove quotes
+        const fullName = columns[1].trim().replace(/^"|"$/g, '');
+        return fullName;
+      }
+      return null;
+    }).filter(Boolean);
+
+    // Remove duplicates and sort
+    const uniqueCourses = [...new Set(courseList)].sort();
+
+    // Add "Other" option at the end
+    res.json({ courses: [...uniqueCourses, 'Other'] });
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+    // Return fallback courses on error
+    res.json({
+      courses: ['BCA', 'BSc CS', 'BCom', 'BA', 'BTech', 'MTech', 'MCA', 'MBA', 'BBA', 'BSc Maths', 'Other']
+    });
   }
 });
 

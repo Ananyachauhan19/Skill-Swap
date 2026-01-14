@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import axios from 'axios';
 import { BACKEND_URL } from '../config.js';
 
-const QuizementEmployeeCreateQuiz = () => {
+const QuizementEmployeeCreateWeeklyQuiz = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -33,7 +33,6 @@ const QuizementEmployeeCreateQuiz = () => {
         setCourses(response.data.courses || []);
       } catch (err) {
         console.error('Failed to fetch courses:', err);
-        // Set fallback courses
         setCourses(['BCA', 'BSc CS', 'BCom', 'BA', 'BTech', 'MTech', 'MCA', 'MBA', 'BBA', 'BSc Maths', 'Other']);
       } finally {
         setLoadingCourses(false);
@@ -93,7 +92,6 @@ const QuizementEmployeeCreateQuiz = () => {
     if (type === 'checkbox') {
       setFormData(prev => ({ ...prev, [name]: checked }));
     } else if (name === 'bronzeCoinCost' || name === 'silverCoinCost') {
-      // Ensure coin costs are numbers
       const numValue = parseInt(value) || 0;
       setFormData(prev => ({ ...prev, [name]: Math.max(0, numValue) }));
     } else {
@@ -107,7 +105,6 @@ const QuizementEmployeeCreateQuiz = () => {
     setSuccess(null);
     setValidationErrors([]);
 
-    // Validation
     if (!formData.title.trim()) {
       setError('Title is required');
       return;
@@ -139,7 +136,7 @@ const QuizementEmployeeCreateQuiz = () => {
       uploadData.append('course', formData.course);
 
       const response = await axios.post(
-        `${BACKEND_URL}/api/quizement-employee/quizzes`,
+        `${BACKEND_URL}/api/quizement-employee/weekly-quizzes`,
         uploadData,
         {
           withCredentials: true,
@@ -147,9 +144,8 @@ const QuizementEmployeeCreateQuiz = () => {
         }
       );
 
-      setSuccess(`Quiz "${response.data.quiz.title}" created successfully with ${response.data.quiz.questions.length} questions!`);
+      setSuccess(`Weekly Quiz "${response.data.quiz.title}" created successfully! It will expire in 7 days.`);
       
-      // Reset form
       setFormData({
         title: '',
         description: '',
@@ -168,7 +164,7 @@ const QuizementEmployeeCreateQuiz = () => {
         setValidationErrors(err.response.data.errors);
         setError('Validation errors found in Excel file. Please check below.');
       } else {
-        setError(err.response?.data?.message || 'Failed to upload quiz');
+        setError(err.response?.data?.message || 'Failed to upload weekly quiz');
       }
     } finally {
       setLoading(false);
@@ -176,7 +172,6 @@ const QuizementEmployeeCreateQuiz = () => {
   };
 
   const downloadTemplate = () => {
-    // Create template data
     const templateData = [
       {
         'Question': 'What is the capital of France?',
@@ -198,7 +193,6 @@ const QuizementEmployeeCreateQuiz = () => {
       }
     ];
 
-    // Convert to CSV
     const headers = ['Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Answer', 'Marks'];
     const csvContent = [
       headers.join(','),
@@ -209,7 +203,7 @@ const QuizementEmployeeCreateQuiz = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'quiz_template.csv';
+    a.download = 'weekly_quiz_template.csv';
     a.click();
     window.URL.revokeObjectURL(url);
   };
@@ -217,33 +211,54 @@ const QuizementEmployeeCreateQuiz = () => {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Create New Quiz</h1>
-        <p className="text-sm text-gray-600 mt-1">Upload questions and configure quiz settings</p>
+        <div className="flex items-center gap-2 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900">Create Weekly Quiz</h1>
+          <span className="px-2 py-1 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold">
+            AUTO-EXPIRES IN 7 DAYS
+          </span>
+        </div>
+        <p className="text-sm text-gray-600 mt-1">
+          Upload questions and configure quiz settings. This quiz will automatically expire after 7 days from creation.
+        </p>
+      </div>
+
+      {/* Info Banner */}
+      <div className="mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <Clock className="h-6 w-6 text-purple-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-bold text-purple-900 mb-1">About Weekly Quizzes</h3>
+            <p className="text-xs text-purple-700 leading-relaxed">
+              Weekly quizzes are special time-limited quizzes that automatically expire after 7 days from creation. 
+              They appear in a dedicated "Weekly Quiz" section on the user dashboard and are perfect for regular challenges and assessments.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-blue-100 bg-white overflow-hidden">
-        <div className="px-6 py-4 border-b border-blue-100 bg-gradient-to-r from-blue-50 to-white">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Quiz</p>
+        <div className="px-6 py-4 border-b border-blue-100 bg-gradient-to-r from-purple-50 to-pink-50">
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Weekly Quiz</p>
           <div className="mt-1 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-blue-950">Upload New Quiz</h2>
-              <p className="mt-1 text-xs text-slate-600">Upload questions via Excel file. Quiz will be available to all users.</p>
+              <h2 className="text-lg font-semibold text-purple-950">Upload New Weekly Quiz</h2>
+              <p className="mt-1 text-xs text-slate-600">Upload questions via Excel file. Quiz will be available for 7 days.</p>
             </div>
 
             <button
               type="button"
               onClick={downloadTemplate}
-              className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-blue-100 bg-white hover:bg-blue-50/40 transition text-xs font-semibold text-blue-900"
+              className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-purple-200 bg-white hover:bg-purple-50 transition text-xs font-semibold text-purple-900"
             >
-              <FileSpreadsheet size={16} className="text-blue-900" />
+              <FileSpreadsheet size={16} className="text-purple-900" />
               Download Template
             </button>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Same form fields as regular quiz */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Title */}
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Quiz Title *
@@ -253,12 +268,11 @@ const QuizementEmployeeCreateQuiz = () => {
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., JavaScript Fundamentals Quiz"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="e.g., Weekly JavaScript Challenge"
               />
             </div>
 
-            {/* Duration */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Duration (minutes) *
@@ -269,12 +283,11 @@ const QuizementEmployeeCreateQuiz = () => {
                 value={formData.duration}
                 onChange={handleInputChange}
                 min="1"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Description (Optional)
@@ -284,12 +297,11 @@ const QuizementEmployeeCreateQuiz = () => {
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Brief description about the quiz..."
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder="Brief description about the weekly quiz..."
             />
           </div>
 
-          {/* Course Selection */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Course (Optional)
@@ -299,7 +311,7 @@ const QuizementEmployeeCreateQuiz = () => {
               value={formData.course}
               onChange={handleInputChange}
               disabled={loadingCourses}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
             >
               <option value="">Select a course...</option>
               {courses.map((course) => (
@@ -313,15 +325,15 @@ const QuizementEmployeeCreateQuiz = () => {
             )}
           </div>
 
-          {/* Quiz Type (Free/Paid) */}
-          <div className="border border-blue-100 rounded-xl bg-blue-50/30 p-4">
+          {/* Paid/Free Section */}
+          <div className="border border-purple-100 rounded-xl bg-purple-50/30 p-4">
             <label className="flex items-center space-x-3 cursor-pointer">
               <input
                 type="checkbox"
                 name="isPaid"
                 checked={formData.isPaid}
                 onChange={handleInputChange}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
               />
               <div className="flex-1">
                 <span className="text-sm font-semibold text-slate-900">Paid Quiz</span>
@@ -331,11 +343,9 @@ const QuizementEmployeeCreateQuiz = () => {
               </div>
             </label>
 
-            {/* Coin Costs (visible only when isPaid is true) */}
             {formData.isPaid && (
-              <div className="mt-3 pt-3 border-t border-blue-200">
+              <div className="mt-3 pt-3 border-t border-purple-200">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Bronze Coin Cost */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Bronze Coin Cost
@@ -346,7 +356,7 @@ const QuizementEmployeeCreateQuiz = () => {
                       value={formData.bronzeCoinCost}
                       onChange={handleInputChange}
                       min="0"
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="0"
                     />
                     <p className="text-xs text-slate-600 mt-1">
@@ -354,7 +364,6 @@ const QuizementEmployeeCreateQuiz = () => {
                     </p>
                   </div>
 
-                  {/* Silver Coin Cost */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
                       Silver Coin Cost
@@ -365,7 +374,7 @@ const QuizementEmployeeCreateQuiz = () => {
                       value={formData.silverCoinCost}
                       onChange={handleInputChange}
                       min="0"
-                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       placeholder="0"
                     />
                     <p className="text-xs text-slate-600 mt-1">
@@ -374,23 +383,23 @@ const QuizementEmployeeCreateQuiz = () => {
                   </div>
                 </div>
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-3">
-                  <strong>Note:</strong> At least one coin type must have a value greater than 0. Users can choose which coin type to use for unlocking.
+                  <strong>Note:</strong> At least one coin type must have a value greater than 0.
                 </p>
               </div>
             )}
           </div>
 
           {/* File Upload */}
-          <div className="border border-blue-100 rounded-2xl bg-white overflow-hidden">
-            <div className="px-5 py-3 border-b border-blue-100 bg-blue-50/40">
-              <p className="text-sm font-semibold text-blue-950">Upload file *</p>
+          <div className="border border-purple-100 rounded-2xl bg-white overflow-hidden">
+            <div className="px-5 py-3 border-b border-purple-100 bg-purple-50/40">
+              <p className="text-sm font-semibold text-purple-950">Upload file *</p>
               <p className="mt-0.5 text-xs text-slate-600">Excel/CSV supported · Max 5MB</p>
             </div>
 
             <div className="p-5">
               <div
                 className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
-                  dragActive ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:border-slate-400'
+                  dragActive ? 'border-purple-500 bg-purple-50' : 'border-slate-300 hover:border-slate-400'
                 }`}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
@@ -424,7 +433,7 @@ const QuizementEmployeeCreateQuiz = () => {
                     <>
                       <Upload className="mx-auto h-12 w-12 text-gray-400" />
                       <div className="text-sm text-gray-600">
-                        <span className="font-semibold text-blue-600">Click to upload</span> or drag and drop
+                        <span className="font-semibold text-purple-600">Click to upload</span> or drag and drop
                       </div>
                       <p className="text-xs text-gray-500">Excel & CSV files (.xlsx, .xls, .csv) - Max 5MB</p>
                     </>
@@ -434,7 +443,6 @@ const QuizementEmployeeCreateQuiz = () => {
             </div>
           </div>
 
-          {/* Error Messages */}
           {error && (
             <div className="flex items-start space-x-2 p-4 bg-red-50 border border-red-200 rounded-lg">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -451,7 +459,6 @@ const QuizementEmployeeCreateQuiz = () => {
             </div>
           )}
 
-          {/* Success Message */}
           {success && (
             <div className="flex items-center space-x-2 p-4 bg-green-50 border border-green-200 rounded-lg">
               <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
@@ -459,11 +466,10 @@ const QuizementEmployeeCreateQuiz = () => {
             </div>
           )}
 
-          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all flex items-center justify-center space-x-2 shadow-lg"
           >
             {loading ? (
               <>
@@ -472,8 +478,8 @@ const QuizementEmployeeCreateQuiz = () => {
               </>
             ) : (
               <>
-                <Upload className="h-5 w-5" />
-                <span>Create Quiz</span>
+                <Clock className="h-5 w-5" />
+                <span>Create Weekly Quiz (7 Days)</span>
               </>
             )}
           </button>
@@ -483,4 +489,4 @@ const QuizementEmployeeCreateQuiz = () => {
   );
 };
 
-export default QuizementEmployeeCreateQuiz;
+export default QuizementEmployeeCreateWeeklyQuiz;

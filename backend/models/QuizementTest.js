@@ -29,6 +29,12 @@ const quizementTestSchema = new mongoose.Schema({
   createdByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: false },
   createdByQuizementEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'QuizementEmployee', required: false },
   isActive: { type: Boolean, default: true },
+  // New fields for enhanced quiz features
+  isPaid: { type: Boolean, default: false },
+  course: { type: String, trim: true, default: '' }, // Course name from CSV
+  // Weekly quiz fields
+  isWeeklyQuiz: { type: Boolean, default: false },
+  expiresAt: { type: Date, default: null }, // Auto-expire date for weekly quizzes
 }, {
   timestamps: true,
 });

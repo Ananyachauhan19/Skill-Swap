@@ -103,10 +103,11 @@ import QuizementEmployeeRoute from './routes/QuizementEmployeeRoute.jsx';
 import QuizementEmployeeLayout from './quizementEmployee/QuizementEmployeeLayout.jsx';
 import QuizementEmployeeDashboard from './quizementEmployee/QuizementEmployeeDashboard.jsx';
 import QuizementEmployeeCreateQuiz from './quizementEmployee/QuizementEmployeeCreateQuiz.jsx';
+import QuizementEmployeeCreateWeeklyQuiz from './quizementEmployee/QuizementEmployeeCreateWeeklyQuiz.jsx';
 import QuizementEmployeeMyQuizzes from './quizementEmployee/QuizementEmployeeMyQuizzes.jsx';
 import QuizementEmployeeQuizResults from './quizementEmployee/QuizementEmployeeQuizResults.jsx';
 import StudentReportsTab from './student/StudentReportsTab.jsx';
-import QuizementLanding from './quizement/QuizementLanding.jsx';
+import QuizementLanding from './quizement/quizementhome/QuizementLanding.jsx';
 import QuizementAvailableTests from './quizement/QuizementAvailableTests.jsx';
 import QuizementUpload from './quizement/QuizementUpload.jsx';
 import QuizementAttempt from './quizement/QuizementAttempt.jsx';
@@ -243,7 +244,6 @@ const appRoutes = [
   { path: '/student/assessment-attempt/:id', element: <ProtectedRoute><AssessmentAttempt /></ProtectedRoute> },
   { path: '/student/assessment-result/:id', element: <ProtectedRoute><AssessmentResult /></ProtectedRoute> },
   { path: '/quizement', element: <ProtectedRoute><QuizementLanding /></ProtectedRoute> },
-  { path: '/quizement/tests', element: <ProtectedRoute><QuizementAvailableTests /></ProtectedRoute> },
   { path: '/quizement/upload', element: <ProtectedRoute><QuizementUpload /></ProtectedRoute> },
   { path: '/quizement/attempt/:testId', element: <ProtectedRoute><QuizementAttempt /></ProtectedRoute> },
   { path: '/quizement/result/:testId', element: <ProtectedRoute><QuizementResult /></ProtectedRoute> },
@@ -257,6 +257,7 @@ const appRoutes = [
           { index: true, element: <QuizementEmployeeDashboard /> },
           { path: 'dashboard', element: <QuizementEmployeeDashboard /> },
           { path: 'create-quiz', element: <QuizementEmployeeCreateQuiz /> },
+          { path: 'create-weekly-quiz', element: <QuizementEmployeeCreateWeeklyQuiz /> },
           { path: 'quizzes', element: <QuizementEmployeeMyQuizzes /> },
           { path: 'results', element: <QuizementEmployeeQuizResults /> },
         ],
@@ -378,7 +379,7 @@ function ProtectedRouteWithModal({ children }) {
 
 function App() {
   const { user, loading, setUser } = useAuth();
-  const { employee } = useEmployeeAuth();
+  useEmployeeAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isAuthPage = ['/login', '/register', '/forgot-password', '/reset-password'].includes(location.pathname);
@@ -620,6 +621,7 @@ function App() {
 
   // Hide Navbar and Footer for employee dashboard routes and campus ambassador routes
   const isEmployeeRoute = location.pathname.startsWith('/employee');
+  const isQuizementEmployeeRoute = location.pathname.startsWith('/quizement-employee');
   const isCampusAmbassadorRoute = location.pathname.startsWith('/campus-ambassador') || location.pathname === '/change-password';
   const isCampusStudentRoute = location.pathname.startsWith('/campus-dashboard') || location.pathname.startsWith('/campus/');
   return (
@@ -631,16 +633,16 @@ function App() {
             <QuizementEmployeeAuthProvider>
               <ModalBodyScrollLock />
               <GlobalModals />
-            {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && <CookieConsent />}
+            {!isAdminUser && !isEmployeeRoute && !isQuizementEmployeeRoute && !isCampusAmbassadorRoute && <CookieConsent />}
             {/* Main content with fade-in transition */}
             <div
               className={`transition-opacity duration-500 ${
                 showContent ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && <Navbar />}
+              {!isAdminUser && !isEmployeeRoute && !isQuizementEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && <Navbar />}
               {element}
-              {!isAdminUser && !isEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && <Footer />}
+              {!isAdminUser && !isEmployeeRoute && !isQuizementEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && <Footer />}
             </div>
             </QuizementEmployeeAuthProvider>
           </CampusAmbassadorProvider>

@@ -75,7 +75,7 @@ const QuizementAttempt = () => {
     } catch (error) {
       console.error('Start test error:', error);
       alert(error.response?.data?.message || 'Failed to start test');
-      navigate('/quizement/tests');
+      navigate('/quizement');
     }
   };
 

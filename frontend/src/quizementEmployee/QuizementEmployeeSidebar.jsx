@@ -15,6 +15,7 @@ const QuizementEmployeeSidebar = ({ collapsed, setCollapsed }) => {
       title: 'Quizzes',
       items: [
         { label: 'Create Quiz', icon: FiFileText, path: '/quizement-employee/create-quiz' },
+        { label: 'Create Weekly Quiz', icon: FiFileText, path: '/quizement-employee/create-weekly-quiz', badge: 'NEW' },
         { label: 'My Quizzes', icon: FiBarChart2, path: '/quizement-employee/quizzes' },
         { label: 'Quiz Results', icon: FiBarChart2, path: '/quizement-employee/results' },
       ],
@@ -76,7 +77,16 @@ const QuizementEmployeeSidebar = ({ collapsed, setCollapsed }) => {
                   title={collapsed ? item.label : ''}
                 >
                   <item.icon size={20} className="flex-shrink-0" />
-                  {!collapsed && <span className="text-sm">{item.label}</span>}
+                  {!collapsed && (
+                    <span className="text-sm flex-1 flex items-center justify-between">
+                      {item.label}
+                      {item.badge && (
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-500 text-white font-bold">
+                          {item.badge}
+                        </span>
+                      )}
+                    </span>
+                  )}
                 </NavLink>
               ))}
             </div>
