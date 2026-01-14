@@ -18,7 +18,7 @@ const QuizementAvailableTests = () => {
   const loadTests = async () => {
     try {
       setLoading(true);
-      const resp = await fetch(`${BACKEND_URL}/api/quizement/tests`, { credentials: 'include' });
+      const resp = await fetch(`${BACKEND_URL}/api/quizement/`, { credentials: 'include' });
       if (!resp.ok) throw new Error('Failed to load tests');
       const data = await resp.json();
       setTests(data.tests || []);

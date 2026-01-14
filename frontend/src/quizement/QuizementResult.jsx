@@ -47,7 +47,7 @@ const QuizementResult = () => {
         <div className="text-center">
           <p className="text-red-600 font-semibold mb-4">{error}</p>
           <button
-            onClick={() => navigate('/quizement/tests')}
+            onClick={() => navigate('/quizement')}
             className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700"
           >
             Back to Tests
@@ -69,7 +69,7 @@ const QuizementResult = () => {
         {/* Header */}
         <div className="mb-6">
           <button
-            onClick={() => navigate('/quizement/tests')}
+            onClick={() => navigate('/quizement')}
             className="flex items-center gap-2 text-blue-700 font-semibold hover:text-blue-800 mb-4"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -242,7 +242,7 @@ const QuizementResult = () => {
         {/* Action Buttons */}
         <div className="mt-8 flex justify-center">
           <button
-            onClick={() => navigate('/quizement/tests')}
+            onClick={() => navigate('/quizement')}
             className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
           >
             Back to Quizement Tests

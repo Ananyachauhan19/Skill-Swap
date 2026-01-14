@@ -106,7 +106,7 @@ import QuizementEmployeeCreateQuiz from './quizementEmployee/QuizementEmployeeCr
 import QuizementEmployeeMyQuizzes from './quizementEmployee/QuizementEmployeeMyQuizzes.jsx';
 import QuizementEmployeeQuizResults from './quizementEmployee/QuizementEmployeeQuizResults.jsx';
 import StudentReportsTab from './student/StudentReportsTab.jsx';
-import QuizementLanding from './quizement/QuizementLanding.jsx';
+import QuizementLanding from './quizement/quizementhome/QuizementLanding.jsx';
 import QuizementAvailableTests from './quizement/QuizementAvailableTests.jsx';
 import QuizementUpload from './quizement/QuizementUpload.jsx';
 import QuizementAttempt from './quizement/QuizementAttempt.jsx';
@@ -243,7 +243,6 @@ const appRoutes = [
   { path: '/student/assessment-attempt/:id', element: <ProtectedRoute><AssessmentAttempt /></ProtectedRoute> },
   { path: '/student/assessment-result/:id', element: <ProtectedRoute><AssessmentResult /></ProtectedRoute> },
   { path: '/quizement', element: <ProtectedRoute><QuizementLanding /></ProtectedRoute> },
-  { path: '/quizement/tests', element: <ProtectedRoute><QuizementAvailableTests /></ProtectedRoute> },
   { path: '/quizement/upload', element: <ProtectedRoute><QuizementUpload /></ProtectedRoute> },
   { path: '/quizement/attempt/:testId', element: <ProtectedRoute><QuizementAttempt /></ProtectedRoute> },
   { path: '/quizement/result/:testId', element: <ProtectedRoute><QuizementResult /></ProtectedRoute> },

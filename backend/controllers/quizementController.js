@@ -5,6 +5,105 @@ const QuizementTest = require('../models/QuizementTest');
 const QuizementAttempt = require('../models/QuizementAttempt');
 const User = require('../models/User');
 
+const QUIZEMENT_LEADERBOARD_TYPES = new Set(['score', 'attempts', 'accuracy']);
+
+const normalizeLeaderboardType = (value) => {
+  const t = String(value || '').trim().toLowerCase();
+  return QUIZEMENT_LEADERBOARD_TYPES.has(t) ? t : 'score';
+};
+
+const parseLimit = (value, fallback = 10) => {
+  const n = parseInt(value, 10);
+  if (Number.isNaN(n) || n <= 0) return fallback;
+  return Math.min(n, 50);
+};
+
+const getUserDisplayName = (u) => {
+  const full = `${u?.firstName || ''} ${u?.lastName || ''}`.trim();
+  return full || u?.username || 'User';
+};
+
+const getUserAvatar = (u) => {
+  return u?.profileImageUrl || u?.profilePic || '';
+};
+
+// Internal ("secret") function: builds leaderboard from DB.
+const fetchQuizementLeaderboard = async ({ type = 'score', limit = 10 }) => {
+  const sort =
+    type === 'attempts'
+      ? { attempts: -1, totalScore: -1, avgPercentage: -1, lastFinishedAt: -1 }
+      : type === 'accuracy'
+        ? { avgPercentage: -1, totalScore: -1, attempts: -1, lastFinishedAt: -1 }
+        : { totalScore: -1, avgPercentage: -1, attempts: -1, lastFinishedAt: -1 };
+
+  const pipeline = [
+    { $match: { finished: true } },
+    {
+      $group: {
+        _id: '$userId',
+        totalScore: { $sum: '$score' },
+        attempts: { $sum: 1 },
+        avgPercentage: { $avg: '$percentage' },
+        lastFinishedAt: { $max: '$finishedAt' },
+      },
+    },
+    {
+      $lookup: {
+        from: User.collection.name,
+        localField: '_id',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+    { $unwind: '$user' },
+    {
+      $project: {
+        userId: '$_id',
+        totalScore: 1,
+        attempts: 1,
+        avgPercentage: 1,
+        lastFinishedAt: 1,
+        user: {
+          firstName: '$user.firstName',
+          lastName: '$user.lastName',
+          username: '$user.username',
+          profilePic: '$user.profilePic',
+          profileImageUrl: '$user.profileImageUrl',
+        },
+      },
+    },
+    { $sort: sort },
+    { $limit: limit },
+  ];
+
+  const rows = await QuizementAttempt.aggregate(pipeline);
+
+  return rows.map((r, idx) => ({
+    rank: idx + 1,
+    userId: r.userId,
+    name: getUserDisplayName(r.user),
+    username: r.user?.username || '',
+    avatar: getUserAvatar(r.user),
+    totalScore: r.totalScore || 0,
+    attempts: r.attempts || 0,
+    avgPercentage: Math.round(((r.avgPercentage || 0) + Number.EPSILON) * 100) / 100,
+    lastFinishedAt: r.lastFinishedAt || null,
+  }));
+};
+
+exports.getLeaderboard = async (req, res) => {
+  try {
+    const type = normalizeLeaderboardType(req.query.type);
+    const limit = parseLimit(req.query.limit, 10);
+
+    const leaders = await fetchQuizementLeaderboard({ type, limit });
+    return res.json({ type, leaders });
+  } catch (error) {
+    console.error('Quizement leaderboard error:', error);
+    return res.status(500).json({ message: 'Failed to load leaderboard' });
+  }
+};
+
 const storage = multer.memoryStorage();
 const upload = multer({
   storage,
