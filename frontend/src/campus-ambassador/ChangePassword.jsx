@@ -4,6 +4,8 @@ import { Lock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import Cookies from 'js-cookie';
+import { BACKEND_URL } from '../config.js';
+
 
 const ChangePassword = () => {
   const navigate = useNavigate();
@@ -60,7 +62,8 @@ const ChangePassword = () => {
     try {
       setLoading(true);
       await axios.post(
-        '/api/auth/change-first-login-password',
+                `${BACKEND_URL}/api/auth/change-first-login-password`,
+
         {
           currentPassword: formData.currentPassword,
           newPassword: formData.newPassword
