@@ -44,12 +44,12 @@ const CampusAmbassadors = () => {
     }
   };
 
-  const removeCampusAmbassador = async (userId) => {
+  const removeCampusAmbassador = async (ambassadorId) => {
     if (!window.confirm('Are you sure you want to remove this Campus Ambassador?')) return;
     
     try {
       setLoading(true);
-      await axios.delete(`${BACKEND_URL}/api/admin/users/${userId}`, {
+      await axios.delete(`${BACKEND_URL}/api/admin/campus-ambassadors/${ambassadorId}`, {
         withCredentials: true
       });
       

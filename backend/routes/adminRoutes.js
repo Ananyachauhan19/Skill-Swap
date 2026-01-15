@@ -680,11 +680,13 @@ router.get('/users/:userId/contribution-calendar', async (req, res) => {
 
 // Delete a user account (admin only) and detach basic relations
 router.delete('/users/:userId', async (req, res) => {
+  console.log('DELETE /users/:userId route hit with userId:', req.params.userId);
   try {
     const { userId } = req.params;
 
     const user = await User.findById(userId);
     if (!user) {
+      console.log('User not found with ID:', userId);
       return res.status(404).json({ message: 'User not found' });
     }
 
@@ -893,6 +895,71 @@ router.get('/campus-ambassadors', async (req, res) => {
   } catch (error) {
     console.error('[LIST CAMPUS AMBASSADORS] Error:', error);
     res.status(500).json({ message: 'Failed to fetch campus ambassadors' });
+  }
+});
+
+// Delete Campus Ambassador (admin only)
+router.delete('/campus-ambassadors/:ambassadorId', async (req, res) => {
+  try {
+    const CampusAmbassador = require('../models/CampusAmbassador');
+    const { ambassadorId } = req.params;
+
+    // Find the campus ambassador document
+    const ambassador = await CampusAmbassador.findById(ambassadorId);
+    if (!ambassador) {
+      return res.status(404).json({ message: 'Campus Ambassador not found' });
+    }
+
+    const userId = ambassador.user;
+
+    // Delete the campus ambassador document
+    await CampusAmbassador.deleteOne({ _id: ambassadorId });
+
+    // Delete the associated user account
+    const user = await User.findById(userId);
+    if (user) {
+      // Remove this user from other users' skillMates arrays
+      await User.updateMany(
+        { skillMates: userId },
+        { $pull: { skillMates: userId } }
+      );
+
+      // Delete SkillMate relationship documents
+      await SkillMate.deleteMany({
+        $or: [{ requester: userId }, { recipient: userId }],
+      });
+
+      // Delete user's videos (including Supabase files where possible)
+      const videos = await Video.find({ userId }).lean();
+      if (Array.isArray(videos) && videos.length) {
+        const pathsToRemove = [];
+        for (const v of videos) {
+          if (v.videoPath) pathsToRemove.push(v.videoPath);
+          if (v.thumbnailPath) pathsToRemove.push(v.thumbnailPath);
+        }
+        if (pathsToRemove.length) {
+          try {
+            const { error } = await supabase.storage
+              .from('videos')
+              .remove(pathsToRemove);
+            if (error) {
+              console.error('[Admin] Failed to delete some Supabase video assets:', error.message);
+            }
+          } catch (e) {
+            console.error('[Admin] Supabase deletion error:', e.message);
+          }
+        }
+        await Video.deleteMany({ userId });
+      }
+
+      // Finally delete the user document
+      await User.deleteOne({ _id: userId });
+    }
+
+    res.json({ message: 'Campus Ambassador deleted successfully' });
+  } catch (error) {
+    console.error('[DELETE CAMPUS AMBASSADOR] Error:', error);
+    res.status(500).json({ message: 'Failed to delete campus ambassador' });
   }
 });
 
