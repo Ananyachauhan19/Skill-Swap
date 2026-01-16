@@ -25,7 +25,7 @@ const HistoryIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentCo
 const ChevronDownIcon = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>;
 const ChevronUpIcon = () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>;
 
-const ProfileDropdown = ({ show, onClose, menuRef }) => {
+const ProfileDropdown = ({ show, onClose, menuRef, isAvailable, isToggling, handleToggleAvailability, isInterviewAvailable, isTogglingInterview, handleToggleInterviewAvailability, interviewerStatus }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { count: skillMateCount, refresh: refreshSkillMates } = useSkillMates();
@@ -101,14 +101,14 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
   return (
     <div
       ref={menuRef}
-      className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-blue-100 z-[5100] overflow-hidden"
+      className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-blue-100 z-[5100] overflow-hidden max-h-[calc(100vh-100px)] flex flex-col"
       style={{
         background: 'linear-gradient(135deg, #f0f9ff 0%, #e6f3ff 100%)'
       }}
     >
       {/* Header */}
       {user && (
-        <div className="px-6 py-4 border-b border-blue-200 bg-white">
+        <div className="px-6 py-4 border-b border-blue-200 bg-white flex-shrink-0">
           <div className="flex items-center">
             {user.profilePic ? (
               <img
@@ -132,7 +132,12 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
       )}
 
       {/* Menu Items */}
-      <div className="p-3 space-y-1">
+      <div className="p-3 space-y-1 overflow-y-auto"
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#3b82f6 #e6f3ff'
+        }}
+      >
         {user ? (
           <>
             <MenuItem icon={ProfileIcon} label="Profile" onClick={() => go('/profile')} />
@@ -143,6 +148,76 @@ const ProfileDropdown = ({ show, onClose, menuRef }) => {
               count={typeof displaySkillMateCount === 'number' ? displaySkillMateCount : undefined}
             />
             <MenuItem icon={CampusDashboardIcon} label="Campus Dashboard" onClick={() => go('/campus-dashboard')} />
+            
+            {/* One-on-One Session Availability Toggle */}
+            {user && (user.role === 'teacher' || user.role === 'both') && (
+              <div className="px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <ScheduleIcon />
+                    <span className="ml-3 text-sm text-gray-700 font-medium">One-on-One Sessions</span>
+                  </div>
+                  <button
+                    onClick={handleToggleAvailability}
+                    disabled={isToggling}
+                    title={isAvailable ? 'Available for Sessions (Click to turn off)' : 'Unavailable (Click to turn on)'}
+                    className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      isAvailable ? 'bg-blue-600' : 'bg-gray-300'
+                    } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+                  >
+                    <span className="sr-only">Toggle session availability</span>
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+                        isAvailable ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <span className={`text-xs mt-1 block text-right ${
+                  isAvailable ? 'text-blue-600' : 'text-gray-500'
+                }`}>
+                  {isAvailable ? 'Available' : 'Unavailable'}
+                </span>
+              </div>
+            )}
+            
+            {/* Interview Availability Toggle */}
+            {user && interviewerStatus === 'approved' && (
+              <div className="px-4 py-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <InterviewIcon />
+                    <span className="ml-3 text-sm text-gray-700 font-medium">Interview Sessions</span>
+                  </div>
+                  <button
+                    onClick={handleToggleInterviewAvailability}
+                    disabled={isTogglingInterview}
+                    title={isInterviewAvailable ? 'Available for Interviews (Click to turn off)' : 'Unavailable for Interviews (Click to turn on)'}
+                    className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                      isInterviewAvailable ? 'bg-blue-600' : 'bg-gray-300'
+                    } ${isTogglingInterview ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+                  >
+                    <span className="sr-only">Toggle interview availability</span>
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
+                        isInterviewAvailable ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <span className={`text-xs mt-1 block text-right ${
+                  isInterviewAvailable ? 'text-blue-600' : 'text-gray-500'
+                }`}>
+                  {isInterviewAvailable ? 'Available' : 'Unavailable'}
+                </span>
+              </div>
+            )}
+            
+            {/* Separator for visual clarity */}
+            {((user && (user.role === 'teacher' || user.role === 'both')) || (user && interviewerStatus === 'approved')) && (
+              <div className="border-t border-blue-200 my-2"></div>
+            )}
+            
             <MenuItem icon={InterviewIcon} label="Your Interviews" onClick={() => go('/your-interviews')} />
             
             {/* Your History Dropdown */}

@@ -30,6 +30,10 @@ const MobileMenu = ({
   isAvailable,
   handleToggleAvailability,
   isToggling,
+  isInterviewAvailable,
+  handleToggleInterviewAvailability,
+  isTogglingInterview,
+  interviewerStatus,
   searchRef,
   suggestions,
   showSuggestions,
@@ -193,42 +197,6 @@ const MobileMenu = ({
           </button>
         ))}
       </nav>
-
-      {/* Availability Toggle for Teachers/Tutors */}
-      {isLoggedIn && user && (user.role === 'teacher' || user.role === 'both') && (
-        <div className="px-4 py-3 border-b border-blue-100 flex-shrink-0 bg-gradient-to-r from-blue-50/50 to-transparent">
-          <h3 className="text-xs font-bold text-blue-900 mb-3 uppercase tracking-wide">Session Availability</h3>
-          <div className="flex items-center justify-between p-3 rounded-xl bg-white border-2 border-blue-100 shadow-sm hover:shadow-md transition-all">
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full shadow-inner ${
-                isAvailable ? 'bg-blue-600 animate-pulse shadow-blue-300' : 'bg-gray-400 shadow-gray-300'
-              }`}></div>
-              <div>
-                <span className="text-sm font-bold text-blue-900 block">
-                  {isAvailable ? 'Available for Sessions' : 'Currently Unavailable'}
-                </span>
-                <span className="text-xs text-gray-600">
-                  {isAvailable ? 'Students can book you' : 'Not accepting bookings'}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={handleToggleAvailability}
-              disabled={isToggling}
-              className={`relative inline-flex items-center h-7 w-12 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                isAvailable ? 'bg-blue-600' : 'bg-gray-300'
-              } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-            >
-              <span className="sr-only">Toggle availability</span>
-              <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
-                  isAvailable ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   </div>
 );

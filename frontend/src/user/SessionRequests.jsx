@@ -42,6 +42,7 @@ const SessionRequests = () => {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingContext, setRatingContext] = useState(null); // { sessionId, expertName, sessionType }
   const [negotiationModalState, setNegotiationModalState] = useState({ open: false, request: null });
+  const [postponeModalState, setPostponeModalState] = useState({ open: false, request: null });
 
   // Deep-link support: /session-requests?tab=expert&view=sent
   useEffect(() => {
@@ -1199,7 +1200,9 @@ const SessionRequests = () => {
               </h3>
               <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                 <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-                {isReceived ? 'Interview requested' : 'Interview sent'}
+                {isReceived 
+                  ? (isAssignedInterviewer ? 'Interview request received' : 'Interviewer response received') 
+                  : 'Awaiting interviewer assignment'}
               </p>
             </div>
           </div>
@@ -1217,12 +1220,27 @@ const SessionRequests = () => {
           </div>
         )}
         
-        {/* Show helper message when assigned by admin, waiting for interviewer to schedule */}
-        {!isReceived && request.status === 'assigned' && request.assignedInterviewer && (
+        {/* Show helper message when interviewer has responded */}
+        {isReceived && !isAssignedInterviewer && request.assignedInterviewer && (
           <div className="mb-3 p-2.5 bg-green-50 rounded-lg border border-green-200">
             <p className="text-xs text-green-700">
-              <strong>Interviewer Assigned:</strong> An interviewer has been assigned to your request. They will propose time slots soon.
+              <strong>Interviewer Response:</strong> {request.assignedInterviewer.firstName || 'The interviewer'} has responded to your interview request.
             </p>
+          </div>
+        )}
+
+        {/* Show postpone information */}
+        {request.status === 'scheduled' && request.postponedBy && request.postponeReason && (
+          <div className="mb-3 p-2.5 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-xs text-blue-700">
+              <strong>Interview Rescheduled:</strong> This interview was rescheduled by the interviewer.
+            </p>
+            {request.originalScheduledAt && (
+              <p className="text-xs text-blue-600 mt-1">
+                Original time: {new Date(request.originalScheduledAt).toLocaleString()}
+              </p>
+            )}
+            <p className="text-xs text-blue-600 mt-1 italic">"{request.postponeReason}"</p>
           </div>
         )}
 
@@ -1242,15 +1260,28 @@ const SessionRequests = () => {
           )}
           {request.resumeUrl && (
             <div className="mt-2 pt-2 border-t border-slate-200">
-              <a
-                href={request.resumeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
-              >
-                <FaFileAlt size={12} />
-                View Resume ({request.resumeFileName || 'resume.pdf'})
-              </a>
+              <div className="flex items-center gap-2">
+                <a
+                  href={request.resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                >
+                  <FaFileAlt size={12} />
+                  View Resume
+                </a>
+                <span className="text-slate-400">•</span>
+                <a
+                  href={request.resumeUrl}
+                  download={request.resumeFileName || 'resume.pdf'}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 hover:text-emerald-700 hover:underline transition-colors"
+                >
+                  Download
+                </a>
+                <span className="text-xs text-slate-500">
+                  ({request.resumeFileName || 'resume.pdf'})
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -1286,14 +1317,26 @@ const SessionRequests = () => {
               </>
             )}
             {request.status === 'scheduled' && !isExpired && (
-              <button
-                onClick={() => handleJoinInterview(request)}
-                disabled={!canJoinInterview}
-                className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <FaVideo size={10} />
-                {canJoinInterview ? 'Join Interview' : 'Join available 15 min before'}
-              </button>
+              <>
+                <button
+                  onClick={() => handleJoinInterview(request)}
+                  disabled={!canJoinInterview}
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-amber-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FaVideo size={10} />
+                  {canJoinInterview ? 'Join Interview' : 'Join available 15 min before'}
+                </button>
+                {/* Postpone button for interviewers only */}
+                {isAssignedInterviewer && (
+                  <button
+                    onClick={() => setPostponeModalState({ open: true, request })}
+                    className="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-blue-200"
+                  >
+                    <FaClock size={10} />
+                    Postpone
+                  </button>
+                )}
+              </>
             )}
             {isExpired && (
               <div className="text-xs text-slate-500 italic">
@@ -1797,6 +1840,193 @@ const SessionRequests = () => {
               </p>
             </div>
           </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const PostponeInterviewModal = () => {
+    const { open, request } = postponeModalState;
+    const [newScheduledAt, setNewScheduledAt] = useState('');
+    const [reason, setReason] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
+
+    useEffect(() => {
+      if (!open || !request) return;
+      setNewScheduledAt('');
+      setReason('');
+      setErrorMsg('');
+    }, [open, request]);
+
+    if (!open || !request) return null;
+
+    const close = () => {
+      setPostponeModalState({ open: false, request: null });
+    };
+
+    const handleSubmit = async () => {
+      try {
+        setLoading(true);
+        setErrorMsg('');
+
+        if (!newScheduledAt) {
+          setErrorMsg('Please select a new date and time');
+          setLoading(false);
+          return;
+        }
+
+        if (!reason.trim()) {
+          setErrorMsg('Please provide a reason for postponing');
+          setLoading(false);
+          return;
+        }
+
+        // Convert to full ISO datetime string with seconds
+        const fullDatetime = newScheduledAt.includes(':') && newScheduledAt.split(':').length === 2
+          ? `${newScheduledAt}:00`
+          : newScheduledAt;
+
+        console.log('[Postpone] Sending request:', {
+          requestId: request._id,
+          newScheduledAt: fullDatetime,
+          reason: reason.trim()
+        });
+
+        const res = await fetch(`${BACKEND_URL}/api/interview/postpone`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            requestId: request._id,
+            newScheduledAt: fullDatetime,
+            reason: reason.trim(),
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        console.log('[Postpone] Response:', { ok: res.ok, status: res.status, data });
+        if (!res.ok) throw new Error(data.message || 'Failed to postpone interview');
+
+        addToast('Interview postponed successfully', 'success');
+        close();
+        fetchInterviewRequests();
+        notifyRequestCountUpdate();
+      } catch (err) {
+        setErrorMsg(err.message || 'Failed to postpone interview');
+        addToast(err.message || 'Failed to postpone interview', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
+          {/* Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-blue-900 to-blue-800 text-white px-6 py-5 rounded-t-2xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-xl font-bold tracking-tight">Postpone Interview</h3>
+                <p className="text-sm text-blue-100 mt-1.5 flex items-center gap-2">
+                  <FaClock className="text-blue-200" />
+                  Reschedule this interview to a new time
+                </p>
+              </div>
+              <button 
+                onClick={close} 
+                className="text-white/80 hover:text-white hover:bg-white/10 p-2 rounded-lg transition-colors"
+              >
+                <FaTimes size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            {errorMsg && (
+              <div className="mb-4 text-sm text-red-700 bg-red-50 border-l-4 border-red-500 rounded-lg px-4 py-3 flex items-start gap-3">
+                <FaTimes className="text-red-500 mt-0.5 flex-shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Current scheduled time */}
+            {request.scheduledAt && (
+              <div className="mb-5 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                <p className="text-xs text-slate-500 font-semibold mb-1">Current Scheduled Time:</p>
+                <p className="text-sm text-slate-800 font-bold">
+                  {new Date(request.scheduledAt).toLocaleString()}
+                </p>
+              </div>
+            )}
+
+            {/* New date time picker */}
+            <div className="mb-5">
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                New Date & Time <span className="text-red-500">*</span>
+              </label>
+              <DateTimePicker
+                date={newScheduledAt ? newScheduledAt.split('T')[0] : ''}
+                time={newScheduledAt ? newScheduledAt.split('T')[1]?.slice(0,5) : ''}
+                onChange={(d, t) => {
+                  if (d && t) {
+                    setNewScheduledAt(`${d}T${t}`);
+                  } else {
+                    setNewScheduledAt('');
+                  }
+                }}
+                className="w-full"
+              />
+            </div>
+
+            {/* Reason textarea */}
+            <div className="mb-5">
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                Reason for Postponing <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={4}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Please explain why you need to reschedule this interview..."
+                className="w-full border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-lg px-4 py-3 text-sm resize-none transition-colors"
+              />
+            </div>
+
+            {/* Submit button */}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-blue-900 to-blue-800 hover:from-blue-800 hover:to-blue-700 text-white px-5 py-3 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Postponing...
+                </>
+              ) : (
+                <>
+                  <FaCheck />
+                  Confirm Postpone
+                </>
+              )}
+            </button>
+
+            <div className="mt-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5">
+                  <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  The candidate will be notified via email, in-app notification, and toaster about the new interview time.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2431,6 +2661,7 @@ const SessionRequests = () => {
         </div>
       </div>
       <InterviewTimeNegotiationModal />
+      <PostponeInterviewModal />
     </div>
     </div>
   );

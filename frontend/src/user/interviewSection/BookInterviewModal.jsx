@@ -97,7 +97,7 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
     setResumeError('');
     setResumeFile(file);
     
-    // Auto-upload resume to backend (Cloudinary)
+    // Auto-upload resume to backend (Supabase)
     await uploadResumeToBackend(file);
   };
 
@@ -114,6 +114,12 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
       const formData = new FormData();
       formData.append('resume', file);
 
+      console.log('[Resume Upload] Starting upload:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
+
       const response = await fetch(`${BACKEND_URL}/api/interview/upload-resume`, {
         method: 'POST',
         credentials: 'include',
@@ -127,12 +133,14 @@ function BookInterviewModal({ isOpen, onClose, preSelectedInterviewer, preFilled
 
       const data = await response.json();
       
+      console.log('[Resume Upload] Success:', data);
+      
       if (data.resumeUrl) {
         setResumeUrl(data.resumeUrl);
         setResumeFileName(data.resumeFileName || file.name);
         addToast({
           title: 'Resume Uploaded',
-          message: 'Your resume has been uploaded successfully.',
+          message: 'Your resume has been uploaded successfully to Supabase.',
           variant: 'success',
           timeout: 3000,
         });

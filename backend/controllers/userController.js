@@ -435,3 +435,32 @@ async function logoutAllDevices(req, res) {
 module.exports.getActiveDevices = getActiveDevices;
 module.exports.logoutDevice = logoutDevice;
 module.exports.logoutAllDevices = logoutAllDevices;
+
+// Toggle interview availability
+async function toggleInterviewAvailability(req, res) {
+  try {
+    const { isAvailable } = req.body;
+    
+    if (typeof isAvailable !== 'boolean') {
+      return res.status(400).json({ message: 'isAvailable must be a boolean' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { isAvailableForInterviews: isAvailable },
+      { new: true }
+    ).select('isAvailableForInterviews');
+
+    console.log(`[Interview Availability] User ${req.user._id} set to ${isAvailable ? 'available' : 'unavailable'}`);
+
+    return res.json({ 
+      message: `Interview availability updated to ${isAvailable ? 'available' : 'unavailable'}`,
+      isAvailableForInterviews: user.isAvailableForInterviews 
+    });
+  } catch (err) {
+    console.error('[toggleInterviewAvailability] error:', err);
+    return res.status(500).json({ message: 'Failed to update interview availability' });
+  }
+}
+
+module.exports.toggleInterviewAvailability = toggleInterviewAvailability;

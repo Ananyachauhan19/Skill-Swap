@@ -45,6 +45,12 @@ const interviewRequestSchema = new mongoose.Schema({
   rating: { type: Number, min: 1, max: 5, default: null },
   feedback: { type: String, default: '' },
   ratedAt: { type: Date, default: null },
+  // Postpone fields
+  postponedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  postponeReason: { type: String, default: '' },
+  postponedAt: { type: Date, default: null },
+  originalScheduledAt: { type: Date, default: null },
+  postponeCount: { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('InterviewRequest', interviewRequestSchema);

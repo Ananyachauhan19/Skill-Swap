@@ -231,7 +231,7 @@ const upload = multer({
   }
 });
 
-// Upload resume to Cloudinary for interview request
+// Upload resume to Supabase for interview request
 exports.uploadResume = [upload.single('resume'), async (req, res) => {
   try {
     if (!req.file) {
@@ -241,40 +241,78 @@ exports.uploadResume = [upload.single('resume'), async (req, res) => {
     const userId = req.user._id;
     const ext = path.extname(req.file.originalname).toLowerCase();
     const timestamp = Date.now();
-    const fileName = `resume_${userId}_${timestamp}`;
-    const uploadFolder = process.env.CLOUDINARY_RESUME_FOLDER || 'SkillSwaphub/interview-resumes';
+    const fileName = `resume_${userId}_${timestamp}${ext}`;
+    const bucketName = 'bookresume';
 
-    // Upload to Cloudinary
-    const uploadPromise = new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: uploadFolder,
-          public_id: fileName,
-          resource_type: 'raw', // For PDF and DOC files
-          format: ext.substring(1), // Remove the dot from extension
-        },
-        (error, result) => {
-          if (error) {
-            console.error('[Cloudinary] Resume upload failed:', error);
-            reject(error);
-          } else {
-            resolve(result);
-          }
-        }
-      );
-      stream.end(req.file.buffer);
+    console.log('[Resume Upload] Starting Supabase upload:', {
+      userId,
+      fileName,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype,
+      bucket: bucketName,
+      supabaseUrl: process.env.SUPABASE_URL
     });
 
-    const result = await uploadPromise;
+    // Validate Supabase configuration
+    if (!supabase) {
+      console.error('[Resume Upload] Supabase client not initialized');
+      return res.status(500).json({ message: 'Storage configuration error' });
+    }
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('[Supabase] Resume upload failed:', {
+        error: uploadError,
+        message: uploadError.message,
+        status: uploadError.statusCode,
+        bucket: bucketName
+      });
+      
+      // Check if bucket doesn't exist
+      if (uploadError.message && uploadError.message.includes('not found')) {
+        return res.status(500).json({ 
+          message: `Storage bucket '${bucketName}' not found. Please create it in Supabase dashboard.`,
+          error: uploadError.message 
+        });
+      }
+      
+      throw new Error(uploadError.message || 'Failed to upload resume to storage');
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+
+    let resumeUrl = publicUrlData.publicUrl;
+
+    // Ensure URL has protocol
+    if (!resumeUrl.startsWith('http://') && !resumeUrl.startsWith('https://')) {
+      resumeUrl = `https://${resumeUrl}`;
+    }
+
+    console.log('[Resume Upload] Supabase upload successful:', {
+      fileName,
+      resumeUrl,
+      path: uploadData.path
+    });
 
     res.status(200).json({
       message: 'Resume uploaded successfully',
-      resumeUrl: result.secure_url,
+      resumeUrl: resumeUrl,
       resumeFileName: req.file.originalname,
       resumeUploadedAt: new Date()
     });
   } catch (err) {
-    console.error('uploadResume error', err);
+    console.error('[Resume Upload] Error:', err);
     res.status(500).json({ 
       message: 'Failed to upload resume',
       error: err.message 
@@ -834,7 +872,15 @@ exports.getApprovedInterviewers = async (req, res) => {
     
     // Get all approved interviewers first
     let apps = await InterviewerApplication.find({ status: 'approved' })
-      .populate('user', 'username firstName lastName profilePic college');
+      .populate('user', 'username firstName lastName profilePic college isAvailableForInterviews');
+
+    // Filter out interviewers who have set themselves as unavailable for interviews
+    apps = apps.filter(a => {
+      // Keep only if user exists and isAvailableForInterviews is true (or undefined for backward compatibility)
+      if (!a.user) return false;
+      const isAvailable = a.user.isAvailableForInterviews !== false; // Default to true if not set
+      return isAvailable;
+    });
 
     // If the logged-in user is also an approved interviewer, do not
     // include their own profile in the recommendation list.
@@ -1034,12 +1080,17 @@ exports.getInterviewerStatus = async (req, res) => {
     if (!userId) return res.status(401).json({ message: 'Unauthorized' });
     
     const application = await InterviewerApplication.findOne({ user: userId });
+    const user = await User.findById(userId).select('isAvailableForInterviews');
     
     if (!application) {
       return res.status(404).json({ message: 'No application found' });
     }
     
-    res.json({ application });
+    res.json({ 
+      application,
+      status: application.status,
+      isAvailable: user ? user.isAvailableForInterviews : true
+    });
   } catch (err) {
     console.error('getInterviewerStatus error', err);
     res.status(500).json({ message: 'Failed to fetch status' });
@@ -1070,8 +1121,38 @@ exports.getUserRequests = async (req, res) => {
       await maybeAutoScheduleInterview(d, req.app);
     }
 
-    const sent = docs.filter(d => d.requester && d.requester._id.toString() === req.user._id.toString());
-    const received = docs.filter(d => d.assignedInterviewer && d.assignedInterviewer._id.toString() === req.user._id.toString());
+    // Enhanced logic for sent/received classification:
+    // For candidates (requesters): 
+    //   - Show in "sent" if: no interviewer assigned yet OR no interviewer action taken yet
+    //   - Show in "received" if: interviewer has suggested slots OR scheduled OR any interviewer action
+    // For interviewers:
+    //   - Always show in "received" if they are the assigned interviewer
+    
+    const sent = [];
+    const received = [];
+    
+    for (const d of docs) {
+      const isRequester = d.requester && d.requester._id.toString() === req.user._id.toString();
+      const isInterviewer = d.assignedInterviewer && d.assignedInterviewer._id.toString() === req.user._id.toString();
+      
+      if (isInterviewer) {
+        // Interviewer: always show in received
+        received.push(d);
+      } else if (isRequester) {
+        // Candidate logic: show in received if interviewer has taken action
+        const hasInterviewerAction = 
+          d.assignedInterviewer && // Interviewer assigned
+          (d.interviewerSuggestedSlots && d.interviewerSuggestedSlots.length > 0) || // Interviewer suggested slots
+          d.status === 'scheduled' || // Interview scheduled
+          d.status === 'assigned'; // Admin assigned interviewer
+        
+        if (hasInterviewerAction) {
+          received.push(d);
+        } else {
+          sent.push(d);
+        }
+      }
+    }
 
     res.json({ received, sent });
   } catch (err) {
@@ -2461,6 +2542,149 @@ exports.getInterviewerFeedback = async (req, res) => {
 
 module.exports = exports;
 
+// Interviewer postpones a scheduled interview
+exports.postponeInterview = async (req, res) => {
+  try {
+    const { requestId, newScheduledAt, reason } = req.body;
+
+    console.log('[Postpone] Request received:', { requestId, newScheduledAt, reason, userId: req.user._id });
+
+    if (!requestId || !newScheduledAt || !reason) {
+      return res.status(400).json({ message: 'Request ID, new scheduled time, and reason are required' });
+    }
+
+    const reqDoc = await InterviewRequest.findById(requestId);
+    if (!reqDoc) {
+      console.log('[Postpone] Interview not found:', requestId);
+      return res.status(404).json({ message: 'Interview request not found' });
+    }
+
+    console.log('[Postpone] Interview found:', {
+      _id: reqDoc._id,
+      status: reqDoc.status,
+      assignedInterviewer: reqDoc.assignedInterviewer,
+      scheduledAt: reqDoc.scheduledAt
+    });
+
+    // Only the assigned interviewer can postpone
+    if (!reqDoc.assignedInterviewer || reqDoc.assignedInterviewer.toString() !== req.user._id.toString()) {
+      console.log('[Postpone] Authorization failed:', {
+        assignedInterviewer: reqDoc.assignedInterviewer?.toString(),
+        currentUser: req.user._id.toString()
+      });
+      return res.status(403).json({ message: 'Not authorized to postpone this interview' });
+    }
+
+    // Can only postpone if currently scheduled
+    if (reqDoc.status !== 'scheduled') {
+      console.log('[Postpone] Invalid status:', reqDoc.status);
+      return res.status(400).json({ message: 'Can only postpone scheduled interviews' });
+    }
+
+    // Validate new time is in the future
+    const newTime = new Date(newScheduledAt);
+    const now = new Date();
+    console.log('[Postpone] Time validation:', {
+      newScheduledAt,
+      newTime: newTime.toISOString(),
+      now: now.toISOString(),
+      isValid: !isNaN(newTime),
+      isInFuture: newTime > now
+    });
+
+    if (isNaN(newTime)) {
+      return res.status(400).json({ message: 'Invalid date format. Please provide a valid datetime.' });
+    }
+
+    if (newTime <= now) {
+      return res.status(400).json({ message: 'New scheduled time must be in the future' });
+    }
+
+    // Store original scheduled time if this is the first postponement
+    if (!reqDoc.originalScheduledAt) {
+      reqDoc.originalScheduledAt = reqDoc.scheduledAt;
+    }
+
+    // Update the interview
+    reqDoc.scheduledAt = newTime;
+    reqDoc.postponedBy = req.user._id;
+    reqDoc.postponeReason = reason.trim();
+    reqDoc.postponedAt = new Date();
+    reqDoc.postponeCount = (reqDoc.postponeCount || 0) + 1;
+    await reqDoc.save();
+
+    // Populate for notifications
+    await reqDoc.populate([
+      { path: 'requester', select: 'username firstName lastName email' },
+      { path: 'assignedInterviewer', select: 'username firstName lastName email' },
+    ]);
+
+    const io = req.app.get('io');
+    const interviewerName = `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`.trim() || reqDoc.assignedInterviewer.username;
+    const requesterName = `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username;
+
+    // Notify candidate
+    if (reqDoc.requester) {
+      const notification = await Notification.create({
+        userId: reqDoc.requester._id,
+        type: 'interview-postponed',
+        message: `${interviewerName} has postponed your mock interview at ${reqDoc.company} to ${newTime.toLocaleString()}.`,
+        requestId: reqDoc._id,
+        requesterId: reqDoc.assignedInterviewer._id,
+        requesterName: interviewerName,
+        company: reqDoc.company,
+        position: reqDoc.position,
+        timestamp: Date.now(),
+      });
+
+      if (io) {
+        io.to(reqDoc.requester._id.toString()).emit('notification', notification);
+        io.to(reqDoc.requester._id.toString()).emit('interview-postponed', {
+          requestId: reqDoc._id,
+          company: reqDoc.company,
+          position: reqDoc.position,
+          newScheduledAt: newTime,
+          reason: reason.trim(),
+          message: `Your interview has been rescheduled to ${newTime.toLocaleString()}.`,
+        });
+        // Emit events to update request counts
+        io.to(reqDoc.requester._id.toString()).emit('interview-request-received');
+        io.to(reqDoc.assignedInterviewer._id.toString()).emit('interview-request-sent');
+      }
+
+      // Send email to candidate
+      try {
+        if (reqDoc.requester.email) {
+          const tpl = T.interviewPostponed({
+            requesterName,
+            interviewerName,
+            company: reqDoc.company,
+            position: reqDoc.position,
+            originalTime: reqDoc.originalScheduledAt ? reqDoc.originalScheduledAt.toLocaleString() : 'the original time',
+            newTime: newTime.toLocaleString(),
+            reason: reason.trim(),
+          });
+          await sendMail({ to: reqDoc.requester.email, subject: tpl.subject, html: tpl.html });
+          console.log(`[Interview] Postpone email sent to candidate: ${reqDoc.requester.email}`);
+        }
+      } catch (e) {
+        console.error('Failed to send postpone email', e);
+      }
+    }
+
+    console.log('[Postpone] Success - Interview postponed:', {
+      requestId: reqDoc._id,
+      newTime: newTime.toISOString(),
+      postponeCount: reqDoc.postponeCount
+    });
+
+    res.json({ message: 'Interview postponed successfully', request: reqDoc });
+  } catch (err) {
+    console.error('postponeInterview error', err);
+    res.status(500).json({ message: 'Failed to postpone interview' });
+  }
+};
+
 // Admin: delete interviewer and cascade remove related documents
 exports.deleteInterviewerAndCascade = async (req, res) => {
   try {
@@ -2491,5 +2715,54 @@ exports.deleteInterviewerAndCascade = async (req, res) => {
   } catch (err) {
     console.error('deleteInterviewerAndCascade error', err);
     res.status(500).json({ message: 'Failed to delete interviewer' });
+  }
+};
+
+// Toggle interview availability for approved interviewers
+exports.toggleInterviewAvailability = async (req, res) => {
+  try {
+    const userId = req.user && req.user._id;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // Check if user is an approved interviewer
+    const application = await InterviewerApplication.findOne({ user: userId, status: 'approved' });
+    if (!application) {
+      return res.status(403).json({ error: 'Only approved interviewers can toggle interview availability' });
+    }
+
+    // Toggle the availability
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    user.isAvailableForInterviews = !user.isAvailableForInterviews;
+    await user.save();
+
+    // Broadcast availability change via Socket.IO
+    const io = req.app.get('io');
+    if (io && user.socketId) {
+      // Emit to the user's socket to confirm
+      io.to(user.socketId).emit('interview-availability-updated', {
+        isAvailableForInterviews: user.isAvailableForInterviews
+      });
+    }
+    // Broadcast to all clients that this interviewer's availability changed
+    if (io) {
+      io.emit('interviewer-availability-changed', {
+        interviewerId: user._id.toString(),
+        isAvailableForInterviews: user.isAvailableForInterviews
+      });
+    }
+
+    console.log(`[Interview Availability] User ${userId} toggled to: ${user.isAvailableForInterviews}`);
+
+    res.json({
+      message: `You are now ${user.isAvailableForInterviews ? 'available' : 'unavailable'} for interview requests`,
+      isAvailable: user.isAvailableForInterviews
+    });
+  } catch (err) {
+    console.error('toggleInterviewAvailability error', err);
+    res.status(500).json({ error: 'Failed to toggle interview availability' });
   }
 };

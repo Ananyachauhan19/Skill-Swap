@@ -1,5 +1,6 @@
 const express = require('express');
 const requireAuth = require('../middleware/requireAuth');
+const userCtrl = require('../controllers/userController');
 
 const router = express.Router();
 
@@ -166,5 +167,8 @@ router.post('/live/:id/archive', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to archive live session' });
   }
 });
+
+// Toggle interview availability
+router.post('/toggle-interview-availability', requireAuth, userCtrl.toggleInterviewAvailability);
 
 module.exports = router; 

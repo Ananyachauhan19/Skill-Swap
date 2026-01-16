@@ -345,6 +345,9 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
   const [isAvailable, setIsAvailable] = useState(true);
   const [isToggling, setIsToggling] = useState(false);
+  const [isInterviewAvailable, setIsInterviewAvailable] = useState(true); // Interview availability
+  const [isTogglingInterview, setIsTogglingInterview] = useState(false);
+  const [interviewerStatus, setInterviewerStatus] = useState(null); // approved, pending, null
   const [activeVideoCall, setActiveVideoCall] = useState(null);
   const [pendingRequestCounts, setPendingRequestCounts] = useState({
     session: 0,
@@ -368,6 +371,7 @@ const Navbar = () => {
         const parsedUser = JSON.parse(userCookie);
         setUser(parsedUser);
         setIsAvailable(parsedUser.isAvailableForSessions ?? true);
+        setIsInterviewAvailable(parsedUser.isAvailableForInterviews ?? true);
       } catch (e) {
         console.error('Failed to parse user cookie:', e);
       }
@@ -390,12 +394,53 @@ const Navbar = () => {
       }
     };
 
+    const handleInterviewAvailabilityUpdate = (data) => {
+      console.log('[Navbar Interview Availability] Received update:', data);
+      setIsInterviewAvailable(data.isAvailableForInterviews);
+      // Update cookie
+      const updatedUser = { ...user, isAvailableForInterviews: data.isAvailableForInterviews };
+      setUser(updatedUser);
+      Cookies.set('user', JSON.stringify(updatedUser));
+      if (authUser && updateUser) {
+        updateUser(updatedUser);
+      }
+    };
+
     socket.on('availability-updated', handleAvailabilityUpdate);
+    socket.on('interview-availability-updated', handleInterviewAvailabilityUpdate);
 
     return () => {
       socket.off('availability-updated', handleAvailabilityUpdate);
+      socket.off('interview-availability-updated', handleInterviewAvailabilityUpdate);
     };
   }, [user, authUser, updateUser]);
+
+  // Fetch interviewer status and availability
+  useEffect(() => {
+    const fetchInterviewerStatus = async () => {
+      if (!user) {
+        setInterviewerStatus(null);
+        setIsInterviewAvailable(true);
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/interview/verification-status`, {
+          credentials: 'include',
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setInterviewerStatus(data.status);
+          setIsInterviewAvailable(data.isAvailable ?? true);
+        }
+      } catch (error) {
+        console.error('[Navbar] Failed to fetch interviewer status:', error);
+      }
+    };
+
+    fetchInterviewerStatus();
+  }, [user]);
 
   // Fetch coins from backend
   const fetchCoins = async () => {
@@ -437,14 +482,8 @@ const Navbar = () => {
 
       if (response.ok) {
         const data = await response.json();
-        // Confirm the update from server
-        setIsAvailable(data.isAvailableForSessions);
-        const updatedUser = { ...user, isAvailableForSessions: data.isAvailableForSessions };
-        setUser(updatedUser);
-        Cookies.set('user', JSON.stringify(updatedUser));
-        if (authUser && updateUser) {
-          updateUser(updatedUser);
-        }
+        // Socket will handle the real-time update, but we confirm here as fallback
+        console.log('[Toggle] Session availability updated:', data.isAvailableForSessions);
       } else {
         // Revert on error
         setIsAvailable(!newAvailability);
@@ -457,6 +496,41 @@ const Navbar = () => {
       console.error('Error toggling availability:', error);
     } finally {
       setIsToggling(false);
+    }
+  };
+
+  // Handle interview availability toggle
+  const handleToggleInterviewAvailability = async () => {
+    if (isTogglingInterview || interviewerStatus !== 'approved') return;
+    
+    // Optimistically update UI immediately
+    const newAvailability = !isInterviewAvailable;
+    setIsInterviewAvailable(newAvailability);
+    setIsTogglingInterview(true);
+    
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/interview/toggle-availability`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Socket will handle the real-time update, but we confirm here as fallback
+        console.log('[Toggle] Interview availability updated:', data.isAvailable);
+      } else {
+        // Revert on error
+        setIsInterviewAvailable(!newAvailability);
+        const errorData = await response.json();
+        console.error('Failed to toggle interview availability:', errorData.error);
+      }
+    } catch (error) {
+      // Revert on error
+      setIsInterviewAvailable(!newAvailability);
+      console.error('Error toggling interview availability:', error);
+    } finally {
+      setIsTogglingInterview(false);
     }
   };
 
@@ -1141,35 +1215,16 @@ const Navbar = () => {
                       onClose={() => setShowProfileMenu(false)}
                       navigate={navigate}
                       menuRef={menuRef}
+                      isAvailable={isAvailable}
+                      isToggling={isToggling}
+                      handleToggleAvailability={handleToggleAvailability}
+                      isInterviewAvailable={isInterviewAvailable}
+                      isTogglingInterview={isTogglingInterview}
+                      handleToggleInterviewAvailability={handleToggleInterviewAvailability}
+                      interviewerStatus={interviewerStatus}
                     />
                   )}
                 </div>
-
-                {/* Modern Toggle Switch for Availability (Teachers/Tutors) - Hidden on mobile, kept in menu */}
-                {user && (user.role === 'teacher' || user.role === 'both') && (
-                  <div className="hidden md:flex relative flex-shrink-0 ml-3">
-                    <button
-                      onClick={handleToggleAvailability}
-                      disabled={isToggling}
-                      title={isAvailable ? 'Available for Sessions (Click to turn off)' : 'Unavailable (Click to turn on)'}
-                      className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                        isAvailable ? 'bg-blue-600' : 'bg-gray-300'
-                      } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
-                    >
-                      <span className="sr-only">Toggle availability</span>
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
-                          isAvailable ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                    <span className={`absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-medium whitespace-nowrap ${
-                      isAvailable ? 'text-blue-600' : 'text-gray-500'
-                    }`}>
-                      {isAvailable ? 'Available' : 'Unavailable'}
-                    </span>
-                  </div>
-                )}
               </>
             ) : (
               <button
@@ -1223,6 +1278,10 @@ const Navbar = () => {
           isAvailable={isAvailable}
           handleToggleAvailability={handleToggleAvailability}
           isToggling={isToggling}
+          isInterviewAvailable={isInterviewAvailable}
+          handleToggleInterviewAvailability={handleToggleInterviewAvailability}
+          isTogglingInterview={isTogglingInterview}
+          interviewerStatus={interviewerStatus}
           searchRef={searchRef}
           suggestions={suggestions}
           showSuggestions={showSuggestions}

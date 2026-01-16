@@ -90,6 +90,8 @@ const userSchema = new mongoose.Schema({
   tutorApplicationId: { type: mongoose.Schema.Types.ObjectId, ref: 'TutorApplication', required: false },
   // Availability toggle for teachers/tutors (default: available)
   isAvailableForSessions: { type: Boolean, default: true },
+  // Availability toggle for interview (default: available)
+  isAvailableForInterviews: { type: Boolean, default: true },
   // Online status
   isOnline: { type: Boolean, default: false },
   lastLogin: { type: Date, required: false },

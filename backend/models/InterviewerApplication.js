@@ -15,6 +15,8 @@ const interviewerAppSchema = new mongoose.Schema({
   averageRating: { type: Number, default: 0, min: 0, max: 5 },
   totalRatings: { type: Number, default: 0 },
   conductedInterviews: { type: Number, default: 0 }, // Actual interviews conducted
+  // Availability toggle
+  isAvailable: { type: Boolean, default: true }, // True = available for interviews, False = unavailable
   approvedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
   approvedActionTimestamp: { type: Date },
   rejectedByEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },

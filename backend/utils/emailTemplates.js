@@ -196,6 +196,26 @@ exports.interviewAlternateRejected = ({ requesterName, interviewerName, company,
   `)
 });
 
+exports.interviewPostponed = ({ requesterName, interviewerName, company, position, originalTime, newTime, reason }) => ({
+  subject: 'Interview Rescheduled',
+  html: baseLayout('Interview Time Updated', `
+    <p>Dear ${requesterName},</p>
+    <p><b>${interviewerName}</b> has rescheduled your mock interview.</p>
+    <ul>
+      <li>Company: <b>${company}</b></li>
+      <li>Role: <b>${position}</b></li>
+      <li>Original Time: <b>${originalTime}</b></li>
+      <li>New Time: <b>${newTime}</b></li>
+      <li>Reason: <b>${reason}</b></li>
+    </ul>
+    <p style="margin:16px 0;">Your interview has been automatically rescheduled. Please make sure you're available at the new time.</p>
+    <p style="margin:24px 0">
+      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Interview Details</a>
+    </p>
+    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+  `)
+});
+
 exports.interviewRejected = ({ requesterName, company, position, reason }) => ({
   subject: 'Interview Request Update',
   html: baseLayout('Interview Request Declined', `

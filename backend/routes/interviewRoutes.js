@@ -31,6 +31,9 @@ router.get('/application', requireAuth, ctrl.getMyApplication);
 // Get interviewer verification status
 router.get('/verification-status', requireAuth, ctrl.getInterviewerStatus);
 
+// Toggle interview availability (approved interviewers only)
+router.post('/toggle-availability', requireAuth, ctrl.toggleInterviewAvailability);
+
 // Admin approve application
 router.post('/applications/:id/approve', requireAuth, requireAdmin, ctrl.approveApplication);
 // Admin reject application
@@ -64,6 +67,9 @@ router.post('/requester/accept-slot', requireAuth, ctrl.requesterAcceptInterview
 router.post('/requester/alternate-slots', requireAuth, ctrl.requesterSuggestAlternateSlots);
 router.post('/interviewer/accept-alternate', requireAuth, ctrl.interviewerAcceptAlternateSlot);
 router.post('/interviewer/reject-alternate', requireAuth, ctrl.interviewerRejectAlternateSlots);
+
+// Interviewer postpones a scheduled interview
+router.post('/postpone', requireAuth, ctrl.postponeInterview);
 
 // Assigned interviewer approves or rejects the interview
 router.post('/approve', requireAuth, ctrl.approveAssignedInterview);
