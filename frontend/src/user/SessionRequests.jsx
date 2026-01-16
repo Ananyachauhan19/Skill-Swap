@@ -29,6 +29,7 @@ const SessionRequests = () => {
   const [requests, setRequests] = useState({ received: [], sent: [] });
   const [expertSessionRequests, setExpertSessionRequests] = useState({ received: [], sent: [] });
   const [skillMateRequests, setSkillMateRequests] = useState({ received: [], sent: [] });
+  const [campusRequests, setCampusRequests] = useState({ received: [], sent: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('received');
@@ -50,7 +51,7 @@ const SessionRequests = () => {
       const view = params.get('view');
       
       // Set request type from tab param
-      if (tab === 'session' || tab === 'expert' || tab === 'skillmate' || tab === 'interview') {
+      if (tab === 'session' || tab === 'expert' || tab === 'skillmate' || tab === 'interview' || tab === 'campus') {
         setRequestType(tab);
       }
       
@@ -131,6 +132,7 @@ const SessionRequests = () => {
     fetchSkillMateRequests();
     fetchInterviewRequests();
     fetchExpertSessionRequests();
+    fetchCampusRequests();
   }, []);
 
   useEffect(() => {
@@ -380,6 +382,11 @@ const SessionRequests = () => {
       (req) => req.status === 'pending'
     ).length;
 
+    // Campus requests - pending only
+    const campusPending = [...campusRequests.received, ...campusRequests.sent].filter(
+      (req) => req.status === 'pending'
+    ).length;
+
     // Interview requests - pending OR scheduled
     const interviewPending = [...(interviewRequests?.received || []), ...(interviewRequests?.sent || [])].filter(
       (req) => {
@@ -388,13 +395,14 @@ const SessionRequests = () => {
       }
     ).length;
 
-    const total = sessionPending + expertPending + skillmatePending + interviewPending;
+    const total = sessionPending + expertPending + skillmatePending + campusPending + interviewPending;
     
     return {
       total,
       session: sessionPending,
       expert: expertPending,
       skillmate: skillmatePending,
+      campus: campusPending,
       interview: interviewPending
     };
   };
@@ -428,8 +436,8 @@ const SessionRequests = () => {
   useEffect(() => {
     // Calculate and send counts immediately whenever ANY request data changes
     notifyRequestCountUpdate();
-    console.log('[SessionRequests] ?? Request data changed, updating navbar count...');
-  }, [requests, expertSessionRequests, skillMateRequests, interviewRequests]);
+    console.log('[SessionRequests] Request data changed, updating navbar count...');
+  }, [requests, expertSessionRequests, skillMateRequests, campusRequests, interviewRequests]);
 
   const fetchSessionRequests = async () => {
     try {
@@ -553,6 +561,36 @@ const SessionRequests = () => {
     }
   };
 
+  const fetchCampusRequests = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/session-requests/campus`, {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Filter to show only requests from the last 2 days (consistent with other tabs)
+        const twoDaysAgo = new Date();
+        twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+
+        const filterRecent = (items) => {
+          return (items || []).filter((req) => {
+            const requestDate = new Date(req.createdAt || req.requestedAt);
+            return requestDate >= twoDaysAgo;
+          });
+        };
+
+        setCampusRequests({
+          received: filterRecent(data.received || []),
+          sent: filterRecent(data.sent || []),
+        });
+      }
+    } catch {
+      // Silent fail
+    }
+  };
+
   const handleApprove = async (requestId, type = 'session') => {
     try {
       if (type === 'session') {
@@ -578,6 +616,20 @@ const SessionRequests = () => {
         addToast({ title: 'Approved', message: 'SkillMate request approved.', variant: 'success', timeout: 2500 });
         fetchSkillMateRequests();
         notifyRequestCountUpdate();
+      } else if (type === 'campus') {
+        const response = await fetch(`${BACKEND_URL}/api/session-requests/campus/approve/${requestId}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (response.ok) {
+          addToast({ title: 'Approved', message: 'Campus request approved successfully.', variant: 'success', timeout: 2500 });
+          fetchCampusRequests();
+          notifyRequestCountUpdate();
+        } else {
+          addToast({ title: 'Error', message: 'Failed to approve campus request.', variant: 'error', timeout: 3000 });
+        }
       } else if (type === 'expert') {
         const response = await fetch(`${BACKEND_URL}/api/sessions/expert/approve/${requestId}`, {
           method: 'POST',
@@ -620,6 +672,20 @@ const SessionRequests = () => {
         addToast({ title: 'Rejected', message: 'SkillMate request rejected.', variant: 'warning', timeout: 2500 });
         fetchSkillMateRequests();
         notifyRequestCountUpdate();
+      } else if (type === 'campus') {
+        const response = await fetch(`${BACKEND_URL}/api/session-requests/campus/reject/${requestId}`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+
+        if (response.ok) {
+          addToast({ title: 'Rejected', message: 'Campus request rejected.', variant: 'warning', timeout: 2500 });
+          fetchCampusRequests();
+          notifyRequestCountUpdate();
+        } else {
+          addToast({ title: 'Error', message: 'Failed to reject campus request.', variant: 'error', timeout: 3000 });
+        }
       } else if (type === 'expert') {
         const response = await fetch(`${BACKEND_URL}/api/sessions/expert/reject/${requestId}`, {
           method: 'POST',
@@ -911,12 +977,16 @@ const SessionRequests = () => {
               ? 'bg-purple-50' 
               : type === 'expert'
                 ? 'bg-indigo-50'
-                : 'bg-teal-50'
+                : type === 'campus'
+                  ? 'bg-blue-50'
+                  : 'bg-teal-50'
           }`}>
             {type === 'skillmate' ? (
               <FaUserFriends className="text-purple-600 text-sm" />
             ) : type === 'expert' ? (
               <FaUserFriends className="text-indigo-600 text-sm" />
+            ) : type === 'campus' ? (
+              <FaUser className="text-blue-600 text-sm" />
             ) : (
               <FaUser className="text-teal-600 text-sm" />
             )}
@@ -934,6 +1004,18 @@ const SessionRequests = () => {
                   <>
                     <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
                     Expert session created
+                  </>
+                )
+              ) : type === 'campus' ? (
+                isReceived ? (
+                  <>
+                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                    Campus session request
+                  </>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                    Campus session requested
                   </>
                 )
               ) : isReceived ? (
@@ -1825,6 +1907,27 @@ const SessionRequests = () => {
 
             <button
               onClick={() => {
+                setRequestType('campus');
+                setActiveTab('received');
+                navigate('/session-requests?tab=campus&view=received', { replace: true });
+              }}
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all text-sm ${
+                requestType === 'campus'
+                  ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                  : 'hover:bg-slate-50 text-slate-600'
+              }`}
+            >
+              <FaUser className="text-xs" />
+              <span className="font-medium">Campus Requests</span>
+              {([...campusRequests.received, ...campusRequests.sent].filter((req) => req.status === 'pending').length) > 0 && (
+                <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
+                  {[...campusRequests.received, ...campusRequests.sent].filter((req) => req.status === 'pending').length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => {
                 setRequestType('interview');
                 setActiveTab('received');
                 navigate('/session-requests?tab=interview&view=received', { replace: true });
@@ -1936,6 +2039,28 @@ const SessionRequests = () => {
                   {([...skillMateRequests.received, ...skillMateRequests.sent].filter((req) => req.status === 'pending').length) > 0 && (
                     <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
                       {[...skillMateRequests.received, ...skillMateRequests.sent].filter((req) => req.status === 'pending').length}
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setRequestType('campus');
+                    setActiveTab('received');
+                    navigate('/session-requests?tab=campus&view=received', { replace: true });
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm ${
+                    requestType === 'campus'
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'hover:bg-slate-50 text-slate-600'
+                  }`}
+                >
+                  <FaUser className={`text-xs ${requestType === 'campus' ? 'text-blue-600' : 'text-slate-500'}`} />
+                  <span className="font-medium">Campus Requests</span>
+                  {([...campusRequests.received, ...campusRequests.sent].filter((req) => req.status === 'pending').length) > 0 && (
+                    <span className="ml-auto bg-rose-500 rounded-full h-5 w-5 flex items-center justify-center text-xs font-semibold text-white">
+                      {[...campusRequests.received, ...campusRequests.sent].filter((req) => req.status === 'pending').length}
                     </span>
                   )}
                 </button>
@@ -2112,6 +2237,8 @@ const SessionRequests = () => {
                           ? expertSessionRequests.received.length
                         : requestType === 'skillmate'
                           ? skillMateRequests.received.length
+                        : requestType === 'campus'
+                          ? campusRequests.received.length
                           : (interviewRequests?.received || []).length}
                     </span>
                   </div>
@@ -2136,6 +2263,8 @@ const SessionRequests = () => {
                           ? expertSessionRequests.sent.length
                         : requestType === 'skillmate'
                           ? skillMateRequests.sent.length
+                        : requestType === 'campus'
+                          ? campusRequests.sent.length
                           : (interviewRequests?.sent || []).length}
                     </span>
                   </div>
@@ -2235,40 +2364,74 @@ const SessionRequests = () => {
                   <RequestCard key={request._id} request={request} isReceived={false} type="skillmate" />
                 ))
               )
-            ) : activeTab === 'received' ? (
-              (interviewRequests?.received || []).filter(req => !shouldRemoveExpiredInterview(req)).length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
-                  <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaUser className="text-amber-500 text-xl" />
+            ) : requestType === 'campus' ? (
+              activeTab === 'received' ? (
+                campusRequests.received.length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FaUser className="text-blue-500 text-xl" />
+                    </div>
+                    <h3 className="text-base font-semibold text-slate-700 mb-1">No Received Campus Requests</h3>
+                    <p className="text-slate-500 text-sm">You haven't received any campus session requests yet.</p>
+                    <p className="text-slate-400 text-xs mt-1">Campus students requests will appear here</p>
                   </div>
-                  <h3 className="text-base font-semibold text-slate-700 mb-1">No Received Interview Requests</h3>
-                  <p className="text-slate-500 text-sm">You haven't received any interview requests yet.</p>
-                  <p className="text-slate-400 text-xs mt-1">Interview requests will appear here</p>
+                ) : (
+                  campusRequests.received.map((request) => (
+                    <RequestCard key={request._id} request={request} isReceived={true} type="campus" />
+                  ))
+                )
+              ) : campusRequests.sent.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                  <div className="w-14 h-14 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaVideo className="text-blue-500 text-xl" />
+                  </div>
+                  <h3 className="text-base font-semibold text-slate-700 mb-1">No Sent Campus Requests</h3>
+                  <p className="text-slate-500 text-sm">You haven't sent any campus session requests yet.</p>
+                  <p className="text-slate-400 text-xs mt-1">Request sessions from your campus dashboard!</p>
                 </div>
               ) : (
-                (interviewRequests?.received || []).filter(req => !shouldRemoveExpiredInterview(req)).map((request) => (
-                  <InterviewRequestCard key={request._id} request={request} isReceived={true} />
+                campusRequests.sent.map((request) => (
+                  <RequestCard key={request._id} request={request} isReceived={false} type="campus" />
                 ))
               )
-            ) : (interviewRequests?.sent || []).filter(req => !shouldRemoveExpiredInterview(req)).length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
-                <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <FaVideo className="text-amber-500 text-xl" />
-                </div>
-                <h3 className="text-base font-semibold text-slate-700 mb-1">No Sent Interview Requests</h3>
-                <p className="text-slate-500 text-sm">You haven't sent any interview requests yet.</p>
-                <p className="text-slate-400 text-xs mt-1">Request mock interviews to practice!</p>
-              </div>
-            ) : (
-              (interviewRequests?.sent || []).filter(req => !shouldRemoveExpiredInterview(req)).map((request) => (
-                <InterviewRequestCard key={request._id} request={request} isReceived={false} />
-              ))
-            )}
+            ) : requestType === 'interview' ? (
+              activeTab === 'received' ? (
+                (interviewRequests?.received || []).filter(req => !shouldRemoveExpiredInterview(req)).length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FaUser className="text-amber-500 text-xl" />
+                    </div>
+                    <h3 className="text-base font-semibold text-slate-700 mb-1">No Received Interview Requests</h3>
+                    <p className="text-slate-500 text-sm">You haven't received any interview requests yet.</p>
+                    <p className="text-slate-400 text-xs mt-1">Interview requests will appear here</p>
+                  </div>
+                ) : (
+                  (interviewRequests?.received || []).filter(req => !shouldRemoveExpiredInterview(req)).map((request) => (
+                    <InterviewRequestCard key={request._id} request={request} isReceived={true} />
+                  ))
+                )
+              ) : (
+                (interviewRequests?.sent || []).filter(req => !shouldRemoveExpiredInterview(req)).length === 0 ? (
+                  <div className="text-center py-12 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FaVideo className="text-amber-500 text-xl" />
+                    </div>
+                    <h3 className="text-base font-semibold text-slate-700 mb-1">No Sent Interview Requests</h3>
+                    <p className="text-slate-500 text-sm">You haven't sent any interview requests yet.</p>
+                    <p className="text-slate-400 text-xs mt-1">Request mock interviews to practice!</p>
+                  </div>
+                ) : (
+                  (interviewRequests?.sent || []).filter(req => !shouldRemoveExpiredInterview(req)).map((request) => (
+                    <InterviewRequestCard key={request._id} request={request} isReceived={false} />
+                  ))
+                )
+              )
+            ) : null}
           </div>
         </div>
       </div>
-      </div>
       <InterviewTimeNegotiationModal />
+    </div>
     </div>
   );
 };

@@ -23,7 +23,7 @@ const CampusStartSkillSwapSearchForm = () => {
 
   const [classes, setClasses] = useState([]);
   const [subjectsByClass, setSubjectsByClass] = useState({});
-  const [topicsBySubject, setTopicsBySubject] = useState({});
+  const [topicsByClassAndSubject, setTopicsByClassAndSubject] = useState({});
 
   useEffect(() => {
     let aborted = false;
@@ -35,7 +35,7 @@ const CampusStartSkillSwapSearchForm = () => {
         if (aborted) return;
         setClasses(Array.isArray(json.classes) ? json.classes : []);
         setSubjectsByClass(json.subjectsByClass || {});
-        setTopicsBySubject(json.topicsBySubject || {});
+        setTopicsByClassAndSubject(json.topicsByClassAndSubject || {});
       } catch (e) {
         console.error('Failed to fetch skills list:', e);
       }
@@ -54,8 +54,8 @@ const CampusStartSkillSwapSearchForm = () => {
   }, [courseValue, subjectsByClass]);
 
   const topicList = useMemo(() => {
-    return unitValue ? (topicsBySubject[unitValue] || []) : [];
-  }, [unitValue, topicsBySubject]);
+    return (courseValue && unitValue) ? (topicsByClassAndSubject[courseValue]?.[unitValue] || []) : [];
+  }, [courseValue, unitValue, topicsByClassAndSubject]);
 
   const unitDropdownList = useMemo(() => {
     const term = (unitValue || '').trim().toLowerCase();
@@ -257,20 +257,53 @@ const CampusStartSkillSwapSearchForm = () => {
     if (!file) return;
     try {
       setUploading(true);
+      setError(""); // Clear previous errors
+      
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
       const safeBase = file.name.replace(/\.[^/.]+$/, '').slice(0, 40).replace(/[^a-zA-Z0-9_-]/g, '_');
       const ts = Date.now();
       const uid = (user && user._id) ? user._id : 'anonymous';
       const path = `${uid}/${ts}-${safeBase}.${ext}`;
-      const { error: upErr } = await supabase.storage
+      
+      console.log('[Upload] Starting upload to Supabase:', { bucket: 'questions', path, fileType: file.type });
+      
+      const { data, error: upErr } = await supabase.storage
         .from('questions')
-        .upload(path, file);
-      if (upErr) throw upErr;
+        .upload(path, file, { 
+          cacheControl: '3600', 
+          upsert: false, 
+          contentType: file.type 
+        });
+      
+      if (upErr) {
+        console.error('[Upload] Supabase upload error:', upErr);
+        throw upErr;
+      }
+      
+      console.log('[Upload] Upload successful:', data);
+      
       const publicURL = getPublicUrl('questions', path);
+      console.log('[Upload] Generated public URL:', publicURL);
+      
+      if (!publicURL) {
+        throw new Error('Failed to generate public URL');
+      }
+      
       setQuestionImageUrl(publicURL);
     } catch (err) {
-      console.error('[Upload] Failed:', err);
-      setError("Failed to upload image");
+      console.error('[Upload] Upload failed:', err);
+      const msg = (err && (err.message || err.error_description)) || '';
+      
+      if (/row-level security/i.test(msg) || /RLS/i.test(msg) || /new row violates row-level security/i.test(msg)) {
+        setError('Upload blocked by Supabase security policy. Please ensure the "questions" bucket allows public uploads.');
+      } else if (/Bucket not found/i.test(msg) || /bucket_id/i.test(msg)) {
+        setError('Supabase bucket "questions" not found. Please create the bucket in your Supabase dashboard.');
+      } else if (/The resource already exists/i.test(msg)) {
+        setError('A file with this name already exists. Please try again.');
+      } else {
+        setError(`Upload failed: ${msg || 'Unknown error'}. Please try again or proceed without the image.`);
+      }
+      setQuestionImageUrl("");
     } finally {
       setUploading(false);
     }

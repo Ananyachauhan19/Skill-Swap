@@ -22,6 +22,7 @@ const CampusAssessment = () => {
   const [notifications, setNotifications] = useState([]);
   const [goldenCoins, setGoldenCoins] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
+  const [campusRequestCount, setCampusRequestCount] = useState(0);
   const coinsRef = useRef(null);
 
   const isActive = (tab) => activeTab === tab;
@@ -38,6 +39,33 @@ const CampusAssessment = () => {
       }
     } catch {
       // ignore
+    }
+  };
+
+  const fetchCampusRequestCount = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/session-requests/campus`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const received = Array.isArray(data.received) ? data.received : [];
+        const sent = Array.isArray(data.sent) ? data.sent : [];
+        const all = [...received, ...sent];
+        
+        const now = new Date();
+        const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+        const campusPending = all.filter((r) => {
+          const status = (r.status || '').toLowerCase();
+          if (status !== 'pending') return false;
+          const createdAt = new Date(r.createdAt || r.requestedAt);
+          return !createdAt || isNaN(createdAt.getTime()) || createdAt >= twoDaysAgo;
+        }).length;
+        
+        setCampusRequestCount(campusPending);
+      }
+    } catch (error) {
+      console.error('Failed to fetch campus request count:', error);
     }
   };
 
@@ -70,12 +98,44 @@ const CampusAssessment = () => {
     if (userData && userData._id) {
       socket.emit('register', userData._id);
       fetchCoins();
+      fetchCampusRequestCount();
     }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('notifications', JSON.stringify(notifications));
   }, [notifications]);
+
+  // Listen for campus request count updates
+  useEffect(() => {
+    const handleRequestCountChanged = (event) => {
+      if (event.detail && typeof event.detail.campus === 'number') {
+        setCampusRequestCount(event.detail.campus);
+      }
+    };
+
+    const handleSocketCountUpdate = (data) => {
+      if (data && data.counts && typeof data.counts.campus === 'number') {
+        setCampusRequestCount(data.counts.campus);
+      }
+    };
+
+    const handleSessionRequestEvent = () => {
+      fetchCampusRequestCount();
+    };
+
+    window.addEventListener('requestCountChanged', handleRequestCountChanged);
+    socket.on('request-count-update', handleSocketCountUpdate);
+    socket.on('session-request-received', handleSessionRequestEvent);
+    socket.on('session-request-updated', handleSessionRequestEvent);
+
+    return () => {
+      window.removeEventListener('requestCountChanged', handleRequestCountChanged);
+      socket.off('request-count-update', handleSocketCountUpdate);
+      socket.off('session-request-received', handleSessionRequestEvent);
+      socket.off('session-request-updated', handleSessionRequestEvent);
+    };
+  }, []);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -111,6 +171,7 @@ const CampusAssessment = () => {
         setNotifications={setNotifications}
         menuOpen={menuOpen}
         setMenuOpen={setMenuOpen}
+        campusRequestCount={campusRequestCount}
       />
 
       <AssessmentSection />

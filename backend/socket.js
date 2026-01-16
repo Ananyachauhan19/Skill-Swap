@@ -659,6 +659,22 @@ module.exports = (io) => {
           return;
         }
 
+        // Validate and store question image URL (kept in Supabase)
+        let finalQuestionImageUrl = questionImageUrl || '';
+        if (questionImageUrl && questionImageUrl.trim()) {
+          // Check if it's an image (not PDF or other file types)
+          const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?.*)?$/i.test(questionImageUrl);
+          
+          if (isImage) {
+            console.log('[Session Request] Question image URL (Supabase):', questionImageUrl);
+            finalQuestionImageUrl = questionImageUrl;
+          } else {
+            console.log('[Session Request] File is not an image, PDFs/other files supported separately');
+            // For PDFs or other files, you can handle them differently or keep the URL
+            finalQuestionImageUrl = questionImageUrl;
+          }
+        }
+
         // Create new session request
         const sessionRequest = new SessionRequest({
           requester: requesterId,
@@ -667,7 +683,7 @@ module.exports = (io) => {
           topic,
           message: message || '',
           questionText: question || '',
-          questionImageUrl: questionImageUrl || '',
+          questionImageUrl: finalQuestionImageUrl,
           coinType: (coinType || 'silver').toLowerCase(),
           status: 'pending',
         });

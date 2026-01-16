@@ -66,7 +66,7 @@ const StepIndicator = ({ currentStep }) => {
   );
 };
 
-const SkillSelector = ({ classes, subjectsByClass, topicsBySubject, value, onChange }) => {
+const SkillSelector = ({ classes, subjectsByClass, topicsByClassAndSubject, value, onChange }) => {
   const [classQuery, setClassQuery] = useState('');
   const [subjectQuery, setSubjectQuery] = useState('');
   const [topicQuery, setTopicQuery] = useState('');
@@ -81,7 +81,10 @@ const SkillSelector = ({ classes, subjectsByClass, topicsBySubject, value, onCha
   const topicInputRef = useRef(null);
   
   const activeSubjects = value.class ? (subjectsByClass[value.class] || []) : [];
-  const activeSubjectTopics = value.subject ? (topicsBySubject[value.subject] || []) : [];
+  // Get topics for the selected class and subject
+  const activeSubjectTopics = (value.class && value.subject) 
+    ? (topicsByClassAndSubject[value.class]?.[value.subject] || []) 
+    : [];
 
   const filteredClasses = useMemo(() => {
     if (!classQuery) return classes || [];
@@ -437,7 +440,7 @@ const TutorApplication = () => {
   const [currentSkill, setCurrentSkill] = useState({ class: '', subject: '', topic: '' });
   const [classes, setClasses] = useState([]);
   const [subjectsByClass, setSubjectsByClass] = useState({});
-  const [topicsBySubject, setTopicsBySubject] = useState({});
+  const [topicsByClassAndSubject, setTopicsByClassAndSubject] = useState({});
   const [loadingMeta, setLoadingMeta] = useState(true);
   const [marksheetFile, setMarksheetFile] = useState(null);
   const [videoFile, setVideoFile] = useState(null);
@@ -649,7 +652,7 @@ const TutorApplication = () => {
         const restricted = userClasses.length ? available.filter(c => userClasses.includes(c)) : available;
         setClasses(restricted);
         setSubjectsByClass(data.subjectsByClass || {});
-        setTopicsBySubject(data.topicsBySubject || {});
+        setTopicsByClassAndSubject(data.topicsByClassAndSubject || {});
       } catch (e) {
         setSubmitError(e.message);
       } finally {
@@ -1623,7 +1626,7 @@ const TutorApplication = () => {
               <SkillSelector
                 classes={classes}
                 subjectsByClass={subjectsByClass}
-                topicsBySubject={topicsBySubject}
+                topicsByClassAndSubject={topicsByClassAndSubject}
                 value={currentSkill}
                 onChange={setCurrentSkill}
               />

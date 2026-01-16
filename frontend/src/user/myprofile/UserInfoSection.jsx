@@ -36,7 +36,7 @@ const UserInfoSection = ({
 }) => {
   const [classes, setClasses] = useState([]);
   const [subjectsByClass, setSubjectsByClass] = useState({});
-  const [topicsBySubject, setTopicsBySubject] = useState({});
+  const [topicsByClassAndSubject, setTopicsByClassAndSubject] = useState({});
   const [originalSkills, setOriginalSkills] = useState([]);
   const [pendingUpdate, setPendingUpdate] = useState(null); // { applicationType, status }
 
@@ -182,12 +182,12 @@ const UserInfoSection = ({
         const data = await res.json();
         setClasses(Array.isArray(data.classes) ? data.classes : []);
         setSubjectsByClass(data.subjectsByClass || {});
-        setTopicsBySubject(data.topicsBySubject || {});
+        setTopicsByClassAndSubject(data.topicsByClassAndSubject || {});
       } catch {
         // Fallback to statics if API fails
         setClasses(STATIC_COURSES);
         setSubjectsByClass({});
-        setTopicsBySubject({});
+        setTopicsByClassAndSubject({});
       }
     };
     const loadStatus = async () => {
@@ -327,7 +327,7 @@ const UserInfoSection = ({
                     >
                       <option value="">Select Topic</option>
                       <option value="ALL" className="font-semibold bg-blue-50">ALL (Complete Subject)</option>
-                      {(topicsBySubject[s.subject] || []).map((topic) => (
+                      {(topicsByClassAndSubject[s.class]?.[s.subject] || []).map((topic) => (
                         <option key={topic} value={topic}>{topic}</option>
                       ))}
                     </select>

@@ -28,7 +28,7 @@ async function getSkillsList(req, res, next) {
 
     const classesSet = new Set();
     const subjectsByClass = {};
-    const topicsBySubject = {};
+    const topicsByClassAndSubject = {}; // Changed: now nested by class first, then subject
 
     rows.forEach(r => {
       const classOrCourse = (r['Class/Course'] || r.course || r.Course || '').trim();
@@ -48,19 +48,22 @@ async function getSkillsList(req, res, next) {
       }
 
       // Parse comma-separated topics from the Topics column
-      if (subject && topicsString) {
+      // FIXED: Store topics by class AND subject to avoid mixing different classes
+      if (classOrCourse && subject && topicsString) {
+        // Initialize nested structure: class -> subject -> topics array
+        topicsByClassAndSubject[classOrCourse] = topicsByClassAndSubject[classOrCourse] || {};
+        topicsByClassAndSubject[classOrCourse][subject] = topicsByClassAndSubject[classOrCourse][subject] || [];
+        
         // Split topics by comma, trim whitespace, and filter empty values
         const topicsArray = topicsString
           .split(',')
           .map(t => t.trim())
           .filter(Boolean);
-
-        topicsBySubject[subject] = topicsBySubject[subject] || [];
         
-        // Add each individual topic to the subject
+        // Add each individual topic to the specific class-subject combination
         topicsArray.forEach(topic => {
-          if (!topicsBySubject[subject].includes(topic)) {
-            topicsBySubject[subject].push(topic);
+          if (!topicsByClassAndSubject[classOrCourse][subject].includes(topic)) {
+            topicsByClassAndSubject[classOrCourse][subject].push(topic);
           }
         });
       }
@@ -69,12 +72,18 @@ async function getSkillsList(req, res, next) {
     // Sort lists for consistent UI
     const classes = Array.from(classesSet).sort((a,b) => a.localeCompare(b));
     Object.keys(subjectsByClass).forEach(k => subjectsByClass[k].sort((a,b) => a.localeCompare(b)));
-    Object.keys(topicsBySubject).forEach(k => topicsBySubject[k].sort((a,b) => a.localeCompare(b)));
+    
+    // Sort topics within each class-subject combination
+    Object.keys(topicsByClassAndSubject).forEach(classKey => {
+      Object.keys(topicsByClassAndSubject[classKey]).forEach(subjectKey => {
+        topicsByClassAndSubject[classKey][subjectKey].sort((a,b) => a.localeCompare(b));
+      });
+    });
 
     console.log('[Skills API] ✅ Processed:', classes.length, 'classes/courses');
     console.log('[Skills API] Sample classes:', classes.slice(0, 10).join(', '));
     console.log('[Skills API] Class->Subject mappings:', Object.keys(subjectsByClass).length);
-    console.log('[Skills API] Subject->Topic mappings:', Object.keys(topicsBySubject).length);
+    console.log('[Skills API] Class->Subject->Topic mappings:', Object.keys(topicsByClassAndSubject).length);
 
     // Optionally load degree options from a separate Google Sheet
     let degrees = [];
@@ -112,7 +121,7 @@ async function getSkillsList(req, res, next) {
       }
     }
 
-    return res.json({ classes, subjectsByClass, topicsBySubject, degrees });
+    return res.json({ classes, subjectsByClass, topicsByClassAndSubject, degrees });
   } catch (err) {
     console.error('[Skills API] ❌ Error:', err.message);
     next(err);

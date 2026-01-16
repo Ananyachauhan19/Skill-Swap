@@ -18,6 +18,7 @@ const CampusDashboardNavbar = ({
   setNotifications,
   menuOpen,
   setMenuOpen,
+  campusRequestCount = 0,
 }) => {
   const [backToSkillSwapOn, setBackToSkillSwapOn] = useState(false);
 
@@ -48,7 +49,7 @@ const CampusDashboardNavbar = ({
               { id: 'oneonone', label: 'One on One', path: '/campus/one-on-one' },
               { id: 'assessment', label: 'Assessment', path: '/campus/assessment' },
               { id: 'reports', label: 'Reports', path: '/campus/reports' },
-              { id: 'requests', label: 'Requests', path: '/campus/requests' },
+              { id: 'requests', label: 'Requests', path: '/session-requests?tab=campus&view=received' },
             ].map(({ id, label, path }) => (
               <button
                 key={id}
@@ -62,7 +63,14 @@ const CampusDashboardNavbar = ({
                   navigate(path);
                 }}
               >
-                {label}
+                <span className="flex items-center gap-1">
+                  <span>{label}</span>
+                  {id === 'requests' && campusRequestCount > 0 && (
+                    <span className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500 text-white">
+                      {campusRequestCount}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </div>
@@ -145,16 +153,14 @@ const CampusDashboardNavbar = ({
                   )}
                 </div>
 
-                {/* Notifications */}
-                <div className="flex flex-shrink-0">
-                  <Notifications
-                    notifications={notifications}
-                    setNotifications={setNotifications}
-                    iconSize="w-5 h-5"
-                    className="relative flex items-center justify-center"
-                    dropdownClassName="absolute right-0 mt-2 w-64 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50"
-                  />
-                </div>
+
+                <Notifications
+                  notifications={notifications}
+                  setNotifications={setNotifications}
+                  iconSize="w-5 h-5"
+                  className="relative flex items-center justify-center flex-shrink-0"
+                  dropdownClassName="absolute right-0 mt-2 w-64 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50"
+                />
 
                 {/* Back to SkillSwap (toggle) - Hidden on mobile/tablet */}
                 <button
@@ -312,7 +318,7 @@ const CampusDashboardNavbar = ({
                 { id: 'oneonone', label: 'One on One', path: '/campus/one-on-one' },
                 { id: 'assessment', label: 'Assessment', path: '/campus/assessment' },
                 { id: 'reports', label: 'Reports', path: '/campus/reports' },
-                { id: 'requests', label: 'Requests', path: '/campus/requests' },
+                { id: 'requests', label: 'Requests', path: '/session-requests?tab=campus&view=received' },
               ].map(({ id, label, path }) => (
                 <button
                   key={id}
@@ -331,7 +337,14 @@ const CampusDashboardNavbar = ({
                     setMenuOpen(false);
                   }}
                 >
-                  {label}
+                  <span className="flex items-center justify-between">
+                    <span>{label}</span>
+                    {id === 'requests' && campusRequestCount > 0 && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white">
+                        {campusRequestCount}
+                      </span>
+                    )}
+                  </span>
                 </button>
               ))}
 

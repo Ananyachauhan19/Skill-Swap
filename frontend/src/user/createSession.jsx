@@ -40,7 +40,7 @@ const CreateSessionNew = () => {
   // State for Google Sheet data
   const [classes, setClasses] = useState([]);
   const [subjectsByClass, setSubjectsByClass] = useState({});
-  const [topicsBySubject, setTopicsBySubject] = useState({});
+  const [topicsByClassAndSubject, setTopicsByClassAndSubject] = useState({});
 
   // Allow all roles except explicit 'learner' to create sessions
   const isTutorRole = (
@@ -84,7 +84,7 @@ const CreateSessionNew = () => {
       // Check if topic is "ALL" (case-insensitive)
       if (sk.topic && sk.topic.toUpperCase() === 'ALL') {
         // User can teach all topics in this subject - get from master list and filter out "ALL"
-        const allTopics = topicsBySubject[sk.subject] || [];
+        const allTopics = topicsByClassAndSubject[sk.class]?.[sk.subject] || [];
         result[sk.subject] = allTopics.filter(t => t && t.toUpperCase() !== 'ALL' && t.trim() !== '');
         console.log(`[CreateSession] Tutor has ALL permission for ${sk.subject}, showing ${result[sk.subject].length} topics`);
       } else if (sk.topic) {
@@ -97,9 +97,9 @@ const CreateSessionNew = () => {
     });
     
     console.log('[CreateSession] Available topics by subject:', result);
-    console.log('[CreateSession] Master topicsBySubject:', topicsBySubject);
+    console.log('[CreateSession] Master topicsByClassAndSubject:', topicsByClassAndSubject);
     return result;
-  }, [userSkills, isTutorRole, topicsBySubject, form.subject]);
+  }, [userSkills, isTutorRole, topicsByClassAndSubject, form.subject]);
 
   const availableClasses = useMemo(() => {
     if (!isTutorRole || !userSkills.length) {
@@ -119,12 +119,11 @@ const CreateSessionNew = () => {
           console.log('[CreateSession] Skills list fetched successfully');
           console.log('[CreateSession] Classes:', res.data.classes?.length || 0);
           console.log('[CreateSession] Subjects by class keys:', Object.keys(res.data.subjectsByClass || {}).length);
-          console.log('[CreateSession] Topics by subject keys:', Object.keys(res.data.topicsBySubject || {}).length);
-          console.log('[CreateSession] Sample topicsBySubject:', Object.keys(res.data.topicsBySubject || {}).slice(0, 3));
+          console.log('[CreateSession] Topics by class and subject keys:', Object.keys(res.data.topicsByClassAndSubject || {}).length);
           
           setClasses(res.data.classes || []);
           setSubjectsByClass(res.data.subjectsByClass || {});
-          setTopicsBySubject(res.data.topicsBySubject || {});
+          setTopicsByClassAndSubject(res.data.topicsByClassAndSubject || {});
         }
       } catch (err) {
         console.error('[CreateSession] Failed to fetch skills:', err);
@@ -233,27 +232,30 @@ const CreateSessionNew = () => {
   }, [form.topic, tutorSubjects, isTutorRole, subjectsByClass, form.subject]);
 
   const topicDropdownList = useMemo(() => {
+    // Get topics for the selected class and subject
     const list = isTutorRole
       ? (tutorTopicsBySubject[form.topic] || [])
-      : (topicsBySubject[form.topic] || []);
+      : (form.subject && form.topic ? (topicsByClassAndSubject[form.subject]?.[form.topic] || []) : []);
     const term = (form.subtopic || '').trim().toLowerCase();
     if (!term) return list;
     return list.filter(t => String(t || '').toLowerCase().includes(term));
-  }, [form.subtopic, form.topic, tutorTopicsBySubject, isTutorRole, topicsBySubject]);
+  }, [form.subtopic, form.topic, form.subject, tutorTopicsBySubject, isTutorRole, topicsByClassAndSubject]);
 
   const unitList = useMemo(() => {
     return isTutorRole ? tutorSubjects : (subjectsByClass[form.subject] || []);
   }, [tutorSubjects, isTutorRole, subjectsByClass, form.subject]);
 
   const topicList = useMemo(() => {
-    const topics = isTutorRole ? (tutorTopicsBySubject[form.topic] || []) : (topicsBySubject[form.topic] || []);
+    // Get topics for the selected class and subject
+    const topics = isTutorRole 
+      ? (tutorTopicsBySubject[form.topic] || []) 
+      : (form.subject && form.topic ? (topicsByClassAndSubject[form.subject]?.[form.topic] || []) : []);
     // Filter out "ALL" if it somehow got included - we only want individual topics
     const filteredTopics = topics.filter(t => t && t.toUpperCase() !== 'ALL' && t.trim() !== '');
-    console.log('[CreateSession] topicList for subject', form.topic, ':', filteredTopics);
+    console.log('[CreateSession] topicList for class', form.subject, 'subject', form.topic, ':', filteredTopics);
     console.log('[CreateSession] tutorTopicsBySubject:', tutorTopicsBySubject);
-    console.log('[CreateSession] topicsBySubject[form.topic]:', topicsBySubject[form.topic]);
     return filteredTopics;
-  }, [form.topic, tutorTopicsBySubject, isTutorRole, topicsBySubject]);
+  }, [form.topic, form.subject, tutorTopicsBySubject, isTutorRole, topicsByClassAndSubject]);
 
   const handleChange = e => {
     const { name, value } = e.target;

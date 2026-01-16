@@ -310,6 +310,53 @@ router.get('/expert', requireAuth, async (req, res) => {
 });
 
 /**
+ * @route GET /api/session-requests/campus
+ * @desc Get campus session requests (from students in the same institute)
+ * @access Private
+ */
+router.get('/campus', requireAuth, async (req, res) => {
+  try {
+    // Get current user's institute ID
+    const currentUser = await User.findById(req.user._id).select('instituteId');
+    
+    if (!currentUser || !currentUser.instituteId) {
+      return res.json({ received: [], sent: [] });
+    }
+
+    // Find all users from the same institute
+    const instituteUsers = await User.find({ 
+      instituteId: currentUser.instituteId 
+    }).select('_id');
+    
+    const instituteUserIds = instituteUsers.map(u => u._id);
+
+    // Get received requests (from campus students to current user)
+    const received = await SessionRequest.find({ 
+      tutor: req.user._id,
+      requester: { $in: instituteUserIds },
+      status: 'pending'
+    })
+      .populate('requester', 'firstName lastName profilePic username instituteId instituteName')
+      .populate('tutor', 'firstName lastName profilePic username')
+      .sort({ createdAt: -1 });
+
+    // Get sent requests (from current user to other campus students)
+    const sent = await SessionRequest.find({ 
+      requester: req.user._id,
+      tutor: { $in: instituteUserIds }
+    })
+      .populate('requester', 'firstName lastName profilePic username')
+      .populate('tutor', 'firstName lastName profilePic username instituteId instituteName')
+      .sort({ createdAt: -1 });
+
+    res.json({ received, sent });
+  } catch (error) {
+    console.error('Error fetching campus session requests:', error);
+    handleErrors(res, 500, 'Failed to fetch campus session requests');
+  }
+});
+
+/**
  * @route GET /api/session-requests/active
  * @desc Get active session for the user
  * @access Private
@@ -488,6 +535,174 @@ router.post('/reject/:requestId', requireAuth, requestLimiter, validateRequestId
   } catch (error) {
     console.error('Error rejecting session request:', error);
     handleErrors(res, 500, 'Failed to reject session request');
+  }
+});
+
+/**
+ * @route POST /api/session-requests/campus/approve/:requestId
+ * @desc Approve a campus session request
+ * @access Private
+ */
+router.post('/campus/approve/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
+  try {
+    const { requestId } = req.params;
+    const tutorId = req.user._id;
+
+    // Get current user's institute to verify campus membership
+    const currentUser = await User.findById(tutorId).select('instituteId');
+    if (!currentUser || !currentUser.instituteId) {
+      return handleErrors(res, 403, 'You must be a campus student to approve campus requests');
+    }
+
+    const sessionRequest = await SessionRequest.findOne({
+      _id: requestId,
+      tutor: tutorId,
+      status: 'pending',
+    });
+
+    if (!sessionRequest) {
+      return handleErrors(res, 404, 'Campus session request not found or not pending');
+    }
+
+    // Verify requester is from same campus
+    const requester = await User.findById(sessionRequest.requester).select('instituteId');
+    if (!requester || requester.instituteId !== currentUser.instituteId) {
+      return handleErrors(res, 403, 'This request is not from your campus');
+    }
+
+    sessionRequest.status = 'approved';
+    await sessionRequest.save();
+
+    // Populate user details
+    await sessionRequest.populate('requester', 'firstName lastName profilePic username instituteId instituteName');
+    await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
+
+    // Send notification to requester
+    const io = req.app.get('io');
+    const tutorName = `${req.user.firstName} ${req.user.lastName}`;
+    const notificationMessage = `${tutorName} from your campus has approved your session request on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
+    await sendNotification(
+      io,
+      sessionRequest.requester._id,
+      'campus-session-approved',
+      notificationMessage,
+      sessionRequest._id,
+      tutorId,
+      tutorName
+    );
+
+    // Email requester about approval
+    try {
+      const requesterDoc = await User.findById(sessionRequest.requester._id);
+      if (requesterDoc?.email) {
+        const tpl = T.sessionApproved({
+          requesterName: requesterDoc.firstName || requesterDoc.username,
+          tutorName,
+          subject: sessionRequest.subject,
+          topic: sessionRequest.topic
+        });
+        await sendMail({ to: requesterDoc.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send campus approval email', e);
+    }
+
+    res.json({
+      message: 'Campus session request approved',
+      sessionRequest,
+    });
+  } catch (error) {
+    console.error('Error approving campus session request:', error);
+    handleErrors(res, 500, 'Failed to approve campus session request');
+  }
+});
+
+/**
+ * @route POST /api/session-requests/campus/reject/:requestId
+ * @desc Reject a campus session request
+ * @access Private
+ */
+router.post('/campus/reject/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
+  try {
+    const { requestId } = req.params;
+    const tutorId = req.user._id;
+
+    // Get current user's institute to verify campus membership
+    const currentUser = await User.findById(tutorId).select('instituteId');
+    if (!currentUser || !currentUser.instituteId) {
+      return handleErrors(res, 403, 'You must be a campus student to reject campus requests');
+    }
+
+    const sessionRequest = await SessionRequest.findOne({
+      _id: requestId,
+      tutor: tutorId,
+      status: 'pending',
+    });
+
+    if (!sessionRequest) {
+      return handleErrors(res, 404, 'Campus session request not found or not pending');
+    }
+
+    // Verify requester is from same campus
+    const requester = await User.findById(sessionRequest.requester).select('instituteId');
+    if (!requester || requester.instituteId !== currentUser.instituteId) {
+      return handleErrors(res, 403, 'This request is not from your campus');
+    }
+
+    sessionRequest.status = 'rejected';
+    await sessionRequest.save();
+
+    // Populate user details
+    await sessionRequest.populate('requester', 'firstName lastName profilePic username instituteId instituteName');
+    await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
+
+    // Send notification to requester
+    const io = req.app.get('io');
+    const tutorName = `${req.user.firstName} ${req.user.lastName}`;
+    const notificationMessage = `${tutorName} from your campus has rejected your session request on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
+    await sendNotification(
+      io,
+      sessionRequest.requester._id,
+      'campus-session-rejected',
+      notificationMessage,
+      sessionRequest._id,
+      tutorId,
+      tutorName
+    );
+
+    // Email requester about rejection
+    try {
+      const requesterDoc = await User.findById(sessionRequest.requester._id);
+      if (requesterDoc?.email) {
+        const tpl = T.sessionRejected({
+          requesterName: requesterDoc.firstName || requesterDoc.username,
+          tutorName,
+          subject: sessionRequest.subject,
+          topic: sessionRequest.topic
+        });
+        await sendMail({ to: requesterDoc.email, subject: tpl.subject, html: tpl.html });
+      }
+    } catch (e) {
+      console.error('Failed to send campus rejection email', e);
+    }
+
+    res.json({
+      message: 'Campus session request rejected',
+      sessionRequest,
+    });
+  } catch (error) {
+    console.error('Error rejecting campus session request:', error);
+    handleErrors(res, 500, 'Failed to reject campus session request');
   }
 });
 

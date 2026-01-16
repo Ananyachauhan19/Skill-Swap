@@ -351,6 +351,7 @@ const Navbar = () => {
     expert: 0,
     skillmate: 0,
     interview: 0,
+    campus: 0,
   });
   const menuRef = useRef();
   const coinsRef = useRef();
@@ -464,19 +465,20 @@ const Navbar = () => {
     try {
       const userCookie = Cookies.get('user');
       if (!userCookie) {
-        setPendingRequestCounts({ session: 0, expert: 0, skillmate: 0, interview: 0 });
+        setPendingRequestCounts({ session: 0, expert: 0, skillmate: 0, interview: 0, campus: 0 });
         return;
       }
 
       const now = new Date();
       const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
 
-      const [sessionRes, expertRes, skillmateReceivedRes, skillmateSentRes, interviewRes] = await Promise.allSettled([
+      const [sessionRes, expertRes, skillmateReceivedRes, skillmateSentRes, interviewRes, campusRes] = await Promise.allSettled([
         fetch(`${BACKEND_URL}/api/session-requests/all`, { credentials: 'include' }),
         fetch(`${BACKEND_URL}/api/session-requests/expert`, { credentials: 'include' }),
         fetch(`${BACKEND_URL}/api/skillmates/requests/received`, { credentials: 'include' }),
         fetch(`${BACKEND_URL}/api/skillmates/requests/sent`, { credentials: 'include' }),
         fetch(`${BACKEND_URL}/api/interview/requests`, { credentials: 'include' }),
+        fetch(`${BACKEND_URL}/api/session-requests/campus`, { credentials: 'include' }),
       ]);
 
       let sessionPending = 0;
@@ -548,11 +550,27 @@ const Navbar = () => {
         }).length;
       }
 
+      let campusPending = 0;
+      if (campusRes.status === 'fulfilled' && campusRes.value.ok) {
+        const data = await campusRes.value.json();
+        const received = Array.isArray(data.received) ? data.received : [];
+        const sent = Array.isArray(data.sent) ? data.sent : [];
+        const all = [...received, ...sent];
+        // Match campusRequests filter: last 2 days only
+        campusPending = all.filter((r) => {
+          const status = (r.status || '').toLowerCase();
+          if (status !== 'pending') return false;
+          const createdAt = new Date(r.createdAt || r.requestedAt);
+          return !createdAt || isNaN(createdAt.getTime()) || createdAt >= twoDaysAgo;
+        }).length;
+      }
+
       setPendingRequestCounts({
         session: sessionPending,
         expert: expertPending,
         skillmate: skillmatePending,
         interview: interviewPending,
+        campus: campusPending,
       });
     } catch (error) {
       console.error('[Navbar] Failed to fetch pending request counts:', error);
@@ -780,6 +798,7 @@ const Navbar = () => {
           expert: event.detail.expert || 0,
           skillmate: event.detail.skillmate || 0,
           interview: event.detail.interview || 0,
+          campus: event.detail.campus || 0,
         });
         console.log('[Navbar] ✅ Updated counts via CustomEvent to:', event.detail);
       }
@@ -794,6 +813,7 @@ const Navbar = () => {
           expert: data.counts.expert || 0,
           skillmate: data.counts.skillmate || 0,
           interview: data.counts.interview || 0,
+          campus: data.counts.campus || 0,
         });
         console.log('[Navbar] ✅ Updated counts via Socket to:', data.counts);
       }
@@ -884,7 +904,8 @@ const Navbar = () => {
     pendingRequestCounts.session +
     pendingRequestCounts.expert +
     pendingRequestCounts.skillmate +
-    pendingRequestCounts.interview;
+    pendingRequestCounts.interview +
+    pendingRequestCounts.campus;
 
   return (
     <>

@@ -30,6 +30,11 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   const annotationContextRef = useRef(null);
   const isRemoteScrolling = useRef(false);
 
+  // Video control helpers
+  const lastActivityRef = useRef(Date.now());
+  const networkQualityRef = useRef('good');
+  const videoShutoffTimeoutRef = useRef(null);
+
   // Chat container ref
   const chatContainerRef = useRef(null);
 
@@ -63,13 +68,9 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   const [isVideoEnabled, setIsVideoEnabled] = useState(false); // Track if video has been added to stream
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   
-  // Controlled video feature - 2 minute auto-off
-  const [videoTimeRemaining, setVideoTimeRemaining] = useState(0); // seconds remaining
-  const [isVideoShuttingDown, setIsVideoShuttingDown] = useState(false);
+  // 3-minute auto-off timer for camera
+  const [videoTimeRemaining, setVideoTimeRemaining] = useState(0);
   const videoTimerRef = useRef(null);
-  const videoShutoffTimeoutRef = useRef(null);
-  const lastActivityRef = useRef(Date.now());
-  const networkQualityRef = useRef('good'); // 'good' | 'poor'
   
   // New layout states
   const [isVideoExpanded, setIsVideoExpanded] = useState(false); // Toggle between small tiles and expanded view
@@ -94,16 +95,31 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     [coinType]
   );
 
+  const normalizedUserRole = useMemo(
+    () => (userRole || '').toString().trim().toLowerCase(),
+    [userRole]
+  );
+
+  const isStudentRole = useMemo(
+    () => normalizedUserRole === 'student' || normalizedUserRole === 'learner',
+    [normalizedUserRole]
+  );
+
+  const isTutorRole = useMemo(
+    () => normalizedUserRole === 'tutor' || normalizedUserRole === 'teacher',
+    [normalizedUserRole]
+  );
+
   const isStudentPayer = useMemo(
-    () => (userRole === 'student' || userRole === 'learner') && (normalizedCoinType === 'silver' || normalizedCoinType === 'bronze'),
-    [userRole, normalizedCoinType]
+    () => isStudentRole && (normalizedCoinType === 'silver' || normalizedCoinType === 'bronze'),
+    [isStudentRole, normalizedCoinType]
   );
   
   const isTutorEarner = useMemo(() => {
-    const isEarner = (userRole === 'tutor' || userRole === 'teacher') && (normalizedCoinType === 'silver' || normalizedCoinType === 'bronze');
-    console.log('[TUTOR EARNER CHECK]', { userRole, normalizedCoinType, isEarner });
+    const isEarner = isTutorRole && (normalizedCoinType === 'silver' || normalizedCoinType === 'bronze');
+    console.log('[TUTOR EARNER CHECK]', { userRole, normalizedUserRole, normalizedCoinType, isEarner });
     return isEarner;
-  }, [userRole, normalizedCoinType]);
+  }, [userRole, normalizedUserRole, isTutorRole, normalizedCoinType]);
 
   const spendPerMinute = useMemo(() => {
     if (!isStudentPayer) return 0;
@@ -128,6 +144,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [isAnnotationsEnabled, setIsAnnotationsEnabled] = useState(false);
   const [sessionQuestionImageFetched, setSessionQuestionImageFetched] = useState(false);
+  const [questionImageHidden, setQuestionImageHidden] = useState(false); // Student can hide question image
   const [isWhiteboardToolbarOpen, setIsWhiteboardToolbarOpen] = useState(true); // Toolbar visibility
   const [showChat, setShowChat] = useState(false);
 
@@ -1483,15 +1500,24 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
   // Enable video dynamically with LOW BANDWIDTH constraints (360p, 15fps)
   const enableVideoTrack = async () => {
     try {
-      if (isVideoEnabled && !isVideoOff) {
-        // Video already enabled, just turn it back on
-        const videoTrack = localStreamRef.current?.getVideoTracks?.()?.[0];
-        if (videoTrack) {
-          videoTrack.enabled = true;
-          setIsVideoOff(false);
-          startVideoTimer(); // Start fresh 2-minute timer
-          return;
-        }
+      // Check if we already have a video track that's just disabled
+      const existingVideoTrack = localStreamRef.current?.getVideoTracks?.()?.[0];
+      
+      if (existingVideoTrack) {
+        // Re-enable existing video track
+        console.info('[VIDEO-CONTROL] Re-enabling existing video track');
+        existingVideoTrack.enabled = true;
+        setIsVideoOff(false);
+        setIsVideoEnabled(true);
+        
+        // Notify remote peer
+        socket.emit('video-state-changed', { sessionId, isVideoOn: true });
+        
+        // Start 3-minute auto-off timer
+        startVideoTimer();
+        
+        console.info('[VIDEO-CONTROL] Video re-enabled, 3-min timer started');
+        return;
       }
 
       console.info('[VIDEO-CONTROL] Enabling video with low-bandwidth constraints');
@@ -1552,10 +1578,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
       // Notify remote peer that video is now ON
       socket.emit('video-state-changed', { sessionId, isVideoOn: true });
       
-      // Start auto-shutoff timer - 2 minutes, restarts each time camera is enabled
+      // Start 3-minute auto-off timer
       startVideoTimer();
       
-      console.info('[VIDEO-CONTROL] Video enabled successfully with 360p@15fps, 2-min auto-shutoff timer started');
+      console.info('[VIDEO-CONTROL] Video enabled successfully with 360p@15fps, 3-min timer started');
     } catch (error) {
       console.error('[VIDEO-CONTROL] Failed to enable video:', error);
       alert('Unable to enable video. Please check camera permissions.');
@@ -1576,18 +1602,12 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
         socket.emit('video-state-changed', { sessionId, isVideoOn: false });
       }
       
-      // Clear timers
+      // Clear timer
       if (videoTimerRef.current) {
         clearInterval(videoTimerRef.current);
         videoTimerRef.current = null;
       }
-      if (videoShutoffTimeoutRef.current) {
-        clearTimeout(videoShutoffTimeoutRef.current);
-        videoShutoffTimeoutRef.current = null;
-      }
-      
       setVideoTimeRemaining(0);
-      setIsVideoShuttingDown(false); // Reset state so user can re-enable camera
       
       console.info('[VIDEO-CONTROL] Video disabled, camera button remains active for re-enabling');
     } catch (error) {
@@ -1595,39 +1615,37 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
     }
   };
 
-  // Start video timer with auto-shutoff after 2 minutes
+  // Start 3-minute auto-off timer
   const startVideoTimer = () => {
-    const VIDEO_DURATION = 120; // 2 minutes (120 seconds)
-    const WARNING_TIME = 30; // Show warning 30 seconds before shutoff
+    const VIDEO_DURATION = 180; // 3 minutes (180 seconds)
     
     setVideoTimeRemaining(VIDEO_DURATION);
     
-    // Clear existing timers
-    if (videoTimerRef.current) clearInterval(videoTimerRef.current);
-    if (videoShutoffTimeoutRef.current) clearTimeout(videoShutoffTimeoutRef.current);
+    // Clear existing timer
+    if (videoTimerRef.current) {
+      clearInterval(videoTimerRef.current);
+    }
     
     // Countdown timer
     videoTimerRef.current = setInterval(() => {
       setVideoTimeRemaining(prev => {
         const newTime = prev - 1;
         
-        if (newTime <= WARNING_TIME && !isVideoShuttingDown) {
-          setIsVideoShuttingDown(true);
-          console.info('[VIDEO-CONTROL] Video will shut off in', newTime, 'seconds');
-        }
-        
         if (newTime <= 0) {
           clearInterval(videoTimerRef.current);
-          disableVideoTrack('Auto-shutoff timer expired');
+          videoTimerRef.current = null;
+          disableVideoTrack('Auto-off after 3 minutes');
           return 0;
         }
         
         return newTime;
       });
     }, 1000);
+    
+    console.info('[VIDEO-CONTROL] 3-minute auto-off timer started');
   };
 
-  // Toggle video (turn on if off, turn off if on)
+  // Toggle video (turn on if off, turn off if on) - Button always remains enabled
   const toggleVideo = () => {
     if (isVideoOff) {
       enableVideoTrack();
@@ -1940,14 +1958,10 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
               +{tutorEarnings.earned.toFixed(2)}
             </span>
           )}
-          {isVideoEnabled && !isVideoOff && videoTimeRemaining > 0 && (
-            <span 
-              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                isVideoShuttingDown ? 'bg-red-600/80 animate-pulse' : 'bg-blue-600/80'
-              }`}
-            >
+          {!isVideoOff && videoTimeRemaining > 0 && (
+            <span className="px-2 py-1 bg-blue-600/80 rounded-full text-xs font-medium">
               <FaVideo className="inline mr-1" size={10} />
-              {Math.floor(videoTimeRemaining / 60)}:{String(videoTimeRemaining % 60).padStart(2, '0')}
+              Camera: {Math.floor(videoTimeRemaining / 60)}:{String(videoTimeRemaining % 60).padStart(2, '0')}
             </span>
           )}
         </div>
@@ -1971,7 +1985,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
       <main className="flex-1 relative overflow-hidden">
         {/* Main View Area - Question Photo or Whiteboard */}
         <section className="absolute inset-0 bg-slate-900">
-          {sharedImage ? (
+          {sharedImage && !questionImageHidden ? (
             /* Question Photo View */
             <div className="w-full h-full flex items-center justify-center p-4">
               <div className="relative max-w-full max-h-full">
@@ -1980,13 +1994,35 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
                   alt="Question"
                   className="max-w-full max-h-[calc(100vh-200px)] object-contain rounded-xl shadow-2xl border border-slate-700"
                 />
-                {userRole === 'tutor' && (
+                {/* Tutor controls - Remove and Hide buttons */}
+                {isTutorRole && (
+                  <div className="absolute top-3 right-3 flex items-center gap-2">
+                    <button
+                      onClick={() => setQuestionImageHidden(true)}
+                      className="px-4 py-2 bg-slate-700/95 hover:bg-slate-600 rounded-lg shadow-lg transition-all backdrop-blur-sm border border-slate-600 flex items-center gap-2 font-medium text-sm"
+                      title="Hide question image"
+                    >
+                      <FaTimes size={14} />
+                      Hide Question Paper
+                    </button>
+                    <button
+                      onClick={removeSharedImage}
+                      className="p-2 bg-red-600 hover:bg-red-700 rounded-full shadow-lg transition-all"
+                      title="Remove question image"
+                    >
+                      <FaTimes size={16} />
+                    </button>
+                  </div>
+                )}
+                {/* Student controls - Hide button only */}
+                {isStudentRole && (
                   <button
-                    onClick={removeSharedImage}
-                    className="absolute top-3 right-3 p-2 bg-red-600 hover:bg-red-700 rounded-full shadow-lg transition-all"
-                    title="Remove question image"
+                    onClick={() => setQuestionImageHidden(true)}
+                    className="absolute top-3 right-3 px-4 py-2 bg-slate-700/95 hover:bg-slate-600 rounded-lg shadow-lg transition-all backdrop-blur-sm border border-slate-600 flex items-center gap-2 font-medium text-sm"
+                    title="Hide question image"
                   >
-                    <FaTimes size={16} />
+                    <FaTimes size={14} />
+                    Hide Question Paper
                   </button>
                 )}
                 <div className="absolute bottom-3 left-3 px-3 py-2 bg-black/80 rounded-lg text-sm font-medium backdrop-blur-sm">
@@ -2447,15 +2483,18 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
           <FaDesktop size={18} />
         </button>
 
-        <button
-          onClick={toggleRecording}
-          className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg relative ${
-            isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-700 hover:bg-slate-600'
-          }`}
-          title={isRecording ? 'Stop Recording' : 'Start Recording'}
-        >
-          <FaCircle size={isRecording ? 18 : 14} className={isRecording ? 'animate-pulse' : ''} />
-        </button>
+        {/* Recording button - only for tutors */}
+        {isTutorRole && (
+          <button
+            onClick={toggleRecording}
+            className={`p-2.5 sm:p-3 rounded-full transition-all shadow-lg relative ${
+              isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-700 hover:bg-slate-600'
+            }`}
+            title={isRecording ? 'Stop Recording' : 'Start Recording'}
+          >
+            <FaCircle size={isRecording ? 18 : 14} className={isRecording ? 'animate-pulse' : ''} />
+          </button>
+        )}
 
         <button
           onClick={toggleWhiteboard}
@@ -2466,6 +2505,17 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
         >
           <FaChalkboard size={18} />
         </button>
+
+        {/* Show Question Image button - for both tutor and students when image is hidden */}
+        {sharedImage && questionImageHidden && (
+          <button
+            onClick={() => setQuestionImageHidden(false)}
+            className="p-2.5 sm:p-3 rounded-full transition-all shadow-lg bg-blue-600 hover:bg-blue-700"
+            title="Show Question Image"
+          >
+            <FaImage size={18} />
+          </button>
+        )}
 
         <button
           onClick={() => setShowChat(prev => !prev)}
@@ -2510,7 +2560,7 @@ const VideoCall = ({ sessionId, onEndCall, userRole, username, coinType }) => {
           {isFullScreen ? <FaCompress size={18} /> : <FaExpand size={18} />}
         </button>
 
-        {userRole === 'tutor' && (
+        {isTutorRole && (
           <div className="relative">
             <button
               onClick={() => imageInputRef.current?.click()}
