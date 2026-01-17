@@ -1686,6 +1686,45 @@ exports.addSingleStudent = async (req, res) => {
           }
         });
 
+        // Send email notification about update
+        setImmediate(async () => {
+          try {
+            const emailContent = {
+              subject: `Campus Dashboard Updated - ${institute.instituteName}`,
+              html: `
+                <div style="font-family: system-ui, Arial; max-width: 640px; margin:0 auto; padding:16px;">
+                  <div style="background:#0ea5e9; color:#fff; padding:12px 16px; border-radius:8px 8px 0 0;">
+                    <strong>Skill‑Swap</strong>
+                  </div>
+                  <div style="border:1px solid #e5e7eb; border-top:none; padding:16px; border-radius:0 0 8px 8px;">
+                    <h2 style="margin:0 0 12px; color:#0f172a;">Campus Information Updated!</h2>
+                    <p>Hello ${existingUser.firstName},</p>
+                    <p>Your campus dashboard information has been updated at <strong>${institute.instituteName}</strong>.</p>
+                    
+                    <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
+                      <h3 style="margin:0 0 12px; color:#065f46;">Bonus Rewards Added!</h3>
+                      <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> +${goldCoinsPerStudent}</p>
+                      <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> +${silverCoinsPerStudent}</p>
+                      <p style="margin:8px 0; font-size:12px; color:#065f46;">These coins have been added to your wallet!</p>
+                    </div>
+
+                    <p style="margin:24px 0;">
+                      <a href="https://skillswaphub.in/campus-dashboard" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Campus Dashboard</a>
+                    </p>
+                    
+                    <hr style="margin:24px 0; border:none; border-top:1px solid #e5e7eb"/>
+                    <p style="color:#64748b; font-size:12px;">This email was sent automatically by Skill‑Swap. Please do not reply to this message.</p>
+                  </div>
+                </div>
+              `
+            };
+            await sendMail({ to: existingUser.email, ...emailContent });
+            console.log(`Email sent to updated student: ${existingUser.email}`);
+          } catch (emailError) {
+            console.error('Error sending email to updated student:', emailError);
+          }
+        });
+
         return res.status(200).json({
           success: true,
           message: 'Student updated successfully',
@@ -1768,6 +1807,56 @@ exports.addSingleStudent = async (req, res) => {
         }
       });
 
+      // Send email notification about campus addition
+      setImmediate(async () => {
+        try {
+          const emailContent = {
+            subject: `Added to ${institute.instituteName} Campus Dashboard - Skill-Swap`,
+            html: `
+              <div style="font-family: system-ui, Arial; max-width: 640px; margin:0 auto; padding:16px;">
+                <div style="background:#0ea5e9; color:#fff; padding:12px 16px; border-radius:8px 8px 0 0;">
+                  <strong>Skill‑Swap</strong>
+                </div>
+                <div style="border:1px solid #e5e7eb; border-top:none; padding:16px; border-radius:0 0 8px 8px;">
+                  <h2 style="margin:0 0 12px; color:#0f172a;">Campus Dashboard Access Granted!</h2>
+                  <p>Hello ${existingUser.firstName},</p>
+                  <p>Great news! You have been added to the <strong>${institute.instituteName}</strong> campus dashboard.</p>
+                  
+                  <div style="background:#f8fafc; padding:16px; border-radius:6px; margin:16px 0;">
+                    <h3 style="margin:0 0 12px; color:#334155;">Your Campus Details:</h3>
+                    <p style="margin:8px 0;"><strong>Student ID:</strong> ${existingUser.studentId}</p>
+                    <p style="margin:8px 0;"><strong>Institute:</strong> ${institute.instituteName}</p>
+                    ${existingUser.course ? `<p style="margin:8px 0;"><strong>Course:</strong> ${existingUser.course}</p>` : ''}
+                    ${existingUser.semester ? `<p style="margin:8px 0;"><strong>Semester:</strong> ${existingUser.semester}</p>` : ''}
+                    ${existingUser.class ? `<p style="margin:8px 0;"><strong>Class:</strong> ${existingUser.class}</p>` : ''}
+                  </div>
+
+                  <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
+                    <h3 style="margin:0 0 12px; color:#065f46;">Bonus Rewards Added!</h3>
+                    <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> +${goldCoinsPerStudent}</p>
+                    <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> +${silverCoinsPerStudent}</p>
+                    <p style="margin:8px 0; font-size:12px; color:#065f46;">These coins have been added to your wallet!</p>
+                  </div>
+
+                  <p style="margin:16px 0;">You can now access campus-specific features and participate in institutional activities while continuing to use all regular Skill-Swap features.</p>
+                  
+                  <p style="margin:24px 0;">
+                    <a href="https://skillswaphub.in/campus-dashboard" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Campus Dashboard</a>
+                  </p>
+                  
+                  <hr style="margin:24px 0; border:none; border-top:1px solid #e5e7eb"/>
+                  <p style="color:#64748b; font-size:12px;">This email was sent automatically by Skill‑Swap. Please do not reply to this message.</p>
+                </div>
+              </div>
+            `
+          };
+          await sendMail({ to: existingUser.email, ...emailContent });
+          console.log(`Email sent to existing user added to campus: ${existingUser.email}`);
+        } catch (emailError) {
+          console.error('Error sending email to existing user:', emailError);
+        }
+      });
+
       return res.status(200).json({
         success: true,
         message: 'Student added successfully',
@@ -1777,9 +1866,12 @@ exports.addSingleStudent = async (req, res) => {
     }
 
     // Create new user
+    const generatedPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+    
     const newUser = new User({
       email,
-      username: email.split('@')[0], // Generate username from email
+      username: email.split('@')[0] + Math.floor(Math.random() * 1000), // Generate unique username
       firstName: name.split(' ')[0],
       lastName: name.split(' ').slice(1).join(' ') || '',
       instituteId: institute.instituteId,
@@ -1787,7 +1879,8 @@ exports.addSingleStudent = async (req, res) => {
       studentId: generateStudentId(institute.instituteId),
       goldCoins: goldCoinsPerStudent,
       silverCoins: silverCoinsPerStudent,
-      password: Math.random().toString(36).slice(-8) // Temporary password
+      password: hashedPassword,
+      role: 'learner'
     });
 
     if (institute.instituteType === 'school' && classValue) {
@@ -1848,6 +1941,54 @@ exports.addSingleStudent = async (req, res) => {
         });
       } catch (logError) {
         console.error('[ActivityLog] Error logging student upload:', logError);
+      }
+    });
+
+    // Send welcome email to new user with credentials
+    setImmediate(async () => {
+      try {
+        const emailContent = {
+          subject: `Welcome to ${institute.instituteName} Campus Dashboard - Skill-Swap`,
+          html: `
+            <div style="font-family: system-ui, Arial; max-width: 640px; margin:0 auto; padding:16px;">
+              <div style="background:#0ea5e9; color:#fff; padding:12px 16px; border-radius:8px 8px 0 0;">
+                <strong>Skill‑Swap</strong>
+              </div>
+              <div style="border:1px solid #e5e7eb; border-top:none; padding:16px; border-radius:0 0 8px 8px;">
+                <h2 style="margin:0 0 12px; color:#0f172a;">Welcome to ${institute.instituteName}!</h2>
+                <p>Hello ${newUser.firstName},</p>
+                <p>You have been successfully onboarded to the <strong>${institute.instituteName}</strong> campus dashboard on Skill-Swap platform.</p>
+                
+                <div style="background:#f8fafc; padding:16px; border-radius:6px; margin:16px 0;">
+                  <h3 style="margin:0 0 12px; color:#334155;">Your Login Credentials:</h3>
+                  <p style="margin:8px 0;"><strong>Username:</strong> ${newUser.username}</p>
+                  <p style="margin:8px 0;"><strong>Password:</strong> ${generatedPassword}</p>
+                  <p style="margin:8px 0;"><strong>Student ID:</strong> ${newUser.studentId}</p>
+                </div>
+
+                <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
+                  <h3 style="margin:0 0 12px; color:#065f46;">Welcome Rewards!</h3>
+                  <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> ${goldCoinsPerStudent}</p>
+                  <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> ${silverCoinsPerStudent}</p>
+                </div>
+
+                <p style="margin:16px 0;">You can now access the Skill-Swap platform as both a regular user and a campus dashboard student. Explore learning opportunities, connect with peers, and grow your skills!</p>
+                
+                <p style="margin:24px 0;">
+                  <a href="https://skillswaphub.in/login" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Login Now</a>
+                </p>
+                
+                <p style="margin:16px 0 0; color:#334155;">Please change your password after first login for security.</p>
+                <hr style="margin:24px 0; border:none; border-top:1px solid #e5e7eb"/>
+                <p style="color:#64748b; font-size:12px;">This email was sent automatically by Skill‑Swap. Please do not reply to this message.</p>
+              </div>
+            </div>
+          `
+        };
+        await sendMail({ to: newUser.email, ...emailContent });
+        console.log(`Welcome email sent to new user: ${newUser.email}`);
+      } catch (emailError) {
+        console.error('Error sending welcome email to new user:', emailError);
       }
     });
 
