@@ -44,6 +44,8 @@ import accountSettingsRoutes from './user/settings/AccountSettingsRoutes';
 import ReportPage from './user/privateProfile/Report';
 import TeachingHistory from './user/TeachingHistory';
 import CoinsHistory from './user/CoinsHistory';
+import ComprehensiveHistory from './user/ComprehensiveHistory';
+import QuizementHistory from './user/QuizementHistory';
 import Blog from './components/footer/Blog';
 import AdminPanel from './admin/adminpanel';
 import AdminRoute from './routes/AdminRoute';
@@ -63,6 +65,7 @@ import Community from './components/footer/Community.jsx';
 import FAQ from './components/footer/FAQ.jsx';
 import ContactUs from './components/footer/ContactUs.jsx';
 import TermsConditions from './components/footer/TermsConditions.jsx';
+import Legal from './components/footer/Legal.jsx';
 import CookiesPolicy from './components/footer/CookiesPolicy.jsx';
 import About from './components/footer/About.jsx';
 import Career from './components/footer/Career.jsx';
@@ -207,6 +210,7 @@ const appRoutes = [
   { path: '/faq', element: <FAQ /> },
   { path: '/contact-us', element: <ContactUs /> },
   { path: '/terms-conditions', element: <TermsConditions /> },
+  { path: '/legal', element: <Legal /> },
   { path: '/cookies-policy', element: <CookiesPolicy /> },
   { path: '/career', element: <Career /> },
   { path: '/profile/:username', element: <PublicProfile /> },
@@ -227,6 +231,8 @@ const appRoutes = [
   { path: '/createSession', element: <ProtectedRoute><CreateSession /></ProtectedRoute> },
   { path: '/learning-history', element: <ProtectedRoute><LearningHistory /></ProtectedRoute> },
   { path: '/coins-history', element: <ProtectedRoute><CoinsHistory /></ProtectedRoute> },
+  { path: '/comprehensive-history', element: <ProtectedRoute><ComprehensiveHistory /></ProtectedRoute> },
+  { path: '/quizement-history', element: <ProtectedRoute><QuizementHistory /></ProtectedRoute> },
   { path: '/help', element: <ProtectedRoute><HelpSupportPage /></ProtectedRoute> },
   { path: '/pro', element: <ProtectedRoute><GoPro /></ProtectedRoute> },
   { path: '/recruitment-application', element: <ProtectedRoute><RecruitmentApplication /></ProtectedRoute> },

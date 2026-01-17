@@ -124,73 +124,75 @@ const YourInterviews = () => {
     return (
       <div 
         onClick={onClick}
-        className={`bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 p-6 border cursor-pointer ${
+        className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 p-3 border cursor-pointer ${
           isSelected ? 'border-[#1e3a8a] ring-2 ring-[#1e3a8a] ring-opacity-30' : 'border-gray-200 hover:border-[#1e3a8a]'
         }`}
       >
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            {getStatusIcon(interview.status)}
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(interview.status)}`}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <div className="text-sm">
+              {getStatusIcon(interview.status)}
+            </div>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(interview.status)}`}>
               {(interview.status || 'pending').toUpperCase()}
             </span>
           </div>
         </div>
-        <h3 className="text-xl font-semibold text-[#1e3a8a] mb-2">{interview.company}</h3>
-        <p className="text-gray-600 text-sm mb-4">{interview.position}</p>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <FaCalendarAlt className="text-[#1e3a8a]" />
+        <h3 className="text-base font-semibold text-[#1e3a8a] mb-1">{interview.company}</h3>
+        <p className="text-gray-600 text-xs mb-2">{interview.position}</p>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <FaCalendarAlt className="text-[#1e3a8a] text-xs" />
             <span>
               {interview.scheduledAt ? new Date(interview.scheduledAt).toLocaleDateString() : 'Not Scheduled'}
               {interview.scheduledAt && (
                 <>
-                  <span className="mx-2">•</span>
-                  <FaClock className="text-[#1e3a8a]" />
-                  <span>{new Date(interview.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="mx-1">•</span>
+                  <FaClock className="text-[#1e3a8a] text-xs inline" />
+                  <span className="ml-1">{new Date(interview.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </>
               )}
             </span>
           </div>
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <FaUser className="text-[#1e3a8a]" />
+          <div className="flex items-center gap-2 text-xs text-gray-600">
+            <FaUser className="text-[#1e3a8a] text-xs" />
             <div>
               <p className="text-xs text-gray-500">{isConducted ? 'Interviewee' : 'Interviewer'}</p>
-              <p className="text-sm font-medium text-[#1e3a8a]">
+              <p className="text-xs font-medium text-[#1e3a8a]">
                 {otherPerson?.firstName || otherPerson?.username || 'N/A'} {otherPerson?.lastName || ''}
               </p>
             </div>
           </div>
         </div>
         {interview.message && (
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-            <p className="text-xs text-[#1e3a8a] mb-1 flex items-center gap-1">
-              <FaComment className="text-[#1e3a8a]" />
+          <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-xs text-[#1e3a8a] mb-1 flex items-center gap-1 font-medium">
+              <FaComment className="text-[#1e3a8a] text-xs" />
               Message
             </p>
-            <p className="text-sm text-gray-600 line-clamp-2">{interview.message}</p>
+            <p className="text-xs text-gray-600 line-clamp-2">{interview.message}</p>
           </div>
         )}
         {interview.feedback && (
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-            <p className="text-xs text-[#1e3a8a] mb-1 flex items-center gap-1">
-              <FaStar className="text-[#1e3a8a]" />
+          <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-xs text-[#1e3a8a] mb-1 flex items-center gap-1 font-medium">
+              <FaStar className="text-[#1e3a8a] text-xs" />
               Feedback
             </p>
-            <p className="text-sm text-gray-600 line-clamp-2">{interview.feedback}</p>
+            <p className="text-xs text-gray-600 line-clamp-2">{interview.feedback}</p>
             {interview.rating && (
-              <div className="flex items-center gap-1 mt-2">
+              <div className="flex items-center gap-1 mt-1">
                 {[...Array(5)].map((_, i) => (
-                  <FaStar key={i} className={i < interview.rating ? 'text-[#1e3a8a]' : 'text-gray-300'} size={14} />
+                  <FaStar key={i} className={i < interview.rating ? 'text-[#1e3a8a]' : 'text-gray-300'} size={10} />
                 ))}
               </div>
             )}
           </div>
         )}
         {interview.resumeUrl && (
-          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-            <p className="text-xs text-[#1e3a8a] mb-1 flex items-center gap-1">
-              <FaFilePdf className="text-[#1e3a8a]" />
+          <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-xs text-[#1e3a8a] mb-1 flex items-center gap-1 font-medium">
+              <FaFilePdf className="text-[#1e3a8a] text-xs" />
               Resume
             </p>
             <button
@@ -198,7 +200,7 @@ const YourInterviews = () => {
                 e.stopPropagation();
                 window.open(interview.resumeUrl, '_blank');
               }}
-              className="text-sm text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
+              className="text-xs text-blue-600 hover:text-blue-800 underline font-medium transition-colors"
             >
               {interview.resumeFileName || 'View Resume'}
             </button>

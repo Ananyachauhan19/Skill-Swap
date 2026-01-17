@@ -6,7 +6,7 @@ import QuizementLeaderboard from './QuizementLeaderboard.jsx';
 import WeeklyQuizzes from './WeeklyQuizzes.jsx';
 import { BACKEND_URL } from '../../config.js';
 
-const FILTERS = ['all', 'unlocked', 'attempted'];
+const FILTERS = ['all', 'attempted'];
 
 const QuizementLanding = () => {
   const { user } = useAuth();
@@ -36,9 +36,8 @@ const QuizementLanding = () => {
       const resp = await fetch(`${BACKEND_URL}/api/quizement/tests`, { credentials: 'include' });
       if (!resp.ok) throw new Error('Failed to load tests');
       const data = await resp.json();
-      // Filter out weekly contests from All Tests tab
-      const nonWeeklyTests = (data.tests || []).filter(test => !test.isWeeklyQuiz);
-      setTests(nonWeeklyTests);
+      // Keep all tests including weekly ones
+      setTests(data.tests || []);
       setError('');
     } catch (e) {
       setError(e.message || 'Failed to load tests');
@@ -65,8 +64,10 @@ const QuizementLanding = () => {
   }, [isEmployee]);
 
   const filteredTests = tests.filter((t) => {
-    if (filter === 'unlocked') return t.status === 'unlocked' || t.status === 'in-progress';
+    // For attempted tab, show all attempted tests including weekly quizzes
     if (filter === 'attempted') return t.status === 'attempted';
+    // For all tests tab, hide weekly quizzes (they're shown in Weekly Quiz section)
+    if (filter === 'all') return !t.isWeeklyQuiz;
     return true;
   });
 
@@ -201,7 +202,7 @@ const QuizementLanding = () => {
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    {f === 'all' ? 'All Tests' : f === 'unlocked' ? 'My Tests' : 'Attempted'}
+                    {f === 'all' ? 'All Tests' : 'Attempted'}
                   </button>
                 ))}
               </div>

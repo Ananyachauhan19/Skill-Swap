@@ -4,6 +4,7 @@ import { AlertTriangle, Clock, Flag } from 'lucide-react';
 import axios from 'axios';
 import { BACKEND_URL } from '../config.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import QuizRulesModal from './QuizRulesModal.jsx';
 
 const QuizementAttempt = () => {
   const { testId } = useParams();
@@ -19,6 +20,7 @@ const QuizementAttempt = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
   const [warningMessage, setWarningMessage] = useState('');
   const timerRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -26,7 +28,7 @@ const QuizementAttempt = () => {
   const isCleanedUpRef = useRef(false);
 
   useEffect(() => {
-    startTest();
+    loadTestInfo();
     return () => {
       isCleanedUpRef.current = true;
       if (timerRef.current) clearInterval(timerRef.current);
@@ -39,8 +41,39 @@ const QuizementAttempt = () => {
     };
   }, []);
 
+  const loadTestInfo = async () => {
+    try {
+      setLoading(true);
+      
+      // First try to get test details from the list
+      const listResponse = await axios.get(
+        `${BACKEND_URL}/api/quizement/tests`,
+        { withCredentials: true }
+      );
+      
+      const testData = listResponse.data.tests?.find(t => t.id === testId);
+      
+      if (testData) {
+        // If we found basic test info, now get full details by starting the test
+        // We'll fetch questions in the start phase
+        setTest(testData);
+        setShowRulesModal(true);
+        setLoading(false);
+      } else {
+        throw new Error('Test not found');
+      }
+    } catch (error) {
+      console.error('Load test info error:', error);
+      alert('Failed to load test information');
+      navigate('/quizement');
+    }
+  };
+
   const startTest = async () => {
     try {
+      setShowRulesModal(false);
+      setLoading(true);
+      
       const response = await axios.post(
         `${BACKEND_URL}/api/quizement/tests/${testId}/start`,
         {},
@@ -129,7 +162,7 @@ const QuizementAttempt = () => {
       
       if (response.data.autoSubmitted) {
         alert('Too many violations detected. Your test has been auto-submitted.');
-        navigate(`/quizement/tests/${testId}/result`);
+        navigate(`/quizement/result/${testId}`);
       } else {
         showWarning(`Warning ${response.data.violationCount}/3: ${getViolationMessage(type)}`);
       }
@@ -301,7 +334,19 @@ const QuizementAttempt = () => {
     );
   }
 
-  if (!test) return null;
+  // Show rules modal before test starts
+  if (showRulesModal && test) {
+    return (
+      <QuizRulesModal
+        test={test}
+        onStart={startTest}
+        onCancel={() => navigate('/quizement')}
+        unlockTime={test.unlockTime}
+      />
+    );
+  }
+
+  if (!test || !test.questions) return null;
 
   const answeredCount = getAnsweredCount();
   const totalQuestions = test.questions.length;

@@ -48,21 +48,21 @@ const Footer = () => {
           <div className="w-full lg:w-[68%] p-6 flex flex-col justify-between order-1 lg:order-none">
             {/* Header */}
             <div className="mb-8">
-              <h2 className="text-3xl font-extrabold text-white mb-3">Join Our Community</h2>
-              <p className="text-base text-gray-300 max-w-2xl leading-relaxed">
+              <h2 className="text-xl font-extrabold text-white mb-2">Join Our Community</h2>
+              <p className="text-sm text-gray-300 max-w-2xl leading-relaxed">
                 Connect with experts, share knowledge, and grow your skills through live sessions, group discussions, and real interview practice.
               </p>
             </div>
 
             {/* Menu Links - Dark Tabs Design */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {/* Product */}
-              <div className="bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm p-5 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
-                <h3 className="text-lg font-semibold text-white mb-4 pb-2 border-b-2 border-blue-500/50">Product</h3>
-                <ul className="space-y-3">
+              <div className="bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm p-3 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
+                <h3 className="text-sm font-semibold text-white mb-3 pb-1.5 border-b-2 border-blue-500/50">Product</h3>
+                <ul className="space-y-2">
                   <li>
-                    <a href="/one-on-one" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/one-on-one" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       1-on-1 Sessions
                     </a>
                   </li>
@@ -73,51 +73,58 @@ const Footer = () => {
                     </a>
                   </li> */}
                   <li>
-                    <a href="/interview" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/interview" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Interview Practice
                     </a>
                   </li>
                   <li>
-                    <a href="/profile/panel/your-home" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/profile/panel/your-home" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Learning Sessions
                     </a>
                   </li>
                   <li>
-                    <a href="/campus-dashboard" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/campus-dashboard" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Campus Dashboard
+                    </a>
+                  </li>
+
+                   <li>
+                    <a href="/quizement" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                      Quizement 
                     </a>
                   </li>
                 </ul>
               </div>
 
               {/* Company */}
-              <div className="bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm p-5 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
-                <h3 className="text-lg font-semibold text-white mb-4 pb-2 border-b-2 border-blue-500/50">Company</h3>
-                <ul className="space-y-3">
+              <div className="bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm p-3 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
+                <h3 className="text-sm font-semibold text-white mb-3 pb-1.5 border-b-2 border-blue-500/50">Company</h3>
+                <ul className="space-y-2">
                   <li>
-                    <a href="/about" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/about" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       About Us
                     </a>
                   </li>
                   <li>
-                    <a href="/career" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/career" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Careers
                     </a>
                   </li>
                   <li>
-                    <a href="/blog" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/blog" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Blog
                     </a>
                   </li>
                   <li>
-                    <a href="/community" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/community" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Community
                     </a>
                   </li>
@@ -125,24 +132,24 @@ const Footer = () => {
               </div>
 
               {/* Support */}
-              <div className="bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm p-5 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
-                <h3 className="text-lg font-semibold text-white mb-4 pb-2 border-b-2 border-blue-500/50">Support</h3>
-                <ul className="space-y-3">
+              <div className="bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm p-3 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
+                <h3 className="text-sm font-semibold text-white mb-3 pb-1.5 border-b-2 border-blue-500/50">Support</h3>
+                <ul className="space-y-2">
                   <li>
-                    <a href="/help" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/help" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Help Center
                     </a>
                   </li>
                   <li>
-                    <a href="/contact-us" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/contact-us" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Contact Us
                     </a>
                   </li>
                   <li>
-                    <a href="/faq" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/faq" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       FAQs
                     </a>
                   </li>
@@ -150,24 +157,30 @@ const Footer = () => {
               </div>
 
               {/* Legal */}
-              <div className="bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm p-5 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
-                <h3 className="text-lg font-semibold text-white mb-4 pb-2 border-b-2 border-blue-500/50">Legal</h3>
-                <ul className="space-y-3">
+              <div className="bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm p-3 rounded-xl border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
+                <h3 className="text-sm font-semibold text-white mb-3 pb-1.5 border-b-2 border-blue-500/50">Legal</h3>
+                <ul className="space-y-2">
                   <li>
-                    <a href="/terms-conditions" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/terms-conditions" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Terms of Service
                     </a>
                   </li>
                   <li>
-                    <a href="/privacy-policy" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/legal" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                      Legal Information
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/privacy-policy" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Privacy Policy
                     </a>
                   </li>
                   <li>
-                    <a href="/cookies-policy" className="text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-2 group">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
+                    <a href="/cookies-policy" className="text-xs text-gray-300 hover:text-white hover:underline transition-all duration-300 flex items-center gap-1.5 group">
+                      <span className="w-1.5 h-1.5 bg-blue-500 rounded-full group-hover:scale-125 transition-transform"></span>
                       Cookie Policy
                     </a>
                   </li>
@@ -176,15 +189,15 @@ const Footer = () => {
             </div>
 
             {/* Rating Button */}
-            <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-br from-gray-800/80 to-slate-800/80 backdrop-blur-sm rounded-xl p-5 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300">
+            <div className="mt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gradient-to-br from-gray-800/80 to-slate-800/80 backdrop-blur-sm rounded-xl p-3 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300">
               <div>
-                <h3 className="text-xl font-bold text-white mb-2">Share Your Experience</h3>
-                <p className="text-gray-300 text-sm max-w-xl">
+                <h3 className="text-sm font-bold text-white mb-1">Share Your Experience</h3>
+                <p className="text-gray-300 text-xs max-w-xl">
                   Help us improve by sharing your feedback and rating your experience with SkillSwapHub
                 </p>
               </div>
               <button
-                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:scale-[1.03] hover:shadow-lg hover:shadow-blue-500/50 whitespace-nowrap"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:scale-[1.03] hover:shadow-lg hover:shadow-blue-500/50 whitespace-nowrap"
                 onClick={() => navigate('/testimonials')}
               >
                 Add Your Rating
@@ -216,8 +229,8 @@ const Footer = () => {
                   />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-extrabold text-white tracking-tight">SkillSwapHub</h1>
-                  <p className="text-sm text-gray-300 leading-relaxed mt-1 max-w-xs">
+                  <h1 className="text-lg font-extrabold text-white tracking-tight">SkillSwapHub</h1>
+                  <p className="text-xs text-gray-300 leading-relaxed mt-1 max-w-xs">
                     Empowering people to learn, teach, and grow together
                   </p>
                 </div>
@@ -225,15 +238,15 @@ const Footer = () => {
 
               {/* Support & Inquiry */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white mb-3">Support & Inquiry</h3>
-                <div className="flex items-center gap-2 bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm rounded-lg p-3 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <h3 className="text-sm font-semibold text-white mb-2">Support & Inquiry</h3>
+                <div className="flex items-center gap-2 bg-gradient-to-br from-gray-800/60 to-slate-800/60 backdrop-blur-sm rounded-lg p-2 border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                   </svg>
                   <a
                     href="mailto:info@skillswaphub.in"
-                    className="text-gray-300 hover:text-white hover:underline text-sm break-all"
+                    className="text-gray-300 hover:text-white hover:underline text-xs break-all"
                   >
                     info@skillswaphub.in
                   </a>
@@ -241,19 +254,19 @@ const Footer = () => {
               </div>
 
               {/* Newsletter */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-white mb-3">Stay Updated</h3>
-                <p className="text-gray-300 text-sm mb-4">
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-white mb-2">Stay Updated</h3>
+                <p className="text-gray-300 text-xs mb-3">
                   Subscribe to our newsletter for the latest updates
                 </p>
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="email"
                     placeholder="Your email address"
-                    className="flex-grow px-4 py-3 rounded-xl bg-gray-800/60 border border-gray-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:bg-gray-800/80 backdrop-blur-sm"
+                    className="flex-grow px-3 py-2 rounded-xl text-xs bg-gray-800/60 border border-gray-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:bg-gray-800/80 backdrop-blur-sm"
                   />
                   <button
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/50 whitespace-nowrap"
+                    className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-300 hover:from-blue-700 hover:to-blue-800 hover:scale-[1.02] hover:shadow-lg hover:shadow-blue-500/50 whitespace-nowrap"
                   >
                     Subscribe
                   </button>
@@ -263,8 +276,8 @@ const Footer = () => {
 
             <div>
               {/* Social Media Icons */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Connect With Us</h3>
+              <div className="mb-4">
+                <h3 className="text-sm font-semibold text-white mb-3">Connect With Us</h3>
                 <div className="flex items-center gap-4">
                   {/* Instagram */}
                   <a
@@ -325,8 +338,9 @@ const Footer = () => {
               </div>
 
               {/* Copyright */}
-              <div className="text-gray-400 text-sm border-t border-gray-700/50 pt-4">
-                © {new Date().getFullYear()} SkillSwapHub. All rights reserved.
+              <div className="text-gray-400 border-t border-gray-700/50 pt-3 space-y-1">
+                <p className="text-xs">© {new Date().getFullYear()} SkillSwapHub. All rights reserved.</p>
+                
               </div>
             </div>
           </div>

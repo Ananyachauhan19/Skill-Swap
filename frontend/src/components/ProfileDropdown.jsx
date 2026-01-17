@@ -274,6 +274,13 @@ const ProfileDropdown = ({ show, onClose, menuRef, isAvailable, isToggling, hand
                     <TeachingIcon />
                     <span className="ml-2">Teaching History</span>
                   </button>
+                  <button
+                    className="flex items-center w-full px-3 py-2 text-xs transition-all duration-200 rounded-lg text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                    onClick={() => go('/quizement-history')}
+                  >
+                    <InterviewIcon />
+                    <span className="ml-2">Quizement History</span>
+                  </button>
                 </div>
               )}
             </div>

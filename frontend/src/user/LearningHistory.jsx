@@ -17,7 +17,7 @@ const LearningHistory = () => {
     totalSessions: 0,
     totalHours: 0,
     silverSpent: 0,
-    goldSpent: 0,
+    bronzeSpent: 0,
     averageRating: 0
   });
 
@@ -56,7 +56,7 @@ const LearningHistory = () => {
       let totalSessions = 0;
       let totalMinutes = 0;
       let silverSpent = 0;
-      let goldSpent = 0;
+      let bronzeSpent = 0;
       let totalRating = 0;
       let ratedSessions = 0;
 
@@ -66,8 +66,8 @@ const LearningHistory = () => {
           totalMinutes += session.duration || 0;
           
           // Calculate coins spent based on coin type
-          if (session.coinType === 'gold') {
-            goldSpent += session.coinsSpent || 0;
+          if (session.coinType === 'bronze') {
+            bronzeSpent += session.coinsSpent || 0;
           } else {
             silverSpent += session.coinsSpent || 0;
           }
@@ -83,7 +83,7 @@ const LearningHistory = () => {
         totalSessions,
         totalHours: (totalMinutes / 60).toFixed(1),
         silverSpent,
-        goldSpent,
+        bronzeSpent,
         averageRating: ratedSessions > 0 ? (totalRating / ratedSessions).toFixed(1) : 0
       });
     } catch (err) {
@@ -229,10 +229,10 @@ const LearningHistory = () => {
 
                 <div className="flex items-center justify-between py-2">
                   <span className="text-sm text-slate-600 flex items-center gap-2">
-                    <FaCoins className="text-amber-500 text-xs" />
-                    Gold
+                    <FaCoins className="text-amber-700 text-xs" />
+                    Bronze
                   </span>
-                  <span className="text-sm font-semibold text-amber-600">{stats.goldSpent}</span>
+                  <span className="text-sm font-semibold text-amber-700">{stats.bronzeSpent}</span>
                 </div>
               </div>
             </div>
@@ -374,9 +374,9 @@ const LearningHistory = () => {
 
                             {/* Coins Spent */}
                             <div className="flex items-center gap-1.5 mb-2">
-                              <FaCoins className={session.coinType === 'gold' ? 'text-amber-500' : 'text-slate-400'} />
-                              <span className="text-xs font-medium text-slate-600">
-                                {session.coinsSpent} {session.coinType === 'gold' ? 'Gold' : 'Silver'}
+                              <FaCoins className={session.coinType === 'bronze' ? 'text-amber-700' : 'text-slate-400'} />
+                              <span className="text-xs text-slate-600">
+                                {session.coinsSpent} {session.coinType === 'bronze' ? 'Bronze' : 'Silver'}
                               </span>
                             </div>
 

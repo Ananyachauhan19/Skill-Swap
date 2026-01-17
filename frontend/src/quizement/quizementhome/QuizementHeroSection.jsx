@@ -1,12 +1,52 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { BACKEND_URL } from '../../config.js';
 
 const QuizementHeroSection = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalQuestions: 0,
+    totalStudents: 0,
+    successRate: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/quizement/stats`);
+      setStats(response.data);
+    } catch (error) {
+      console.error('Failed to fetch stats:', error);
+      // Use default values on error
+      setStats({
+        totalQuestions: 0,
+        totalStudents: 0,
+        successRate: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatNumber = (num) => {
+    if (num >= 1000) {
+      return `${Math.floor(num / 1000)}K+`;
+    }
+    return num.toString();
+  };
 
   const handleGetStarted = () => {
-    navigate('/quizement/');
+    // Scroll to weekly contests section
+    const weeklySection = document.getElementById('weekly-contests');
+    if (weeklySection) {
+      weeklySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   return (
@@ -57,7 +97,7 @@ const QuizementHeroSection = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.6 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+              className="flex justify-center lg:justify-start"
             >
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -66,13 +106,6 @@ const QuizementHeroSection = () => {
                 className="px-8 py-4 bg-blue-900 text-white font-semibold rounded-xl shadow-lg hover:bg-blue-800 transition-all hover:shadow-xl text-base sm:text-lg"
               >
                 Get Started Now
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-white text-blue-900 font-semibold rounded-xl shadow-md hover:shadow-lg border-2 border-blue-900 transition-all text-base sm:text-lg"
-              >
-                Learn More
               </motion.button>
             </motion.div>
 
@@ -84,15 +117,21 @@ const QuizementHeroSection = () => {
               className="flex flex-wrap justify-center lg:justify-start gap-6 sm:gap-8 pt-4 border-t border-slate-200"
             >
               <div className="text-center lg:text-left">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-900">10K+</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-900">
+                  {loading ? '...' : formatNumber(stats.totalQuestions)}
+                </div>
                 <div className="text-xs sm:text-sm text-slate-600">Questions</div>
               </div>
               <div className="text-center lg:text-left">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-900">5K+</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-900">
+                  {loading ? '...' : formatNumber(stats.totalStudents)}
+                </div>
                 <div className="text-xs sm:text-sm text-slate-600">Students</div>
               </div>
               <div className="text-center lg:text-left">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-900">95%</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-900">
+                  {loading ? '...' : `${stats.successRate}%`}
+                </div>
                 <div className="text-xs sm:text-sm text-slate-600">Success Rate</div>
               </div>
             </motion.div>

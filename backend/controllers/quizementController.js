@@ -662,3 +662,100 @@ exports.getResult = async (req, res) => {
     return res.status(500).json({ message: 'Failed to load result' });
   }
 };
+
+// Get dynamic stats for hero section
+exports.getStats = async (req, res) => {
+  try {
+    // Get total number of questions across all tests
+    const totalQuestionsResult = await QuizementTest.aggregate([
+      {
+        $project: {
+          questionCount: { $size: '$questions' }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalQuestions: { $sum: '$questionCount' }
+        }
+      }
+    ]);
+    const totalQuestions = totalQuestionsResult[0]?.totalQuestions || 0;
+
+    // Get total number of students who attempted at least one quiz
+    const totalStudents = await QuizementAttempt.distinct('userId').then(ids => ids.length);
+
+    // Calculate success rate (students with >60% average)
+    const successRateResult = await QuizementAttempt.aggregate([
+      { $match: { finished: true } },
+      {
+        $group: {
+          _id: '$userId',
+          avgPercentage: { $avg: '$percentage' }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          successful: {
+            $sum: {
+              $cond: [{ $gte: ['$avgPercentage', 60] }, 1, 0]
+            }
+          }
+        }
+      }
+    ]);
+
+    let successRate = 0;
+    if (successRateResult.length > 0 && successRateResult[0].total > 0) {
+      successRate = Math.round((successRateResult[0].successful / successRateResult[0].total) * 100);
+    }
+
+    return res.json({
+      totalQuestions,
+      totalStudents,
+      successRate
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    return res.status(500).json({ message: 'Failed to fetch stats' });
+  }
+};
+
+// Get user's quizement coin history
+exports.getCoinHistory = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Find all attempts where user spent coins to unlock
+    const attempts = await QuizementAttempt.find({
+      userId,
+      unlocked: true,
+      coinsSpent: { $exists: true, $gt: 0 }
+    })
+    .populate('testId', 'name category')
+    .sort({ unlockedAt: -1 })
+    .lean();
+
+    const history = attempts.map(attempt => ({
+      id: attempt._id,
+      testName: attempt.testId?.name || 'Unknown Test',
+      category: attempt.testId?.category,
+      subject: 'Quizement',
+      topic: attempt.testId?.name || 'Quiz Unlock',
+      type: 'quizement',
+      coinsSpent: attempt.coinsSpent,
+      coinType: attempt.coinTypeUsed || 'silver',
+      when: attempt.unlockedAt || attempt.createdAt,
+      date: new Date(attempt.unlockedAt || attempt.createdAt).toISOString().slice(0, 10),
+      with: 'System',
+      duration: 0
+    }));
+
+    return res.json(history);
+  } catch (error) {
+    console.error('Error fetching quizement coin history:', error);
+    return res.status(500).json({ message: 'Failed to fetch quizement coin history' });
+  }
+};

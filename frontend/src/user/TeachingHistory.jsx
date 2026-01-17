@@ -15,7 +15,7 @@ const TeachingHistory = () => {
     totalSessions: 0,
     totalHours: 0,
     silverEarned: 0,
-    goldEarned: 0,
+    bronzeEarned: 0,
     averageRating: 0
   });
 
@@ -49,7 +49,7 @@ const TeachingHistory = () => {
     let totalSessions = 0;
     let totalMinutes = 0;
     let silverEarned = 0;
-    let goldEarned = 0;
+    let bronzeEarned = 0;
     let totalRating = 0;
     let ratedSessions = 0;
 
@@ -59,8 +59,8 @@ const TeachingHistory = () => {
         totalMinutes += session.duration || 0;
         
         // Calculate coins earned based on coin type
-        if (session.coinType === 'gold') {
-          goldEarned += session.coinsSpent || 0;
+        if (session.coinType === 'bronze') {
+          bronzeEarned += session.coinsSpent || 0;
         } else {
           silverEarned += session.coinsSpent || 0;
         }
@@ -76,7 +76,7 @@ const TeachingHistory = () => {
       totalSessions,
       totalHours: (totalMinutes / 60).toFixed(1),
       silverEarned,
-      goldEarned,
+      bronzeEarned,
       averageRating: ratedSessions > 0 ? (totalRating / ratedSessions).toFixed(1) : 0
     });
   };
@@ -227,10 +227,10 @@ const TeachingHistory = () => {
 
                   <div className="flex items-center justify-between py-2">
                     <span className="text-sm text-slate-600 flex items-center gap-2">
-                      <FaCoins className="text-amber-500 text-xs" />
-                      Gold
+                      <FaCoins className="text-amber-700 text-xs" />
+                      Bronze
                     </span>
-                    <span className="text-sm font-semibold text-amber-600">{stats.goldEarned}</span>
+                    <span className="text-sm font-semibold text-amber-700">{stats.bronzeEarned}</span>
                   </div>
                 </div>
               </div>
@@ -366,7 +366,7 @@ const TeachingHistory = () => {
                                   </div>
                                 </div>
                                 <div className={`px-2 py-1 rounded-full font-medium text-xs flex items-center gap-1 ${
-                                  s.coinType === 'gold' 
+                                  s.coinType === 'bronze' 
                                     ? 'bg-amber-50 text-amber-700 border border-amber-200' 
                                     : 'bg-slate-50 text-slate-600 border border-slate-200'
                                 }`}>

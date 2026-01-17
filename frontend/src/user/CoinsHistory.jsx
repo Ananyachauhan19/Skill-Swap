@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { BACKEND_URL } from '../config.js';
-import { FaCoins, FaClock, FaCalendarAlt, FaSearch, FaBook, FaChalkboardTeacher, FaHistory, FaBars } from 'react-icons/fa';
+import { FaCoins, FaClock, FaCalendarAlt, FaSearch, FaBook, FaChalkboardTeacher, FaHistory, FaBars, FaClipboardCheck } from 'react-icons/fa';
 
 const CoinsHistory = () => {
   const [learningEvents, setLearningEvents] = useState([]);
   const [teachingEvents, setTeachingEvents] = useState([]);
+  const [quizementEvents, setQuizementEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('all'); // all | learning | teaching
+  const [activeTab, setActiveTab] = useState('all'); // all | learning | teaching | quizement
   const [search, setSearch] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -16,11 +17,13 @@ const CoinsHistory = () => {
   // Calculated stats
   const [stats, setStats] = useState({
     silverAvailable: 0,
-    goldAvailable: 0,
+    bronzeAvailable: 0,
     silverSpent: 0,
-    goldSpent: 0,
+    bronzeSpent: 0,
     silverEarned: 0,
-    goldEarned: 0
+    bronzeEarned: 0,
+    quizementSilverSpent: 0,
+    quizementBronzeSpent: 0
   });
 
   // Fetch coin balances and history
@@ -31,11 +34,11 @@ const CoinsHistory = () => {
         
         // Fetch current balances from profile/auth endpoint
         const balRes = await fetch(`${BACKEND_URL}/api/auth/coins`, { credentials: 'include' });
-        let balData = { silver: 0, golden: 0 };
+        let balData = { silver: 0, bronze: 0 };
         if (balRes.ok) {
           balData = await balRes.json();
           console.log('💰 Coin Balances from Profile:', balData);
-          console.log('💰 Silver:', balData.silver, 'Gold:', balData.golden);
+          console.log('💰 Silver:', balData.silver, 'Bronze:', balData.bronze);
         } else {
           console.error('❌ Failed to fetch balances:', balRes.status);
         }
@@ -60,8 +63,17 @@ const CoinsHistory = () => {
           console.log('✅ Set learning events:', learningTxns.length);
           console.log('✅ Set teaching events:', teachingTxns.length);
           
+          // Fetch quizement coin history
+          const quizementRes = await fetch(`${BACKEND_URL}/api/quizement/coin-history`, { credentials: 'include' });
+          let quizementTxns = [];
+          if (quizementRes.ok) {
+            quizementTxns = await quizementRes.json();
+            console.log('📝 Quizement transactions:', quizementTxns.length);
+            setQuizementEvents(quizementTxns);
+          }
+          
           // Calculate stats
-          calculateStats(learningTxns, teachingTxns, balData);
+          calculateStats(learningTxns, teachingTxns, quizementTxns, balData);
         } else {
           const errorText = await historyRes.text();
           console.error('❌ Failed to fetch coin history:', historyRes.status, errorText);
@@ -79,31 +91,45 @@ const CoinsHistory = () => {
     load();
   }, []);
 
-  const calculateStats = (learning, teaching, balData) => {
-    let silverSpent = 0, goldSpent = 0, silverEarned = 0, goldEarned = 0;
+  const calculateStats = (learning, teaching, quizement, balData) => {
+    let silverSpent = 0, bronzeSpent = 0, silverEarned = 0, bronzeEarned = 0;
+    let quizementSilverSpent = 0, quizementBronzeSpent = 0;
 
     console.log('📊 Calculating stats with balData:', balData);
     console.log('📊 Learning transactions:', learning.length);
     console.log('📊 Teaching transactions:', teaching.length);
+    console.log('📊 Quizement transactions:', quizement.length);
 
     learning.forEach(e => {
-      if (e.coinType === 'gold') goldSpent += e.coinsSpent || 0;
+      if (e.coinType === 'bronze') bronzeSpent += e.coinsSpent || 0;
       else silverSpent += e.coinsSpent || 0;
     });
 
     teaching.forEach(e => {
       const earned = (typeof e.coinsEarned === 'number' ? e.coinsEarned : (e.coinsSpent || 0));
-      if (e.coinType === 'gold') goldEarned += earned;
+      if (e.coinType === 'bronze') bronzeEarned += earned;
       else silverEarned += earned;
     });
 
+    quizement.forEach(e => {
+      if (e.coinType === 'bronze') {
+        quizementBronzeSpent += e.coinsSpent || 0;
+        bronzeSpent += e.coinsSpent || 0;
+      } else {
+        quizementSilverSpent += e.coinsSpent || 0;
+        silverSpent += e.coinsSpent || 0;
+      }
+    });
+
     const calculatedStats = {
-      silverAvailable: balData.silver || 0,  // Changed from balData.silverCoins
-      goldAvailable: balData.golden || 0,    // Changed from balData.goldCoins
+      silverAvailable: balData.silver || 0,
+      bronzeAvailable: balData.bronze || 0,
       silverSpent,
-      goldSpent,
+      bronzeSpent,
       silverEarned,
-      goldEarned
+      bronzeEarned,
+      quizementSilverSpent,
+      quizementBronzeSpent
     };
     
     console.log('📈 Calculated Stats:', calculatedStats);
@@ -118,8 +144,10 @@ const CoinsHistory = () => {
       events = learningEvents;
     } else if (activeTab === 'teaching') {
       events = teachingEvents;
+    } else if (activeTab === 'quizement') {
+      events = quizementEvents;
     } else {
-      events = [...learningEvents, ...teachingEvents].sort((a, b) => new Date(b.when) - new Date(a.when));
+      events = [...learningEvents, ...teachingEvents, ...quizementEvents].sort((a, b) => new Date(b.when) - new Date(a.when));
     }
     
     console.log(`🔍 Filtering - Tab: ${activeTab}, Total events before filter:`, events.length);
@@ -129,7 +157,8 @@ const CoinsHistory = () => {
       events = events.filter(e => (
         (e.with && e.with.toString().toLowerCase().includes(s)) ||
         (e.subject && e.subject.toLowerCase().includes(s)) ||
-        (e.topic && e.topic.toLowerCase().includes(s))
+        (e.topic && e.topic.toLowerCase().includes(s)) ||
+        (e.testName && e.testName.toLowerCase().includes(s))
       ));
       console.log(`🔍 After search filter (${search}):`, events.length);
     }
@@ -141,7 +170,7 @@ const CoinsHistory = () => {
 
     console.log('✅ Final filtered events:', events);
     setFilteredEvents(events);
-  }, [activeTab, search, selectedDate, learningEvents, teachingEvents]);
+  }, [activeTab, search, selectedDate, learningEvents, teachingEvents, quizementEvents]);
 
   const formatTime = (iso) => {
     if (!iso) return '';
@@ -190,8 +219,8 @@ const CoinsHistory = () => {
                 </div>
                 <div className="h-12 w-px bg-gray-300"></div>
                 <div>
-                  <p className="text-xs text-gray-500">Gold</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.goldAvailable}</p>
+                  <p className="text-xs text-gray-500">Bronze</p>
+                  <p className="text-2xl font-bold text-amber-700">{stats.bronzeAvailable}</p>
                 </div>
               </div>
             </div>
@@ -223,7 +252,22 @@ const CoinsHistory = () => {
                   <FaBook />
                   <div className="flex-1 text-left">
                     <p>Learning (Spent)</p>
-                    <p className="text-xs opacity-75">{stats.silverSpent}s + {stats.goldSpent}g</p>
+                    <p className="text-xs opacity-75">{stats.silverSpent}s + {stats.bronzeSpent}b</p>
+                  </div>
+                </button>
+
+                <button 
+                  onClick={() => setActiveTab('quizement')} 
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                    activeTab === 'quizement' 
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md' 
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <FaClipboardCheck />
+                  <div className="flex-1 text-left">
+                    <p>Quizement (Spent)</p>
+                    <p className="text-xs opacity-75">{stats.quizementSilverSpent}s + {stats.quizementBronzeSpent}b</p>
                   </div>
                 </button>
 
@@ -238,7 +282,7 @@ const CoinsHistory = () => {
                   <FaChalkboardTeacher />
                   <div className="flex-1 text-left">
                     <p>Teaching (Earned)</p>
-                    <p className="text-xs opacity-75">{stats.silverEarned}s + {stats.goldEarned}g</p>
+                    <p className="text-xs opacity-75">{stats.silverEarned}s + {stats.bronzeEarned}b</p>
                   </div>
                 </button>
               </div>
@@ -263,18 +307,18 @@ const CoinsHistory = () => {
                 </div>
               </div>
 
-              {/* Gold Coins */}
+              {/* Bronze Coins */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-600 flex items-center gap-2">
-                    <FaCoins className="text-yellow-500" />
-                    Gold Coins
+                    <FaCoins className="text-amber-700" />
+                    Bronze Coins
                   </span>
-                  <span className="text-sm font-bold text-yellow-600">{stats.goldAvailable}</span>
+                  <span className="text-sm font-bold text-amber-700">{stats.bronzeAvailable}</span>
                 </div>
                 <div className="flex justify-between text-xs text-gray-500">
-                  <span>Spent: {stats.goldSpent}</span>
-                  <span>Earned: {stats.goldEarned}</span>
+                  <span>Spent: {stats.bronzeSpent}</span>
+                  <span>Earned: {stats.bronzeEarned}</span>
                 </div>
               </div>
             </div>
