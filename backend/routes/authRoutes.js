@@ -896,6 +896,10 @@ router.get('/coins', requireAuth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     res.json({
+      goldCoins: user.goldCoins || 0,
+      silverCoins: user.silverCoins || 0,
+      bronzeCoins: user.bronzeCoins || 0,
+      // Keep old format for backward compatibility
       golden: user.goldCoins || 0,
       silver: user.silverCoins || 0,
       bronze: user.bronzeCoins || 0,

@@ -36,7 +36,9 @@ const QuizementLanding = () => {
       const resp = await fetch(`${BACKEND_URL}/api/quizement/tests`, { credentials: 'include' });
       if (!resp.ok) throw new Error('Failed to load tests');
       const data = await resp.json();
-      setTests(data.tests || []);
+      // Filter out weekly contests from All Tests tab
+      const nonWeeklyTests = (data.tests || []).filter(test => !test.isWeeklyQuiz);
+      setTests(nonWeeklyTests);
       setError('');
     } catch (e) {
       setError(e.message || 'Failed to load tests');

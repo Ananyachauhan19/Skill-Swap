@@ -103,13 +103,17 @@ const QuizementHeroSection = () => {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="order-1 lg:order-2 w-full"
+            className="order-1 lg:order-2 w-full flex items-center justify-center"
           >
             <img
-              src="/quizmnet_hero.png"
+              src={`${import.meta.env.BASE_URL || '/'}quizmnet_hero.png`}
               alt="Quizement - Student learning and assessment platform"
-              className="w-full h-auto object-contain"
+              className="w-full h-auto max-w-lg lg:max-w-full object-contain drop-shadow-2xl"
               loading="eager"
+              onError={(e) => {
+                console.error('Image failed to load:', e.target.src);
+                e.target.style.display = 'none';
+              }}
             />
           </motion.div>
 

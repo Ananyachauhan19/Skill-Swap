@@ -146,32 +146,32 @@ function BrowseInterviewersSection({ onBookSession }) {
           {showAllModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowAllModal(false)}>
               <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                <div className="sticky top-0 bg-blue-900 text-white p-4 sm:p-6 rounded-t-xl flex items-center justify-between z-10">
+                <div className="sticky top-0 bg-blue-900 text-white p-3 sm:p-4 rounded-t-xl flex items-center justify-between z-10">
                   <div>
-                    <h3 className="text-lg sm:text-xl font-bold">All Expert Interviewers</h3>
-                    <p className="text-blue-100 text-sm mt-1">{allInterviewers.length} approved professionals</p>
+                    <h3 className="text-base sm:text-lg font-bold">All Expert Interviewers</h3>
+                    <p className="text-blue-100 text-xs mt-0.5">{allInterviewers.length} approved professionals</p>
                   </div>
                   <button 
                     onClick={() => setShowAllModal(false)} 
-                    className="text-white hover:bg-blue-800 p-2 rounded-lg transition-colors flex items-center justify-center"
+                    className="text-white hover:bg-blue-800 p-1.5 rounded-lg transition-colors flex items-center justify-center"
                   >
-                    <FaTimes size={20} />
+                    <FaTimes size={18} />
                   </button>
                 </div>
                 
-                <div className="p-3 sm:p-6 overflow-y-auto space-y-4" style={{ maxHeight: 'calc(90vh - 120px)' }}>
+                <div className="p-2 sm:p-3 overflow-y-auto space-y-2 sm:space-y-3" style={{ maxHeight: 'calc(90vh - 100px)' }}>
                   {/* Modal search bar for interviewer name / company / position */}
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 px-1">
                     <input
                       type="text"
                       value={modalSearchText}
                       onChange={e => setModalSearchText(e.target.value)}
                       placeholder="Search interviewer by name, company, or position..."
-                      className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none hover:border-slate-400 transition-colors text-sm"
+                      className="flex-1 px-2.5 py-1.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 outline-none hover:border-slate-400 transition-colors text-xs sm:text-sm"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                     {modalFilteredInterviewers.map((m) => (
                       <InterviewerCard key={m.application?._id || m.user?._id} interviewer={m} onBookSession={onBookSession} navigate={navigate} onModalAction={() => setShowAllModal(false)} />
                     ))}

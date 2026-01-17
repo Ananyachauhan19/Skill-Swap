@@ -382,6 +382,8 @@ exports.listTestsForUser = async (req, res) => {
         isFreeQuiz,
         isPaid: t.isPaid || false,
         course: t.course || '',
+        isWeeklyQuiz: t.isWeeklyQuiz || false,
+        expiresAt: t.expiresAt,
         createdBy: t.createdByQuizementEmployee 
           ? `${t.createdByQuizementEmployee.fullName} (Quizzment)` 
           : 'SkillSwap'

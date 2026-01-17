@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Clock, Award, Coins, Lock, ChevronRight, Calendar, TrendingUp } from 'lucide-react';
+import { BACKEND_URL } from '../config.js';
 
 const WeeklyQuizSection = () => {
   const [weeklyQuizzes, setWeeklyQuizzes] = useState([]);
@@ -18,10 +19,11 @@ const WeeklyQuizSection = () => {
 
   const fetchWeeklyQuizzes = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/quizement/weekly-quizzes', {
+      const response = await axios.get(`${BACKEND_URL}/api/quizement/weekly-quizzes`, {
         withCredentials: true
       });
-      setWeeklyQuizzes(response.data.quizzes);
+      setWeeklyQuizzes(response.data.weeklyQuizzes || []);
+      setError('');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load weekly quizzes');
     } finally {
@@ -35,24 +37,29 @@ const WeeklyQuizSection = () => {
     setUnlocking(true);
     try {
       await axios.post(
-        `http://localhost:5000/api/quizement/tests/${selectedQuiz._id}/unlock`,
+        `${BACKEND_URL}/api/quizement/tests/${selectedQuiz.id}/unlock`,
         { coinType },
         { withCredentials: true }
       );
       
-      // Navigate to the quiz
-      navigate(`/quizement/test/${selectedQuiz._id}`);
+      // Refresh quizzes and navigate
+      await fetchWeeklyQuizzes();
+      setShowUnlockModal(false);
+      navigate(`/quizement/attempt/${selectedQuiz.id}`);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to unlock quiz');
     } finally {
       setUnlocking(false);
-      setShowUnlockModal(false);
     }
   };
 
   const handleQuizClick = (quiz) => {
-    if (quiz.isUnlocked || !quiz.isPaid) {
-      navigate(`/quizement/test/${quiz._id}`);
+    // Check if quiz is unlocked based on status or if it's a free quiz
+    const isFreeQuiz = quiz.isFreeQuiz || (!quiz.isPaid && quiz.bronzeCost === 0 && quiz.silverCost === 0);
+    const isUnlocked = quiz.status === 'unlocked' || quiz.status === 'in-progress' || quiz.status === 'attempted' || isFreeQuiz;
+    
+    if (isUnlocked) {
+      navigate(`/quizement/attempt/${quiz.id}`);
     } else {
       setSelectedQuiz(quiz);
       setShowUnlockModal(true);
@@ -110,11 +117,11 @@ const WeeklyQuizSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {weeklyQuizzes.map((quiz) => {
               const daysRemaining = calculateDaysRemaining(quiz.expiresAt);
-              const isLocked = quiz.isPaid && !quiz.isUnlocked;
+              const isLocked = quiz.isPaid && quiz.status === 'locked';
 
               return (
                 <div
-                  key={quiz._id}
+                  key={quiz.id}
                   className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:-translate-y-1"
                   onClick={() => handleQuizClick(quiz)}
                 >
@@ -154,7 +161,7 @@ const WeeklyQuizSection = () => {
 
                     {/* Quiz Title */}
                     <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors">
-                      {quiz.title}
+                      {quiz.name || quiz.title}
                     </h3>
 
                     {/* Description */}
@@ -181,7 +188,7 @@ const WeeklyQuizSection = () => {
                       </div>
                       <div className="flex items-center gap-1">
                         <TrendingUp className="w-4 h-4" />
-                        <span>{quiz.questions?.length || 0} questions</span>
+                        <span>{quiz.questionCount || 0} questions</span>
                       </div>
                     </div>
 
