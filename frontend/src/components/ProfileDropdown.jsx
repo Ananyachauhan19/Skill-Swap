@@ -149,8 +149,8 @@ const ProfileDropdown = ({ show, onClose, menuRef, isAvailable, isToggling, hand
             />
             <MenuItem icon={CampusDashboardIcon} label="Campus Dashboard" onClick={() => go('/campus-dashboard')} />
             
-            {/* One-on-One Session Availability Toggle */}
-            {user && (user.role === 'teacher' || user.role === 'both') && (
+            {/* One-on-One Session Availability Toggle - Visible to all, functional for teachers */}
+            {user && (
               <div className="px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -159,30 +159,40 @@ const ProfileDropdown = ({ show, onClose, menuRef, isAvailable, isToggling, hand
                   </div>
                   <button
                     onClick={handleToggleAvailability}
-                    disabled={isToggling}
-                    title={isAvailable ? 'Available for Sessions (Click to turn off)' : 'Unavailable (Click to turn on)'}
+                    disabled={isToggling || (user.role !== 'teacher' && user.role !== 'both')}
+                    title={
+                      user.role !== 'teacher' && user.role !== 'both' 
+                        ? 'Only teachers can toggle session availability'
+                        : (isAvailable ? 'Available for Sessions (Click to turn off)' : 'Unavailable (Click to turn on)')
+                    }
                     className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                      isAvailable ? 'bg-blue-600' : 'bg-gray-300'
-                    } ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+                      user.role !== 'teacher' && user.role !== 'both'
+                        ? 'bg-gray-200 opacity-50 cursor-not-allowed'
+                        : (isAvailable ? 'bg-blue-600' : 'bg-gray-300')
+                    } ${isToggling ? 'opacity-50 cursor-not-allowed' : (user.role === 'teacher' || user.role === 'both' ? 'cursor-pointer hover:shadow-lg' : '')}`}
                   >
                     <span className="sr-only">Toggle session availability</span>
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
-                        isAvailable ? 'translate-x-6' : 'translate-x-1'
+                        isAvailable && (user.role === 'teacher' || user.role === 'both') ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
                   </button>
                 </div>
                 <span className={`text-xs mt-1 block text-right ${
-                  isAvailable ? 'text-blue-600' : 'text-gray-500'
+                  user.role !== 'teacher' && user.role !== 'both'
+                    ? 'text-gray-400'
+                    : (isAvailable ? 'text-blue-600' : 'text-gray-500')
                 }`}>
-                  {isAvailable ? 'Available' : 'Unavailable'}
+                  {user.role !== 'teacher' && user.role !== 'both'
+                    ? 'Teachers Only'
+                    : (isAvailable ? 'Available' : 'Unavailable')}
                 </span>
               </div>
             )}
             
-            {/* Interview Availability Toggle */}
-            {user && interviewerStatus === 'approved' && (
+            {/* Interview Availability Toggle - Visible to all, functional only for approved interviewers */}
+            {user && (
               <div className="px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
@@ -191,30 +201,40 @@ const ProfileDropdown = ({ show, onClose, menuRef, isAvailable, isToggling, hand
                   </div>
                   <button
                     onClick={handleToggleInterviewAvailability}
-                    disabled={isTogglingInterview}
-                    title={isInterviewAvailable ? 'Available for Interviews (Click to turn off)' : 'Unavailable for Interviews (Click to turn on)'}
+                    disabled={isTogglingInterview || interviewerStatus !== 'approved'}
+                    title={
+                      interviewerStatus !== 'approved'
+                        ? 'Only approved interviewers can toggle interview availability'
+                        : (isInterviewAvailable ? 'Available for Interviews (Click to turn off)' : 'Unavailable for Interviews (Click to turn on)')
+                    }
                     className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                      isInterviewAvailable ? 'bg-blue-600' : 'bg-gray-300'
-                    } ${isTogglingInterview ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg'}`}
+                      interviewerStatus !== 'approved'
+                        ? 'bg-gray-200 opacity-50 cursor-not-allowed'
+                        : (isInterviewAvailable ? 'bg-blue-600' : 'bg-gray-300')
+                    } ${isTogglingInterview ? 'opacity-50 cursor-not-allowed' : (interviewerStatus === 'approved' ? 'cursor-pointer hover:shadow-lg' : '')}`}
                   >
                     <span className="sr-only">Toggle interview availability</span>
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-lg transition-transform duration-300 ease-in-out ${
-                        isInterviewAvailable ? 'translate-x-6' : 'translate-x-1'
+                        isInterviewAvailable && interviewerStatus === 'approved' ? 'translate-x-6' : 'translate-x-1'
                       }`}
                     />
                   </button>
                 </div>
                 <span className={`text-xs mt-1 block text-right ${
-                  isInterviewAvailable ? 'text-blue-600' : 'text-gray-500'
+                  interviewerStatus !== 'approved'
+                    ? 'text-gray-400'
+                    : (isInterviewAvailable ? 'text-blue-600' : 'text-gray-500')
                 }`}>
-                  {isInterviewAvailable ? 'Available' : 'Unavailable'}
+                  {interviewerStatus !== 'approved'
+                    ? 'Approval Required'
+                    : (isInterviewAvailable ? 'Available' : 'Unavailable')}
                 </span>
               </div>
             )}
             
             {/* Separator for visual clarity */}
-            {((user && (user.role === 'teacher' || user.role === 'both')) || (user && interviewerStatus === 'approved')) && (
+            {user && (
               <div className="border-t border-blue-200 my-2"></div>
             )}
             

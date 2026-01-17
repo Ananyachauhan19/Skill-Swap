@@ -37,6 +37,7 @@ if (hasGoogleOauth) {
               lastName: profile.name.familyName || 'User',
               username,
               provider: 'google',
+              role: 'student', // Default role for new Google OAuth users
               skillsToTeach: [],
               skillsToLearn: [],
               bio: '',
@@ -61,6 +62,11 @@ if (hasGoogleOauth) {
             if (!user.googleId) {
               user.googleId = profile.id;
               user.provider = 'google';
+              updated = true;
+            }
+            // Ensure role is set for legacy users
+            if (!user.role) {
+              user.role = 'student';
               updated = true;
             }
             if (typeof user.goldCoins !== 'number') {
