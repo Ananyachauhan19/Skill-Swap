@@ -6,6 +6,7 @@ import HeroDashboard from './HeroDashboard.jsx';
 import SkillThought from './CampusThought.jsx';
 import ActivityDashboard from './ActivityDashboard.jsx';
 import FeatureDashboard from './FeatureDashboard.jsx';
+import CampusLeaderboard from './CampusLeaderboard.jsx';
 import CampusDashboardNavbar from '../CampusDashboardNavbar.jsx';
 import { useModal } from '../../context/ModalContext.jsx';
 import socket from '../../socket.js';
@@ -201,6 +202,10 @@ const HomeDashboard = () => {
 
             <div className="py-1 sm:py-2">
               <ActivityDashboard activity={activity} />
+            </div>
+
+            <div className="py-1 sm:py-2">
+              <CampusLeaderboard />
             </div>
 
             <div className="py-1 sm:py-2">

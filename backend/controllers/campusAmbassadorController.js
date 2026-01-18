@@ -1193,11 +1193,33 @@ exports.getInstituteRewardHistory = async (req, res) => {
 exports.getStudentDashboardStats = async (req, res) => {
   try {
     const studentId = req.user._id;
-    const instituteId = req.user.instituteId;
+    let instituteId = req.user.instituteId;
+
+    // If instituteId not in token, fetch from user document
+    if (!instituteId) {
+      const user = await User.findById(studentId).select('instituteId');
+      instituteId = user?.instituteId;
+    }
 
     if (!instituteId) {
-      return res.status(404).json({ message: 'Student is not associated with any institute' });
+      console.log('[Dashboard Stats] Student not associated with any institute:', studentId);
+      return res.status(200).json({ 
+        message: 'Student is not associated with any institute',
+        studentStats: {
+          totalSessions: 0,
+          completedSessions: 0,
+          pendingRequests: 0
+        },
+        institute: {
+          totalStudents: 0,
+          activeStudents: 0
+        },
+        topTutors: [],
+        recentActivity: []
+      });
     }
+
+    console.log('[Dashboard Stats] Fetching stats for student:', studentId, 'institute:', instituteId);
 
     // Import required models
     const Session = require('../models/Session');
@@ -2356,6 +2378,392 @@ exports.getMyActivityStats = async (req, res) => {
   } catch (error) {
     console.error('Get my activity stats error:', error);
     res.status(500).json({ message: 'Error fetching activity stats', error: error.message });
+  }
+};
+
+// Get student rankings for institute (overall)
+exports.getInstituteRankings = async (req, res) => {
+  try {
+    const { instituteId } = req.params;
+    const { limit = 10 } = req.query;
+
+    // Verify institute exists
+    const institute = await Institute.findOne({ instituteId: instituteId.toUpperCase() });
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found' });
+    }
+
+    // Get all students from this institute
+    const students = await User.find({ instituteId: instituteId.toUpperCase() }).select('_id firstName lastName username profilePic profileImageUrl');
+
+    if (students.length === 0) {
+      return res.status(200).json({ rankings: [] });
+    }
+
+    const studentIds = students.map(s => s._id);
+
+    // Import models
+    const Session = require('../models/Session');
+    const QuizementAttempt = require('../models/QuizementAttempt');
+
+    // Calculate rankings for each student
+    const rankingsPromises = studentIds.map(async (studentId) => {
+      const student = students.find(s => s._id.equals(studentId));
+
+      // Count sessions as tutor (creator)
+      const sessionsAsTutor = await Session.countDocuments({
+        creator: studentId,
+        status: 'completed'
+      });
+
+      // Count sessions as learner (requester)
+      const sessionsAsLearner = await Session.countDocuments({
+        requester: studentId,
+        status: 'completed'
+      });
+
+      // Get total quiz marks
+      const quizAttempts = await QuizementAttempt.find({
+        userId: studentId,
+        finished: true
+      }).select('score');
+
+      const totalQuizMarks = quizAttempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
+
+      // Calculate total score: sessions + quiz marks
+      const totalSessions = sessionsAsTutor + sessionsAsLearner;
+      const totalScore = totalSessions + totalQuizMarks;
+
+      return {
+        studentId: student._id,
+        firstName: student.firstName || '',
+        lastName: student.lastName || '',
+        username: student.username,
+        profilePic: student.profileImageUrl || student.profilePic || '',
+        sessionsAsTutor,
+        sessionsAsLearner,
+        totalSessions,
+        totalQuizMarks,
+        totalScore
+      };
+    });
+
+    let rankings = await Promise.all(rankingsPromises);
+
+    // Sort by total score (descending)
+    rankings.sort((a, b) => b.totalScore - a.totalScore);
+
+    // Add rank
+    rankings = rankings.map((ranking, index) => ({
+      ...ranking,
+      rank: index + 1
+    }));
+
+    // Limit results if needed
+    const limitedRankings = rankings.slice(0, parseInt(limit));
+
+    // Get current user's ranking if they're not in top 3 and userId is provided
+    let userRanking = null;
+    if (req.user && req.user._id) {
+      const userRank = rankings.find(r => r.studentId.equals(req.user._id));
+      if (userRank && userRank.rank > parseInt(limit)) {
+        userRanking = userRank;
+      }
+    }
+
+    res.status(200).json({ 
+      rankings: limitedRankings,
+      userRanking,
+      instituteName: institute.instituteName,
+      instituteId: institute.instituteId
+    });
+  } catch (error) {
+    console.error('Get institute rankings error:', error);
+    res.status(500).json({ message: 'Error fetching rankings', error: error.message });
+  }
+};
+
+// Get weekly rankings for institute
+exports.getWeeklyInstituteRankings = async (req, res) => {
+  try {
+    const { instituteId } = req.params;
+    const { limit = 10 } = req.query;
+
+    // Verify institute exists
+    const institute = await Institute.findOne({ instituteId: instituteId.toUpperCase() });
+    if (!institute) {
+      return res.status(404).json({ message: 'Institute not found' });
+    }
+
+    // Get all students from this institute
+    const students = await User.find({ instituteId: instituteId.toUpperCase() }).select('_id firstName lastName username profilePic profileImageUrl');
+
+    if (students.length === 0) {
+      return res.status(200).json({ rankings: [] });
+    }
+
+    const studentIds = students.map(s => s._id);
+
+    // Calculate start of current week (Monday)
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - daysToMonday);
+    weekStart.setHours(0, 0, 0, 0);
+
+    // Import models
+    const Session = require('../models/Session');
+    const QuizementAttempt = require('../models/QuizementAttempt');
+
+    // Calculate weekly rankings for each student
+    const rankingsPromises = studentIds.map(async (studentId) => {
+      const student = students.find(s => s._id.equals(studentId));
+
+      // Count sessions as tutor this week
+      const sessionsAsTutor = await Session.countDocuments({
+        creator: studentId,
+        status: 'completed',
+        updatedAt: { $gte: weekStart }
+      });
+
+      // Count sessions as learner this week
+      const sessionsAsLearner = await Session.countDocuments({
+        requester: studentId,
+        status: 'completed',
+        updatedAt: { $gte: weekStart }
+      });
+
+      // Get total quiz marks this week
+      const quizAttempts = await QuizementAttempt.find({
+        userId: studentId,
+        finished: true,
+        finishedAt: { $gte: weekStart }
+      }).select('score');
+
+      const totalQuizMarks = quizAttempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
+
+      // Calculate total score: sessions + quiz marks
+      const totalSessions = sessionsAsTutor + sessionsAsLearner;
+      const totalScore = totalSessions + totalQuizMarks;
+
+      return {
+        studentId: student._id,
+        firstName: student.firstName || '',
+        lastName: student.lastName || '',
+        username: student.username,
+        profilePic: student.profileImageUrl || student.profilePic || '',
+        sessionsAsTutor,
+        sessionsAsLearner,
+        totalSessions,
+        totalQuizMarks,
+        totalScore
+      };
+    });
+
+    let rankings = await Promise.all(rankingsPromises);
+
+    // Sort by total score (descending)
+    rankings.sort((a, b) => b.totalScore - a.totalScore);
+
+    // Add rank
+    rankings = rankings.map((ranking, index) => ({
+      ...ranking,
+      rank: index + 1
+    }));
+
+    // Limit results if needed
+    const limitedRankings = rankings.slice(0, parseInt(limit));
+
+    // Get current user's ranking if they're not in top 3 and userId is provided
+    let userRanking = null;
+    if (req.user && req.user._id) {
+      const userRank = rankings.find(r => r.studentId.equals(req.user._id));
+      if (userRank && userRank.rank > parseInt(limit)) {
+        userRanking = userRank;
+      }
+    }
+
+    res.status(200).json({ 
+      rankings: limitedRankings,
+      userRanking,
+      instituteName: institute.instituteName,
+      instituteId: institute.instituteId,
+      weekStart: weekStart.toISOString()
+    });
+  } catch (error) {
+    console.error('Get weekly institute rankings error:', error);
+    res.status(500).json({ message: 'Error fetching weekly rankings', error: error.message });
+  }
+};
+
+// Get global top performer (student) across all institutes
+exports.getGlobalTopStudent = async (req, res) => {
+  try {
+    // Get all students with instituteId
+    const students = await User.find({ 
+      instituteId: { $exists: true, $ne: null } 
+    }).select('_id firstName lastName username profilePic profileImageUrl instituteId instituteName');
+
+    if (students.length === 0) {
+      return res.status(200).json({ topStudent: null });
+    }
+
+    // Import models
+    const Session = require('../models/Session');
+    const QuizementAttempt = require('../models/QuizementAttempt');
+
+  // Consider only sessions between campus students (users that belong to an institute)
+  const campusStudentIds = students.map((s) => s._id);
+
+    // Calculate score for each student
+    const studentScoresPromises = students.map(async (student) => {
+      // Count sessions as tutor
+      const sessionsAsTutor = await Session.countDocuments({
+        creator: student._id,
+        requester: { $in: campusStudentIds },
+        status: 'completed'
+      });
+
+      // Count sessions as learner
+      const sessionsAsLearner = await Session.countDocuments({
+        requester: student._id,
+        creator: { $in: campusStudentIds },
+        status: 'completed'
+      });
+
+      // Get total quiz marks
+      const quizAttempts = await QuizementAttempt.find({
+        userId: student._id,
+        finished: true
+      }).select('score');
+
+      const totalQuizMarks = quizAttempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
+
+      // Calculate total score
+      const totalSessions = sessionsAsTutor + sessionsAsLearner;
+      const totalScore = totalSessions + totalQuizMarks;
+
+      return {
+        studentId: student._id,
+        firstName: student.firstName || '',
+        lastName: student.lastName || '',
+        username: student.username,
+        profilePic: student.profileImageUrl || student.profilePic || '',
+        instituteId: student.instituteId,
+        instituteName: student.instituteName,
+        sessionsAsTutor,
+        sessionsAsLearner,
+        totalSessions,
+        totalQuizMarks,
+        totalScore
+      };
+    });
+
+    const studentScores = await Promise.all(studentScoresPromises);
+
+    // Sort by total score (descending) and get top 3
+    studentScores.sort((a, b) => b.totalScore - a.totalScore);
+    const topStudents = studentScores.slice(0, 3).map((student, index) => ({
+      ...student,
+      rank: index + 1
+    }));
+
+    res.status(200).json({ topStudents });
+  } catch (error) {
+    console.error('Get global top student error:', error);
+    res.status(500).json({ message: 'Error fetching top student', error: error.message });
+  }
+};
+
+// Get global top institute
+exports.getGlobalTopInstitute = async (req, res) => {
+  try {
+    // Get all institutes
+    const institutes = await Institute.find({}).select('instituteId instituteName instituteType students');
+
+    if (institutes.length === 0) {
+      return res.status(200).json({ topInstitute: null });
+    }
+
+    // Import models
+    const Session = require('../models/Session');
+    const QuizementAttempt = require('../models/QuizementAttempt');
+
+    // Preload all campus students (users that belong to any institute)
+    const allCampusStudents = await User.find({
+      instituteId: { $exists: true, $ne: null }
+    }).select('_id');
+    const allCampusStudentIds = allCampusStudents.map((s) => s._id);
+
+    // Calculate score for each institute
+    const instituteScoresPromises = institutes.map(async (institute) => {
+      // Get all students in this institute
+      const students = await User.find({ 
+        instituteId: institute.instituteId 
+      }).select('_id');
+
+      if (students.length === 0) {
+        return {
+          instituteId: institute.instituteId,
+          instituteName: institute.instituteName,
+          instituteType: institute.instituteType,
+          totalStudents: 0,
+          totalSessions: 0,
+          totalQuizMarks: 0,
+          totalScore: 0,
+          averageScore: 0
+        };
+      }
+
+      const studentIds = students.map(s => s._id);
+
+      // Count total sessions, limited to sessions between campus students
+      const totalSessions = await Session.countDocuments({
+        status: 'completed',
+        $or: [
+          { creator: { $in: studentIds }, requester: { $in: allCampusStudentIds } },
+          { requester: { $in: studentIds }, creator: { $in: allCampusStudentIds } }
+        ]
+      });
+
+      // Get total quiz marks for all students
+      const quizAttempts = await QuizementAttempt.find({
+        userId: { $in: studentIds },
+        finished: true
+      }).select('score');
+
+      const totalQuizMarks = quizAttempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
+
+      // Calculate total score
+      const totalScore = totalSessions + totalQuizMarks;
+      const averageScore = students.length > 0 ? totalScore / students.length : 0;
+
+      return {
+        instituteId: institute.instituteId,
+        instituteName: institute.instituteName,
+        instituteType: institute.instituteType,
+        totalStudents: students.length,
+        totalSessions,
+        totalQuizMarks,
+        totalScore,
+        averageScore
+      };
+    });
+
+    const instituteScores = await Promise.all(instituteScoresPromises);
+
+    // Sort by average score (descending) and get top 3
+    instituteScores.sort((a, b) => b.averageScore - a.averageScore);
+    const topInstitutes = instituteScores.slice(0, 3).map((institute, index) => ({
+      ...institute,
+      rank: index + 1
+    }));
+
+    res.status(200).json({ topInstitutes });
+  } catch (error) {
+    console.error('Get global top institute error:', error);
+    res.status(500).json({ message: 'Error fetching top institute', error: error.message });
   }
 };
 

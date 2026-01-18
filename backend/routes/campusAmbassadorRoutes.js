@@ -65,4 +65,10 @@ router.get('/assessment-attempt/:studentId/:assessmentId', requireAuth, requireC
 router.get('/activity-logs', requireAuth, requireCampusAmbassador, campusAmbassadorController.getMyActivityLogs);
 router.get('/activity-stats', requireAuth, requireCampusAmbassador, campusAmbassadorController.getMyActivityStats);
 
+// Ranking routes
+router.get('/institutes/:instituteId/rankings', requireAuth, campusAmbassadorController.getInstituteRankings);
+router.get('/institutes/:instituteId/rankings/weekly', requireAuth, campusAmbassadorController.getWeeklyInstituteRankings);
+router.get('/global/top-student', campusAmbassadorController.getGlobalTopStudent);
+router.get('/global/top-institute', campusAmbassadorController.getGlobalTopInstitute);
+
 module.exports = router;

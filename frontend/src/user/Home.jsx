@@ -6,6 +6,7 @@ import ActivityStatsSection from "./HomeSection/ActivityStatsSection";
 import TopPerformersSection from "./HomeSection/TopPerformersSection";
 import WhoAreWeSection from "./HomeSection/WhoAreWeSection";
 import CampusDashboardSection from "./HomeSection/CampusDashboardSection";
+import GlobalTopPerformersSection from "./HomeSection/GlobalTopPerformersSection";
 import UserTestimonials from "./HomeSection/UserTestimonials";
 import RecruitmentSection from "./HomeSection/RecruitmentSection";
 import LetsStartSection from "./HomeSection/LetsStartSection";
@@ -33,6 +34,7 @@ const Home = () => {
           imageSrc="https://res.cloudinary.com/dbltazdsa/image/upload/v1766937373/campusdashboard_n0ammq.png"
           onJoin={handleJoinCampusDashboard}
         />
+        <GlobalTopPerformersSection />
           <UserTestimonials />
         <RecruitmentSection />
 
