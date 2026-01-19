@@ -30,7 +30,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
     password: "",
     confirmPassword: "",
   });
-  const [role, setRole] = useState('learner');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
@@ -152,7 +151,7 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
       setIsLoading(true);
       setError("");
       
-      setRegistrationData({ firstName, lastName, username, email, phone, gender, role });
+      setRegistrationData({ firstName, lastName, username, email, phone, gender });
       
       const res = await axios.post(`${BACKEND_URL}/api/auth/register`, {
         firstName,
@@ -162,7 +161,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
         phone,
         gender,
         password,
-        role,
       });
       
       setEmailForOtp(email);
@@ -467,33 +465,6 @@ const RegisterPage = ({ onClose, onRegisterSuccess, isModal = false }) => {
                       </button>
                     </div>
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-0.5">
-                      Register as:
-                    </label>
-                    <div className="flex gap-2 flex-wrap">
-                      {["teacher", "learner", "both"].map((r) => (
-                        <label key={r} className="flex items-center gap-1">
-                          <input
-                            type="radio"
-                            name="role"
-                            value={r}
-                            checked={role === r}
-                            onChange={() => setRole(r)}
-                            className="w-3 h-3 text-blue-600"
-                          />
-                          <span className="text-xs">{r.charAt(0).toUpperCase() + r.slice(1)}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {(role === 'teacher' || role === 'both') && (
-                    <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
-                      After registration you will be redirected to complete tutor verification (add skills, education, marksheet & video).
-                    </div>
-                  )}
 
                   <div className="flex items-start text-xs text-gray-600">
                     <input

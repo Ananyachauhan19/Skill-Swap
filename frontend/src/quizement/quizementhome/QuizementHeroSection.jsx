@@ -145,14 +145,10 @@ const QuizementHeroSection = () => {
             className="order-1 lg:order-2 w-full flex items-center justify-center"
           >
             <img
-              src={`${import.meta.env.BASE_URL || '/'}quizmnet_hero.png`}
+              src="https://res.cloudinary.com/dbltazdsa/image/upload/v1768798091/quizmnet_hero_mwzlfv.png"
               alt="Quizement - Student learning and assessment platform"
               className="w-full h-auto max-w-lg lg:max-w-full object-contain drop-shadow-2xl"
               loading="eager"
-              onError={(e) => {
-                console.error('Image failed to load:', e.target.src);
-                e.target.style.display = 'none';
-              }}
             />
           </motion.div>
 
