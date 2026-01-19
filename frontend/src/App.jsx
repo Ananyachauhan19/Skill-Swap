@@ -109,7 +109,7 @@ import QuizementEmployeeCreateQuiz from './quizementEmployee/QuizementEmployeeCr
 import QuizementEmployeeCreateWeeklyQuiz from './quizementEmployee/QuizementEmployeeCreateWeeklyQuiz.jsx';
 import QuizementEmployeeMyQuizzes from './quizementEmployee/QuizementEmployeeMyQuizzes.jsx';
 import QuizementEmployeeQuizResults from './quizementEmployee/QuizementEmployeeQuizResults.jsx';
-import StudentReportsTab from './student/StudentReportsTab.jsx';
+import StudentReportsPage from './student/StudentReportsPage.jsx';
 import QuizementLanding from './quizement/quizementhome/QuizementLanding.jsx';
 import QuizementAvailableTests from './quizement/QuizementAvailableTests.jsx';
 import QuizementUpload from './quizement/QuizementUpload.jsx';
@@ -246,7 +246,7 @@ const appRoutes = [
   { path: '/campus-dashboard', element: <ProtectedRoute><HomeDashboard /></ProtectedRoute> },
   { path: '/campus/one-on-one', element: <ProtectedRoute><CampusOneOnOne /></ProtectedRoute> },
   { path: '/campus/assessment', element: <ProtectedRoute><CampusAssessment /></ProtectedRoute> },
-  { path: '/campus/reports', element: <ProtectedRoute><StudentReportsTab /></ProtectedRoute> },
+  { path: '/campus/reports', element: <ProtectedRoute><StudentReportsPage /></ProtectedRoute> },
   { path: '/student/assessment-attempt/:id', element: <ProtectedRoute><AssessmentAttempt /></ProtectedRoute> },
   { path: '/student/assessment-result/:id', element: <ProtectedRoute><AssessmentResult /></ProtectedRoute> },
   { path: '/quizement', element: <ProtectedRoute><QuizementLanding /></ProtectedRoute> },

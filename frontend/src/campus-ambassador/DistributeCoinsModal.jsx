@@ -4,7 +4,7 @@ import { X, Coins, AlertCircle } from 'lucide-react';
 const DistributeCoinsModal = ({ institute, onClose, onSuccess, variant = 'modal' }) => {
   const [formData, setFormData] = useState({
     perStudentSilver: 0,
-    perStudentGolden: 0,
+    perStudentBronze: 0,
     remarks: ''
   });
   const [loading, setLoading] = useState(false);
@@ -22,12 +22,12 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess, variant = 'modal'
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.perStudentSilver === 0 && formData.perStudentGolden === 0) {
-      setError('Please assign at least Silver or Golden coins');
+    if (formData.perStudentSilver === 0 && formData.perStudentBronze === 0) {
+      setError('Please assign at least Silver or Bronze coins');
       return;
     }
 
-    if (formData.perStudentSilver < 0 || formData.perStudentGolden < 0) {
+    if (formData.perStudentSilver < 0 || formData.perStudentBronze < 0) {
       setError('Coin values cannot be negative');
       return;
     }
@@ -47,7 +47,7 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess, variant = 'modal'
           body: JSON.stringify({
             instituteId: institute._id,
             perStudentSilver: formData.perStudentSilver,
-            perStudentGolden: formData.perStudentGolden,
+            perStudentBronze: formData.perStudentBronze,
             remarks: formData.remarks
           })
         }
@@ -70,7 +70,7 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess, variant = 'modal'
   };
 
   const totalSilver = formData.perStudentSilver * (institute.studentsCount || 0);
-  const totalGolden = formData.perStudentGolden * (institute.studentsCount || 0);
+  const totalBronze = formData.perStudentBronze * (institute.studentsCount || 0);
 
   const isModal = variant !== 'page';
 
@@ -115,7 +115,7 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess, variant = 'modal'
           <div className="border border-slate-200 rounded-lg bg-white">
             <div className="px-4 py-3 border-b border-slate-200">
               <p className="text-sm font-semibold text-gray-900">Per-student coins</p>
-              <p className="mt-0.5 text-xs text-gray-600">Set Silver and/or Golden coins to distribute.</p>
+              <p className="mt-0.5 text-xs text-gray-600">Set Silver and/or Bronze coins to distribute.</p>
             </div>
 
             <div className="p-4 grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-start">
@@ -140,19 +140,19 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess, variant = 'modal'
               <div className="hidden md:block w-px bg-slate-200 self-stretch" />
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Golden / student</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Bronze / student</label>
                 <input
                   type="number"
-                  name="perStudentGolden"
-                  value={formData.perStudentGolden}
+                  name="perStudentBronze"
+                  value={formData.perStudentBronze}
                   onChange={handleChange}
                   min="0"
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="0"
                 />
-                {formData.perStudentGolden > 0 && (
+                {formData.perStudentBronze > 0 && (
                   <p className="mt-1 text-[11px] text-gray-600">
-                    Total: <span className="font-semibold text-yellow-700">{totalGolden.toLocaleString()}</span> golden
+                    Total: <span className="font-semibold text-amber-700">{totalBronze.toLocaleString()}</span> bronze
                   </p>
                 )}
               </div>
@@ -175,15 +175,15 @@ const DistributeCoinsModal = ({ institute, onClose, onSuccess, variant = 'modal'
           </div>
 
           {/* Distribution Summary */}
-          {(formData.perStudentSilver > 0 || formData.perStudentGolden > 0) && (
+          {(formData.perStudentSilver > 0 || formData.perStudentBronze > 0) && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <p className="text-sm font-semibold text-green-900 mb-1.5">Distribution Summary</p>
               <div className="space-y-1 text-xs text-green-800">
                 {formData.perStudentSilver > 0 && (
                   <p>Silver: {formData.perStudentSilver} × {institute.studentsCount || 0} = <span className="font-bold">{totalSilver.toLocaleString()}</span></p>
                 )}
-                {formData.perStudentGolden > 0 && (
-                  <p>Golden: {formData.perStudentGolden} × {institute.studentsCount || 0} = <span className="font-bold text-yellow-600">{totalGolden.toLocaleString()}</span></p>
+                {formData.perStudentBronze > 0 && (
+                  <p>Bronze: {formData.perStudentBronze} × {institute.studentsCount || 0} = <span className="font-bold text-amber-600">{totalBronze.toLocaleString()}</span></p>
                 )}
               </div>
             </div>

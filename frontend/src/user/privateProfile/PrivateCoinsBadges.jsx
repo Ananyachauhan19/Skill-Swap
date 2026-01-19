@@ -9,17 +9,14 @@ const Stat = ({ label, value }) => {
   );
 };
 
-const PrivateCoinsBadges = ({ silver = 0, gold = 0, bronze = 0, rank = 'Unranked', badges = [] }) => {
+const PrivateCoinsBadges = ({ silver = 0, bronze = 0, rank = 'Unranked', badges = [] }) => {
   const badgeCount = Array.isArray(badges) ? badges.length : 0;
 
   return (
     <div className="w-full">
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-lg border border-blue-100 bg-transparent p-3">
           <Stat label="Silver Coins" value={silver} />
-        </div>
-        <div className="rounded-lg border border-blue-100 bg-transparent p-3">
-          <Stat label="Gold Coins" value={gold} />
         </div>
         <div className="rounded-lg border border-blue-100 bg-transparent p-3">
           <Stat label="Bronze Coins" value={bronze} />

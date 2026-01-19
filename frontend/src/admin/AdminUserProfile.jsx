@@ -91,11 +91,11 @@ const ReadOnlyCoinsBadges = ({ profile }) => {
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
       <h3 className="text-sm font-bold text-gray-900 mb-3">SkillCoins & Badges</h3>
       <div className="grid grid-cols-2 gap-3">
-        {/* Gold Coins */}
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
-          <div className="text-xs text-gray-600 mb-1">Gold Coins</div>
-          <div className="text-2xl font-bold text-yellow-700">
-            {profile.goldCoins || 0}
+        {/* Bronze Coins */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+          <div className="text-xs text-gray-600 mb-1">Bronze Coins</div>
+          <div className="text-2xl font-bold text-amber-700">
+            {profile.bronzeCoins || 0}
           </div>
         </div>
 

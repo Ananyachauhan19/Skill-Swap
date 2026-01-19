@@ -44,7 +44,6 @@ const fetchUserProfile = async () => {
       github: user.github || '',
       twitter: user.twitter || '',
       credits: user.credits || 1200,
-      goldCoins: user.goldCoins || 0,
       silverCoins: user.silverCoins || 0,
       bronzeCoins: user.bronzeCoins || 0,
       badges: user.badges || ['Starter', 'Helper'],
@@ -87,7 +86,6 @@ const updateUserProfile = async (profile) => {
       skillsToTeach: profile.skillsToTeach || [],
       skillsToLearn: profile.skillsToLearn || [],
       credits: profile.credits || 1200,
-      goldCoins: profile.goldCoins || 0,
       silverCoins: profile.silverCoins || 0,
       bronzeCoins: profile.bronzeCoins || 0,
       badges: profile.badges || ['Starter', 'Helper'],
@@ -133,7 +131,6 @@ const updateUserProfile = async (profile) => {
       github: updatedUser.github || '',
       twitter: updatedUser.twitter || '',
       credits: updatedUser.credits || 1200,
-      goldCoins: updatedUser.goldCoins || 0,
       silverCoins: updatedUser.silverCoins || 0,
       bronzeCoins: updatedUser.bronzeCoins || 0,
       badges: updatedUser.badges || ['Starter', 'Helper'],
@@ -181,7 +178,6 @@ const Profile = () => {
     github: '',
     twitter: '',
     credits: 1200,
-    goldCoins: 0,
     silverCoins: 0,
     bronzeCoins: 0,
     badges: ['Starter', 'Helper'],
@@ -192,7 +188,6 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [silver, setSilver] = useState(0);
-  const [gold, setGold] = useState(0);
   const [bronze, setBronze] = useState(0);
   const [editingField, setEditingField] = useState(null);
   const [fieldDraft, setFieldDraft] = useState({});
@@ -227,7 +222,6 @@ const Profile = () => {
         }
         const data = await response.json();
         setSilver(data.silver || 0);
-        setGold(data.golden || 0);
         setBronze(data.bronze || 0);
       } catch (err) {
         console.error('Error loading coins:', err.message);
@@ -240,9 +234,6 @@ const Profile = () => {
     socket.on('coin-update', (data) => {
       if (typeof data.silverCoins === 'number') {
         setSilver(data.silverCoins);
-      }
-      if (typeof data.goldCoins === 'number') {
-        setGold(data.goldCoins);
       }
       if (typeof data.bronzeCoins === 'number') {
         setBronze(data.bronzeCoins);
@@ -444,7 +435,7 @@ const Profile = () => {
           onSaveEdit={handleSectionSave}
         />
         <div className="7xl md:w-3/4 flex flex-col gap-4 md:gap-6">
-          <CoinsBadges silver={silver} gold={gold} bronze={bronze} profile={profile} />
+          <CoinsBadges silver={silver} bronze={bronze} profile={profile} />
           <AboutSection
             profile={profile}
             editingField={editingField}

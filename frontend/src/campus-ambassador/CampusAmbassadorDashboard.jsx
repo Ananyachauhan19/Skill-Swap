@@ -489,9 +489,9 @@ const CampusAmbassadorDashboard = () => {
                         <div className="flex flex-wrap gap-2">
                           {[ 
                             {
-                              key: 'gold',
-                              label: 'Total Gold Coins',
-                              value: selectedInstitute.totalGoldenAssigned || 0
+                              key: 'bronze',
+                              label: 'Total Bronze Coins',
+                              value: selectedInstitute.totalBronzeAssigned || 0
                             },
                             {
                               key: 'silver',

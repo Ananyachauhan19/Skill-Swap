@@ -7,6 +7,7 @@ const navLinks = [
   { path: '/session-requests', label: 'Requests' },
   // { path: '/discuss', label: 'Discuss' },
   { path: '/interview', label: 'Interview' },
+  { path: '/quizement', label: 'Quizement' },
 ];
 
 const MobileMenu = ({
@@ -19,6 +20,7 @@ const MobileMenu = ({
   setMenuOpen,
   ProfileDropdown,
   silverCoins,
+  bronzeCoins,
   notifications,
   setNotifications,
   handleLoginClick,
@@ -86,6 +88,15 @@ const MobileMenu = ({
                 <span className="text-sm font-bold text-gray-800">Silver Coins</span>
               </div>
               <span className="text-lg font-bold text-gray-700">{silverCoins}</span>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 shadow-sm hover:shadow-md transition-all">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-600 via-amber-700 to-amber-800 shadow-md flex items-center justify-center flex-shrink-0 border-2 border-amber-600">
+                  <span className="text-xs font-bold text-white">B</span>
+                </div>
+                <span className="text-sm font-bold text-gray-800">Bronze Coins</span>
+              </div>
+              <span className="text-lg font-bold text-amber-800">{bronzeCoins}</span>
             </div>
           </div>
         </div>

@@ -15,6 +15,7 @@ const AdminPackages = () => {
     description: '',
     type: 'ONLY_SILVER',
     silverCoins: 0,
+    bronzeCoins: 0,
     displayOrder: 0
   });
 
@@ -54,6 +55,7 @@ const AdminPackages = () => {
       description: '',
       type: 'ONLY_SILVER',
       silverCoins: 0,
+      bronzeCoins: 0,
       displayOrder: 0
     });
     setEditingPackage(null);
@@ -66,6 +68,7 @@ const AdminPackages = () => {
         description: pkg.description,
         type: pkg.type,
         silverCoins: pkg.silverCoins,
+        bronzeCoins: pkg.bronzeCoins || 0,
         displayOrder: pkg.displayOrder || 0
       });
       setEditingPackage(pkg);
@@ -84,7 +87,7 @@ const AdminPackages = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'silverCoins' || name === 'displayOrder'
+      [name]: name === 'silverCoins' || name === 'bronzeCoins' || name === 'displayOrder'
         ? parseInt(value) || 0
         : value
     }));
@@ -99,7 +102,7 @@ const AdminPackages = () => {
   };
 
   const calculatePrice = () => {
-    return (formData.silverCoins * 0.25);
+    return (formData.silverCoins * 0.25) + (formData.bronzeCoins * 0.5);
   };
 
   const handleSubmit = async (e) => {
@@ -191,7 +194,7 @@ const AdminPackages = () => {
   const getTypeBadge = (type) => {
     const styles = {
       ONLY_SILVER: 'bg-gray-100 text-gray-800',
-      ONLY_GOLDEN: 'bg-yellow-100 text-yellow-800',
+      ONLY_BRONZE: 'bg-amber-100 text-amber-800',
       COMBO: 'bg-purple-100 text-purple-800'
     };
     return (
@@ -287,6 +290,12 @@ const AdminPackages = () => {
                     <span className="font-semibold">{pkg.silverCoins} Silver Coins</span>
                   </div>
                 )}
+                {pkg.bronzeCoins > 0 && (
+                  <div className="flex items-center text-amber-700">
+                    <GiTwoCoins className="text-amber-600 mr-2" />
+                    <span className="font-semibold">{pkg.bronzeCoins} Bronze Coins</span>
+                  </div>
+                )}
               </div>
 
               {/* Price */}
@@ -358,14 +367,16 @@ const AdminPackages = () => {
                     required
                   >
                     <option value="ONLY_SILVER">Silver Only</option>
+                    <option value="ONLY_BRONZE">Bronze Only</option>
+                    <option value="COMBO">Combo (Silver + Bronze)</option>
                   </select>
                 </div>
 
                 {/* Coins */}
-                <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Silver Coins *
+                      Silver Coins {formData.type !== 'ONLY_BRONZE' && '*'}
                     </label>
                     <input
                       type="number"
@@ -374,9 +385,24 @@ const AdminPackages = () => {
                       onChange={handleInputChange}
                       min="0"
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
+                      required={formData.type !== 'ONLY_BRONZE'}
                     />
                     <p className="text-xs text-gray-500 mt-1">₹0.25 per coin</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Bronze Coins {formData.type !== 'ONLY_SILVER' && '*'}
+                    </label>
+                    <input
+                      type="number"
+                      name="bronzeCoins"
+                      value={formData.bronzeCoins}
+                      onChange={handleInputChange}
+                      min="0"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required={formData.type !== 'ONLY_SILVER'}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">₹0.50 per coin</p>
                   </div>
                 </div>
 

@@ -13,7 +13,7 @@ const packageSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['ONLY_SILVER', 'ONLY_GOLDEN', 'COMBO'],
+    enum: ['ONLY_SILVER', 'ONLY_BRONZE', 'COMBO'],
     required: true
   },
   silverCoins: {
@@ -21,7 +21,7 @@ const packageSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
-  goldenCoins: {
+  bronzeCoins: {
     type: Number,
     default: 0,
     min: 0
@@ -46,18 +46,18 @@ const packageSchema = new mongoose.Schema({
 // Calculate price before saving
 packageSchema.pre('save', function(next) {
   // Validate coin counts based on package type
-  if (this.type === 'ONLY_SILVER' && this.goldenCoins > 0) {
-    return next(new Error('ONLY_SILVER packages cannot have golden coins'));
+  if (this.type === 'ONLY_SILVER' && this.bronzeCoins > 0) {
+    return next(new Error('ONLY_SILVER packages cannot have bronze coins'));
   }
-  if (this.type === 'ONLY_GOLDEN' && this.silverCoins > 0) {
-    return next(new Error('ONLY_GOLDEN packages cannot have silver coins'));
+  if (this.type === 'ONLY_BRONZE' && this.silverCoins > 0) {
+    return next(new Error('ONLY_BRONZE packages cannot have silver coins'));
   }
-  if (this.type === 'COMBO' && (this.silverCoins === 0 || this.goldenCoins === 0)) {
-    return next(new Error('COMBO packages must have both silver and golden coins'));
+  if (this.type === 'COMBO' && (this.silverCoins === 0 || this.bronzeCoins === 0)) {
+    return next(new Error('COMBO packages must have both silver and bronze coins'));
   }
 
   // Auto-calculate price based on coin counts
-  this.priceInINR = (this.silverCoins * 0.25) + (this.goldenCoins * 2);
+  this.priceInINR = (this.silverCoins * 0.25) + (this.bronzeCoins * 0.5);
   
   next();
 });

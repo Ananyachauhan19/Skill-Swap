@@ -24,11 +24,12 @@ const CampusOneOnOne = () => {
   const [showCoinsDropdown, setShowCoinsDropdown] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [goldenCoins, setGoldenCoins] = useState(0);
+  const [bronzeCoins, setBronzeCoins] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
   const [campusRequestCount, setCampusRequestCount] = useState(0);
   
   const coinsRef = useRef(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Check for campus validation
   useEffect(() => {
@@ -36,7 +37,15 @@ const CampusOneOnOne = () => {
     if (!campusValidated) {
       // Redirect to login if not validated
       navigate('/campus-dashboard/login', { replace: true });
+      return;
     }
+    
+    // Give time for authUser to load
+    const timer = setTimeout(() => {
+      setIsCheckingAuth(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
   }, [navigate]);
 
   const fetchCoins = async () => {
@@ -46,7 +55,7 @@ const CampusOneOnOne = () => {
       });
       if (response.ok) {
         const data = await response.json();
-        setGoldenCoins(data.golden || 0);
+        setBronzeCoins(data.bronze || 0);
         setSilverCoins(data.silver || 0);
       }
     } catch (error) {
@@ -255,12 +264,23 @@ const HowItWorks = () => {
   );
 };
 
-  // Redirect if user doesn't have institute info
+  // Redirect if user doesn't have institute info (only after initial check)
   useEffect(() => {
-    if (!authUser?.instituteId) {
+    if (!isCheckingAuth && !authUser?.instituteId) {
       navigate('/campus-dashboard');
     }
-  }, [authUser, navigate]);
+  }, [authUser, navigate, isCheckingAuth]);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-home-bg flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!authUser?.instituteId) {
     return (
@@ -288,7 +308,7 @@ const HowItWorks = () => {
         isActive={isActive}
         isLoggedIn={isLoggedIn}
         handleLoginClick={handleLoginClick}
-        goldenCoins={goldenCoins}
+        bronzeCoins={bronzeCoins}
         silverCoins={silverCoins}
         showCoinsDropdown={showCoinsDropdown}
         setShowCoinsDropdown={setShowCoinsDropdown}

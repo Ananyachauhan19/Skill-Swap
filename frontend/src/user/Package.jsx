@@ -121,12 +121,12 @@ const BuyRedeemCoins = () => {
   
   const getPackageColor = (type) => {
     switch(type) {
-      case "ONLY_GOLDEN": 
+      case "ONLY_BRONZE": 
         return {
-          bg: "bg-gradient-to-br from-yellow-50 to-yellow-100",
-          border: "border-yellow-300",
-          text: "text-yellow-700",
-          button: "from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700"
+          bg: "bg-gradient-to-br from-amber-50 to-amber-100",
+          border: "border-amber-300",
+          text: "text-amber-700",
+          button: "from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800"
         };
       case "ONLY_SILVER": 
         return {
@@ -146,10 +146,10 @@ const BuyRedeemCoins = () => {
     }
   };
 
-  const getCoinIcon = (type, hasGolden, hasSilver) => {
-    if (type === "ONLY_GOLDEN" || (hasGolden && !hasSilver)) {
+  const getCoinIcon = (type, hasBronze, hasSilver) => {
+    if (type === "ONLY_BRONZE" || (hasBronze && !hasSilver)) {
       return (
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-amber-700" viewBox="0 0 20 20" fill="currentColor">
           <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L11 6.477V5h2a1 1 0 110 2H9a1 1 0 010-2h1V3a1 1 0 011-1zm-6 8a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 019 21a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.049l1.715-5.349L5 12.477V11a1 1 0 011-1z" />
         </svg>
       );
@@ -157,7 +157,7 @@ const BuyRedeemCoins = () => {
       return (
         <div className="flex -space-x-2">
           <FaCoins className="h-6 w-6 text-gray-500" />
-          <GiTwoCoins className="h-6 w-6 text-yellow-500" />
+          <GiTwoCoins className="h-6 w-6 text-amber-700" />
         </div>
       );
     } else {
@@ -171,11 +171,11 @@ const BuyRedeemCoins = () => {
 
   const formatCoinDisplay = (pkg) => {
     if (pkg.type === 'COMBO') {
-      return `${pkg.silverCoins} Silver + ${pkg.goldenCoins} Golden SkillCoins`;
+      return `${pkg.silverCoins} Silver + ${pkg.bronzeCoins} Bronze SkillCoins`;
     } else if (pkg.type === 'ONLY_SILVER') {
       return `${pkg.silverCoins} Silver SkillCoins`;
-    } else if (pkg.type === 'ONLY_GOLDEN') {
-      return `${pkg.goldenCoins} Golden SkillCoins`;
+    } else if (pkg.type === 'ONLY_BRONZE') {
+      return `${pkg.bronzeCoins} Bronze SkillCoins`;
     }
     return 'SkillCoins Package';
   };
@@ -184,8 +184,8 @@ const BuyRedeemCoins = () => {
     const features = [];
     
     if (pkg.type === 'COMBO') {
-      features.push('Silver + Golden benefits', 'Best value package', 'Flexible usage');
-    } else if (pkg.type === 'ONLY_GOLDEN') {
+      features.push('Silver + Bronze benefits', 'Best value package', 'Flexible usage');
+    } else if (pkg.type === 'ONLY_BRONZE') {
       features.push('Premium features access', 'Priority support', 'Exclusive content');
     } else if (pkg.type === 'ONLY_SILVER') {
       features.push('Basic features access', 'Standard support', 'Long-term savings');
@@ -286,7 +286,7 @@ const BuyRedeemCoins = () => {
                   
                   <div className="flex items-center mb-3 sm:mb-4">
                     <div className="bg-white p-2 sm:p-3 rounded-full shadow-md mr-3 sm:mr-4">
-                      {getCoinIcon(pkg.type, pkg.goldenCoins > 0, pkg.silverCoins > 0)}
+                      {getCoinIcon(pkg.type, pkg.bronzeCoins > 0, pkg.silverCoins > 0)}
                     </div>
                     <h3 className="text-base sm:text-lg md:text-xl font-bold text-blue-900 font-lora">{pkg.name}</h3>
                   </div>
@@ -398,7 +398,7 @@ const BuyRedeemCoins = () => {
                           
                           <div className="flex items-center mb-3 sm:mb-4">
                             <div className="bg-white p-2 sm:p-3 rounded-full shadow-md mr-3 sm:mr-4">
-                              {getCoinIcon(pkg.type, pkg.goldenCoins > 0, pkg.silverCoins > 0)}
+                              {getCoinIcon(pkg.type, pkg.bronzeCoins > 0, pkg.silverCoins > 0)}
                             </div>
                             <h3 className="text-base sm:text-lg md:text-xl font-bold text-blue-900 font-lora">{pkg.name}</h3>
                           </div>
@@ -563,7 +563,7 @@ const BuyRedeemCoins = () => {
               
               <div className="flex items-center mb-3 sm:mb-4">
                 <div className="mr-3">
-                  {getCoinIcon(selectedPackage.type, selectedPackage.goldenCoins > 0, selectedPackage.silverCoins > 0)}
+                  {getCoinIcon(selectedPackage.type, selectedPackage.bronzeCoins > 0, selectedPackage.silverCoins > 0)}
                 </div>
                 <div>
                   <div className="text-lg sm:text-xl md:text-2xl font-bold text-blue-800 font-lora">{formatCoinDisplay(selectedPackage)}</div>

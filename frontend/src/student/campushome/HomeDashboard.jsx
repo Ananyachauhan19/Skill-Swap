@@ -25,7 +25,7 @@ const HomeDashboard = () => {
   const [showCoinsDropdown, setShowCoinsDropdown] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [goldenCoins, setGoldenCoins] = useState(0);
+  const [bronzeCoins, setBronzeCoins] = useState(0);
   const [silverCoins, setSilverCoins] = useState(0);
   const [campusRequestCount, setCampusRequestCount] = useState(0);
   const coinsRef = useRef(null);
@@ -44,7 +44,7 @@ const HomeDashboard = () => {
       });
       if (response.ok) {
         const payload = await response.json();
-        setGoldenCoins(payload.golden || 0);
+        setBronzeCoins(payload.bronze || 0);
         setSilverCoins(payload.silver || 0);
       }
     } catch {
@@ -236,7 +236,7 @@ const HomeDashboard = () => {
         isActive={isActive}
         isLoggedIn={isLoggedIn}
         handleLoginClick={handleLoginClick}
-        goldenCoins={goldenCoins}
+        bronzeCoins={bronzeCoins}
         silverCoins={silverCoins}
         showCoinsDropdown={showCoinsDropdown}
         setShowCoinsDropdown={setShowCoinsDropdown}

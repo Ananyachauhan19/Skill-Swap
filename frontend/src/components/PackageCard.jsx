@@ -13,11 +13,11 @@ const PackageCard = ({ package: pkg, onPurchase, isLoading, selectedPackageId })
           badge: 'bg-gray-100 text-gray-800 border-gray-300',
           label: 'Silver'
         };
-      case 'ONLY_GOLDEN':
+      case 'ONLY_BRONZE':
         return {
-          gradient: 'bg-gradient-to-r from-yellow-400 to-yellow-300',
-          badge: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-          label: 'Golden'
+          gradient: 'bg-gradient-to-r from-amber-600 to-amber-700',
+          badge: 'bg-amber-100 text-amber-800 border-amber-300',
+          label: 'Bronze'
         };
       case 'COMBO':
         return {
@@ -77,11 +77,11 @@ const PackageCard = ({ package: pkg, onPurchase, isLoading, selectedPackageId })
               </span>
             </div>
           )}
-          {pkg.goldenCoins > 0 && (
-            <div className="flex items-center text-yellow-700">
-              <GiTwoCoins className="text-yellow-500 mr-2" />
+          {pkg.bronzeCoins > 0 && (
+            <div className="flex items-center text-amber-700">
+              <GiTwoCoins className="text-amber-600 mr-2" />
               <span className="text-base sm:text-lg font-semibold">
-                {pkg.goldenCoins} Golden Coins
+                {pkg.bronzeCoins} Bronze Coins
               </span>
             </div>
           )}
@@ -155,7 +155,7 @@ const PackageCard = ({ package: pkg, onPurchase, isLoading, selectedPackageId })
               />
             </svg>
             {pkg.type === 'COMBO'
-              ? 'Silver + Golden coins combo'
+              ? 'Silver + Bronze coins combo'
               : `${typeStyles.label} coins only`}
           </li>
           <li className="flex items-center">

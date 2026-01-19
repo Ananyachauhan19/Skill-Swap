@@ -74,8 +74,8 @@ const GoPro = () => {
   const silverPackages = packages.filter(pkg => 
     pkg.type === 'Silver' || pkg.type === 'ONLY_SILVER'
   );
-  const goldenPackages = packages.filter(pkg => 
-    pkg.type === 'Golden' || pkg.type === 'ONLY_GOLDEN'
+  const bronzePackages = packages.filter(pkg => 
+    pkg.type === 'Bronze' || pkg.type === 'ONLY_BRONZE'
   );
   const comboPackages = packages.filter(pkg => 
     pkg.type === 'Combo' || pkg.type === 'COMBO'
@@ -136,7 +136,7 @@ const GoPro = () => {
               {
                 step: "01",
                 title: "Buy Skill Coins",
-                description: "Choose from Silver, Golden, or Combo packages that fit your learning goals. Silver coins (₹0.25 each) for one-on-one sessions. Golden coins (₹2 each) for uploaded videos and live arena access.",
+                description: "Choose from Silver, Bronze, or Combo packages that fit your learning goals. Silver coins (₹0.25 each) for one-on-one sessions. Bronze coins (₹0.50 each) for uploaded videos and live arena access.",
                 icon: (
                   <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -147,7 +147,7 @@ const GoPro = () => {
               {
                 step: "02",
                 title: "Use Your Coins",
-                description: "Silver coins: 1 coin per minute for personalized one-on-one sessions. Golden coins: Access premium uploaded videos, join live arena sessions, and unlock exclusive content.",
+                description: "Silver coins: 1 coin per minute for personalized one-on-one sessions. Bronze coins: Access premium uploaded videos, join live arena sessions, and unlock exclusive content.",
                 icon: (
                   <svg className="w-full h-full" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -244,27 +244,27 @@ const GoPro = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6 items-start">
               {packages.map((pkg, idx) => {
-                const isGolden = pkg.type === 'Golden' || pkg.type === 'ONLY_GOLDEN';
+                const isBronze = pkg.type === 'Bronze' || pkg.type === 'ONLY_BRONZE';
                 const isSilver = pkg.type === 'Silver' || pkg.type === 'ONLY_SILVER';
                 const isCombo = pkg.type === 'Combo' || pkg.type === 'COMBO';
-                const isMostPopular = isGolden && goldenPackages.length > 0 && pkg._id === goldenPackages[0]._id;
+                const isMostPopular = isBronze && bronzePackages.length > 0 && pkg._id === bronzePackages[0]._id;
                 
                 // Normalize type display
-                const displayType = isGolden ? 'Golden' : isSilver ? 'Silver' : 'Combo';
+                const displayType = isBronze ? 'Bronze' : isSilver ? 'Silver' : 'Combo';
                 
                 // Get price - try different possible field names
                 const displayPrice = pkg.priceInINR || pkg.price || pkg.amount || pkg.cost || 0;
                 const displayOriginalPrice = pkg.originalPriceInINR || pkg.originalPrice || pkg.originalAmount || null;
                 
                 // Get coin counts - try different possible field names
-                const goldenCoins = pkg.goldenCoins || pkg.goldCoins || pkg.coins || 0;
+                const bronzeCoins = pkg.bronzeCoins || pkg.coins || 0;
                 const silverCoins = pkg.silverCoins || pkg.coins || 0;
                 
                 // Debug log for first package
                 if (idx === 0) {
                   console.log('Package data structure:', pkg);
                   console.log('Display price:', displayPrice);
-                  console.log('Golden coins:', goldenCoins);
+                  console.log('Bronze coins:', bronzeCoins);
                   console.log('Silver coins:', silverCoins);
                 }
                 
@@ -279,11 +279,11 @@ const GoPro = () => {
                     iconBg: 'bg-slate-50',
                     shadow: 'hover:shadow-slate-200/50'
                   },
-                  golden: {
-                    badge: 'bg-gradient-to-br from-amber-400 via-yellow-500 to-orange-500',
+                  bronze: {
+                    badge: 'bg-gradient-to-br from-amber-600 via-amber-700 to-amber-800',
                     border: 'border-amber-200 hover:border-amber-400',
                     accentRing: 'ring-amber-200',
-                    buttonBg: 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700',
+                    buttonBg: 'bg-gradient-to-r from-amber-600 to-amber-800 hover:from-amber-700 hover:to-amber-900',
                     coinText: 'text-amber-700',
                     iconBg: 'bg-amber-50',
                     shadow: 'hover:shadow-amber-200/50'
@@ -299,7 +299,7 @@ const GoPro = () => {
                   }
                 };
                 
-                const colors = isGolden ? colorSchemes.golden : isSilver ? colorSchemes.silver : colorSchemes.combo;
+                const colors = isBronze ? colorSchemes.bronze : isSilver ? colorSchemes.silver : colorSchemes.combo;
                 
                 return (
                   <motion.div
@@ -328,7 +328,7 @@ const GoPro = () => {
                         {/* Package Type Badge */}
                         <div className="flex items-center justify-between mb-2 sm:mb-3">
                           <span className={`inline-flex items-center gap-1 px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wide text-white shadow-md ${colors.badge}`}>
-                            {isGolden && (
+                            {isBronze && (
                               <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="currentColor" viewBox="0 0 20 20">
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                               </svg>
@@ -366,15 +366,15 @@ const GoPro = () => {
                               <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
                               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
                             </svg>
-                            {isGolden && (
-                              <span>{goldenCoins} Golden Coins</span>
+                            {isBronze && (
+                              <span>{bronzeCoins} Bronze Coins</span>
                             )}
                             {isSilver && (
                               <span>{silverCoins} Silver Coins</span>
                             )}
                             {isCombo && (
                               <span>
-                                {goldenCoins} Golden + {silverCoins} Silver
+                                {bronzeCoins} Bronze + {silverCoins} Silver
                               </span>
                             )}
                           </div>
@@ -470,25 +470,25 @@ const GoPro = () => {
                     <th className="px-2 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold text-gray-900">Feature</th>
                     <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-semibold text-gray-700">
                       <div className="flex flex-col items-center">
-                        <span className="text-xs sm:text-sm">Silver</span>
+                        <span className="text-xs sm:text-sm">Bronze</span>
                         <span className="text-[9px] sm:text-[10px] text-gray-500 mt-0.5">₹0.25</span>
                       </div>
                     </th>
-                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">
+                    <th className="px-2 sm:px-4 py-2 sm:py-3 text-center text-[10px] sm:text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-amber-800">
                       <div className="flex flex-col items-center">
-                        <span className="text-xs sm:text-sm">Golden</span>
-                        <span className="text-[9px] sm:text-[10px] text-yellow-700 mt-0.5">₹2</span>
+                        <span className="text-xs sm:text-sm">Bronze</span>
+                        <span className="text-[9px] sm:text-[10px] text-amber-700 mt-0.5">₹0.50</span>
                       </div>
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {[
-                    { feature: '1-on-1 Live Sessions (per minute)', silver: '1 Silver Coin', golden: '-' },
-                    { feature: 'Uploaded Videos', silver: '-', golden: 'Golden Coins' },
-                    { feature: 'Live Arena', silver: '-', golden: 'Golden Coins' },
-                    { feature: 'Group Discussions', silver: '-', golden: 'Rs. 500' },
-                    { feature: 'Interview Rounds', silver: '-', golden: 'Rs. 1500' },
+                    { feature: '1-on-1 Live Sessions (per minute)', silver: '1 Silver Coin', bronze: '-' },
+                    { feature: 'Uploaded Videos', silver: '-', bronze: 'Bronze Coins' },
+                    { feature: 'Live Arena', silver: '-', bronze: 'Bronze Coins' },
+                    { feature: 'Group Discussions', silver: '-', bronze: 'Rs. 500' },
+                    { feature: 'Interview Rounds', silver: '-', bronze: 'Rs. 1500' },
                   ].map((row, idx) => (
                     <tr key={idx} className="hover:bg-gray-50 transition-colors">
                       <td className="px-2 sm:px-4 py-2 sm:py-3 text-[10px] sm:text-xs text-gray-900 font-medium">{row.feature}</td>
@@ -508,13 +508,13 @@ const GoPro = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {typeof row.golden === 'string' ? (
-                          <span className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600">{row.golden}</span>
-                        ) : row.golden === true ? (
-                          <svg className="w-6 h-6 text-yellow-500 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                        {typeof row.bronze === 'string' ? (
+                          <span className="text-sm font-semibold text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-amber-800">{row.bronze}</span>
+                        ) : row.bronze === true ? (
+                          <svg className="w-6 h-6 text-amber-600 mx-auto" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                           </svg>
-                        ) : row.golden === '-' ? (
+                        ) : row.bronze === '-' ? (
                           <span className="text-gray-400 font-medium">-</span>
                         ) : (
                           <svg className="w-6 h-6 text-gray-300 mx-auto" fill="currentColor" viewBox="0 0 20 20">

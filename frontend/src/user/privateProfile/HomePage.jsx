@@ -6,7 +6,6 @@ import PrivateCoinsBadges from './PrivateCoinsBadges.jsx';
 
 const HomePage = () => {
   const [silver, setSilver] = useState(0);
-  const [gold, setGold] = useState(0);
   const [bronze, setBronze] = useState(0);
   const [rank, setRank] = useState('Unranked');
   const [badges, setBadges] = useState([]);
@@ -26,7 +25,6 @@ const HomePage = () => {
         }
         const data = await response.json();
         setSilver(data.silver || 0);
-        setGold(data.golden || 0);
         setBronze(data.bronze || 0);
       } catch {
         toast.error('Failed to fetch coin balances.');
@@ -56,9 +54,6 @@ const HomePage = () => {
       if (typeof data.silverCoins === 'number') {
         setSilver(data.silverCoins);
       }
-      if (typeof data.goldCoins === 'number') {
-        setGold(data.goldCoins);
-      }
       if (typeof data.bronzeCoins === 'number') {
         setBronze(data.bronzeCoins);
       }
@@ -74,7 +69,7 @@ const HomePage = () => {
     <div className="w-full">
       <Toaster position="top-center" />
       <div className="py-3 sm:py-4">
-        <PrivateCoinsBadges silver={silver} gold={gold} bronze={bronze} rank={rank} badges={badges} />
+        <PrivateCoinsBadges silver={silver} bronze={bronze} rank={rank} badges={badges} />
       </div>
     </div>
   );

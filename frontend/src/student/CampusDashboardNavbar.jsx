@@ -8,7 +8,7 @@ const CampusDashboardNavbar = ({
   isActive,
   isLoggedIn,
   handleLoginClick,
-  goldenCoins,
+  bronzeCoins,
   silverCoins,
   showCoinsDropdown,
   setShowCoinsDropdown,
@@ -90,18 +90,18 @@ const CampusDashboardNavbar = ({
                   >
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5" viewBox="0 0 24 24" fill="none">
                       <defs>
-                        <radialGradient id="3d-coin-gold" cx="50%" cy="50%" r="50%">
-                          <stop offset="0%" stopColor="#fff9c4" />
-                          <stop offset="30%" stopColor="#fdd835" />
-                          <stop offset="60%" stopColor="#fbc02d" />
-                          <stop offset="100%" stopColor="#f57f17" />
+                        <radialGradient id="3d-coin-bronze" cx="50%" cy="50%" r="50%">
+                          <stop offset="0%" stopColor="#E5B887" />
+                          <stop offset="30%" stopColor="#CD7F32" />
+                          <stop offset="60%" stopColor="#B87333" />
+                          <stop offset="100%" stopColor="#A0522D" />
                         </radialGradient>
                         <linearGradient id="coin-edge" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#ffecb3" />
-                          <stop offset="100%" stopColor="#ffa000" />
+                          <stop offset="0%" stopColor="#D4A574" />
+                          <stop offset="100%" stopColor="#8B6914" />
                         </linearGradient>
                       </defs>
-                      <circle cx="12" cy="12" r="10" fill="url(#3d-coin-gold)" stroke="url(#coin-edge)" strokeWidth="2" />
+                      <circle cx="12" cy="12" r="10" fill="url(#3d-coin-bronze)" stroke="url(#coin-edge)" strokeWidth="2" />
                       <circle cx="12" cy="12" r="8" stroke="#fff8dc" strokeWidth="1" opacity="0.7" />
                       <text
                         x="12"
@@ -120,10 +120,10 @@ const CampusDashboardNavbar = ({
                     <div className="absolute right-0 mt-2 w-44 bg-white border border-blue-200 rounded-lg shadow-xl animate-fade-in-down backdrop-blur-sm z-50">
                       <div className="p-3 space-y-2 text-xs font-medium text-gray-700">
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
-                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
-                            <span className="text-[10px] font-bold text-blue-900">G</span>
+                          <div className="w-4 h-4 rounded-full bg-gradient-to-br from-amber-600 via-amber-700 to-amber-800 shadow-inner flex items-center justify-center">
+                            <span className="text-[10px] font-bold text-white">B</span>
                           </div>
-                          <span className="text-gray-800">Golden: {goldenCoins}</span>
+                          <span className="text-gray-800">Bronze: {bronzeCoins}</span>
                         </div>
                         <div className="flex items-center gap-2 p-2 rounded-md hover:bg-blue-50 transition">
                           <div className="w-4 h-4 rounded-full bg-gradient-to-br from-gray-300 via-gray-400 to-gray-500 shadow-inner flex items-center justify-center">
@@ -263,12 +263,12 @@ const CampusDashboardNavbar = ({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between p-2 rounded-lg hover:bg-blue-50 transition">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-yellow-200 via-yellow-400 to-yellow-600 shadow-inner flex items-center justify-center">
-                            <span className="text-xs font-bold text-blue-900">G</span>
+                          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-600 via-amber-700 to-amber-800 shadow-inner flex items-center justify-center">
+                            <span className="text-xs font-bold text-white">B</span>
                           </div>
-                          <span className="text-sm font-medium text-gray-800">Golden Coins</span>
+                          <span className="text-sm font-medium text-gray-800">Bronze Coins</span>
                         </div>
-                        <span className="text-sm font-bold text-gray-900">{goldenCoins}</span>
+                        <span className="text-sm font-bold text-gray-900">{bronzeCoins}</span>
                       </div>
                       <div className="flex items-center justify-between p-2 rounded-lg hover:bg-blue-50 transition">
                         <div className="flex items-center gap-2">
@@ -329,11 +329,7 @@ const CampusDashboardNavbar = ({
                   }`}
                   onClick={() => {
                     setActiveTab(id);
-                    if (id === 'dashboard' || id === 'assessment' || id === 'reports') {
-                      navigate('/campus-dashboard');
-                    } else {
-                      navigate(path);
-                    }
+                    navigate(path);
                     setMenuOpen(false);
                   }}
                 >

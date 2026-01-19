@@ -1267,6 +1267,7 @@ const Navbar = () => {
           setMenuOpen={setMenuOpen}
           ProfileDropdown={ProfileDropdown}
           silverCoins={silverCoins}
+          bronzeCoins={bronzeCoins}
           notifications={notifications}
           setNotifications={setNotifications}
           handleLoginClick={handleLoginClick}

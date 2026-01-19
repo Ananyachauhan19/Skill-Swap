@@ -1,6 +1,6 @@
 import React from 'react';
 
-const CoinsBadges = ({ silver, gold, bronze = 0, profile }) => {
+const CoinsBadges = ({ silver, bronze = 0, profile }) => {
   const rank = profile?.rank || "Unranked";
   const badges = Array.isArray(profile?.badges) ? profile.badges : [];
   return (
@@ -14,14 +14,7 @@ const CoinsBadges = ({ silver, gold, bronze = 0, profile }) => {
       </div>
       <div className="flex-1 bg-blue-50/70 p-3 sm:p-5 rounded-xl border border-blue-100 text-center min-w-[120px]">
         <div className="flex items-center justify-center gap-2 sm:gap-3">
-          <span className="text-lg sm:text-xl">🥇</span>
-          <h3 className="text-sm sm:text-base font-semibold text-yellow-700">Golden Skill Coins</h3>
-        </div>
-        <p className="text-lg sm:text-xl font-bold text-gray-800">{gold}</p>
-      </div>
-      <div className="flex-1 bg-blue-50/70 p-3 sm:p-5 rounded-xl border border-blue-100 text-center min-w-[120px]">
-        <div className="flex items-center justify-center gap-2 sm:gap-3">
-          <span className="text-lg sm:text-xl">🥉</span>
+          <span className="text-lg sm:text-xl"></span>
           <h3 className="text-sm sm:text-base font-semibold text-orange-700">Bronze Skill Coins</h3>
         </div>
         <p className="text-lg sm:text-xl font-bold text-gray-800">{bronze}</p>

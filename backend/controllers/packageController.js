@@ -73,7 +73,7 @@ exports.getPackageById = async (req, res) => {
 // Create new package (admin only)
 exports.createPackage = async (req, res) => {
   try {
-    const { name, description, type, silverCoins, goldenCoins, displayOrder } = req.body;
+    const { name, description, type, silverCoins, bronzeCoins, displayOrder } = req.body;
 
     // Validation
     if (!name || !description || !type) {
@@ -91,17 +91,17 @@ exports.createPackage = async (req, res) => {
       });
     }
 
-    if (type === 'ONLY_GOLDEN' && (!goldenCoins || goldenCoins <= 0)) {
+    if (type === 'ONLY_BRONZE' && (!bronzeCoins || bronzeCoins <= 0)) {
       return res.status(400).json({
         success: false,
-        message: 'ONLY_GOLDEN packages must have golden coins'
+        message: 'ONLY_BRONZE packages must have bronze coins'
       });
     }
 
-    if (type === 'COMBO' && (!silverCoins || silverCoins <= 0 || !goldenCoins || goldenCoins <= 0)) {
+    if (type === 'COMBO' && (!silverCoins || silverCoins <= 0 || !bronzeCoins || bronzeCoins <= 0)) {
       return res.status(400).json({
         success: false,
-        message: 'COMBO packages must have both silver and golden coins'
+        message: 'COMBO packages must have both silver and bronze coins'
       });
     }
 
@@ -110,7 +110,7 @@ exports.createPackage = async (req, res) => {
       description,
       type,
       silverCoins: silverCoins || 0,
-      goldenCoins: goldenCoins || 0,
+      bronzeCoins: bronzeCoins || 0,
       displayOrder: displayOrder || 0
     });
 
@@ -135,7 +135,7 @@ exports.createPackage = async (req, res) => {
 exports.updatePackage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, type, silverCoins, goldenCoins, displayOrder, isActive } = req.body;
+    const { name, description, type, silverCoins, bronzeCoins, displayOrder, isActive } = req.body;
 
     const package = await Package.findById(id);
     
@@ -151,7 +151,7 @@ exports.updatePackage = async (req, res) => {
     if (description) package.description = description;
     if (type) package.type = type;
     if (silverCoins !== undefined) package.silverCoins = silverCoins;
-    if (goldenCoins !== undefined) package.goldenCoins = goldenCoins;
+    if (bronzeCoins !== undefined) package.bronzeCoins = bronzeCoins;
     if (displayOrder !== undefined) package.displayOrder = displayOrder;
     if (isActive !== undefined) package.isActive = isActive;
 
