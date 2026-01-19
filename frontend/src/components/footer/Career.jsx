@@ -371,6 +371,253 @@ const Career = () => {
         </div>
       </section>
 
+      {/* Internship Opportunities - We're Hiring */}
+      <section className="py-10 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-blue-50">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-8 sm:mb-12"
+          >
+            <div className="inline-flex items-center gap-2 sm:gap-3 bg-gradient-to-r from-blue-800 to-blue-900 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-full mb-4 sm:mb-6 shadow-lg">
+              <FiBriefcase className="text-lg sm:text-xl" />
+              <span className="font-bold text-sm sm:text-base md:text-lg">We're Hiring</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">Internship Opportunities</h2>
+            <p className="text-sm sm:text-base md:text-lg text-gray-600 max-w-3xl mx-auto px-3 mb-2">
+              Join our dynamic team and gain hands-on experience in a fast-growing edtech startup
+            </p>
+            <a href="mailto:info@skillswaphub.in" className="inline-flex items-center gap-2 text-blue-900 hover:text-blue-800 font-semibold text-sm sm:text-base transition-colors">
+              <span>Contact: info@skillswaphub.in</span>
+            </a>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+            {/* Marketing Positions */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-xl border-2 border-blue-100 hover:shadow-2xl transition-all duration-300"
+            >
+              <div className="flex items-center gap-3 sm:gap-4 mb-6">
+                <div className="bg-gradient-to-br from-purple-500 to-purple-700 text-white p-3 sm:p-4 rounded-xl shadow-lg">
+                  <FiTrendingUp className="text-2xl sm:text-3xl" />
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Marketing</h3>
+                  <p className="text-sm text-gray-600">Multiple Openings</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Digital Marketing */}
+                <div className="border-l-4 border-purple-500 pl-4">
+                  <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Digital Marketing</h4>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Strong understanding of SEO, SEM, and social media marketing</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Experience with Google Analytics and marketing tools</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Creative mindset with data-driven approach</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Excellent written and verbal communication skills</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Content Creation */}
+                <div className="border-l-4 border-purple-500 pl-4">
+                  <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Content Creation</h4>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Strong writing and storytelling abilities</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Experience with content management systems</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Understanding of content marketing and SEO principles</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Ability to create engaging educational content</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Brand Management */}
+                <div className="border-l-4 border-purple-500 pl-4">
+                  <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Brand Management</h4>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Understanding of brand positioning and strategy</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Experience in social media management</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Creative thinking and attention to detail</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 mt-1">•</span>
+                      <span>Ability to analyze market trends and competitor activities</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Tech Positions */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-xl border-2 border-blue-100 hover:shadow-2xl transition-all duration-300"
+            >
+              <div className="flex items-center gap-3 sm:gap-4 mb-6">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-700 text-white p-3 sm:p-4 rounded-xl shadow-lg">
+                  <FiCode className="text-2xl sm:text-3xl" />
+                </div>
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Technology</h3>
+                  <p className="text-sm text-gray-600">Multiple Openings</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Full Stack Development */}
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Full Stack Development</h4>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Proficiency in React.js, Node.js, and MongoDB</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Experience with RESTful APIs and version control (Git)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Understanding of responsive design and web performance</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Problem-solving skills and passion for clean code</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Frontend Development */}
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Frontend Development</h4>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Strong knowledge of HTML, CSS, JavaScript, and React</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Experience with Tailwind CSS and modern UI frameworks</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Eye for design and user experience</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Familiarity with state management and animations</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* UI/UX Design */}
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2">UI/UX Design</h4>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Proficiency in Figma, Adobe XD, or similar design tools</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Strong portfolio demonstrating design skills</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Understanding of user-centered design principles</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Ability to create wireframes, prototypes, and mockups</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Mobile App Development */}
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Mobile App Development</h4>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-gray-700">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Experience with React Native or Flutter</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Understanding of mobile app design guidelines (iOS/Android)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Knowledge of mobile app optimization and performance</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-1">•</span>
+                      <span>Passion for creating seamless mobile experiences</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Call to Action */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-8 sm:mt-12 text-center bg-gradient-to-r from-blue-800 to-blue-900 rounded-xl sm:rounded-2xl p-6 sm:p-8 shadow-xl"
+          >
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 sm:mb-4">Ready to Make an Impact?</h3>
+            <p className="text-sm sm:text-base text-blue-100 mb-4 sm:mb-6 max-w-2xl mx-auto">
+              Be part of a team that's revolutionizing education and empowering millions of learners worldwide
+            </p>
+            <a 
+              href="mailto:info@skillswaphub.in?subject=Internship Application - [Your Position]"
+              className="inline-flex items-center gap-2 bg-white text-blue-900 px-6 py-3 sm:px-8 sm:py-4 rounded-lg sm:rounded-xl font-bold text-sm sm:text-base hover:bg-blue-50 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              <FiBriefcase className="text-lg sm:text-xl" />
+              <span>Apply Now</span>
+            </a>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Why Work With Us */}
       <section className="py-10 sm:py-12 md:py-16 px-3 sm:px-4 md:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
