@@ -4,22 +4,42 @@ function baseLayout(title, content) {
   return `
   <div style="font-family: system-ui, Arial; max-width: 640px; margin:0 auto; padding:16px;">
     <div style="background:#0ea5e9; color:#fff; padding:12px 16px; border-radius:8px 8px 0 0;">
-      <strong>Skill‑Swap</strong>
+      <strong>SkillSwap Hub</strong>
     </div>
     <div style="border:1px solid #e5e7eb; border-top:none; padding:16px; border-radius:0 0 8px 8px;">
       <h2 style="margin:0 0 12px; color:#0f172a;">${title}</h2>
       ${content}
-      <p style="margin:16px 0 0; color:#334155;">If you have any questions, please contact our support team at <a href="mailto:support@skillswaphub.in" style="color:#2563eb; text-decoration:none;">support@skillswaphub.in</a>.</p>
+      <p style="margin:24px 0">
+        <a href="https://www.skillswaphub.in" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Go to Dashboard</a>
+      </p>
+      <p style="margin-top:16px; color:#334155;">Best regards,<br/>SkillSwap Hub Team</p>
+      <p style="margin:16px 0 0; color:#334155;">If you have any questions, please contact our support team at <a href="mailto:info@skillswaphub.in" style="color:#2563eb; text-decoration:none;">info@skillswaphub.in</a>.</p>
       <hr style="margin:24px 0; border:none; border-top:1px solid #e5e7eb"/>
-      <p style="color:#64748b; font-size:12px;">This email was sent automatically by Skill‑Swap. Please do not reply to this message.</p>
+      <p style="color:#64748b; font-size:12px;">This email was sent automatically by SkillSwap Hub. Please do not reply to this message.</p>
     </div>
   </div>`;
 }
 
-exports.passwordReset = ({ resetLink, fallbackLink }) => ({
+// Generic OTP email
+exports.otpEmail = ({ otp, validityMinutes = 10 }) => ({
+  subject: 'Your SkillSwap Hub one-time password (OTP)',
+  html: baseLayout('Verify your sign-in with OTP', `
+    <p>Dear learner,</p>
+    <p>Use the one-time password (OTP) below to securely continue signing in to your SkillSwap Hub account:</p>
+    <div style="background:#f8fafc; padding:16px; border-radius:8px; margin:16px 0; border-left:4px solid #2563eb; text-align:center;">
+      <p style="font-size:24px; font-weight:bold; letter-spacing:4px; margin:0 0 8px;">${otp}</p>
+      <p style="margin:0; color:#6b7280;">This code is valid for ${validityMinutes} minutes.</p>
+    </div>
+    <p>Please do not share this OTP with anyone. Our team will never ask you for your password or OTP.</p>
+    <p>If you did not attempt to sign in, you can safely ignore this email.</p>
+  `)
+});
+
+// Password reset email
+exports.passwordReset = ({ resetLink }) => ({
   subject: 'Password Reset Instructions',
   html: baseLayout('Reset Your Password', `
-    <p>We received a request to reset the password for your Skill‑Swap account. To proceed, please click the button below. For your security, this link will expire in 30 minutes.</p>
+    <p>We received a request to reset the password for your SkillSwap Hub account. To proceed, please click the button below. For your security, this link will expire in 30 minutes.</p>
     <p style="margin:24px 0">
       <a href="${resetLink}" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Reset Password</a>
     </p>
@@ -38,7 +58,6 @@ exports.interviewRequestConfirmation = ({ requesterName, company, position }) =>
     </ul>
     <p>You will receive a notification once an expert accepts your request and schedules the interview.</p>
     <p>You can view your request status anytime by logging into your dashboard.</p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -53,7 +72,6 @@ exports.interviewAssigned = ({ interviewerName, company, position, requesterName
       <li>Candidate: <b>${requesterName}</b></li>
     </ul>
     <p>Please log in to your dashboard to review and schedule the interview at your earliest convenience.</p>
-    <p style="margin-top:16px; color:#334155;">Thank you,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -69,10 +87,6 @@ exports.interviewScheduled = ({ requesterName, company, position, scheduledAt, i
       ${interviewerName ? `<li>Interviewer: <b>${interviewerName}</b></li>` : ''}
     </ul>
     <p>Kindly ensure your availability. If you need to reschedule, please contact the interviewer through the platform.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Interview Details</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -88,10 +102,6 @@ exports.interviewScheduledInterviewer = ({ interviewerName, company, position, s
       <li>Candidate: <b>${candidateName}</b></li>
     </ul>
     <p>The candidate has been notified and will be prepared for the session at the scheduled time.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Interview Details</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Thank you,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -107,10 +117,6 @@ exports.interviewRescheduled = ({ requesterName, company, position, scheduledAt,
       ${interviewerName ? `<li>Interviewer: <b>${interviewerName}</b></li>` : ''}
     </ul>
     <p>Please ensure your availability at the updated time.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Updated Interview Details</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -126,10 +132,6 @@ exports.interviewRescheduledInterviewer = ({ interviewerName, company, position,
       <li>Candidate: <b>${candidateName}</b></li>
     </ul>
     <p>The candidate has been notified about the time change.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Interview Details</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Thank you,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -147,10 +149,6 @@ exports.interviewSlotsProposed = ({ requesterName, interviewerName, company, pos
       ${slots}
     </div>
     <p style="margin-top:16px;">Please review and select a time that works best for you.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Choose Time Slot</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -172,10 +170,6 @@ exports.interviewAlternateSlotsProposed = ({ interviewerName, candidateName, com
       ${slots}
     </div>
     <p style="margin-top:16px;">Please review and accept one of the alternate slots or ask the candidate to choose from your original suggestions.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Review Alternate Slots</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Thank you,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -189,10 +183,6 @@ exports.interviewAlternateRejected = ({ requesterName, interviewerName, company,
       <li>Role: <b>${position}</b></li>
     </ul>
     <p style="margin:16px 0;">Please choose from the original time slots suggested by the interviewer to proceed with scheduling your interview.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Original Time Slots</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -209,10 +199,6 @@ exports.interviewPostponed = ({ requesterName, interviewerName, company, positio
       <li>Reason: <b>${reason}</b></li>
     </ul>
     <p style="margin:16px 0;">Your interview has been automatically rescheduled. Please make sure you're available at the new time.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests?tab=interview&view=received" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Interview Details</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -227,7 +213,6 @@ exports.interviewRejected = ({ requesterName, company, position, reason }) => ({
       ${reason ? `<li>Reason: <b>${reason}</b></li>` : ''}
     </ul>
     <p>You can submit a new request or choose a different interviewer.</p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -241,7 +226,6 @@ exports.sessionRequested = ({ tutorName, requesterName, subject, topic }) => ({
       <li>Topic: <b>${topic}</b></li>
     </ul>
     <p>Please review the request and respond at your earliest convenience.</p>
-    <p style="margin-top:16px; color:#334155;">Thank you,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -254,8 +238,7 @@ exports.sessionApproved = ({ requesterName, tutorName, subject, topic }) => ({
       <li>Subject: <b>${subject}</b></li>
       <li>Topic: <b>${topic}</b></li>
     </ul>
-    <p>You will receive further updates regarding the scheduled time. Thank you for using Skill‑Swap.</p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
+    <p>You will receive further updates regarding the scheduled time. Thank you for using SkillSwap Hub.</p>
   `)
 });
 
@@ -269,7 +252,6 @@ exports.sessionRejected = ({ requesterName, tutorName, subject, topic }) => ({
       <li>Topic: <b>${topic}</b></li>
     </ul>
     <p>You may submit another request or explore other tutors available on the platform.</p>
-    <p style="margin-top:16px; color:#334155;">Sincerely,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -283,7 +265,6 @@ exports.skillmateSessionCreated = ({ mateName, creatorName, subject, topic }) =>
       <li>Topic: <b>${topic}</b></li>
     </ul>
     <p>You can join or request participation through your dashboard.</p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -299,10 +280,6 @@ exports.expertSessionInvitation = ({ mateName, creatorName, subject, topic, date
       <li>Time: <b>${time}</b></li>
     </ul>
     <p>This is a personalized one-on-one session created specifically for you. Please log in to your dashboard to review the details and accept or decline the invitation.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Invitation</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -318,10 +295,6 @@ exports.expertSessionReminder = ({ recipientName, otherPartyName, subject, topic
       <li>Time: <b>${time}</b></li>
     </ul>
     <p>Please be ready on time. You can view the session details in your dashboard.</p>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/session-requests" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Open Session Requests</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -337,7 +310,6 @@ exports.sessionLive = ({ recipientName, otherPartyName, subject, topic, joinLink
     <p style="margin:24px 0">
       <a href="${joinLink}" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Open Join Page</a>
     </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Team</p>
   `)
 });
 
@@ -364,10 +336,6 @@ exports.compulsoryAssessmentNotification = ({ studentName, assessmentTitle, desc
       <p style="margin:0; color:#92400e; font-weight:bold;">⏰ Important Deadline</p>
       <p style="margin:8px 0 0; color:#78350f;">Failure to complete this assessment within the time window will be marked as "Not Attempted" in your records.</p>
     </div>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/student-assessments" style="background:#dc2626;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Take Assessment Now</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Assessment Team</p>
   `)
 });
 
@@ -379,7 +347,7 @@ exports.nonCompulsoryAssessmentNotification = ({ studentName, assessmentTitle, d
       <p style="margin:8px 0 0; color:#1e3a8a;">This assessment is optional. You may attempt it to enhance your learning.</p>
     </div>
     <p>Dear ${studentName},</p>
-    <p>A new optional assessment has been published for your semester. You may choose to attempt it during the available time window:</p>
+    <p>A new assessment has been published for your semester. You may choose to attempt it during the available time window:</p>
     <ul>
       <li><b>Assessment Title:</b> ${assessmentTitle}</li>
       ${description ? `<li><b>Description:</b> ${description}</li>` : ''}
@@ -388,10 +356,6 @@ exports.nonCompulsoryAssessmentNotification = ({ studentName, assessmentTitle, d
       <li><b>Available From:</b> ${startTime}</li>
       <li><b>Available Until:</b> ${endTime}</li>
     </ul>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/student-assessments" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Assessment</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Assessment Team</p>
   `)
 });
 
@@ -409,9 +373,98 @@ exports.assessmentReminder = ({ studentName, assessmentTitle, endTime, hoursRema
       <li><b>Deadline:</b> ${endTime}</li>
       <li><b>Time Remaining:</b> Approximately ${hoursRemaining} hours</li>
     </ul>
-    <p style="margin:24px 0">
-      <a href="https://skillswaphub.in/student-assessments" style="background:#dc2626;color:#fff;padding:12px 20px;border-radius:6px;text-decoration:none;font-weight:bold;">Take Assessment Now</a>
-    </p>
-    <p style="margin-top:16px; color:#334155;">Best regards,<br/>Skill‑Swap Assessment Team</p>
+  `)
+});
+
+// ==================== CAMPUS DASHBOARD EMAILS ====================
+
+exports.campusNewUserWelcome = ({ firstName, username, password, studentId, instituteName, goldCoins, silverCoins }) => ({
+  subject: `Welcome to ${instituteName} Campus Dashboard - SkillSwap Hub`,
+  html: baseLayout(`Welcome to ${instituteName}!`, `
+    <p>Hello ${firstName},</p>
+    <p>You have been successfully onboarded to the <strong>${instituteName}</strong> campus dashboard on SkillSwap Hub.</p>
+
+    <div style="background:#f8fafc; padding:16px; border-radius:6px; margin:16px 0;">
+      <h3 style="margin:0 0 12px; color:#334155;">Your Login Credentials</h3>
+      <p style="margin:8px 0;"><strong>Username:</strong> ${username}</p>
+      <p style="margin:8px 0;"><strong>Password:</strong> ${password}</p>
+      <p style="margin:8px 0;"><strong>Student ID:</strong> ${studentId}</p>
+    </div>
+
+    <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
+      <h3 style="margin:0 0 12px; color:#065f46;">Welcome Rewards</h3>
+      <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> ${goldCoins}</p>
+      <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> ${silverCoins}</p>
+    </div>
+
+    <p style="margin:16px 0;">You can now access the SkillSwap Hub platform as both a regular user and a campus dashboard student. Explore learning opportunities, connect with peers, and grow your skills!</p>
+
+    <p style="margin:0; color:#334155;">For security, please change your password after your first login.</p>
+  `)
+});
+
+exports.campusExistingUserAdded = ({ firstName, studentId, instituteName, course, semester, className, goldCoins, silverCoins }) => ({
+  subject: `Added to ${instituteName} Campus Dashboard - SkillSwap Hub`,
+  html: baseLayout('Campus Dashboard Access Granted!', `
+    <p>Hello ${firstName},</p>
+    <p>Great news! You have been added to the <strong>${instituteName}</strong> campus dashboard.</p>
+
+    <div style="background:#f8fafc; padding:16px; border-radius:6px; margin:16px 0;">
+      <h3 style="margin:0 0 12px; color:#334155;">Your Campus Details</h3>
+      <p style="margin:8px 0;"><strong>Student ID:</strong> ${studentId}</p>
+      <p style="margin:8px 0;"><strong>Institute:</strong> ${instituteName}</p>
+      ${course ? `<p style="margin:8px 0;"><strong>Course:</strong> ${course}</p>` : ''}
+      ${semester ? `<p style="margin:8px 0;"><strong>Semester:</strong> ${semester}</p>` : ''}
+      ${className ? `<p style="margin:8px 0;"><strong>Class:</strong> ${className}</p>` : ''}
+    </div>
+
+    <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
+      <h3 style="margin:0 0 12px; color:#065f46;">Bonus Rewards Added</h3>
+      <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> +${goldCoins}</p>
+      <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> +${silverCoins}</p>
+      <p style="margin:8px 0; font-size:12px; color:#065f46;">These coins have been added to your wallet.</p>
+    </div>
+
+    <p style="margin:16px 0;">You can now access campus-specific features and participate in institutional activities while continuing to use all regular SkillSwap Hub features.</p>
+  `)
+});
+
+exports.campusEmailUpdatedNotification = ({ firstName, studentId, instituteName, course, semester, className, goldCoins, silverCoins }) => ({
+  subject: `Added to ${instituteName} Campus Dashboard - SkillSwap Hub`,
+  html: baseLayout('Campus Dashboard Access Information', `
+    <p>Hello ${firstName || 'Student'},</p>
+    <p>Your email has been updated for the <strong>${instituteName}</strong> campus dashboard.</p>
+
+    <div style="background:#f8fafc; padding:16px; border-radius:6px; margin:16px 0;">
+      <h3 style="margin:0 0 12px; color:#334155;">Your Campus Details</h3>
+      <p style="margin:8px 0;"><strong>Student ID:</strong> ${studentId}</p>
+      <p style="margin:8px 0;"><strong>Institute:</strong> ${instituteName}</p>
+      ${course ? `<p style="margin:8px 0;"><strong>Course:</strong> ${course}</p>` : ''}
+      ${semester ? `<p style="margin:8px 0;"><strong>Semester:</strong> ${semester}</p>` : ''}
+      ${className ? `<p style="margin:8px 0;"><strong>Class:</strong> ${className}</p>` : ''}
+    </div>
+
+    <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
+      <h3 style="margin:0 0 12px; color:#065f46;">Your Current Rewards</h3>
+      <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> ${goldCoins}</p>
+      <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> ${silverCoins}</p>
+    </div>
+
+    <p style="margin:16px 0;">You can now access your campus dashboard and all SkillSwap Hub features using your updated email address.</p>
+  `)
+});
+
+exports.campusDashboardUpdatedCoins = ({ firstName, instituteName, goldCoins, silverCoins }) => ({
+  subject: `Campus Dashboard Updated - ${instituteName}`,
+  html: baseLayout('Campus Information Updated', `
+    <p>Hello ${firstName},</p>
+    <p>Your campus dashboard information has been updated at <strong>${instituteName}</strong>.</p>
+
+    <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
+      <h3 style="margin:0 0 12px; color:#065f46;">Bonus Rewards Added</h3>
+      <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> +${goldCoins}</p>
+      <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> +${silverCoins}</p>
+      <p style="margin:8px 0; font-size:12px; color:#065f46;">These coins have been added to your wallet.</p>
+    </div>
   `)
 });
