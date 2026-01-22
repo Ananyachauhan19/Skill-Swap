@@ -7,7 +7,7 @@ const User = require('../models/User');
 const requireAuth = require('../middleware/requireAuth');
 const tutorCtrl = require('../controllers/tutorController');
 const { sendMail } = require('../utils/sendMail');
-const T = require('../utils/emailTemplates');
+const { getEmailTemplate } = require('../utils/dynamicEmailTemplate');
 
 router.get('/search', async (req, res) => {
   try {
@@ -137,7 +137,7 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
         }
 
         if (mate?.email) {
-          const tpl = T.expertSessionInvitation({
+          const tpl = await getEmailTemplate('expertSessionInvitation', {
             mateName,
             creatorName,
             subject,
@@ -149,27 +149,6 @@ router.post('/', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.require
         }
       } catch (e) {
         console.error('Failed to send expert session notifications', e);
-      }
-    } else {
-      // Normal session behavior: email all SkillMates (existing behavior)
-      try {
-        const creator = await User.findById(req.user._id).select('skillMates firstName lastName email username');
-        if (creator && Array.isArray(creator.skillMates) && creator.skillMates.length > 0) {
-          const mates = await User.find({ _id: { $in: creator.skillMates } }).select('email firstName username');
-          for (const m of mates) {
-            if (m.email) {
-              const tpl = T.skillmateSessionCreated({
-                mateName: m.firstName || m.username,
-                creatorName: creator.firstName || creator.username,
-                subject,
-                topic
-              });
-              await sendMail({ to: m.email, subject: tpl.subject, html: tpl.html });
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Failed to send skillmate session email', e);
       }
     }
     res.status(201).json(session);
@@ -281,7 +260,7 @@ router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.r
         }
 
         if (mate?.email) {
-          const tpl = T.expertSessionInvitation({
+          const tpl = await getEmailTemplate('expertSessionInvitation', {
             mateName,
             creatorName,
             subject,
@@ -293,27 +272,6 @@ router.post('/create', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtrl.r
         }
       } catch (e) {
         console.error('Failed to send expert session notifications', e);
-      }
-    } else {
-      // Normal session behavior: email all SkillMates (existing behavior)
-      try {
-        const creator = await User.findById(req.user._id).select('skillMates firstName lastName email username');
-        if (creator && Array.isArray(creator.skillMates) && creator.skillMates.length > 0) {
-          const mates = await User.find({ _id: { $in: creator.skillMates } }).select('email firstName username');
-          for (const m of mates) {
-            if (m.email) {
-              const tpl = T.skillmateSessionCreated({
-                mateName: m.firstName || m.username,
-                creatorName: creator.firstName || creator.username,
-                subject,
-                topic
-              });
-              await sendMail({ to: m.email, subject: tpl.subject, html: tpl.html });
-            }
-          }
-        }
-      } catch (e) {
-        console.error('Failed to send skillmate session email', e);
       }
     }
     
@@ -718,7 +676,7 @@ router.post('/:id/approve', requireAuth, async (req, res) => {
     // Email requester
     try {
       if (session.requester?.email) {
-        const tpl = T.sessionApproved({
+        const tpl = await getEmailTemplate('sessionApproved', {
           requesterName: session.requester.firstName || session.requester.username,
           tutorName: req.user.firstName || req.user.username,
           subject: session.subject,
@@ -759,7 +717,7 @@ router.post('/:id/reject', requireAuth, async (req, res) => {
     // Email requester
     try {
       if (session.requester?.email) {
-        const tpl = T.sessionRejected({
+        const tpl = await getEmailTemplate('sessionRejected', {
           requesterName: session.requester.firstName || session.requester.username,
           tutorName: req.user.firstName || req.user.username,
           subject: session.subject,
@@ -861,7 +819,7 @@ router.post('/:id/start', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtr
             (process.env.NODE_ENV === 'production' ? 'http://www.skillswaphub.in' : 'http://localhost:5173')
           ).replace(/\/+$/, '');
 
-          const tpl = T.sessionLive({
+          const tpl = await getEmailTemplate('sessionLive', {
             recipientName: participantToNotify.firstName || participantToNotify.username || participantName,
             otherPartyName: creatorName,
             subject: session.subject,

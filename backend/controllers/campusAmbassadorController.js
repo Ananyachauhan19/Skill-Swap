@@ -3,11 +3,11 @@ const User = require('../models/User');
 const InstituteRewardTransaction = require('../models/InstituteRewardTransaction');
 const ActivityLog = require('../models/ActivityLog');
 const xlsx = require('xlsx');
+const { getEmailTemplate } = require('../utils/dynamicEmailTemplate');
 const cloudinary = require('../utils/cloudinary');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const { sendMail } = require('../utils/sendMail');
-const emailTemplates = require('../utils/emailTemplates');
 
 // Helper function to generate student ID
 const generateStudentId = (instituteId) => {
@@ -560,89 +560,51 @@ exports.uploadStudents = async (req, res) => {
       try {
         if (emailData.isNewUser) {
           // Send welcome email to new users with credentials
-          const emailContent = {
-            subject: `Welcome to ${emailData.instituteName} Campus Dashboard - Skill-Swap`,
-            html: `
-              <div style="font-family: system-ui, Arial; max-width: 640px; margin:0 auto; padding:16px;">
-                <div style="background:#0ea5e9; color:#fff; padding:12px 16px; border-radius:8px 8px 0 0;">
-                  <strong>Skill‑Swap</strong>
-                </div>
-                <div style="border:1px solid #e5e7eb; border-top:none; padding:16px; border-radius:0 0 8px 8px;">
-                  <h2 style="margin:0 0 12px; color:#0f172a;">Welcome to ${emailData.instituteName}!</h2>
-                  <p>Hello ${emailData.user.firstName},</p>
-                  <p>You have been successfully onboarded to the <strong>${emailData.instituteName}</strong> campus dashboard on Skill-Swap platform.</p>
-                  
-                  <div style="background:#f8fafc; padding:16px; border-radius:6px; margin:16px 0;">
-                    <h3 style="margin:0 0 12px; color:#334155;">Your Login Credentials:</h3>
-                    <p style="margin:8px 0;"><strong>Username:</strong> ${emailData.user.username}</p>
-                    <p style="margin:8px 0;"><strong>Password:</strong> ${emailData.generatedPassword}</p>
-                    <p style="margin:8px 0;"><strong>Student ID:</strong> ${emailData.user.studentId}</p>
-                  </div>
+          const courseInfo = emailData.user.course || emailData.user.semester || emailData.user.class
+            ? `<p>Course Information:</p><ul style="margin:8px 0; padding-left:20px;">
+                ${emailData.user.course ? `<li>Course: ${emailData.user.course}</li>` : ''}
+                ${emailData.user.semester ? `<li>Semester: ${emailData.user.semester}</li>` : ''}
+                ${emailData.user.class ? `<li>Class: ${emailData.user.class}</li>` : ''}
+              </ul>`
+            : '';
+          
+          const emailHtml = await getEmailTemplate('campusWelcomeNewUser', {
+            instituteName: emailData.instituteName,
+            firstName: emailData.user.firstName,
+            username: emailData.user.username,
+            password: emailData.generatedPassword,
+            studentId: emailData.user.studentId,
+            courseInfo
+          });
 
-                  <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
-                    <h3 style="margin:0 0 12px; color:#065f46;">Welcome Rewards!</h3>
-                    <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> ${emailData.goldCoins}</p>
-                    <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> ${emailData.silverCoins}</p>
-                  </div>
-
-                  <p style="margin:16px 0;">You can now access the Skill-Swap platform as both a regular user and a campus dashboard student. Explore learning opportunities, connect with peers, and grow your skills!</p>
-                  
-                  <p style="margin:24px 0;">
-                    <a href="https://skillswaphub.in/login" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Login Now</a>
-                  </p>
-                  
-                  <p style="margin:16px 0 0; color:#334155;">Please change your password after first login for security.</p>
-                  <hr style="margin:24px 0; border:none; border-top:1px solid #e5e7eb"/>
-                  <p style="color:#64748b; font-size:12px;">This email was sent automatically by Skill‑Swap. Please do not reply to this message.</p>
-                </div>
-              </div>
-            `
-          };
-          await sendMail({ to: emailData.user.email, ...emailContent });
+          await sendMail({ 
+            to: emailData.user.email, 
+            subject: `Welcome to ${emailData.instituteName} Campus Dashboard - SkillSwap Hub`,
+            html: emailHtml
+          });
           results.emailsSent++;
         } else {
           // Send notification to existing users about campus addition
-          const emailContent = {
-            subject: `Added to ${emailData.instituteName} Campus Dashboard - Skill-Swap`,
-            html: `
-              <div style="font-family: system-ui, Arial; max-width: 640px; margin:0 auto; padding:16px;">
-                <div style="background:#0ea5e9; color:#fff; padding:12px 16px; border-radius:8px 8px 0 0;">
-                  <strong>Skill‑Swap</strong>
-                </div>
-                <div style="border:1px solid #e5e7eb; border-top:none; padding:16px; border-radius:0 0 8px 8px;">
-                  <h2 style="margin:0 0 12px; color:#0f172a;">Campus Dashboard Access Granted!</h2>
-                  <p>Hello ${emailData.user.firstName},</p>
-                  <p>Great news! You have been added to the <strong>${emailData.instituteName}</strong> campus dashboard.</p>
-                  
-                  <div style="background:#f8fafc; padding:16px; border-radius:6px; margin:16px 0;">
-                    <h3 style="margin:0 0 12px; color:#334155;">Your Campus Details:</h3>
-                    <p style="margin:8px 0;"><strong>Student ID:</strong> ${emailData.user.studentId}</p>
-                    <p style="margin:8px 0;"><strong>Institute:</strong> ${emailData.instituteName}</p>
-                    ${emailData.user.course ? `<p style="margin:8px 0;"><strong>Course:</strong> ${emailData.user.course}</p>` : ''}
-                    ${emailData.user.semester ? `<p style="margin:8px 0;"><strong>Semester:</strong> ${emailData.user.semester}</p>` : ''}
-                    ${emailData.user.class ? `<p style="margin:8px 0;"><strong>Class:</strong> ${emailData.user.class}</p>` : ''}
-                  </div>
+          const courseInfo = emailData.user.course || emailData.user.semester || emailData.user.class
+            ? `<div style="margin:12px 0;">
+                ${emailData.user.course ? `<p style="margin:8px 0;"><strong>Course:</strong> ${emailData.user.course}</p>` : ''}
+                ${emailData.user.semester ? `<p style="margin:8px 0;"><strong>Semester:</strong> ${emailData.user.semester}</p>` : ''}
+                ${emailData.user.class ? `<p style="margin:8px 0;"><strong>Class:</strong> ${emailData.user.class}</p>` : ''}
+              </div>`
+            : '';
 
-                  <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
-                    <h3 style="margin:0 0 12px; color:#065f46;">Bonus Rewards Added!</h3>
-                    <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> +${emailData.goldCoins}</p>
-                    <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> +${emailData.silverCoins}</p>
-                    <p style="margin:8px 0; font-size:12px; color:#065f46;">These coins have been added to your wallet!</p>
-                  </div>
+          const emailHtml = await getEmailTemplate('campusAddedExistingUser', {
+            firstName: emailData.user.firstName,
+            instituteName: emailData.instituteName,
+            studentId: emailData.user.studentId,
+            courseInfo
+          });
 
-                  <p style="margin:16px 0;">You can now access campus-specific features and participate in institutional activities while continuing to use all regular Skill-Swap features.</p>
-                  
-                  <p style="margin:24px 0;">
-                    <a href="https://skillswaphub.in/campus-dashboard" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Campus Dashboard</a>
-                  </p>
-                  
-                  <hr style="margin:24px 0; border:none; border-top:1px solid #e5e7eb"/>
-                  <p style="color:#64748b; font-size:12px;">This email was sent automatically by Skill‑Swap. Please do not reply to this message.</p>
-                </div>
-              </div>
-            `
-          };
-          await sendMail({ to: emailData.user.email, ...emailContent });
+          await sendMail({ 
+            to: emailData.user.email, 
+            subject: `Added to ${emailData.instituteName} Campus Dashboard - SkillSwap Hub`,
+            html: emailHtml
+          });
           results.emailsSent++;
         }
       } catch (emailError) {
@@ -885,47 +847,26 @@ exports.updateInstituteStudent = async (req, res) => {
     if (emailChanged) {
       setImmediate(async () => {
         try {
-          const emailContent = {
-            subject: `Added to ${institute.instituteName} Campus Dashboard - Skill-Swap`,
-            html: `
-              <div style="font-family: system-ui, Arial; max-width: 640px; margin:0 auto; padding:16px;">
-                <div style="background:#0ea5e9; color:#fff; padding:12px 16px; border-radius:8px 8px 0 0;">
-                  <strong>Skill‑Swap</strong>
-                </div>
-                <div style="border:1px solid #e5e7eb; border-top:none; padding:16px; border-radius:0 0 8px 8px;">
-                  <h2 style="margin:0 0 12px; color:#0f172a;">Campus Dashboard Access Information</h2>
-                  <p>Hello ${student.firstName || 'Student'},</p>
-                  <p>Your email has been updated for the <strong>${institute.instituteName}</strong> campus dashboard.</p>
-                  
-                  <div style="background:#f8fafc; padding:16px; border-radius:6px; margin:16px 0;">
-                    <h3 style="margin:0 0 12px; color:#334155;">Your Campus Details:</h3>
-                    <p style="margin:8px 0;"><strong>Student ID:</strong> ${student.studentId}</p>
-                    <p style="margin:8px 0;"><strong>Institute:</strong> ${institute.instituteName}</p>
-                    ${student.course ? `<p style="margin:8px 0;"><strong>Course:</strong> ${student.course}</p>` : ''}
-                    ${student.semester ? `<p style="margin:8px 0;"><strong>Semester:</strong> ${student.semester}</p>` : ''}
-                    ${student.class ? `<p style="margin:8px 0;"><strong>Class:</strong> ${student.class}</p>` : ''}
-                  </div>
+          const courseInfo = student.course || student.semester || student.class
+            ? `<div style="margin:12px 0;">
+                ${student.course ? `<p style="margin:8px 0;"><strong>Course:</strong> ${student.course}</p>` : ''}
+                ${student.semester ? `<p style="margin:8px 0;"><strong>Semester:</strong> ${student.semester}</p>` : ''}
+                ${student.class ? `<p style="margin:8px 0;"><strong>Class:</strong> ${student.class}</p>` : ''}
+              </div>`
+            : '';
 
-                  <div style="background:#ecfdf5; padding:16px; border-radius:6px; margin:16px 0; border-left:4px solid #10b981;">
-                    <h3 style="margin:0 0 12px; color:#065f46;">Your Current Rewards</h3>
-                    <p style="margin:8px 0;">🏆 <strong>Golden Coins:</strong> ${student.goldCoins || 0}</p>
-                    <p style="margin:8px 0;">🥈 <strong>Silver Coins:</strong> ${student.silverCoins || 0}</p>
-                  </div>
-
-                  <p style="margin:16px 0;">You can now access your campus dashboard and all Skill-Swap features using your updated email address.</p>
-                  
-                  <p style="margin:24px 0;">
-                    <a href="https://skillswaphub.in/campus-dashboard" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">View Campus Dashboard</a>
-                  </p>
-                  
-                  <hr style="margin:24px 0; border:none; border-top:1px solid #e5e7eb"/>
-                  <p style="color:#64748b; font-size:12px;">This email was sent automatically by Skill‑Swap. Please do not reply to this message.</p>
-                </div>
-              </div>
-            `
-          };
+          const emailHtml = await getEmailTemplate('campusAddedExistingUser', {
+            firstName: student.firstName || 'Student',
+            instituteName: institute.instituteName,
+            studentId: student.studentId,
+            courseInfo
+          });
           
-          await sendMail({ to: student.email, ...emailContent });
+          await sendMail({ 
+            to: student.email, 
+            subject: `Added to ${institute.instituteName} Campus Dashboard - SkillSwap Hub`,
+            html: emailHtml
+          });
           console.log(`Email sent to updated address: ${student.email} (previously: ${oldEmail})`);
         } catch (emailError) {
           console.error('Failed to send email notification:', emailError);

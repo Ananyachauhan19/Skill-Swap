@@ -1,5 +1,5 @@
 const sendMail = require('./sendMail');
-const emailTemplates = require('./emailTemplates');
+const { getEmailTemplate } = require('./dynamicEmailTemplate');
 const AssessmentNotification = require('../models/AssessmentNotification');
 const User = require('../models/User');
 const Assessment = require('../models/Assessment');
@@ -77,10 +77,11 @@ async function sendAssessmentNotifications(assessment) {
             }
 
             const studentName = `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Student';
+            const descriptionRow = assessment.description ? `<li><b>Description:</b> ${assessment.description}</li>` : '';
             const emailData = {
               studentName,
               assessmentTitle: assessment.title,
-              description: assessment.description,
+              descriptionRow,
               startTime: assessment.startTime ? new Date(assessment.startTime).toLocaleString() : 'Now',
               endTime: assessment.endTime ? new Date(assessment.endTime).toLocaleString() : 'No deadline',
               duration: assessment.duration,
@@ -89,8 +90,8 @@ async function sendAssessmentNotifications(assessment) {
 
             // Choose email template based on compulsory status
             const emailContent = isCompulsoryForStudent
-              ? emailTemplates.compulsoryAssessmentNotification(emailData)
-              : emailTemplates.nonCompulsoryAssessmentNotification(emailData);
+              ? await getEmailTemplate('compulsoryAssessmentNotification', emailData)
+              : await getEmailTemplate('nonCompulsoryAssessmentNotification', emailData);
 
             // Send email
             await sendMail({
@@ -161,10 +162,11 @@ async function sendAssessmentNotifications(assessment) {
             }
 
             const studentName = `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Student';
+            const descriptionRow = assessment.description ? `<li><b>Description:</b> ${assessment.description}</li>` : '';
             const emailData = {
               studentName,
               assessmentTitle: assessment.title,
-              description: assessment.description,
+              descriptionRow,
               startTime: assessment.startTime ? new Date(assessment.startTime).toLocaleString() : 'Now',
               endTime: assessment.endTime ? new Date(assessment.endTime).toLocaleString() : 'No deadline',
               duration: assessment.duration,
@@ -173,8 +175,8 @@ async function sendAssessmentNotifications(assessment) {
 
             // Choose email template based on compulsory status
             const emailContent = config.isCompulsory
-              ? emailTemplates.compulsoryAssessmentNotification(emailData)
-              : emailTemplates.nonCompulsoryAssessmentNotification(emailData);
+              ? await getEmailTemplate('compulsoryAssessmentNotification', emailData)
+              : await getEmailTemplate('nonCompulsoryAssessmentNotification', emailData);
 
             // Send email
             await sendMail({
@@ -287,7 +289,7 @@ async function sendAssessmentReminders(assessment) {
           const studentName = `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Student';
           const hoursRemaining = Math.ceil((new Date(assessment.endTime) - new Date()) / (1000 * 60 * 60));
           
-          const emailContent = emailTemplates.assessmentReminder({
+          const emailContent = await getEmailTemplate('assessmentReminder', {
             studentName,
             assessmentTitle: assessment.title,
             endTime: new Date(assessment.endTime).toLocaleString(),

@@ -41,22 +41,15 @@ async function sendMail({ to, subject, html, text }) {
 exports.sendMail = sendMail;
 
 exports.sendOtpEmail = async (to, otp) => {
-  const subject = 'Your OTP Code';
-  const text = `Your OTP is: ${otp}. It is valid for 10 minutes.`;
-  await sendMail({ to, subject, text });
-};
-
-exports.sendPasswordResetEmail = async (to, resetLink) => {
-  const subject = 'Reset your Skill-Swap password';
-  const html = `
-    <div style="font-family: system-ui, Arial; max-width: 600px; margin: 0 auto;">
-      <h2>Reset your password</h2>
-      <p>We received a request to reset your password. Click the button below to set a new password. This link expires in 30 minutes.</p>
-      <p style="margin:24px 0">
-        <a href="${resetLink}" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Reset Password</a>
-      </p>
-      <p>If you did not request this, you can safely ignore this email.</p>
-    </div>
-  `;
-  await sendMail({ to, subject, html });
+  try {
+    const { getEmailTemplate } = require('./dynamicEmailTemplate');
+    const template = await getEmailTemplate('otpVerification', { otp });
+    await sendMail({ to, subject: template.subject, html: template.html });
+  } catch (error) {
+    console.error('Error sending OTP email with template:', error);
+    // Fallback to simple email if template fails
+    const subject = 'Your OTP Code';
+    const text = `Your OTP is: ${otp}. It is valid for 10 minutes.`;
+    await sendMail({ to, subject, text });
+  }
 };

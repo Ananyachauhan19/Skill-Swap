@@ -16,7 +16,7 @@ const requireAuth = require('../middleware/requireAuth');
 const { trackDailyLogin, trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
 const crypto = require('crypto');
 const { sendMail } = require('../utils/sendMail');
-const T = require('../utils/emailTemplates');
+const { getEmailTemplate } = require('../utils/dynamicEmailTemplate');
 const jwt = require('jsonwebtoken');
 
 // Sanitize array fields to remove invalid keys (e.g., _id)
@@ -252,7 +252,7 @@ router.post('/password/forgot', async (req, res) => {
     const fallbackLink = `${fallbackFrontendUrl}/reset-password?token=${token}`;
     const useFallback = fallbackLink !== link ? fallbackLink : undefined;
     console.info('[RESET] Password reset link generated', { email, originHeader, frontendUrl, link, fallbackFrontendUrl, fallbackLink });
-    const tpl = T.passwordReset({ resetLink: link, fallbackLink: useFallback });
+    const tpl = await getEmailTemplate('passwordReset', { resetLink: link, fallbackLink: useFallback });
     await sendMail({ to: email, subject: tpl.subject, html: tpl.html });
     return res.status(200).json({ message: 'If account exists, an email has been sent' });
   } catch (e) {

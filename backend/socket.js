@@ -7,7 +7,7 @@ const ChatMessage = require('./models/Chat');
 const InterviewRequest = require('./models/InterviewRequest');
 const { trackActivity, ACTIVITY_TYPES } = require('./utils/contributions');
 const { sendMail } = require('./utils/sendMail');
-const T = require('./utils/emailTemplates');
+const { getEmailTemplate } = require('./utils/dynamicEmailTemplate');
 const supabase = require('./utils/supabaseClient');
 
 // Helper: derive bucket + path from a public Supabase Storage URL
@@ -969,7 +969,7 @@ module.exports = (io) => {
           for (const t of matchingTutors) {
             const tutorDoc = await User.findById(t.userId).select('email firstName username role');
             if (tutorDoc?.email && (tutorDoc.role === 'teacher' || tutorDoc.role === 'both')) {
-              const tpl = T.sessionRequested({
+              const tpl = await getEmailTemplate('sessionRequested', {
                 tutorName: tutorDoc.firstName || tutorDoc.username,
                 requesterName,
                 subject: subjectValue || '',
@@ -1079,7 +1079,7 @@ module.exports = (io) => {
           for (const t of matchingTutors) {
             const tutorDoc = await User.findById(t.userId).select('email firstName username role');
             if (tutorDoc?.email && (tutorDoc.role === 'teacher' || tutorDoc.role === 'both')) {
-              const tpl = T.sessionRequested({
+              const tpl = await getEmailTemplate('sessionRequested', {
                 tutorName: tutorDoc.firstName || tutorDoc.username,
                 requesterName: `${requesterName} (${requester?.instituteName || 'Campus Student'})`,
                 subject: subjectValue || '',

@@ -12,7 +12,7 @@ const os = require('os');
 const supabase = require('../utils/supabaseClient');
 const cloudinary = require('../utils/cloudinary');
 const { sendMail } = require('../utils/sendMail');
-const T = require('../utils/emailTemplates');
+const { getEmailTemplate } = require('../utils/dynamicEmailTemplate');
 const { expireOverdueInterviews } = require('../cron/expireInterviews');
 
 // Get single interview request by ID
@@ -102,7 +102,7 @@ async function finalizeInterviewSchedule(reqDoc, app, scheduledAt, { autoSchedul
   try {
     const requesterDoc = await User.findById(requesterId);
     if (requesterDoc?.email) {
-      const tpl = T.interviewScheduled({
+      const tpl = await getEmailTemplate('interviewScheduled', {
         requesterName: requesterDoc.firstName || requesterDoc.username,
         company: populated.company,
         position: populated.position,
@@ -313,64 +313,55 @@ exports.submitRequest = async (req, res) => {
   await reqDoc.save();
     await reqDoc.populate('requester', 'firstName lastName username profilePic');
 
-    // Notify admins
     const io = req.app.get('io');
-    const adminEmail = (process.env.ADMIN_EMAIL || '').toLowerCase();
-    let admin = null;
-    if (adminEmail) admin = await User.findOne({ email: adminEmail });
 
-    if (admin) {
-      const notification = await Notification.create({
-        userId: admin._id,
-        type: 'interview-requested',
-        message: `${req.user.firstName} ${req.user.lastName} requested an interview at ${company} for ${position}`,
-        requestId: reqDoc._id,
-        requesterId: requester,
-        requesterName: `${req.user.firstName} ${req.user.lastName}`,
-        company,
-        position,
-        timestamp: Date.now(),
-      });
-
-      if (io && admin._id) io.to(admin._id.toString()).emit('notification', notification);
-    }
-
-    // Send confirmation email to candidate (requester) - NO notification stored, only toaster via API response
-    try {
-      // Send email confirmation to candidate
-      if (req.user.email) {
-        const tpl = T.interviewRequestConfirmation({
-          requesterName: req.user.firstName || req.user.username,
-          company,
-          position
-        });
-        await sendMail({ to: req.user.email, subject: tpl.subject, html: tpl.html });
+    // Send confirmation email to requester ONLY if no interviewer was selected (pending status)
+    // When interviewer is selected, only the interviewer gets notified
+    if (!reqDoc.assignedInterviewer) {
+      try {
+        // Send email confirmation to candidate
+        if (req.user.email) {
+          const tpl = await getEmailTemplate('interviewRequestConfirmation', {
+            requesterName: req.user.firstName || req.user.username,
+            company,
+            position
+          });
+          await sendMail({ to: req.user.email, subject: tpl.subject, html: tpl.html });
+        }
+      } catch (e) {
+        console.error('Failed to send candidate confirmation email', e);
       }
-    } catch (e) {
-      console.error('Failed to send candidate confirmation email', e);
     }
 
-    // Email and notify interviewer if pre-assigned
+    // Email and notify interviewer if pre-assigned (user selected an interviewer)
     if (reqDoc.assignedInterviewer) {
       try {
         const interviewer = await User.findById(reqDoc.assignedInterviewer);
         if (interviewer) {
-          // Send email to expert
+          // Send email to interviewer - use "interviewRequested" template for direct requests
           if (interviewer.email) {
-            const tpl = T.interviewAssigned({
+            const messageBlock = message 
+              ? `<div style="background:#f8fafc; padding:12px; border-radius:6px; margin:16px 0; border-left:3px solid #64748b;">
+                  <p style="margin:0; color:#334155; font-size:14px;"><b>Message from candidate:</b></p>
+                  <p style="margin:8px 0 0; color:#475569;">${message}</p>
+                </div>`
+              : '';
+            
+            const tpl = await getEmailTemplate('interviewRequested', {
               interviewerName: interviewer.firstName || interviewer.username,
+              requesterName: `${req.user.firstName} ${req.user.lastName}`,
               company,
               position,
-              requesterName: `${req.user.firstName} ${req.user.lastName}`
+              messageBlock
             });
             await sendMail({ to: interviewer.email, subject: tpl.subject, html: tpl.html });
           }
 
-          // Send in-app notification so the expert sees a toast
+          // Send in-app notification
           const notification = await Notification.create({
             userId: interviewer._id,
             type: 'interview-assigned',
-            message: `You have been assigned an interview request at ${company} for ${position}`,
+            message: `${req.user.firstName} ${req.user.lastName} requested an interview at ${company} for ${position}`,
             requestId: reqDoc._id,
             requesterId: requester,
             requesterName: `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim(),
@@ -381,7 +372,7 @@ exports.submitRequest = async (req, res) => {
           if (io && interviewer._id) io.to(interviewer._id.toString()).emit('notification', notification);
         }
       } catch (e) {
-        console.error('Failed to send interviewer assignment email/notification', e);
+        console.error('Failed to send interviewer request email/notification', e);
       }
     }
     res.status(201).json({ message: 'Interview request submitted', request: reqDoc });
@@ -1153,7 +1144,7 @@ exports.assignInterviewer = async (req, res) => {
     // Send email to interviewer
     try {
       if (interviewer.email) {
-        const tpl = T.interviewAssigned({
+        const tpl = await getEmailTemplate('interviewAssigned', {
           interviewerName: interviewer.firstName || interviewer.username,
           company: reqDoc.company,
           position: reqDoc.position,
@@ -1306,7 +1297,7 @@ exports.suggestInterviewerSlots = async (req, res) => {
       try {
         if (populated.requester.email) {
           const slotsText = normalizedSlots.map((s, i) => `Option ${i + 1}: ${new Date(s.start).toLocaleString()}`).join('<br/>');
-          const tpl = T.interviewSlotsProposed({
+          const tpl = await getEmailTemplate('interviewSlotsProposed', {
             requesterName: populated.requester.firstName || populated.requester.username,
             interviewerName,
             company: populated.company,
@@ -1459,7 +1450,7 @@ exports.requesterSuggestAlternateSlots = async (req, res) => {
       try {
         if (populated.assignedInterviewer.email) {
           const slotsText = normalizedSlots.map((s, i) => `Option ${i + 1}: ${new Date(s.start).toLocaleString()}`).join('<br/>');
-          const tpl = T.interviewAlternateSlotsProposed({
+          const tpl = await getEmailTemplate('interviewAlternateSlotsProposed', {
             interviewerName: populated.assignedInterviewer.firstName || populated.assignedInterviewer.username,
             candidateName,
             company: populated.company,
@@ -1579,7 +1570,7 @@ exports.interviewerRejectAlternateSlots = async (req, res) => {
       // Send email to candidate
       try {
         if (populated.requester.email) {
-          const tpl = T.interviewAlternateRejected({
+          const tpl = await getEmailTemplate('interviewAlternateRejected', {
             requesterName,
             interviewerName,
             company: populated.company,
@@ -1639,7 +1630,7 @@ exports.approveAssignedInterview = async (req, res) => {
     try {
       const requester = await User.findById(reqDoc.requester);
       if (requester?.email) {
-        const tpl = T.interviewScheduled({
+        const tpl = await getEmailTemplate('interviewScheduled', {
           requesterName: requester.firstName || requester.username,
           company: reqDoc.company,
           position: reqDoc.position,
@@ -1751,7 +1742,7 @@ exports.rejectAssignedInterview = async (req, res) => {
     try {
       const requester = await User.findById(reqDoc.requester);
       if (requester?.email) {
-        const tpl = T.interviewRejected({
+        const tpl = await getEmailTemplate('interviewRejected', {
           requesterName: requester.firstName || requester.username,
           company: reqDoc.company,
           position: reqDoc.position,
@@ -1787,9 +1778,6 @@ exports.scheduleInterview = async (req, res) => {
     const reqDoc = await InterviewRequest.findById(requestId);
     if (!reqDoc) return res.status(404).json({ message: 'Interview request not found' });
 
-    const wasScheduled = reqDoc.status === 'scheduled' && !!reqDoc.scheduledAt;
-    const previousScheduledAt = reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt) : null;
-
     // Only assigned interviewer can schedule
     if (!reqDoc.assignedInterviewer || reqDoc.assignedInterviewer.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to schedule this interview' });
@@ -1804,14 +1792,11 @@ exports.scheduleInterview = async (req, res) => {
 
     // Notify requester (candidate) with socket event
     const io = req.app.get('io');
-    const notificationType = wasScheduled ? 'interview-rescheduled' : 'interview-scheduled';
-    const notificationMessage = wasScheduled 
-      ? `Your interview for ${reqDoc.position} at ${reqDoc.company} has been rescheduled to ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`
-      : `Your interview for ${reqDoc.position} at ${reqDoc.company} has been scheduled for ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`;
+    const notificationMessage = `Your interview for ${reqDoc.position} at ${reqDoc.company} has been scheduled for ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`;
     
     const notification = await Notification.create({
       userId: reqDoc.requester._id,
-      type: notificationType,
+      type: 'interview-scheduled',
       message: notificationMessage,
       requestId: reqDoc._id,
       requesterId: reqDoc.assignedInterviewer._id,
@@ -1825,7 +1810,7 @@ exports.scheduleInterview = async (req, res) => {
       io.to(reqDoc.requester._id.toString()).emit('notification', notification);
       // Emit toast event for real-time popup
       io.to(reqDoc.requester._id.toString()).emit('interview-time-update', {
-        type: wasScheduled ? 'reschedule' : 'schedule',
+        type: 'schedule',
         requestId: reqDoc._id,
         company: reqDoc.company,
         position: reqDoc.position,
@@ -1837,23 +1822,15 @@ exports.scheduleInterview = async (req, res) => {
     // Send email to candidate (requester)
     try {
       if (reqDoc.requester?.email) {
-        const tpl = wasScheduled
-          ? T.interviewRescheduled({
-              requesterName: reqDoc.requester.firstName || reqDoc.requester.username,
-              company: reqDoc.company,
-              position: reqDoc.position,
-              scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
-              interviewerName: `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`.trim() || reqDoc.assignedInterviewer.username
-            })
-          : T.interviewScheduled({
-              requesterName: reqDoc.requester.firstName || reqDoc.requester.username,
-              company: reqDoc.company,
-              position: reqDoc.position,
-              scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
-              interviewerName: `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`.trim() || reqDoc.assignedInterviewer.username
-            });
+        const tpl = await getEmailTemplate('interviewScheduled', {
+          requesterName: reqDoc.requester.firstName || reqDoc.requester.username,
+          company: reqDoc.company,
+          position: reqDoc.position,
+          scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
+          interviewerName: `${reqDoc.assignedInterviewer.firstName || ''} ${reqDoc.assignedInterviewer.lastName || ''}`.trim() || reqDoc.assignedInterviewer.username
+        });
         await sendMail({ to: reqDoc.requester.email, subject: tpl.subject, html: tpl.html });
-        console.log(`[Interview] ${wasScheduled ? 'Reschedule' : 'Schedule'} email sent to candidate: ${reqDoc.requester.email}`);
+        console.log(`[Interview] Schedule email sent to candidate: ${reqDoc.requester.email}`);
       }
     } catch (e) {
       console.error('Failed to send interview schedule email to candidate', e);
@@ -1861,13 +1838,11 @@ exports.scheduleInterview = async (req, res) => {
 
     // Notify and email the interviewer (confirmation)
     try {
-      const interviewerMessage = wasScheduled
-        ? `You have rescheduled the interview for ${reqDoc.position} at ${reqDoc.company} to ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`
-        : `You have scheduled the interview for ${reqDoc.position} at ${reqDoc.company} for ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`;
+      const interviewerMessage = `You have scheduled the interview for ${reqDoc.position} at ${reqDoc.company} for ${reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD'}`;
       
       const notifInterviewer = await Notification.create({
         userId: reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer,
-        type: wasScheduled ? 'interview-rescheduled-confirmation' : 'interview-scheduled-confirmation',
+        type: 'interview-scheduled-confirmation',
         message: interviewerMessage,
         requestId: reqDoc._id,
         requesterId: reqDoc.requester._id,
@@ -1881,7 +1856,7 @@ exports.scheduleInterview = async (req, res) => {
         io.to((reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer).toString()).emit('notification', notifInterviewer);
         // Emit toast event for interviewer
         io.to((reqDoc.assignedInterviewer._id || reqDoc.assignedInterviewer).toString()).emit('interview-time-update', {
-          type: wasScheduled ? 'reschedule-confirmation' : 'schedule-confirmation',
+          type: 'schedule-confirmation',
           requestId: reqDoc._id,
           company: reqDoc.company,
           position: reqDoc.position,
@@ -1892,23 +1867,15 @@ exports.scheduleInterview = async (req, res) => {
       
       // Send email to interviewer
       if (reqDoc.assignedInterviewer?.email) {
-        const interviewerEmailTpl = wasScheduled
-          ? T.interviewRescheduledInterviewer({
-              interviewerName: reqDoc.assignedInterviewer.firstName || reqDoc.assignedInterviewer.username,
-              company: reqDoc.company,
-              position: reqDoc.position,
-              scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
-              candidateName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username
-            })
-          : T.interviewScheduledInterviewer({
-              interviewerName: reqDoc.assignedInterviewer.firstName || reqDoc.assignedInterviewer.username,
-              company: reqDoc.company,
-              position: reqDoc.position,
-              scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
-              candidateName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username
-            });
+        const interviewerEmailTpl = await getEmailTemplate('interviewScheduledInterviewer', {
+          interviewerName: reqDoc.assignedInterviewer.firstName || reqDoc.assignedInterviewer.username,
+          company: reqDoc.company,
+          position: reqDoc.position,
+          scheduledAt: reqDoc.scheduledAt ? new Date(reqDoc.scheduledAt).toLocaleString() : 'TBD',
+          candidateName: `${reqDoc.requester.firstName || ''} ${reqDoc.requester.lastName || ''}`.trim() || reqDoc.requester.username
+        });
         await sendMail({ to: reqDoc.assignedInterviewer.email, subject: interviewerEmailTpl.subject, html: interviewerEmailTpl.html });
-        console.log(`[Interview] ${wasScheduled ? 'Reschedule' : 'Schedule'} confirmation email sent to interviewer: ${reqDoc.assignedInterviewer.email}`);
+        console.log(`[Interview] Schedule confirmation email sent to interviewer: ${reqDoc.assignedInterviewer.email}`);
       }
     } catch (e) {
       console.error('[Interview] Failed to send interviewer confirmation notification/email', e);
