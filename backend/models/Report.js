@@ -4,7 +4,7 @@ const ReportSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ['video', 'account'],
+      enum: ['video', 'account', 'request'],
       required: true,
     },
     reporter: {
@@ -27,6 +27,15 @@ const ReportSchema = new mongoose.Schema(
     // Account context
     reportedUserId: { type: String },
     reportedUsername: { type: String },
+
+    // Request context
+    requestId: { type: String },
+    requestType: { type: String }, // interview, session, expert, skillmate
+    requestStatus: { type: String },
+    requestCompany: { type: String },
+    requestPosition: { type: String },
+    requestSubject: { type: String },
+    requestTopic: { type: String },
 
     // Resolution metadata
     resolved: { type: Boolean, default: false },

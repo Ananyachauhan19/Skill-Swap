@@ -8,7 +8,8 @@ import {
   FaUserShield, 
   FaVideo, 
   FaArrowLeft,
-  FaCheckCircle 
+  FaCheckCircle,
+  FaHandshake
 } from "react-icons/fa";
 import { MdReport } from "react-icons/md";
 
@@ -18,7 +19,10 @@ const ReportPage = () => {
   const { user } = useAuth();
   const video = state?.video;
   const reportedUser = state?.user || state?.reportedUser;
-  const reportType = video ? "video" : "account";
+  const requestData = state?.request;
+  const isReceived = state?.isReceived;
+  
+  const reportType = video ? "video" : requestData ? "request" : "account";
 
   const [email, setEmail] = useState("");
   const [selectedIssues, setSelectedIssues] = useState([]);
@@ -26,13 +30,24 @@ const ReportPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  const issues = [
+  const issuesForVideo = [
     { label: "Inappropriate content", icon: "🚫" },
     { label: "Misleading or spam", icon: "⚠️" },
     { label: "Hate speech or abuse", icon: "💢" },
     { label: "Copyright violation", icon: "©️" },
     { label: "Violence or dangerous acts", icon: "⛔" },
   ];
+  
+  const issuesForRequest = [
+    { label: "Inappropriate behavior", icon: "🚫" },
+    { label: "Spam or misleading request", icon: "⚠️" },
+    { label: "Harassment or abuse", icon: "💢" },
+    { label: "No-show or ghosting", icon: "👻" },
+    { label: "Unprofessional conduct", icon: "⛔" },
+    { label: "Other issue", icon: "❓" },
+  ];
+  
+  const issues = reportType === "request" ? issuesForRequest : issuesForVideo;
 
   const handleCheckboxChange = (issue) => {
     setSelectedIssues((prev) =>
@@ -65,7 +80,9 @@ const ReportPage = () => {
         issues: selectedIssues,
         otherDetails: other,
         video: reportType === "video" ? video : undefined,
-        reportedUser: reportType === "account" ? reportedUser : undefined,
+        request: reportType === "request" ? requestData : undefined,
+        reportedUser: reportType === "account" || reportType === "request" ? reportedUser : undefined,
+        isReceived: reportType === "request" ? isReceived : undefined,
       };
 
       const res = await fetch(`${BACKEND_URL}/api/report`, {
@@ -120,7 +137,7 @@ const ReportPage = () => {
               </div>
               <div>
                 <h1 className="text-xl sm:text-3xl font-bold text-white">
-                  {reportType === "video" ? "Report Video" : "Report User Account"}
+                  {reportType === "video" ? "Report Video" : reportType === "request" ? "Report Request" : "Report User Account"}
                 </h1>
                 <p className="text-red-100 text-xs sm:text-sm mt-1">
                   Help us maintain a safe community
@@ -185,6 +202,45 @@ const ReportPage = () => {
                   <p className="text-xs sm:text-sm text-gray-600">
                     Username: <span className="font-medium">@{reportedUser.username || reportedUser.userId || reportedUser._id}</span>
                   </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {reportType === "request" && requestData && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mx-4 sm:mx-8 mt-4 sm:mt-6 p-4 sm:p-5 border-2 border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-white hover:shadow-md transition-shadow duration-200"
+            >
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="bg-red-100 p-2 sm:p-3 rounded-lg flex-shrink-0">
+                  <FaHandshake className="text-red-600 text-lg sm:text-xl" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">
+                    {requestData.type === 'interview' ? 'Interview Request' : 
+                     requestData.type === 'expert' ? 'Expert Session Request' : 
+                     requestData.type === 'skillmate' ? 'SkillMate Request' : 'Session Request'}
+                  </h3>
+                  <div className="space-y-1.5 text-xs sm:text-sm text-gray-600">
+                    {requestData.company && (
+                      <p><span className="font-medium">Company:</span> {requestData.company}</p>
+                    )}
+                    {requestData.position && (
+                      <p><span className="font-medium">Position:</span> {requestData.position}</p>
+                    )}
+                    {requestData.subject && (
+                      <p><span className="font-medium">Subject:</span> {requestData.subject}</p>
+                    )}
+                    {requestData.topic && (
+                      <p><span className="font-medium">Topic:</span> {requestData.topic}</p>
+                    )}
+                    <p><span className="font-medium">Status:</span> {requestData.status}</p>
+                    {reportedUser && (
+                      <p><span className="font-medium">{isReceived ? 'Requester' : 'Recipient'}:</span> @{reportedUser.username || reportedUser.userId || reportedUser._id}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>
