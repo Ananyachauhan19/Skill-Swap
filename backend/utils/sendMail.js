@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const emailTemplates = require('./emailTemplates');
 
 function createTransport() {
   const host = process.env.SMTP_HOST;
@@ -41,22 +42,11 @@ async function sendMail({ to, subject, html, text }) {
 exports.sendMail = sendMail;
 
 exports.sendOtpEmail = async (to, otp) => {
-  const subject = 'Your OTP Code';
-  const text = `Your OTP is: ${otp}. It is valid for 10 minutes.`;
-  await sendMail({ to, subject, text });
+  const tpl = emailTemplates.otpEmail({ otp, validityMinutes: 10 });
+  await sendMail({ to, subject: tpl.subject, html: tpl.html });
 };
 
 exports.sendPasswordResetEmail = async (to, resetLink) => {
-  const subject = 'Reset your Skill-Swap password';
-  const html = `
-    <div style="font-family: system-ui, Arial; max-width: 600px; margin: 0 auto;">
-      <h2>Reset your password</h2>
-      <p>We received a request to reset your password. Click the button below to set a new password. This link expires in 30 minutes.</p>
-      <p style="margin:24px 0">
-        <a href="${resetLink}" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">Reset Password</a>
-      </p>
-      <p>If you did not request this, you can safely ignore this email.</p>
-    </div>
-  `;
-  await sendMail({ to, subject, html });
+  const tpl = emailTemplates.passwordReset({ resetLink });
+  await sendMail({ to, subject: tpl.subject, html: tpl.html });
 };

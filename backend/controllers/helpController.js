@@ -82,7 +82,7 @@ exports.submitHelpRequest = async (req, res) => {
     `;
 
     await sendMail({
-      to: 'skillswaphubb@gmail.com',
+      to: 'info@skillswaphub.in',
       subject: `Help Request from ${name}`,
       html: emailContent
     });
@@ -200,7 +200,7 @@ exports.replyToHelpMessage = async (req, res) => {
       <h3>Our Response:</h3>
       <p style="background: #e3f2fd; padding: 10px; border-radius: 5px;">${reply.replace(/\n/g, '<br>')}</p>
       <hr/>
-      <p>If you have any further questions, feel free to contact us again.</p>
+      <p>If you have any further questions, feel free to contact us again or write to <a href="mailto:info@skillswaphub.in">info@skillswaphub.in</a>.</p>
       <p>Best regards,<br/>SkillSwap Hub Support Team</p>
       <p style="font-size: 12px; color: #666;">
         <em>This email was sent in response to your help request submitted on ${new Date(helpMessage.createdAt).toLocaleString()}</em>
