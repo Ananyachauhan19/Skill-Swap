@@ -59,6 +59,7 @@ import Settings from './admin/Settings.jsx';
 import Analytics from './admin/Analytics.jsx';
 import AdminHelpSupport from './admin/AdminHelpSupport.jsx';
 import AdminPackages from './admin/AdminPackages.jsx';
+import AdminCareer from './admin/AdminCareer.jsx';
 import AdminLayout from './admin/AdminLayout.jsx';
 import PrivacyPolicy from './components/footer/PrivacyPolicy.jsx';
 import Community from './components/footer/Community.jsx';
@@ -343,6 +344,7 @@ const adminOnlyRoutes = [
           { path: 'packages', element: <AdminPackages /> },
           { path: 'reports', element: <Reports /> },
           { path: 'help-support', element: <AdminHelpSupport /> },
+          { path: 'career', element: <AdminCareer /> },
           { path: 'email-templates', element: <EmailTemplates /> },
           { path: 'settings', element: <Settings /> },
           { path: 'tutor-verification', element: <TutorVerification /> },

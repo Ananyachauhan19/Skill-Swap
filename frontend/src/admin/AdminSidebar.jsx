@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   FiHome, FiUsers, FiFileText, FiPackage, FiHelpCircle, 
   FiSettings, FiCalendar, FiChevronLeft, FiChevronRight,
-  FiLogOut, FiAlertCircle, FiEye, FiShield, FiMail
+  FiLogOut, FiAlertCircle, FiEye, FiShield, FiMail, FiBriefcase
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,6 +29,7 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
         { label: 'Visitors', icon: FiEye, path: '/admin/visitors' },
         { label: 'Employees', icon: FiUsers, path: '/admin/employees' },
         { label: 'Quizzment', icon: FiFileText, path: '/admin/quizzment' },
+        { label: 'Career', icon: FiBriefcase, path: '/admin/career' },
         { label: 'Packages', icon: FiPackage, path: '/admin/packages' }
       ]
     },

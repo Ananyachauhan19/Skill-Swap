@@ -6,6 +6,7 @@ const navItems = [
   { label: 'Dashboard', to: '/admin/dashboard' },
   { label: 'Applications', to: '/admin/applications' },
   { label: 'Interview Requests', to: '/admin/interview-requests' },
+  { label: 'Career', to: '/admin/career' },
   { label: 'Users', to: '/admin/users' },
   { label: 'Packages', to: '/admin/packages' },
   { label: 'Help', to: '/admin/help-support' },

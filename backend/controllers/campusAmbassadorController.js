@@ -2679,8 +2679,8 @@ exports.getGlobalTopStudent = async (req, res) => {
 // Get global top institute
 exports.getGlobalTopInstitute = async (req, res) => {
   try {
-    // Get all institutes
-    const institutes = await Institute.find({}).select('instituteId instituteName instituteType students');
+    // Get all institutes with campusBackgroundImage field
+    const institutes = await Institute.find({}).select('instituteId instituteName instituteType students campusBackgroundImage');
 
     if (institutes.length === 0) {
       return res.status(200).json({ topInstitute: null });
@@ -2708,6 +2708,7 @@ exports.getGlobalTopInstitute = async (req, res) => {
           instituteId: institute.instituteId,
           instituteName: institute.instituteName,
           instituteType: institute.instituteType,
+          campusBackgroundImage: institute.campusBackgroundImage,
           totalStudents: 0,
           totalSessions: 0,
           totalQuizMarks: 0,
@@ -2743,6 +2744,7 @@ exports.getGlobalTopInstitute = async (req, res) => {
         instituteId: institute.instituteId,
         instituteName: institute.instituteName,
         instituteType: institute.instituteType,
+        campusBackgroundImage: institute.campusBackgroundImage,
         totalStudents: students.length,
         totalSessions,
         totalQuizMarks,

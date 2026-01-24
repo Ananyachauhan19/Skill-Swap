@@ -51,6 +51,7 @@ const dataRoutes = require('./routes/dataRoutes');
 const googleDataRoutes = require('./routes/googleDataRoutes');
 const coinTransactionRoutes = require('./routes/coinTransactionRoutes');
 const emailTemplateRoutes = require('./routes/emailTemplateRoutes');
+const careerRoutes = require('./routes/careerRoutes');
 const cron = require('node-cron');
 const Session = require('./models/Session');
 const User = require('./models/User');
@@ -175,6 +176,7 @@ app.use('/api/data', dataRoutes);
 app.use('/api/google-data', googleDataRoutes);
 app.use('/api/coin-transactions', coinTransactionRoutes);
 app.use('/api/admin/email-templates', emailTemplateRoutes);
+app.use('/api/career', careerRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');
@@ -199,7 +201,15 @@ app.use((err, req, res, next) => {
   return res.status(err.status || 500).json({ message: err.message || 'Internal Server Error' });
 });
 
-mongoose.connect(process.env.MONGO_URI)
+// MongoDB Connection with better error handling and auto-reconnection
+mongoose.connect(process.env.MONGO_URI, {
+  maxPoolSize: 10,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+  family: 4,
+  retryWrites: true,
+  retryReads: true,
+})
   .then(async () => {
     console.log('MongoDB Connected');
     
@@ -391,4 +401,58 @@ mongoose.connect(process.env.MONGO_URI)
       console.log('[InterviewExpiry] Cron disabled. Set ENABLE_INTERVIEW_EXPIRY_CRON=true to enable.');
     }
   })
-  .catch((err) => console.log(err));
+  .catch((err) => {
+    console.error('[MongoDB] Connection failed:', err);
+    process.exit(1);
+  });
+
+// MongoDB connection event handlers for better monitoring and error recovery
+mongoose.connection.on('connected', () => {
+  console.log('[MongoDB] Successfully connected to database');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('[MongoDB] Connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('[MongoDB] Disconnected from database');
+});
+
+mongoose.connection.on('reconnected', () => {
+  console.log('[MongoDB] Reconnected to database');
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  try {
+    await mongoose.connection.close();
+    console.log('[MongoDB] Connection closed through app termination');
+    process.exit(0);
+  } catch (err) {
+    console.error('[MongoDB] Error during graceful shutdown:', err);
+    process.exit(1);
+  }
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  console.error('[UnhandledRejection]', err);
+  // Don't exit in production - log and continue
+  if (process.env.NODE_ENV !== 'production') {
+    process.exit(1);
+  }
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('[UncaughtException]', err);
+  // Don't exit in production for certain errors - log and continue
+  if (err.code === 'ECONNRESET' || err.code === 'EPIPE') {
+    console.log('[UncaughtException] Connection error caught, continuing...');
+    return;
+  }
+  if (process.env.NODE_ENV !== 'production') {
+    process.exit(1);
+  }
+});

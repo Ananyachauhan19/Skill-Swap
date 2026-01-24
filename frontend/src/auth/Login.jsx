@@ -193,7 +193,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
           otp,
         }, { withCredentials: true });
 
-        const { user } = res.data;
+        const { user, token } = res.data;
         console.log('[LOGIN] User data after OTP verification:', {
           role: user.role,
           isCampusAmbassador: user.isCampusAmbassador,
@@ -205,6 +205,9 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
         
         Cookies.set('user', JSON.stringify(user), { expires: 1 });
         localStorage.setItem('user', JSON.stringify(user));
+        if (token) {
+          localStorage.setItem('token', token);
+        }
         Cookies.set('registeredEmail', emailForOtp, { expires: 1 });
         Cookies.set('isRegistered', 'true', { expires: 1 });
         setUser(user);
