@@ -1,5 +1,7 @@
 const HelpMessage = require('../models/HelpMessage');
+const EmailTemplate = require('../models/EmailTemplate');
 const { sendMail } = require('../utils/sendMail');
+const { baseLayout } = require('../utils/emailLayoutHelper');
 
 const getRangeForPeriod = (period, date) => {
   if (!period || !date) return null;
@@ -68,24 +70,47 @@ exports.submitHelpRequest = async (req, res) => {
 
     await helpMessage.save();
 
-    // Send notification email to support team
-    const emailContent = `
-      <h2>New Help Request from SkillSwap Hub</h2>
-      <p><strong>From:</strong> ${name} (${email})</p>
-      <p><strong>User ID:</strong> ${req.user?._id || 'Guest'}</p>
-      <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
-      <hr/>
-      <h3>Message:</h3>
-      <p>${message.replace(/\n/g, '<br>')}</p>
-      <hr/>
-      <p><em>Please reply to this help request from the Admin Panel.</em></p>
-    `;
+    // Send notification email to support team using dynamic template
+    try {
+      const template = await EmailTemplate.findOne({ 
+        templateKey: 'help_request_notification',
+        isActive: true 
+      });
 
-    await sendMail({
-      to: 'info@skillswaphub.in',
-      subject: `Help Request from ${name}`,
-      html: emailContent
-    });
+      let emailContent;
+      if (template) {
+        // Use dynamic template with variable replacement
+        emailContent = template.htmlBody
+          .replace(/\$\{userName\}/g, name)
+          .replace(/\$\{userEmail\}/g, email)
+          .replace(/\$\{userId\}/g, req.user?._id || 'Guest')
+          .replace(/\$\{message\}/g, message.replace(/\n/g, '<br>'))
+          .replace(/\$\{date\}/g, new Date().toLocaleString())
+          .replace(/\$\{helpMessageId\}/g, helpMessage._id);
+      } else {
+        // Fallback to default template with base layout
+        const content = `
+          <p><strong>From:</strong> ${name} (${email})</p>
+          <p><strong>User ID:</strong> ${req.user?._id || 'Guest'}</p>
+          <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+          <hr style="margin:16px 0; border:none; border-top:1px solid #e5e7eb"/>
+          <h3 style="margin:12px 0; color:#0f172a;">Message:</h3>
+          <p style="background:#f8fafc; padding:12px; border-radius:6px; border-left:3px solid #0ea5e9;">${message.replace(/\n/g, '<br>')}</p>
+          <hr style="margin:16px 0; border:none; border-top:1px solid #e5e7eb"/>
+          <p style="color:#64748b; font-size:14px;"><em>Please reply to this help request from the Admin Panel.</em></p>
+        `;
+        emailContent = await baseLayout('New Help Request', content);
+      }
+
+      await sendMail({
+        to: 'skillswaphubb@gmail.com',
+        subject: template?.subject?.replace(/\$\{userName\}/g, name) || `Help Request from ${name}`,
+        html: emailContent
+      });
+    } catch (emailError) {
+      console.error('Error sending support notification email:', emailError);
+      // Continue even if email fails
+    }
 
     res.status(200).json({ 
       message: 'Your help request has been submitted successfully. We will get back to you soon!',
@@ -188,30 +213,51 @@ exports.replyToHelpMessage = async (req, res) => {
     helpMessage.repliedAt = new Date();
     await helpMessage.save();
 
-    // Send reply email to user
-    const replyEmailContent = `
-      <h2>SkillSwap Hub Support Team Response</h2>
-      <p>Hello ${helpMessage.name},</p>
-      <p>Thank you for reaching out to us. Here's our response to your inquiry:</p>
-      <hr/>
-      <h3>Your Message:</h3>
-      <p style="background: #f5f5f5; padding: 10px; border-radius: 5px;">${helpMessage.message.replace(/\n/g, '<br>')}</p>
-      <hr/>
-      <h3>Our Response:</h3>
-      <p style="background: #e3f2fd; padding: 10px; border-radius: 5px;">${reply.replace(/\n/g, '<br>')}</p>
-      <hr/>
-      <p>If you have any further questions, feel free to contact us again or write to <a href="mailto:info@skillswaphub.in">info@skillswaphub.in</a>.</p>
-      <p>Best regards,<br/>SkillSwap Hub Support Team</p>
-      <p style="font-size: 12px; color: #666;">
-        <em>This email was sent in response to your help request submitted on ${new Date(helpMessage.createdAt).toLocaleString()}</em>
-      </p>
-    `;
+    // Send reply email to user using dynamic template
+    try {
+      const template = await EmailTemplate.findOne({ 
+        templateKey: 'help_request_reply',
+        isActive: true 
+      });
 
-    await sendMail({
-      to: helpMessage.email,
-      subject: 'Re: Your SkillSwap Hub Help Request',
-      html: replyEmailContent
-    });
+      let replyEmailContent;
+      if (template) {
+        // Use dynamic template with variable replacement
+        replyEmailContent = template.htmlBody
+          .replace(/\$\{userName\}/g, helpMessage.name)
+          .replace(/\$\{userMessage\}/g, helpMessage.message.replace(/\n/g, '<br>'))
+          .replace(/\$\{adminReply\}/g, reply.replace(/\n/g, '<br>'))
+          .replace(/\$\{submittedDate\}/g, new Date(helpMessage.createdAt).toLocaleString())
+          .replace(/\$\{repliedDate\}/g, new Date().toLocaleString());
+      } else {
+        // Fallback to default template with base layout
+        const content = `
+          <p>Hello <strong>${helpMessage.name}</strong>,</p>
+          <p>Thank you for reaching out to us. Here's our response to your inquiry:</p>
+          <hr style="margin:16px 0; border:none; border-top:1px solid #e5e7eb"/>
+          <h3 style="margin:12px 0; color:#0f172a;">Your Message:</h3>
+          <p style="background:#f8fafc; padding:12px; border-radius:6px; border-left:3px solid #64748b;">${helpMessage.message.replace(/\n/g, '<br>')}</p>
+          <hr style="margin:16px 0; border:none; border-top:1px solid #e5e7eb"/>
+          <h3 style="margin:12px 0; color:#0f172a;">Our Response:</h3>
+          <p style="background:#e0f2fe; padding:12px; border-radius:6px; border-left:3px solid #0ea5e9;">${reply.replace(/\n/g, '<br>')}</p>
+          <hr style="margin:16px 0; border:none; border-top:1px solid #e5e7eb"/>
+          <p style="color:#475569;">If you have any further questions, feel free to contact us again.</p>
+          <p style="font-size:12px; color:#94a3b8; margin-top:16px;">
+            <em>This email was sent in response to your help request submitted on ${new Date(helpMessage.createdAt).toLocaleString()}</em>
+          </p>
+        `;
+        replyEmailContent = await baseLayout('Support Team Response', content);
+      }
+
+      await sendMail({
+        to: helpMessage.email,
+        subject: template?.subject?.replace(/\$\{userName\}/g, helpMessage.name) || 'Re: Your SkillSwap Hub Help Request',
+        html: replyEmailContent
+      });
+    } catch (emailError) {
+      console.error('Error sending reply email:', emailError);
+      // Continue even if email fails - the reply is already saved
+    }
 
     res.status(200).json({ 
       message: 'Reply sent successfully',

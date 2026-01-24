@@ -37,7 +37,8 @@ if (hasGoogleOauth) {
               lastName: profile.name.familyName || 'User',
               username,
               provider: 'google',
-              role: 'student', // Default role for new Google OAuth users
+              // Ensure all Google users start as learners by default
+              role: 'learner',
               skillsToTeach: [],
               skillsToLearn: [],
               bio: '',

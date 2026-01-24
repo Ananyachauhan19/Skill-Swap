@@ -50,12 +50,13 @@ const quizementEmployeeRoutes = require('./routes/quizementEmployeeRoutes');
 const dataRoutes = require('./routes/dataRoutes');
 const googleDataRoutes = require('./routes/googleDataRoutes');
 const coinTransactionRoutes = require('./routes/coinTransactionRoutes');
+const emailTemplateRoutes = require('./routes/emailTemplateRoutes');
 const cron = require('node-cron');
 const Session = require('./models/Session');
 const User = require('./models/User');
 const Notification = require('./models/Notification');
 const { sendMail } = require('./utils/sendMail');
-const emailTemplates = require('./utils/emailTemplates');
+const emailTemplates = require('./utils/dynamicEmailTemplate');
 const anonymousVisitorTracking = require('./middleware/anonymousVisitorTracking');
 const { expireOverdueInterviews } = require('./cron/expireInterviews');
 const { initAssessmentCronJobs } = require('./cron/assessmentCronJobs');
@@ -173,6 +174,7 @@ app.use('/api', quizementEmployeeRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/google-data', googleDataRoutes);
 app.use('/api/coin-transactions', coinTransactionRoutes);
+app.use('/api/admin/email-templates', emailTemplateRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');
@@ -325,7 +327,7 @@ mongoose.connect(process.env.MONGO_URI)
               io.to(String(invited._id)).emit('notification', invitedNotif);
 
               try {
-                const t1 = emailTemplates.expertSessionReminder({
+                const t1 = await getEmailTemplate('expertSessionReminder', {
                   recipientName: creator.name,
                   otherPartyName: invited.name,
                   subject,
@@ -339,7 +341,7 @@ mongoose.connect(process.env.MONGO_URI)
               }
 
               try {
-                const t2 = emailTemplates.expertSessionReminder({
+                const t2 = await getEmailTemplate('expertSessionReminder', {
                   recipientName: invited.name,
                   otherPartyName: creator.name,
                   subject,

@@ -13,6 +13,7 @@ import {
   FaBars,
   FaFileAlt
 } from 'react-icons/fa';
+import { MdMoreVert, MdReport } from 'react-icons/md';
 import { BACKEND_URL } from '../config.js';
 import socket from '../socket';
 import { useAuth } from '../context/AuthContext';
@@ -969,7 +970,50 @@ const SessionRequests = () => {
     );
   };
 
-  const RequestCard = ({ request, isReceived, type }) => (
+  const RequestCard = ({ request, isReceived, type }) => {
+    const [menuOpen, setMenuOpen] = useState(false);
+    
+    const getUserForProfile = () => {
+      if (type === 'expert') {
+        return isReceived ? request.creator : request.invitedSkillMate;
+      }
+      if (isReceived) {
+        return request.requester || request.requesterId || request.requesterDetails;
+      } else {
+        return request.tutor || request.recipient || request.assignedInterviewer || request.recipientDetails;
+      }
+    };
+    
+    const handleReportClick = () => {
+      navigate('/report', {
+        state: {
+          request: {
+            _id: request._id,
+            type: type,
+            status: request.status,
+            subject: request.subject,
+            topic: request.topic,
+            company: request.company,
+            position: request.position,
+            message: request.message,
+            createdAt: request.createdAt,
+            scheduledAt: request.scheduledAt
+          },
+          reportedUser: getUserForProfile(),
+          isReceived: isReceived
+        }
+      });
+      setMenuOpen(false);
+    };
+    
+    const handleUsernameClick = () => {
+      const userForProfile = getUserForProfile();
+      if (userForProfile && userForProfile.username) {
+        navigate(`/profile/${userForProfile.username}`);
+      }
+    };
+    
+    return (
     <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-300">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -993,7 +1037,13 @@ const SessionRequests = () => {
             )}
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-800">{getDisplayName(request, isReceived, type)}</h3>
+            <h3 
+              className="text-sm font-semibold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors"
+              onClick={handleUsernameClick}
+              title="View profile"
+            >
+              {getDisplayName(request, isReceived, type)}
+            </h3>
             <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
               {type === 'expert' ? (
                 isReceived ? (
@@ -1033,9 +1083,36 @@ const SessionRequests = () => {
             </p>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(request.status || 'pending')}`}>
-          {(request.status || 'pending').charAt(0).toUpperCase() + (request.status || 'pending').slice(1)}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(request.status || 'pending')}`}>
+            {(request.status || 'pending').charAt(0).toUpperCase() + (request.status || 'pending').slice(1)}
+          </span>
+          {isReceived && (
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                title="More options"
+              >
+                <MdMoreVert className="text-slate-600" size={18} />
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
+                    <button
+                      onClick={handleReportClick}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-2"
+                    >
+                      <MdReport size={16} />
+                      Report
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {(request.subject || request.topic || type === 'skillmate') && (
@@ -1120,7 +1197,8 @@ const SessionRequests = () => {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   // Helper function to check if expired interview should be removed (2 days after expiry)
   const shouldRemoveExpiredInterview = (request) => {
@@ -1138,6 +1216,8 @@ const SessionRequests = () => {
   };
 
   const InterviewRequestCard = ({ request, isReceived }) => {
+    const [menuOpen, setMenuOpen] = useState(false);
+    
     const isPending = request.status === 'pending';
     const isAssignedInterviewer =
       user &&
@@ -1184,6 +1264,34 @@ const SessionRequests = () => {
     } else {
       displayLabel = displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1);
     }
+    
+    const handleReportClick = () => {
+      const reportedUser = isReceived ? request.requester : request.assignedInterviewer;
+      navigate('/report', {
+        state: {
+          request: {
+            _id: request._id,
+            type: 'interview',
+            status: request.status,
+            company: request.company,
+            position: request.position,
+            message: request.message,
+            createdAt: request.createdAt,
+            scheduledAt: request.scheduledAt
+          },
+          reportedUser: reportedUser,
+          isReceived: isReceived
+        }
+      });
+      setMenuOpen(false);
+    };
+    
+    const handleUsernameClick = () => {
+      const targetUser = isReceived ? request.requester : request.assignedInterviewer;
+      if (targetUser && targetUser.username) {
+        navigate(`/profile/${targetUser.username}`);
+      }
+    };
 
     return (
       <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:shadow-md transition-all duration-300">
@@ -1193,7 +1301,11 @@ const SessionRequests = () => {
               <FaUser className="text-amber-600 text-sm" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">
+              <h3 
+                className="text-sm font-semibold text-slate-800 cursor-pointer hover:text-blue-600 transition-colors"
+                onClick={handleUsernameClick}
+                title="View profile"
+              >
                 {isReceived
                   ? `${request.requester?.firstName || ''} ${request.requester?.lastName || ''}`.trim()
                   : `${request.assignedInterviewer?.firstName || ''} ${request.assignedInterviewer?.lastName || ''}`.trim()}
@@ -1206,9 +1318,36 @@ const SessionRequests = () => {
               </p>
             </div>
           </div>
-          <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(displayStatus)}`}>
-            {displayLabel}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(displayStatus)}`}>
+              {displayLabel}
+            </span>
+            {isReceived && (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                  title="More options"
+                >
+                  <MdMoreVert className="text-slate-600" size={18} />
+                </button>
+                {menuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                    <div className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-20">
+                      <button
+                        onClick={handleReportClick}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-2"
+                      >
+                        <MdReport size={16} />
+                        Report
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Show helper message for requests waiting for admin assignment */}

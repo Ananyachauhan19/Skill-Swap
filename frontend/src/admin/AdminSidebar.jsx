@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   FiHome, FiUsers, FiFileText, FiPackage, FiHelpCircle, 
   FiSettings, FiCalendar, FiChevronLeft, FiChevronRight,
-  FiLogOut, FiAlertCircle, FiEye, FiShield
+  FiLogOut, FiAlertCircle, FiEye, FiShield, FiMail
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
@@ -42,6 +42,7 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
     {
       title: 'System',
       items: [
+        { label: 'Email Templates', icon: FiMail, path: '/admin/email-templates' },
         { label: 'Settings', icon: FiSettings, path: '/admin/settings' }
       ]
     }

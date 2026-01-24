@@ -154,6 +154,14 @@ const Reports = () => {
               >
                 Account
               </button>
+              <button
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  activeTab === 'request' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                }`}
+                onClick={() => setActiveTab('request')}
+              >
+                Request
+              </button>
             </div>
 
             <div className="inline-flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-fit">
@@ -284,6 +292,23 @@ const Reports = () => {
                             Delete Video
                           </button>
                         )}
+                      </>
+                    ) : r.type === 'request' ? (
+                      <>
+                        <div className="font-medium text-slate-900 truncate">
+                          {r.requestType === 'interview' ? 'Interview' : 
+                           r.requestType === 'expert' ? 'Expert Session' : 
+                           r.requestType === 'skillmate' ? 'SkillMate' : 'Session'} Request
+                        </div>
+                        <div className="text-slate-500 text-[11px] space-y-0.5">
+                          <div>Request ID: {r.requestId || '—'}</div>
+                          <div>Status: {r.requestStatus || '—'}</div>
+                          {r.requestCompany && <div>Company: {r.requestCompany}</div>}
+                          {r.requestPosition && <div>Position: {r.requestPosition}</div>}
+                          {r.requestSubject && <div>Subject: {r.requestSubject}</div>}
+                          {r.requestTopic && <div>Topic: {r.requestTopic}</div>}
+                          <div>User: @{r.reportedUsername || '—'}</div>
+                        </div>
                       </>
                     ) : (
                       <>

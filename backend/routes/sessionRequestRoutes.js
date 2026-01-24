@@ -8,7 +8,7 @@ const Notification = require('../models/Notification');
 const requireAuth = require('../middleware/requireAuth');
 const { trackActivity, ACTIVITY_TYPES } = require('../utils/contributions');
 const { sendMail } = require('../utils/sendMail');
-const T = require('../utils/emailTemplates');
+const { getEmailTemplate } = require('../utils/dynamicEmailTemplate');
 
 // Coin rate configuration
 // If business rules change, update these in one place.
@@ -186,7 +186,7 @@ router.post('/create', requireAuth, requestLimiter, validateSessionRequest, asyn
     // Send email to tutor
     try {
       if (tutor && tutor.email) {
-        const tpl = T.sessionRequested({
+        const tpl = await getEmailTemplate('sessionRequested', {
           tutorName: tutor.firstName || tutor.username,
           requesterName,
           subject,
@@ -440,7 +440,7 @@ router.post('/approve/:requestId', requireAuth, requestLimiter, validateRequestI
     try {
       const requester = await User.findById(sessionRequest.requester._id);
       if (requester?.email) {
-        const tpl = T.sessionApproved({
+        const tpl = await getEmailTemplate('sessionApproved', {
           requesterName: requester.firstName || requester.username,
           tutorName,
           subject: sessionRequest.subject,
@@ -516,7 +516,7 @@ router.post('/reject/:requestId', requireAuth, requestLimiter, validateRequestId
     try {
       const requester = await User.findById(sessionRequest.requester._id);
       if (requester?.email) {
-        const tpl = T.sessionRejected({
+        const tpl = await getEmailTemplate('sessionRejected', {
           requesterName: requester.firstName || requester.username,
           tutorName,
           subject: sessionRequest.subject,

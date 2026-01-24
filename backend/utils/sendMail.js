@@ -42,11 +42,15 @@ async function sendMail({ to, subject, html, text }) {
 exports.sendMail = sendMail;
 
 exports.sendOtpEmail = async (to, otp) => {
-  const tpl = emailTemplates.otpEmail({ otp, validityMinutes: 10 });
-  await sendMail({ to, subject: tpl.subject, html: tpl.html });
-};
-
-exports.sendPasswordResetEmail = async (to, resetLink) => {
-  const tpl = emailTemplates.passwordReset({ resetLink });
-  await sendMail({ to, subject: tpl.subject, html: tpl.html });
+  try {
+    const { getEmailTemplate } = require('./dynamicEmailTemplate');
+    const template = await getEmailTemplate('otpVerification', { otp });
+    await sendMail({ to, subject: template.subject, html: template.html });
+  } catch (error) {
+    console.error('Error sending OTP email with template:', error);
+    // Fallback to simple email if template fails
+    const subject = 'Your OTP Code';
+    const text = `Your OTP is: ${otp}. It is valid for 10 minutes.`;
+    await sendMail({ to, subject, text });
+  }
 };

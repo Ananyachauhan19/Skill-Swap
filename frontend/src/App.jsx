@@ -116,6 +116,7 @@ import QuizementUpload from './quizement/QuizementUpload.jsx';
 import QuizementAttempt from './quizement/QuizementAttempt.jsx';
 import QuizementResult from './quizement/QuizementResult.jsx';
 import AdminQuizement from './admin/AdminQuizement.jsx';
+import EmailTemplates from './admin/EmailTemplates.jsx';
 
 const collectVisitorData = () => {
   const getDeviceType = () => {
@@ -342,6 +343,7 @@ const adminOnlyRoutes = [
           { path: 'packages', element: <AdminPackages /> },
           { path: 'reports', element: <Reports /> },
           { path: 'help-support', element: <AdminHelpSupport /> },
+          { path: 'email-templates', element: <EmailTemplates /> },
           { path: 'settings', element: <Settings /> },
           { path: 'tutor-verification', element: <TutorVerification /> },
         ],
