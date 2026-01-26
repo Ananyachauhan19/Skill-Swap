@@ -79,7 +79,7 @@ import TutorVerification from './admin/TutorVerification.jsx';
 import ForgotPassword from './auth/ForgotPassword.jsx';
 import ResetPassword from './auth/ResetPassword.jsx';
 import Reports from './admin/Reports.jsx';
-import Employees from './admin/Employees.jsx';
+import EmployeesUnified from './admin/EmployeesUnified.jsx';
 import Visitors from './admin/Visitors.jsx';
 import EmployeeDetail from './admin/EmployeeDetail.jsx';
 import AdminUserProfile from './admin/AdminUserProfile.jsx';
@@ -91,6 +91,7 @@ import EmployeeResetPassword from './employee/EmployeeResetPassword.jsx';
 import EmployeeActivity from './employee/EmployeeActivity.jsx';
 import RecruitmentApplication from './user/RecruitmentApplication.jsx';
 import RecruitmentApplications from './admin/RecruitmentApplications.jsx';
+import CertificateTemplates from './admin/CertificateTemplates.jsx';
 import ChatPage from './user/ChatPage.jsx';
 import CampusAmbassadorDashboard from './campus-ambassador/CampusAmbassadorDashboard.jsx';
 import ChangePassword from './campus-ambassador/ChangePassword.jsx';
@@ -100,7 +101,6 @@ import CampusOneOnOne from './student/CampusOneOnOne.jsx';
 import CampusAssessment from './student/assesment/CampusAssessment.jsx';
 import AssessmentAttempt from './student/assesment/AssessmentAttempt.jsx';
 import AssessmentResult from './student/assesment/AssessmentResult.jsx';
-import CampusAmbassadors from './admin/CampusAmbassadors.jsx';
 import { CampusAmbassadorProvider } from './context/CampusAmbassadorContext.jsx';
 import QuizementEmployeeAuthProvider from './context/QuizementEmployeeAuthContext.jsx';
 import QuizementEmployeeRoute from './routes/QuizementEmployeeRoute.jsx';
@@ -116,8 +116,17 @@ import QuizementAvailableTests from './quizement/QuizementAvailableTests.jsx';
 import QuizementUpload from './quizement/QuizementUpload.jsx';
 import QuizementAttempt from './quizement/QuizementAttempt.jsx';
 import QuizementResult from './quizement/QuizementResult.jsx';
-import AdminQuizement from './admin/AdminQuizement.jsx';
 import EmailTemplates from './admin/EmailTemplates.jsx';
+import NewQuizementEmployee from './admin/NewQuizementEmployee.jsx';
+import NewInternEmployee from './admin/NewInternEmployee.jsx';
+import NewCampusAmbassador from './admin/NewCampusAmbassador.jsx';
+import InternCoordinatorDashboard from './intern-employee/InternCoordinatorDashboard.jsx';
+import InternCoordinatorChangePassword from './intern-employee/ChangePassword.jsx';
+import InternCoordinatorActivityLog from './intern-employee/InternCoordinatorActivityLog.jsx';
+import QuizementEmployeeActivityLog from './quizementEmployee/QuizementEmployeeActivityLog.jsx';
+import InternCoordinatorRoute from './routes/InternCoordinatorRoute.jsx';
+import JoiningCertificateVerify from './intern/JoiningCertificateVerify.jsx';
+import CompletionCertificateVerify from './intern/CompletionCertificateVerify.jsx';
 
 const collectVisitorData = () => {
   const getDeviceType = () => {
@@ -215,6 +224,8 @@ const appRoutes = [
   { path: '/legal', element: <Legal /> },
   { path: '/cookies-policy', element: <CookiesPolicy /> },
   { path: '/career', element: <Career /> },
+  { path: '/joiningcertificate/:internEmployeeId', element: <JoiningCertificateVerify /> },
+  { path: '/completioncertificate/:internEmployeeId', element: <CompletionCertificateVerify /> },
   { path: '/profile/:username', element: <PublicProfile /> },
   // Protected routes (require authentication)
   { path: '/one-on-one', element: <ProtectedRoute><OneOnOne /></ProtectedRoute> },
@@ -268,6 +279,7 @@ const appRoutes = [
           { path: 'create-weekly-quiz', element: <QuizementEmployeeCreateWeeklyQuiz /> },
           { path: 'quizzes', element: <QuizementEmployeeMyQuizzes /> },
           { path: 'results', element: <QuizementEmployeeQuizResults /> },
+          { path: 'activity-log', element: <QuizementEmployeeActivityLog /> },
         ],
       },
     ],
@@ -286,6 +298,15 @@ const appRoutes = [
           { path: 'reset-password', element: <EmployeeResetPassword /> },
         ],
       },
+    ],
+  },
+  {
+    path: '/intern-coordinator',
+    element: <InternCoordinatorRoute />,
+    children: [
+      { path: 'change-password', element: <InternCoordinatorChangePassword /> },
+      { path: 'dashboard', element: <InternCoordinatorDashboard /> },
+      { path: 'activity-log', element: <InternCoordinatorActivityLog /> },
     ],
   },
   {
@@ -336,16 +357,19 @@ const adminOnlyRoutes = [
           { path: 'skillmate-requests', element: <SkillMateRequests /> },
           { path: 'users', element: <Users /> },
           { path: 'users/profile/:userId', element: <AdminUserProfile /> },
-          { path: 'campus-ambassadors', element: <CampusAmbassadors /> },
           { path: 'visitors', element: <Visitors /> },
-          { path: 'employees', element: <Employees /> },
+          { path: 'employees', element: <EmployeesUnified /> },
+          { path: 'employees/new', element: <EmployeeDetail /> },
           { path: 'employees/:employeeId', element: <EmployeeDetail /> },
-          { path: 'quizzment', element: <AdminQuizement /> },
+          { path: 'intern-employees/new', element: <NewInternEmployee /> },
+          { path: 'quizzment/new', element: <NewQuizementEmployee /> },
+          { path: 'campus-ambassadors/new', element: <NewCampusAmbassador /> },
           { path: 'packages', element: <AdminPackages /> },
           { path: 'reports', element: <Reports /> },
           { path: 'help-support', element: <AdminHelpSupport /> },
           { path: 'career', element: <AdminCareer /> },
           { path: 'email-templates', element: <EmailTemplates /> },
+          { path: 'certificate-templates', element: <CertificateTemplates /> },
           { path: 'settings', element: <Settings /> },
           { path: 'tutor-verification', element: <TutorVerification /> },
         ],
@@ -353,6 +377,8 @@ const adminOnlyRoutes = [
     ],
   },
   { path: '/profile/:username', element: <PublicProfile /> },
+  { path: '/completioncertificate/:internEmployeeId', element: <CompletionCertificateVerify /> },
+  { path: '/joiningcertificate/:internEmployeeId', element: <JoiningCertificateVerify /> },
   { path: '*', element: <Navigate to="/admin/dashboard" replace /> },
 ];
 
@@ -634,6 +660,8 @@ function App() {
   const isQuizementEmployeeRoute = location.pathname.startsWith('/quizement-employee');
   const isCampusAmbassadorRoute = location.pathname.startsWith('/campus-ambassador') || location.pathname === '/change-password';
   const isCampusStudentRoute = location.pathname.startsWith('/campus-dashboard') || location.pathname.startsWith('/campus/');
+  const isInternCoordinatorRoute = location.pathname.startsWith('/intern-coordinator');
+  const isCertificateVerifyPage = location.pathname.startsWith('/joiningcertificate/') || location.pathname.startsWith('/completioncertificate/');
   return (
     <ToastProvider>
       <ToastSocketBridge />
@@ -643,16 +671,16 @@ function App() {
             <QuizementEmployeeAuthProvider>
               <ModalBodyScrollLock />
               <GlobalModals />
-            {!isAdminUser && !isEmployeeRoute && !isQuizementEmployeeRoute && !isCampusAmbassadorRoute && <CookieConsent />}
+            {!isAdminUser && !isEmployeeRoute && !isQuizementEmployeeRoute && !isCampusAmbassadorRoute && !isInternCoordinatorRoute && !isCertificateVerifyPage && <CookieConsent />}
             {/* Main content with fade-in transition */}
             <div
               className={`transition-opacity duration-500 ${
                 showContent ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              {!isAdminUser && !isEmployeeRoute && !isQuizementEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && <Navbar />}
+              {!isAdminUser && !isEmployeeRoute && !isQuizementEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isInternCoordinatorRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && !isCertificateVerifyPage && <Navbar />}
               {element}
-              {!isAdminUser && !isEmployeeRoute && !isQuizementEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && <Footer />}
+              {!isAdminUser && !isEmployeeRoute && !isQuizementEmployeeRoute && !isCampusAmbassadorRoute && !isCampusStudentRoute && !isInternCoordinatorRoute && !isAuthPage && !isRatingPage && !isAssessmentAttemptPage && !isQuizementAttemptPage && !isCertificateVerifyPage && <Footer />}
             </div>
             </QuizementEmployeeAuthProvider>
           </CampusAmbassadorProvider>

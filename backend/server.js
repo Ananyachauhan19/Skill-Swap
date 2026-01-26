@@ -52,12 +52,16 @@ const googleDataRoutes = require('./routes/googleDataRoutes');
 const coinTransactionRoutes = require('./routes/coinTransactionRoutes');
 const emailTemplateRoutes = require('./routes/emailTemplateRoutes');
 const careerRoutes = require('./routes/careerRoutes');
+const internAdminRoutes = require('./routes/internAdminRoutes');
+const internEmployeeRoutes = require('./routes/internEmployeeRoutes');
+const internRoutes = require('./routes/internRoutes');
 const cron = require('node-cron');
 const Session = require('./models/Session');
 const User = require('./models/User');
 const Notification = require('./models/Notification');
 const { sendMail } = require('./utils/sendMail');
 const emailTemplates = require('./utils/dynamicEmailTemplate');
+const { startCompletionCertificateCron } = require('./cron/internCompletionCron');
 const anonymousVisitorTracking = require('./middleware/anonymousVisitorTracking');
 const { expireOverdueInterviews } = require('./cron/expireInterviews');
 const { initAssessmentCronJobs } = require('./cron/assessmentCronJobs');
@@ -177,6 +181,9 @@ app.use('/api/google-data', googleDataRoutes);
 app.use('/api/coin-transactions', coinTransactionRoutes);
 app.use('/api/admin/email-templates', emailTemplateRoutes);
 app.use('/api/career', careerRoutes);
+app.use('/api', internAdminRoutes);
+app.use('/api', internEmployeeRoutes);
+app.use('/api', internRoutes);
 
 // Backwards-compatible alias used in some frontend bundles
 const interviewCtrl = require('./controllers/interviewController');
@@ -243,6 +250,9 @@ mongoose.connect(process.env.MONGO_URI, {
     server.listen(process.env.PORT, () =>
       console.log(`Server running on port ${process.env.PORT}`)
     );
+
+    // Start intern completion certificate cron job
+    startCompletionCertificateCron();
 
     // Schedule daily recompute (optional). Enable by setting ENABLE_CONTRIBUTION_CRON=true
     if (String(process.env.ENABLE_CONTRIBUTION_CRON || 'false').toLowerCase() === 'true') {

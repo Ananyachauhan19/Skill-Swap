@@ -6,6 +6,9 @@ const router = express.Router();
 const requireAuth = require('../middleware/requireAuth');
 const requireAdmin = require('../middleware/requireAdmin');
 const QuizementEmployee = require('../models/QuizementEmployee');
+const QuizementEmployeeActivity = require('../models/QuizementEmployeeActivity');
+const QuizementTest = require('../models/QuizementTest');
+const QuizementAttempt = require('../models/QuizementAttempt');
 const User = require('../models/User');
 const Employee = require('../models/Employee');
 
@@ -115,6 +118,97 @@ router.delete('/admin/quizement-employees/:id', requireAuth, requireAdmin, async
   } catch (err) {
     console.error('Delete Quizzment employee error:', err);
     return res.status(500).json({ message: 'Failed to delete Quizzment employee' });
+  }
+});
+
+// Admin-only: get quizement employee details with activity logs
+router.get('/admin/quizement-employees/:id/details', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const employee = await QuizementEmployee.findById(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    const activities = await QuizementEmployeeActivity.find({
+      quizementEmployeeId: req.params.id,
+    })
+      .sort({ timestamp: -1 })
+      .limit(50)
+      .lean();
+
+    // Update participant counts
+    for (let activity of activities) {
+      if (activity.quizId) {
+        const attemptCount = await QuizementAttempt.countDocuments({
+          testId: activity.quizId,
+          finished: true,
+        });
+        activity.participantCount = attemptCount;
+      }
+    }
+
+    // Calculate KPIs
+    // Check both createdByEmployee and createdByQuizementEmployee fields
+    const totalQuizzes = await QuizementTest.countDocuments({
+      $or: [
+        { createdByEmployee: req.params.id },
+        { createdByQuizementEmployee: req.params.id }
+      ]
+    });
+
+    const quizIds = await QuizementTest.find({
+      $or: [
+        { createdByEmployee: req.params.id },
+        { createdByQuizementEmployee: req.params.id }
+      ]
+    }).distinct('_id');
+
+    const totalAttempts = await QuizementAttempt.countDocuments({
+      testId: { $in: quizIds },
+      finished: true,
+    });
+
+    const avgParticipants = totalQuizzes > 0 ? Math.round(totalAttempts / totalQuizzes) : 0;
+
+    res.json({
+      employee,
+      activities,
+      kpi: {
+        totalQuizzes,
+        totalAttempts,
+        avgParticipants,
+      },
+    });
+  } catch (err) {
+    console.error('Get employee details error:', err);
+    res.status(500).json({ message: 'Failed to fetch employee details' });
+  }
+});
+
+// Admin-only: reset quizement employee password
+router.post('/admin/quizement-employees/:id/reset-password', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const employee = await QuizementEmployee.findByIdAndUpdate(
+      req.params.id,
+      { passwordHash },
+      { new: true }
+    );
+
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: 'Failed to reset password' });
   }
 });
 
@@ -234,7 +328,6 @@ router.post('/quizement-employee/logout', (req, res) => {
 const multer = require('multer');
 const xlsx = require('xlsx');
 const path = require('path');
-const QuizementTest = require('../models/QuizementTest');
 const requireQuizementEmployee = require('../middleware/requireQuizementEmployee');
 
 // Configure multer for file upload
@@ -362,6 +455,23 @@ router.post('/quizement-employee/quizzes', requireQuizementEmployee, (req, res) 
         // New fields
         isPaid: isPaidQuiz,
         course: course?.trim() || ''
+      });
+
+      // Log activity
+      await QuizementEmployeeActivity.create({
+        quizementEmployeeId: req.quizementEmployee._id,
+        activityType: 'quiz_created',
+        quizId: quiz._id,
+        quizTitle: quiz.name,
+        participantCount: 0,
+        details: {
+          questionCount: quiz.questions.length,
+          totalMarks: quiz.totalMarks,
+          duration: quiz.duration,
+          isPaid: isPaidQuiz,
+          bronzeCost: quiz.bronzeCost,
+          silverCost: quiz.silverCost,
+        },
       });
 
       return res.status(201).json({
@@ -501,6 +611,25 @@ router.post('/quizement-employee/weekly-quizzes', requireQuizementEmployee, (req
         course: course?.trim() || '',
         isWeeklyQuiz: true,
         expiresAt: expiresAt
+      });
+
+      // Log activity for weekly quiz
+      await QuizementEmployeeActivity.create({
+        quizementEmployeeId: req.quizementEmployee._id,
+        activityType: 'quiz_created',
+        quizId: quiz._id,
+        quizTitle: quiz.name,
+        participantCount: 0,
+        details: {
+          questionCount: quiz.questions.length,
+          totalMarks: quiz.totalMarks,
+          duration: quiz.duration,
+          isPaid: isPaidQuiz,
+          bronzeCost: quiz.bronzeCost,
+          silverCost: quiz.silverCost,
+          isWeeklyQuiz: true,
+          expiresAt: quiz.expiresAt,
+        },
       });
 
       return res.status(201).json({

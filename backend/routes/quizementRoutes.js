@@ -4,10 +4,14 @@ const quizementController = require('../controllers/quizementController');
 const historyController = require('../controllers/historyController');
 const requireAuth = require('../middleware/requireAuth');
 const { requireEmployee } = require('../middleware/requireEmployee');
+const requireQuizementEmployee = require('../middleware/requireQuizementEmployee');
 
 // Employee upload routes
 router.get('/quizement/sample-csv', requireEmployee, quizementController.downloadSampleCsv);
 router.post('/quizement/upload', requireEmployee, quizementController.uploadTest);
+
+// Quizement Employee activity log route
+router.get('/quizement/activity-logs', requireQuizementEmployee, quizementController.getActivityLogs);
 
 // User routes
 router.get('/quizement/tests', requireAuth, quizementController.listTestsForUser);

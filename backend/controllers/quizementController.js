@@ -3,6 +3,7 @@ const xlsx = require('xlsx');
 const multer = require('multer');
 const QuizementTest = require('../models/QuizementTest');
 const QuizementAttempt = require('../models/QuizementAttempt');
+const QuizementEmployeeActivity = require('../models/QuizementEmployeeActivity');
 const User = require('../models/User');
 
 const QUIZEMENT_LEADERBOARD_TYPES = new Set(['score', 'attempts', 'accuracy']);
@@ -314,6 +315,22 @@ exports.uploadTest = (req, res) => {
       });
 
       await test.save();
+
+      // Log activity
+      if (req.employee?._id) {
+        await QuizementEmployeeActivity.create({
+          quizementEmployeeId: req.employee._id,
+          activityType: 'quiz_created',
+          quizId: test._id,
+          quizTitle: test.name,
+          participantCount: 0,
+          details: {
+            questionCount: test.questions.length,
+            totalMarks: test.totalMarks,
+            duration: test.duration,
+          },
+        });
+      }
 
       return res.status(201).json({
         message: 'Quizement test created successfully',
@@ -757,5 +774,70 @@ exports.getCoinHistory = async (req, res) => {
   } catch (error) {
     console.error('Error fetching quizement coin history:', error);
     return res.status(500).json({ message: 'Failed to fetch quizement coin history' });
+  }
+};
+
+// Get activity logs for quizement employee
+exports.getActivityLogs = async (req, res) => {
+  try {
+    // Support both regular employees and quizement employees
+    const employeeId = req.quizementEmployee?._id || req.employee?._id;
+    
+    if (!employeeId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const activities = await QuizementEmployeeActivity.find({
+      quizementEmployeeId: employeeId,
+    })
+      .sort({ timestamp: -1 })
+      .limit(50)
+      .lean();
+
+    // Update participant counts
+    for (let activity of activities) {
+      if (activity.quizId) {
+        const attemptCount = await QuizementAttempt.countDocuments({
+          testId: activity.quizId,
+          finished: true,
+        });
+        activity.participantCount = attemptCount;
+      }
+    }
+
+    // Calculate KPIs
+    // Check both createdByEmployee and createdByQuizementEmployee fields
+    const totalQuizzes = await QuizementTest.countDocuments({
+      $or: [
+        { createdByEmployee: employeeId },
+        { createdByQuizementEmployee: employeeId }
+      ]
+    });
+
+    const quizIds = await QuizementTest.find({
+      $or: [
+        { createdByEmployee: employeeId },
+        { createdByQuizementEmployee: employeeId }
+      ]
+    }).distinct('_id');
+
+    const totalAttempts = await QuizementAttempt.countDocuments({
+      testId: { $in: quizIds },
+      finished: true,
+    });
+
+    const avgParticipants = totalQuizzes > 0 ? Math.round(totalAttempts / totalQuizzes) : 0;
+
+    res.json({
+      activities,
+      kpi: {
+        totalQuizzes,
+        totalAttempts,
+        avgParticipants,
+      },
+    });
+  } catch (error) {
+    console.error('Get activity logs error:', error);
+    res.status(500).json({ message: 'Failed to fetch activity logs' });
   }
 };
