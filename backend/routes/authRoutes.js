@@ -156,10 +156,9 @@ router.get(
       }
 
       const token = generateToken(user);
-      // Prefer explicit FRONTEND_URL; otherwise default to www domain in production
-      const frontendUrl = (process.env.FRONTEND_URL ||
-        (isProd ? 'http://www.skillswaphub.in' : 'http://localhost:5173')
-      ).replace(/\/+$/, '');
+      // Prefer explicit FRONTEND_URL; otherwise default to local dev URL
+      const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173')
+        .replace(/\/+$/, '');
 
       res.cookie('token', token, {
         ...cookieBase,
@@ -204,10 +203,9 @@ router.get('/linkedin/callback', passport.authenticate('linkedin', {
     }
     
     const token = generateToken(user);
-    // Prefer explicit FRONTEND_URL; otherwise default to www domain in production
-    const frontendUrl = (process.env.FRONTEND_URL ||
-      (isProd ? 'http://www.skillswaphub.in' : 'http://localhost:5173')
-    ).replace(/\/+$/, '');
+    // Prefer explicit FRONTEND_URL; otherwise default to local dev URL
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173')
+      .replace(/\/+$/, '');
 
     res.cookie('token', token, {
       ...cookieBase,
@@ -245,7 +243,7 @@ router.post('/password/forgot', async (req, res) => {
     // finally fall back to the public web app domain (prod) or localhost (dev).
     const originHeader = (req.headers.origin || '').replace(/\/+$/, '');
     const envFrontend = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
-    const defaultFrontend = isProd ? 'https://skillswaphub.in' : 'http://localhost:5173';
+    const defaultFrontend = 'http://localhost:5173';
     const frontendUrl = (envFrontend || originHeader || defaultFrontend).replace(/\/+$/, '');
     const link = `${frontendUrl}/reset-password?token=${token}`;
     const fallbackFrontendUrl = defaultFrontend; // explicit fallback to prod domain or localhost

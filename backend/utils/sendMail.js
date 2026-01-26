@@ -2,17 +2,18 @@ const nodemailer = require('nodemailer');
 const emailTemplates = require('./emailTemplatesDB');
 
 function createTransport() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT || 587);
+  // Prefer legacy MAIL_* env vars, but allow newer SMTP_* as aliases
+  const host = process.env.MAIL_HOST || process.env.SMTP_HOST;
+  const port = Number(process.env.MAIL_PORT || process.env.SMTP_PORT || 587);
   const secure = port === 465;
-  const user = process.env.SMTP_USER || process.env.MAIL_USER;
-  const pass = process.env.SMTP_PASS || process.env.MAIL_PASS;
+  const user = process.env.MAIL_USER || process.env.SMTP_USER;
+  const pass = process.env.MAIL_PASS || process.env.SMTP_PASS;
 
-  if (!host && !user) {
-    throw new Error('SMTP not configured: set SMTP_HOST/SMTP_USER/SMTP_PASS');
+  if (!user) {
+    throw new Error('Email not configured: set MAIL_USER/MAIL_PASS (optionally SMTP_* aliases)');
   }
 
-  // Prefer explicit SMTP, fallback to service:gmail if only MAIL_* set
+  // Prefer explicit host config; otherwise fall back to Gmail service
   if (host) {
     return nodemailer.createTransport({ host, port, secure, auth: { user, pass } });
   }
@@ -27,7 +28,7 @@ async function sendMail({ to, subject, html, text }) {
   } catch (e) {
     console.error('[MAIL] SMTP verification failed:', e.message);
   }
-  const from = process.env.SMTP_FROM || process.env.MAIL_USER;
+  const from = process.env.MAIL_FROM || process.env.MAIL_USER || process.env.SMTP_FROM || process.env.SMTP_USER;
   const mailOptions = { from, to, subject, html, text };
   try {
     const info = await transporter.sendMail(mailOptions);

@@ -963,6 +963,42 @@ router.delete('/campus-ambassadors/:ambassadorId', async (req, res) => {
   }
 });
 
+// Reset Campus Ambassador password (admin only)
+router.post('/campus-ambassadors/:ambassadorId/reset-password', async (req, res) => {
+  try {
+    const CampusAmbassador = require('../models/CampusAmbassador');
+    const { ambassadorId } = req.params;
+    const { newPassword } = req.body;
+    
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Find the campus ambassador document
+    const ambassador = await CampusAmbassador.findById(ambassadorId);
+    if (!ambassador) {
+      return res.status(404).json({ message: 'Campus Ambassador not found' });
+    }
+
+    const userId = ambassador.user;
+
+    // Update password in User collection
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Associated user not found' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('[RESET CAMPUS AMBASSADOR PASSWORD] Error:', error);
+    res.status(500).json({ message: 'Failed to reset password' });
+  }
+});
+
 // Get activity logs for any campus ambassador (admin only)
 router.get('/campus-ambassadors/:ambassadorId/activity-logs', async (req, res) => {
   try {

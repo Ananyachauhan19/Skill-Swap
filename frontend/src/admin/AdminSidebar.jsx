@@ -25,10 +25,8 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
         { label: 'Recruitment', icon: FiFileText, path: '/admin/recruitment' },
         { label: 'Interview Requests', icon: FiCalendar, path: '/admin/interview-requests' },
         { label: 'Users', icon: FiUsers, path: '/admin/users' },
-        { label: 'Campus Ambassadors', icon: FiShield, path: '/admin/campus-ambassadors' },
         { label: 'Visitors', icon: FiEye, path: '/admin/visitors' },
         { label: 'Employees', icon: FiUsers, path: '/admin/employees' },
-        { label: 'Quizzment', icon: FiFileText, path: '/admin/quizzment' },
         { label: 'Career', icon: FiBriefcase, path: '/admin/career' },
         { label: 'Packages', icon: FiPackage, path: '/admin/packages' }
       ]
@@ -44,6 +42,7 @@ const AdminSidebar = ({ collapsed, setCollapsed }) => {
       title: 'System',
       items: [
         { label: 'Email Templates', icon: FiMail, path: '/admin/email-templates' },
+        { label: 'Certificate Templates', icon: FiFileText, path: '/admin/certificate-templates' },
         { label: 'Settings', icon: FiSettings, path: '/admin/settings' }
       ]
     }

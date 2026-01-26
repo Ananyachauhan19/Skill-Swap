@@ -815,9 +815,8 @@ router.post('/:id/start', requireAuth, tutorCtrl.ensureTutorActivation, tutorCtr
       // Email with deep-link to Join Session page
       try {
         if (participantToNotify.email) {
-          const frontendUrl = (process.env.FRONTEND_URL ||
-            (process.env.NODE_ENV === 'production' ? 'http://www.skillswaphub.in' : 'http://localhost:5173')
-          ).replace(/\/+$/, '');
+          // Prefer FRONTEND_URL; otherwise fall back to local dev URL.
+          const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 
           const tpl = await getEmailTemplate('sessionLive', {
             recipientName: participantToNotify.firstName || participantToNotify.username || participantName,

@@ -8,6 +8,7 @@ import { BACKEND_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
 import { useEmployeeAuth } from '../context/EmployeeAuthContext.jsx';
 import { useQuizementEmployeeAuth } from '../context/QuizementEmployeeAuthContext.jsx';
+import { useInternCoordinatorAuth } from '../context/InternCoordinatorAuthContext.jsx';
 
 const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
   const { setUser } = useAuth();
   const { setEmployee } = useEmployeeAuth();
   const { setEmployee: setQuizementEmployee } = useQuizementEmployeeAuth() || {};
+  const { setCoordinator } = useInternCoordinatorAuth() || {};
 
   const [form, setForm] = useState({ identifier: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -126,10 +128,63 @@ const LoginPage = ({ onClose, onLoginSuccess, isModal = false }) => {
         return;
       } catch (_) {
         // fall through to user/employee login
+        console.log('[Login] Quizement employee login failed (expected), trying regular login...');
       }
 
-      // Next, try regular user login (with OTP flow)
-      await axios.post(`${BACKEND_URL}/api/auth/login`, { email: identifier, password }, { withCredentials: true });
+      // Next, try unified login (handles both regular users and intern employees)
+      console.log('[Login] Attempting unified login for:', identifier);
+      const loginResponse = await axios.post(`${BACKEND_URL}/api/auth/login`, { email: identifier, password }, { withCredentials: true });
+      console.log('[Login] Login response:', loginResponse.data);
+      console.log('[Login] Account type:', loginResponse.data.accountType);
+      console.log('[Login] Is intern employee?', loginResponse.data.accountType === 'internEmployee');
+      
+      // Check if it's an intern employee (no OTP required)
+      if (loginResponse.data.accountType === 'internEmployee') {
+        console.log('[Login] ✅ Intern Employee DETECTED!');
+        const employee = loginResponse.data.employee;
+        console.log('[Login] Employee data:', employee);
+        
+        if (employee) {
+          localStorage.setItem('internEmployee', JSON.stringify(employee));
+          console.log('[Login] Saved to localStorage');
+          if (setCoordinator) {
+            try {
+              setCoordinator(employee);
+              console.log('[Login] Intern coordinator context updated');
+            } catch (ctxErr) {
+              console.warn('[Login] Failed to update intern coordinator context:', ctxErr);
+            }
+          }
+        }
+        
+        if (isModal && onClose) {
+          console.log('[Login] Closing modal');
+          onClose();
+        }
+        
+        // Check if must change password
+        const mustChange = loginResponse.data.mustChangePassword || employee.mustChangePassword;
+        console.log('[Login] mustChangePassword flag:', mustChange);
+        
+        if (mustChange) {
+          console.log('[Login] 🔄 Redirecting to CHANGE PASSWORD page...');
+          setTimeout(() => {
+            window.location.href = '/intern-coordinator/change-password';
+          }, 100);
+        } else {
+          console.log('[Login] 🔄 Redirecting to DASHBOARD...');
+          setTimeout(() => {
+            window.location.href = '/intern-coordinator/dashboard';
+          }, 100);
+        }
+        
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log('[Login] Not an intern employee, proceeding with OTP flow...');
+      
+      // Regular user - requires OTP
       setEmailForOtp(identifier);
       setIsEmployeeOtp(false);
       setShowOtp(true);

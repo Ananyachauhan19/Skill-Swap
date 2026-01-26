@@ -17,7 +17,7 @@ const EmailTemplates = () => {
   const [saving, setSaving] = useState(false);
   const [isNewTemplate, setIsNewTemplate] = useState(false);
 
-  const categories = ['all', 'authentication', 'interview', 'session', 'assessment', 'support', 'general'];
+  const categories = ['all', 'authentication', 'interview', 'session', 'assessment', 'support', 'general', 'intern'];
 
   const baseLayoutTemplate = `<div style="font-family: system-ui, Arial; max-width: 640px; margin:0 auto; padding:16px;">
   <div style="background:#0ea5e9; color:#fff; padding:12px 16px; border-radius:8px 8px 0 0;">
@@ -231,7 +231,8 @@ const EmailTemplates = () => {
       session: 'bg-green-100 text-green-700',
       assessment: 'bg-orange-100 text-orange-700',
       support: 'bg-pink-100 text-pink-700',
-      general: 'bg-gray-100 text-gray-700'
+      general: 'bg-gray-100 text-gray-700',
+      intern: 'bg-teal-100 text-teal-700'
     };
     return (
       <span className={`px-2 py-1 rounded text-xs font-medium ${colors[category] || colors.general}`}>

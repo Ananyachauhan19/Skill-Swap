@@ -8,6 +8,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
 import { EmployeeAuthProvider } from './context/EmployeeAuthContext.jsx';
 import { CampusAmbassadorProvider } from './context/CampusAmbassadorContext.jsx';
+import InternCoordinatorAuthProvider from './context/InternCoordinatorAuthContext.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <GoogleOAuthProvider clientId="98535489065-jgkc5i63dm0jjm4ac1fq4ngc42etcitk.apps.googleusercontent.com">
@@ -15,7 +16,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <EmployeeAuthProvider>
         <BrowserRouter>
           <CampusAmbassadorProvider>
-            <App />
+            <InternCoordinatorAuthProvider>
+              <App />
+            </InternCoordinatorAuthProvider>
           </CampusAmbassadorProvider>
         </BrowserRouter>
       </EmployeeAuthProvider>

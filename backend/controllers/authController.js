@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const InternEmployee = require('../models/InternEmployee');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { sendOtpEmail } = require('../utils/sendMail');
@@ -58,9 +59,68 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) return res.status(404).json({ message: 'Email not found' });
+  console.log('[LOGIN] Login attempt for:', email);
 
+  // Check if user is a regular User (normalize email to lowercase)
+  let user = await User.findOne({ email: email.toLowerCase() });
+  let accountType = 'user';
+  
+  // If not found in User model, check InternEmployee model
+  if (!user) {
+    console.log('[LOGIN] Not found in User collection, checking InternEmployee...');
+    const internEmployee = await InternEmployee.findOne({ email: email.toLowerCase() });
+    
+    console.log('[LOGIN] InternEmployee found:', !!internEmployee);
+    
+    if (internEmployee) {
+      console.log('[LOGIN] Verifying password for intern coordinator:', internEmployee.email);
+      // Intern Employee found - verify password directly (no OTP)
+      const isMatch = await bcrypt.compare(password, internEmployee.passwordHash);
+      console.log('[LOGIN] Password match:', isMatch);
+      if (!isMatch) return res.status(401).json({ message: 'Invalid password' });
+
+      if (!internEmployee.isActive) {
+        return res.status(403).json({ message: 'Account is inactive' });
+      }
+
+      // Update last login
+      internEmployee.lastLoginAt = new Date();
+      await internEmployee.save();
+
+      // Generate JWT for intern employee
+      const token = jwt.sign(
+        { employeeId: internEmployee._id, role: internEmployee.role, accountType: 'internEmployee' },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      res.cookie('internEmployeeToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.COOKIE_SAMESITE,
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      return res.status(200).json({
+        message: 'Login successful',
+        accountType: 'internEmployee',
+        requiresOtp: false,
+        mustChangePassword: internEmployee.mustChangePassword,
+        employee: {
+          _id: internEmployee._id,
+          name: internEmployee.name,
+          email: internEmployee.email,
+          role: internEmployee.role,
+          mustChangePassword: internEmployee.mustChangePassword,
+        },
+      });
+    }
+    
+    // Not found in either model
+    return res.status(404).json({ message: 'Email not found' });
+  }
+
+  // Regular user found - continue with OTP flow
   const isMatch = await bcrypt.compare(password, user.password || '');
   if (!isMatch) return res.status(401).json({ message: 'Invalid password' });
 
@@ -76,7 +136,7 @@ exports.login = async (req, res) => {
   // Step 3: Send OTP to user's email
   await sendOtpEmail(user.email, otp);
 
-  return res.status(200).json({ message: 'OTP sent to email', otpSent: true });
+  return res.status(200).json({ message: 'OTP sent to email', otpSent: true, accountType: 'user', requiresOtp: true });
 };
 
 exports.verifyOtp = async (req, res) => {

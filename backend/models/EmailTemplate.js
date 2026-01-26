@@ -26,13 +26,22 @@ const emailTemplateSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // Alias for backward compatibility with intern system
+  body: {
+    type: String
+  },
+  // Type field for intern system templates
+  type: {
+    type: String,
+    trim: true
+  },
   variables: {
     type: [String],
     default: []
   },
   category: {
     type: String,
-    enum: ['authentication', 'interview', 'session', 'assessment', 'support', 'general'],
+    enum: ['authentication', 'interview', 'session', 'assessment', 'support', 'general', 'intern'],
     default: 'general'
   },
   isActive: {
