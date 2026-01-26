@@ -646,7 +646,7 @@ const Sidebar = () => {
               >
                 Home
               </NavLink>
-              <NavLink
+              {/* <NavLink
                 to="/profile/panel/live"
                 className={({ isActive }) =>
                   `shrink-0 whitespace-nowrap inline-flex items-center justify-center px-2.5 sm:px-3 py-1.5 text-[13px] sm:text-sm font-semibold rounded-xl border transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
@@ -657,7 +657,7 @@ const Sidebar = () => {
                 }
               >
                 Live
-              </NavLink>
+              </NavLink> */}
               <NavLink
                 to="/profile/panel/videos"
                 className={({ isActive }) =>

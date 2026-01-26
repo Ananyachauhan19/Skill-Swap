@@ -21,7 +21,7 @@ import SearchBar from "../privateProfile/SearchBar";
 import { BACKEND_URL } from "../../config.js";
 import { useToast } from "../../components/ToastContext.js";
 import PublicHome from "./PublicHome";
-import PublicLive from "./PublicLive";
+// import PublicLive from "./PublicLive";
 import PublicVideos from "./PublicVideos";
 
 export const ProfileContext = createContext();
@@ -379,8 +379,8 @@ const SideBarPublic = ({ username, setNotFound }) => {
     switch (activeTab) {
       case "home":
         return <PublicHome />;
-      case "live":
-        return <PublicLive />;
+      // case "live":
+      //   return <PublicLive />;
       case "videos":
         return <PublicVideos />;
       default:
@@ -1078,7 +1078,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                   >
                     Home
                   </button>
-                  <button
+                  {/* <button
                     onClick={() => setActiveTab("live")}
                     className={
                       `shrink-0 whitespace-nowrap inline-flex items-center justify-center px-2.5 sm:px-3 py-1.5 text-[13px] sm:text-sm font-semibold rounded-xl border transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent ${
@@ -1090,7 +1090,7 @@ const SideBarPublic = ({ username, setNotFound }) => {
                     aria-current={activeTab === "live" ? "page" : undefined}
                   >
                     Live
-                  </button>
+                  </button> */}
                   <button
                     onClick={() => setActiveTab("videos")}
                     className={

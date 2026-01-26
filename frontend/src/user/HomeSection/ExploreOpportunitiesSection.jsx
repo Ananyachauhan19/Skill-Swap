@@ -6,11 +6,11 @@ import { useModal } from '../../context/ModalContext';
 
 const ExploreOpportunitiesSection = () => {
   const opportunities = [
-    {
-      title: 'Live Arena Sessions',
-      description: 'Join interactive live sessions hosted by experts in real-time. Enhance your skills through collaborative learning.',
-      color: 'blue',
-    },
+    // {
+    //   title: 'Live Arena Sessions',
+    //   description: 'Join interactive live sessions hosted by experts in real-time. Enhance your skills through collaborative learning.',
+    //   color: 'blue',
+    // },
     {
       title: 'One on One Sessions',
       description: 'Connect with peers and exchange skills in personalized peer-to-peer sessions.',
