@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiFileText, FiPlus, FiEdit2, FiTrash2, FiEye, FiCopy, FiCheckCircle, FiXCircle, FiX, FiSave, FiSearch, FiFilter, FiDownload } from 'react-icons/fi';
+import { BACKEND_URL } from '../config';
 
 const CertificateTemplates = () => {
   const [templates, setTemplates] = useState([]);
@@ -40,7 +41,7 @@ const CertificateTemplates = () => {
       if (filters.search) params.append('search', filters.search);
       if (filters.isActive !== '') params.append('isActive', filters.isActive);
 
-      const response = await fetch(`/api/admin/certificate-templates?${params}`, {
+      const response = await fetch(`${BACKEND_URL}/api/admin/certificate-templates?${params}`, {
         credentials: 'include'
       });
       const data = await response.json();
@@ -58,7 +59,7 @@ const CertificateTemplates = () => {
     if (!confirm('Are you sure you want to delete this template?')) return;
 
     try {
-      const response = await fetch(`/api/admin/certificate-templates/${id}`, {
+      const response = await fetch(`${BACKEND_URL}/api/admin/certificate-templates/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -76,7 +77,7 @@ const CertificateTemplates = () => {
 
   const handleToggleActive = async (template) => {
     try {
-      const response = await fetch(`/api/admin/certificate-templates/${template._id}`, {
+      const response = await fetch(`${BACKEND_URL}/api/admin/certificate-templates/${template._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -122,8 +123,8 @@ const CertificateTemplates = () => {
     setSaving(true);
     try {
       const url = selectedTemplate
-        ? `/api/admin/certificate-templates/${selectedTemplate._id}`
-        : '/api/admin/certificate-templates';
+        ? `${BACKEND_URL}/api/admin/certificate-templates/${selectedTemplate._id}`
+        : `${BACKEND_URL}/api/admin/certificate-templates`;
       
       const response = await fetch(url, {
         method: selectedTemplate ? 'PUT' : 'POST',

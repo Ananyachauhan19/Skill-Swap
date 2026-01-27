@@ -3,6 +3,7 @@ import {
   FiMail, FiEdit2, FiTrash2, FiCopy, FiEye, FiPlus, 
   FiSearch, FiFilter, FiCheckCircle, FiXCircle, FiSave, FiX, FiTag 
 } from 'react-icons/fi';
+import { BACKEND_URL } from '../config';
 
 const EmailTemplates = () => {
   const [templates, setTemplates] = useState([]);
@@ -58,7 +59,7 @@ const EmailTemplates = () => {
       if (filters.search) params.append('search', filters.search);
       if (filters.isActive !== '') params.append('isActive', filters.isActive);
 
-      const response = await fetch(`/api/admin/email-templates?${params}`, {
+      const response = await fetch(`${BACKEND_URL}/api/admin/email-templates?${params}`, {
         credentials: 'include'
       });
       const data = await response.json();
@@ -76,7 +77,7 @@ const EmailTemplates = () => {
     if (!confirm('Are you sure you want to delete this template?')) return;
 
     try {
-      const response = await fetch(`/api/admin/email-templates/${id}`, {
+      const response = await fetch(`${BACKEND_URL}/api/admin/email-templates/${id}`, {
         method: 'DELETE',
         credentials: 'include'
       });
@@ -99,7 +100,7 @@ const EmailTemplates = () => {
 
   const generatePreview = async () => {
     try {
-      const response = await fetch(`/api/admin/email-templates/${selectedTemplate._id}/preview`, {
+      const response = await fetch(`${BACKEND_URL}/api/admin/email-templates/${selectedTemplate._id}/preview`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -155,8 +156,8 @@ const EmailTemplates = () => {
       };
 
       const url = isNewTemplate 
-        ? '/api/admin/email-templates'
-        : `/api/admin/email-templates/${selectedTemplate._id}`;
+        ? `${BACKEND_URL}/api/admin/email-templates`
+        : `${BACKEND_URL}/api/admin/email-templates/${selectedTemplate._id}`;
       
       const method = isNewTemplate ? 'POST' : 'PUT';
 
@@ -190,7 +191,7 @@ const EmailTemplates = () => {
     if (!newKey) return;
 
     try {
-      const response = await fetch(`/api/admin/email-templates/${template._id}/duplicate`, {
+      const response = await fetch(`${BACKEND_URL}/api/admin/email-templates/${template._id}/duplicate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -209,7 +210,7 @@ const EmailTemplates = () => {
 
   const handleToggleActive = async (template) => {
     try {
-      const response = await fetch(`/api/admin/email-templates/${template._id}`, {
+      const response = await fetch(`${BACKEND_URL}/api/admin/email-templates/${template._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
