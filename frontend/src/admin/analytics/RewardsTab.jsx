@@ -39,7 +39,7 @@ export default function RewardsTab({ dateRange }) {
   }
   const { 
     economyHealth = {}, 
-    silverGoldBalance = {}, 
+    silverBronzeBalance = {}, 
     earningTrend = [], 
     earningSources = {},
     topEarners = [],
@@ -62,15 +62,15 @@ export default function RewardsTab({ dateRange }) {
     nonEarners: economyHealth?.nonEarners ?? 0,
     percentageEarningCoins: economyHealth?.percentageEarningCoins ?? 0,
     percentageOnlySilver: economyHealth?.percentageOnlySilver ?? 0,
-    percentageEarningGold: economyHealth?.percentageEarningGold ?? 0,
+    percentageEarningBronze: economyHealth?.percentageEarningBronze ?? 0,
   };
 
-  const safeSilverGoldBalance = {
-    totalSilver: silverGoldBalance?.totalSilver ?? 0,
-    totalGold: silverGoldBalance?.totalGold ?? 0,
-    ratio: silverGoldBalance?.ratio ?? 0,
-    avgSilverPerUser: silverGoldBalance?.avgSilverPerUser ?? 0,
-    avgGoldPerUser: silverGoldBalance?.avgGoldPerUser ?? 0,
+  const safeSilverBronzeBalance = {
+    totalSilver: silverBronzeBalance?.totalSilver ?? 0,
+    totalBronze: silverBronzeBalance?.totalBronze ?? 0,
+    ratio: silverBronzeBalance?.ratio ?? 0,
+    avgSilverPerUser: silverBronzeBalance?.avgSilverPerUser ?? 0,
+    avgBronzePerUser: silverBronzeBalance?.avgBronzePerUser ?? 0,
   };
 
   // Economy Health Donut Chart
@@ -96,8 +96,8 @@ export default function RewardsTab({ dateRange }) {
         tension: 0.3,
       },
       {
-        label: 'Gold Earned',
-        data: earningTrend.map(item => item.gold),
+        label: 'Bronze Earned',
+        data: earningTrend.map(item => item.bronze),
         borderColor: 'rgba(255, 215, 0, 1)',
         backgroundColor: 'rgba(255, 215, 0, 0.1)',
         tension: 0.3,
@@ -164,8 +164,8 @@ export default function RewardsTab({ dateRange }) {
             <div className="text-xs text-gray-500">Silver Only</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-600">{safeEconomyHealth.percentageEarningGold}%</div>
-            <div className="text-xs text-gray-500">Earning Gold</div>
+            <div className="text-3xl font-bold text-amber-600">{safeEconomyHealth.percentageEarningBronze}%</div>
+            <div className="text-xs text-gray-500">Earning Bronze</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-blue-600">{safeEconomyHealth.totalEarners}</div>
@@ -177,31 +177,31 @@ export default function RewardsTab({ dateRange }) {
         </div>
       </div>
 
-      {/* 2. Silver vs Gold Balance + 3. Earning Trend */}
+      {/* 2. Silver vs Bronze Balance + 3. Earning Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-3">Silver vs Gold Balance</h3>
+          <h3 className="text-lg font-semibold mb-3">Silver vs Bronze Balance</h3>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Total Silver</span>
-              <span className="font-bold text-gray-700">{safeSilverGoldBalance.totalSilver.toLocaleString()}</span>
+              <span className="font-bold text-gray-700">{safeSilverBronzeBalance.totalSilver.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Total Gold</span>
-              <span className="font-bold text-yellow-600">{safeSilverGoldBalance.totalGold.toLocaleString()}</span>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-600">Total Bronze</span>
+              <span className="font-bold text-amber-600">{safeSilverBronzeBalance.totalBronze.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Silver:Gold Ratio</span>
-              <span className="font-bold text-blue-600">{safeSilverGoldBalance.ratio}:1</span>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm text-gray-600">Silver:Bronze Ratio</span>
+              <span className="font-bold text-blue-600">{safeSilverBronzeBalance.ratio}:1</span>
             </div>
             <div className="h-px bg-gray-200 my-2"></div>
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Avg Silver/User</span>
-              <span className="font-semibold">{safeSilverGoldBalance.avgSilverPerUser}</span>
+              <span className="font-semibold">{safeSilverBronzeBalance.avgSilverPerUser}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Avg Gold/User</span>
-              <span className="font-semibold text-yellow-600">{safeSilverGoldBalance.avgGoldPerUser}</span>
+              <span className="text-sm text-gray-600">Avg Bronze/User</span>
+              <span className="font-semibold text-amber-600">{safeSilverBronzeBalance.avgBronzePerUser}</span>
             </div>
           </div>
         </div>

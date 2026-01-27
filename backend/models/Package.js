@@ -26,10 +26,20 @@ const packageSchema = new mongoose.Schema({
     default: 0,
     min: 0
   },
+  silverCoinPrice: {
+    type: Number,
+    default: 0.25,
+    min: 0
+  },
+  bronzeCoinPrice: {
+    type: Number,
+    default: 0.5,
+    min: 0
+  },
   priceInINR: {
     type: Number,
     min: 0
-    // Auto-calculated in pre-save hook, not required in input
+    // Auto-calculated in pre-save hook based on coin prices
   },
   isActive: {
     type: Boolean,
@@ -56,8 +66,8 @@ packageSchema.pre('save', function(next) {
     return next(new Error('COMBO packages must have both silver and bronze coins'));
   }
 
-  // Auto-calculate price based on coin counts
-  this.priceInINR = (this.silverCoins * 0.25) + (this.bronzeCoins * 0.5);
+  // Auto-calculate price based on coin counts and per-coin prices
+  this.priceInINR = (this.silverCoins * (this.silverCoinPrice || 0.25)) + (this.bronzeCoins * (this.bronzeCoinPrice || 0.5));
   
   next();
 });

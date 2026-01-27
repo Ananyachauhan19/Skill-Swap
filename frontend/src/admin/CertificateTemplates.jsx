@@ -458,22 +458,24 @@ const CertificateTemplates = () => {
 
       {/* Preview Modal */}
       {showPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <div className="fixed inset-0 bg-white bg-opacity-95 flex items-center justify-center z-50 p-2">
+          <div className="bg-white rounded-lg shadow-2xl w-full h-full max-w-[98vw] max-h-[98vh] flex flex-col">
+            <div className="px-6 py-3 border-b border-gray-200 flex justify-between items-center bg-white flex-shrink-0">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <FiEye className="text-blue-600" />
                 Certificate Preview
               </h2>
               <button 
                 onClick={() => setShowPreview(false)} 
-                className="text-gray-500 hover:text-gray-700 p-2"
+                className="text-gray-500 hover:text-gray-700 p-2 hover:bg-gray-100 rounded-full transition"
               >
                 <FiX size={24} />
               </button>
             </div>
-            <div className="p-6 overflow-auto flex-1">
-              <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            <div className="overflow-auto flex-1 bg-white p-4">
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="w-full max-w-[1200px]" dangerouslySetInnerHTML={{ __html: previewHtml }} />
+              </div>
             </div>
           </div>
         </div>

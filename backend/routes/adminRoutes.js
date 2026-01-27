@@ -372,7 +372,7 @@ router.get('/users/:userId/coin-history', async (req, res) => {
 
     // Get user's current coin balance
     const user = await User.findById(userId)
-      .select('goldCoins silverCoins bronzeCoins firstName lastName')
+      .select('bronzeCoins silverCoins firstName lastName')
       .lean();
 
     if (!user) {
@@ -463,9 +463,8 @@ router.get('/users/:userId/coin-history', async (req, res) => {
     res.json({ 
       transactions: allTransactions,
       currentBalance: {
-        gold: user.goldCoins || 0,
-        silver: user.silverCoins || 0,
         bronze: user.bronzeCoins || 0,
+        silver: user.silverCoins || 0,
       },
       summary: {
         totalSpent: formattedLearning.reduce((sum, t) => sum + t.amount, 0),
@@ -538,8 +537,8 @@ router.get('/users/:userId/activity-logs', async (req, res) => {
       activities.push({
         _id: event._id,
         type: 'wallet',
-        action: `${event.goldCoins > 0 || event.silverCoins > 0 ? 'Earned' : 'Spent'} coins`,
-        details: `${event.type || 'Transaction'} - ${Math.abs(event.goldCoins || 0)} gold, ${Math.abs(event.silverCoins || 0)} silver`,
+        action: `${event.bronzeCoins > 0 || event.silverCoins > 0 ? 'Earned' : 'Spent'} coins`,
+        details: `${event.type || 'Transaction'} - ${Math.abs(event.bronzeCoins || 0)} bronze, ${Math.abs(event.silverCoins || 0)} silver`,
         timestamp: event.createdAt,
         createdAt: event.createdAt
       });

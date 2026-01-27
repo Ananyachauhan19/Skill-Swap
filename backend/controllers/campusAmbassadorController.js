@@ -137,7 +137,7 @@ exports.getMyInstitutes = async (req, res) => {
         });
 
         const totalSilverAssigned = transactions.reduce((sum, t) => sum + (t.totalSilverDistributed || 0), 0);
-        const totalGoldenAssigned = transactions.reduce((sum, t) => sum + (t.totalGoldenDistributed || 0), 0);
+        const totalGoldenAssigned = transactions.reduce((sum, t) => sum + (t.totalBronzeDistributed || 0), 0);
         const assignmentEventsCount = transactions.length;
 
         return {
@@ -279,11 +279,11 @@ exports.updateInstitute = async (req, res) => {
 exports.uploadStudents = async (req, res) => {
   try {
     const { instituteId } = req.params;
-    const { perStudentSilver, perStudentGolden } = req.body;
+    const { perStudentSilver, perStudentBronze } = req.body;
 
     // Parse coin values from request body
     const silverCoinsPerStudent = parseInt(perStudentSilver) || 0;
-    const goldCoinsPerStudent = parseInt(perStudentGolden) || 0;
+    const bronzeCoinsPerStudent = parseInt(perStudentBronze) || 0;
 
     // Find institute
     const institute = await Institute.findOne({
@@ -320,7 +320,7 @@ exports.uploadStudents = async (req, res) => {
     const emailQueue = []; // Store email tasks
     let validProcessedCount = 0;
     let totalSilverDistributed = 0;
-    let totalGoldenDistributed = 0;
+    let totalBronzeDistributed = 0;
 
     for (const row of data) {
       try {
@@ -392,14 +392,14 @@ exports.uploadStudents = async (req, res) => {
               }
 
               // Increment wallet coins
-              existingUser.goldCoins = (existingUser.goldCoins || 0) + goldCoinsPerStudent;
+              existingUser.bronzeCoins = (existingUser.bronzeCoins || 0) + bronzeCoinsPerStudent;
               existingUser.silverCoins = (existingUser.silverCoins || 0) + silverCoinsPerStudent;
 
               await existingUser.save();
               
               validProcessedCount++;
               totalSilverDistributed += silverCoinsPerStudent;
-              totalGoldenDistributed += goldCoinsPerStudent;
+              totalBronzeDistributed += bronzeCoinsPerStudent;
               
               results.updated.push({
                 email,
@@ -409,7 +409,7 @@ exports.uploadStudents = async (req, res) => {
                   semester: newValues.semester !== existingValues.semester ? { old: existingValues.semester, new: newValues.semester } : null,
                   class: newValues.class !== existingValues.class ? { old: existingValues.class, new: newValues.class } : null
                 },
-                coinsAdded: { silver: silverCoinsPerStudent, golden: goldCoinsPerStudent }
+                coinsAdded: { silver: silverCoinsPerStudent, golden: bronzeCoinsPerStudent }
               });
 
               studentIds.add(existingUser._id.toString());
@@ -436,20 +436,20 @@ exports.uploadStudents = async (req, res) => {
             }
 
             // Increment wallet coins
-            existingUser.goldCoins = (existingUser.goldCoins || 0) + goldCoinsPerStudent;
+            existingUser.bronzeCoins = (existingUser.bronzeCoins || 0) + bronzeCoinsPerStudent;
             existingUser.silverCoins = (existingUser.silverCoins || 0) + silverCoinsPerStudent;
 
             await existingUser.save();
             
             validProcessedCount++;
             totalSilverDistributed += silverCoinsPerStudent;
-            totalGoldenDistributed += goldCoinsPerStudent;
+            totalBronzeDistributed += bronzeCoinsPerStudent;
             
             results.added.push({
               email,
               name,
               studentId: existingUser.studentId,
-              coinsAdded: { silver: silverCoinsPerStudent, golden: goldCoinsPerStudent }
+              coinsAdded: { silver: silverCoinsPerStudent, golden: bronzeCoinsPerStudent }
             });
 
             studentIds.add(existingUser._id.toString());
@@ -460,7 +460,7 @@ exports.uploadStudents = async (req, res) => {
               isNewUser: false,
               generatedPassword: null,
               instituteName: institute.instituteName,
-              goldCoins: goldCoinsPerStudent,
+              bronzeCoins: bronzeCoinsPerStudent,
               silverCoins: silverCoinsPerStudent
             });
           }
@@ -484,7 +484,7 @@ exports.uploadStudents = async (req, res) => {
             instituteId: institute.instituteId,
             instituteName: institute.instituteName,
             role: 'learner',
-            goldCoins: goldCoinsPerStudent,
+            bronzeCoins: bronzeCoinsPerStudent,
             silverCoins: silverCoinsPerStudent
           });
 
@@ -501,13 +501,13 @@ exports.uploadStudents = async (req, res) => {
           
           validProcessedCount++;
           totalSilverDistributed += silverCoinsPerStudent;
-          totalGoldenDistributed += goldCoinsPerStudent;
+          totalBronzeDistributed += bronzeCoinsPerStudent;
           
           results.added.push({
             email,
             name,
             studentId: newUser.studentId,
-            coinsAdded: { silver: silverCoinsPerStudent, golden: goldCoinsPerStudent }
+            coinsAdded: { silver: silverCoinsPerStudent, golden: bronzeCoinsPerStudent }
           });
 
           studentIds.add(newUser._id.toString());
@@ -518,7 +518,7 @@ exports.uploadStudents = async (req, res) => {
             isNewUser: true,
             generatedPassword,
             instituteName: institute.instituteName,
-            goldCoins: goldCoinsPerStudent,
+            bronzeCoins: bronzeCoinsPerStudent,
             silverCoins: silverCoinsPerStudent
           });
         }
@@ -534,7 +534,7 @@ exports.uploadStudents = async (req, res) => {
     await institute.save();
 
     // Create reward transaction record if coins were distributed
-    if (validProcessedCount > 0 && (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0)) {
+    if (validProcessedCount > 0 && (silverCoinsPerStudent > 0 || bronzeCoinsPerStudent > 0)) {
       const transaction = new InstituteRewardTransaction({
         instituteId: institute._id,
         instituteName: institute.instituteName,
@@ -543,10 +543,10 @@ exports.uploadStudents = async (req, res) => {
         ambassadorEmail: req.user.email,
         source: 'EXCEL_UPLOAD',
         perStudentSilver: silverCoinsPerStudent,
-        perStudentGolden: goldCoinsPerStudent,
+        perStudentBronze: bronzeCoinsPerStudent,
         totalStudentsCount: validProcessedCount,
         totalSilverDistributed,
-        totalGoldenDistributed,
+        totalBronzeDistributed,
         remarks: 'Excel upload - Student onboarding',
         status: 'completed',
         distributionDate: new Date()
@@ -629,9 +629,9 @@ exports.uploadStudents = async (req, res) => {
       details: results,
       rewardDistribution: validProcessedCount > 0 ? {
         perStudentSilver: silverCoinsPerStudent,
-        perStudentGolden: goldCoinsPerStudent,
+        perStudentBronze: bronzeCoinsPerStudent,
         totalSilverDistributed,
-        totalGoldenDistributed,
+        totalBronzeDistributed,
         recipientCount: validProcessedCount
       } : null
     });
@@ -643,9 +643,9 @@ exports.uploadStudents = async (req, res) => {
           instituteName: institute.instituteName,
           metadata: {
             totalStudents: validProcessedCount,
-            coinsAssigned: (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0),
+            coinsAssigned: (silverCoinsPerStudent > 0 || bronzeCoinsPerStudent > 0),
             silverCoinsPerStudent: silverCoinsPerStudent,
-            goldenCoinsPerStudent: goldCoinsPerStudent
+            bronzeCoinsPerStudent: bronzeCoinsPerStudent
           }
         });
       } catch (logError) {
@@ -682,7 +682,7 @@ exports.validateCampusId = async (req, res) => {
         instituteName: institute.instituteName,
         instituteId: institute.instituteId,
         campusBackgroundImage: institute.campusBackgroundImage,
-        goldCoins: institute.goldCoins,
+        bronzeCoins: institute.bronzeCoins,
         silverCoins: institute.silverCoins
       },
       user: {
@@ -931,11 +931,11 @@ exports.distributeCoinsToInstitute = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { instituteId, perStudentSilver, perStudentGolden, remarks } = req.body;
+    const { instituteId, perStudentSilver, perStudentBronze, remarks } = req.body;
 
     // Validate input
     const silverCoins = parseInt(perStudentSilver) || 0;
-    const goldenCoins = parseInt(perStudentGolden) || 0;
+    const goldenCoins = parseInt(perStudentBronze) || 0;
 
     if (silverCoins < 0 || goldenCoins < 0) {
       await session.abortTransaction();
@@ -1001,7 +1001,7 @@ exports.distributeCoinsToInstitute = async (req, res) => {
         updateFields.silverCoins = (student.silverCoins || 0) + silverCoins;
       }
       if (goldenCoins > 0) {
-        updateFields.goldCoins = (student.goldCoins || 0) + goldenCoins;
+        updateFields.bronzeCoins = (student.bronzeCoins || 0) + goldenCoins;
       }
 
       return User.findByIdAndUpdate(
@@ -1016,7 +1016,7 @@ exports.distributeCoinsToInstitute = async (req, res) => {
     // Calculate totals
     const totalStudentsCount = students.length;
     const totalSilverDistributed = silverCoins * totalStudentsCount;
-    const totalGoldenDistributed = goldenCoins * totalStudentsCount;
+    const totalBronzeDistributed = goldenCoins * totalStudentsCount;
 
     // Create transaction record
     const transaction = new InstituteRewardTransaction({
@@ -1027,10 +1027,10 @@ exports.distributeCoinsToInstitute = async (req, res) => {
       ambassadorEmail: req.user.email,
       source: 'DISTRIBUTE',
       perStudentSilver: silverCoins,
-      perStudentGolden: goldenCoins,
+      perStudentBronze: goldenCoins,
       totalStudentsCount,
       totalSilverDistributed,
-      totalGoldenDistributed,
+      totalBronzeDistributed,
       remarks: remarks || '',
       status: 'completed',
       distributionDate: new Date()
@@ -1047,9 +1047,9 @@ exports.distributeCoinsToInstitute = async (req, res) => {
       transaction: {
         totalStudents: totalStudentsCount,
         perStudentSilver: silverCoins,
-        perStudentGolden: goldenCoins,
+        perStudentBronze: goldenCoins,
         totalSilverDistributed,
-        totalGoldenDistributed,
+        totalBronzeDistributed,
         distributionDate: transaction.distributionDate
       }
     });
@@ -1062,7 +1062,7 @@ exports.distributeCoinsToInstitute = async (req, res) => {
           metadata: {
             totalStudentsAffected: totalStudentsCount,
             silverCoinsPerStudent: silverCoins,
-            goldenCoinsPerStudent: goldenCoins
+            bronzeCoinsPerStudent: goldenCoins
           }
         });
       } catch (logError) {
@@ -1103,7 +1103,7 @@ exports.getInstituteRewardHistory = async (req, res) => {
 
     const transactionsWithCumulative = transactions.reverse().map(tx => {
       cumulativeSilver += tx.totalSilverDistributed;
-      cumulativeGolden += tx.totalGoldenDistributed;
+      cumulativeGolden += tx.totalBronzeDistributed;
       return {
         ...tx,
         cumulativeSilver,
@@ -1120,7 +1120,7 @@ exports.getInstituteRewardHistory = async (req, res) => {
       transactions: transactionsWithCumulative,
       totals: {
         totalSilverDistributed: cumulativeSilver,
-        totalGoldenDistributed: cumulativeGolden,
+        totalBronzeDistributed: cumulativeGolden,
         totalTransactions: transactions.length
       }
     });
@@ -1291,7 +1291,7 @@ exports.getStudentDashboardStats = async (req, res) => {
         completedSessions,
         pendingRequests,
         coins: {
-          gold: req.user.goldCoins || 0,
+          gold: req.user.bronzeCoins || 0,
           silver: req.user.silverCoins || 0
         }
       },
@@ -1504,11 +1504,11 @@ exports.getPublicCampusStats = async (req, res) => {
 exports.addSingleStudent = async (req, res) => {
   try {
     const { instituteId } = req.params;
-    const { students, perStudentSilver, perStudentGolden } = req.body;
+    const { students, perStudentSilver, perStudentBronze } = req.body;
 
     // Parse coin values
     const silverCoinsPerStudent = parseInt(perStudentSilver) || 0;
-    const goldCoinsPerStudent = parseInt(perStudentGolden) || 0;
+    const bronzeCoinsPerStudent = parseInt(perStudentBronze) || 0;
 
     // Find institute
     const institute = await Institute.findOne({
@@ -1594,7 +1594,7 @@ exports.addSingleStudent = async (req, res) => {
         }
 
         // Increment wallet coins
-        existingUser.goldCoins = (existingUser.goldCoins || 0) + goldCoinsPerStudent;
+        existingUser.bronzeCoins = (existingUser.bronzeCoins || 0) + bronzeCoinsPerStudent;
         existingUser.silverCoins = (existingUser.silverCoins || 0) + silverCoinsPerStudent;
 
         await existingUser.save();
@@ -1606,9 +1606,9 @@ exports.addSingleStudent = async (req, res) => {
         institute.studentsCount = studentIds.size;
         
         // Update institute coin tracking
-        if (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0) {
+        if (silverCoinsPerStudent > 0 || bronzeCoinsPerStudent > 0) {
           institute.perStudentSilverCoins = (institute.perStudentSilverCoins || 0) + silverCoinsPerStudent;
-          institute.perStudentGoldCoins = (institute.perStudentGoldCoins || 0) + goldCoinsPerStudent;
+          institute.perStudentbronzeCoins = (institute.perStudentbronzeCoins || 0) + bronzeCoinsPerStudent;
           
           // Create transaction record
           const transaction = new InstituteRewardTransaction({
@@ -1619,10 +1619,10 @@ exports.addSingleStudent = async (req, res) => {
             ambassadorEmail: req.user.email,
             source: 'MANUAL_UPDATE',
             perStudentSilver: silverCoinsPerStudent,
-            perStudentGolden: goldCoinsPerStudent,
+            perStudentBronze: bronzeCoinsPerStudent,
             totalStudentsCount: 1,
             totalSilverDistributed: silverCoinsPerStudent,
-            totalGoldenDistributed: goldCoinsPerStudent,
+            totalBronzeDistributed: bronzeCoinsPerStudent,
             remarks: `Manual student update - ${name}`,
             status: 'completed',
             distributionDate: new Date()
@@ -1639,9 +1639,9 @@ exports.addSingleStudent = async (req, res) => {
               instituteName: institute.instituteName,
               metadata: {
                 totalStudents: 1,
-                coinsAssigned: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
+                coinsAssigned: silverCoinsPerStudent > 0 || bronzeCoinsPerStudent > 0,
                 silverCoinsPerStudent,
-                goldenCoinsPerStudent: goldCoinsPerStudent
+                bronzeCoinsPerStudent: bronzeCoinsPerStudent
               }
             });
           } catch (logError) {
@@ -1655,7 +1655,7 @@ exports.addSingleStudent = async (req, res) => {
             const tpl = emailTemplates.campusDashboardUpdatedCoins({
               firstName: existingUser.firstName,
               instituteName: institute.instituteName,
-              goldCoins: goldCoinsPerStudent,
+              bronzeCoins: bronzeCoinsPerStudent,
               silverCoins: silverCoinsPerStudent
             });
             await sendMail({ to: existingUser.email, subject: tpl.subject, html: tpl.html });
@@ -1669,7 +1669,7 @@ exports.addSingleStudent = async (req, res) => {
           success: true,
           message: 'Student updated successfully',
           student: { email, name },
-          coinsAdded: { silver: silverCoinsPerStudent, golden: goldCoinsPerStudent }
+          coinsAdded: { silver: silverCoinsPerStudent, golden: bronzeCoinsPerStudent }
         });
       }
 
@@ -1692,7 +1692,7 @@ exports.addSingleStudent = async (req, res) => {
       }
 
       // Increment wallet coins
-      existingUser.goldCoins = (existingUser.goldCoins || 0) + goldCoinsPerStudent;
+      existingUser.bronzeCoins = (existingUser.bronzeCoins || 0) + bronzeCoinsPerStudent;
       existingUser.silverCoins = (existingUser.silverCoins || 0) + silverCoinsPerStudent;
 
       await existingUser.save();
@@ -1704,9 +1704,9 @@ exports.addSingleStudent = async (req, res) => {
       institute.studentsCount = studentIds.size;
       
       // Update institute coin tracking
-      if (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0) {
+      if (silverCoinsPerStudent > 0 || bronzeCoinsPerStudent > 0) {
         institute.perStudentSilverCoins = (institute.perStudentSilverCoins || 0) + silverCoinsPerStudent;
-        institute.perStudentGoldCoins = (institute.perStudentGoldCoins || 0) + goldCoinsPerStudent;
+        institute.perStudentbronzeCoins = (institute.perStudentbronzeCoins || 0) + bronzeCoinsPerStudent;
         
         // Create transaction record
         const transaction = new InstituteRewardTransaction({
@@ -1717,10 +1717,10 @@ exports.addSingleStudent = async (req, res) => {
           ambassadorEmail: req.user.email,
           source: 'MANUAL_ASSIGN',
           perStudentSilver: silverCoinsPerStudent,
-          perStudentGolden: goldCoinsPerStudent,
+          perStudentBronze: bronzeCoinsPerStudent,
           totalStudentsCount: 1,
           totalSilverDistributed: silverCoinsPerStudent,
-          totalGoldenDistributed: goldCoinsPerStudent,
+          totalBronzeDistributed: bronzeCoinsPerStudent,
           remarks: `Manual student assignment - ${name}`,
           status: 'completed',
           distributionDate: new Date()
@@ -1737,9 +1737,9 @@ exports.addSingleStudent = async (req, res) => {
             instituteName: institute.instituteName,
             metadata: {
               totalStudents: 1,
-              coinsAssigned: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
+              coinsAssigned: silverCoinsPerStudent > 0 || bronzeCoinsPerStudent > 0,
               silverCoinsPerStudent,
-              goldenCoinsPerStudent: goldCoinsPerStudent
+              bronzeCoinsPerStudent: bronzeCoinsPerStudent
             }
           });
         } catch (logError) {
@@ -1757,7 +1757,7 @@ exports.addSingleStudent = async (req, res) => {
             course: existingUser.course,
             semester: existingUser.semester,
             className: existingUser.class,
-            goldCoins: goldCoinsPerStudent,
+            bronzeCoins: bronzeCoinsPerStudent,
             silverCoins: silverCoinsPerStudent
           });
           await sendMail({ to: existingUser.email, subject: tpl.subject, html: tpl.html });
@@ -1771,7 +1771,7 @@ exports.addSingleStudent = async (req, res) => {
         success: true,
         message: 'Student added successfully',
         student: { email, name },
-        coinsAdded: { silver: silverCoinsPerStudent, golden: goldCoinsPerStudent }
+        coinsAdded: { silver: silverCoinsPerStudent, golden: bronzeCoinsPerStudent }
       });
     }
 
@@ -1787,7 +1787,7 @@ exports.addSingleStudent = async (req, res) => {
       instituteId: institute.instituteId,
       instituteName: institute.instituteName,
       studentId: generateStudentId(institute.instituteId),
-      goldCoins: goldCoinsPerStudent,
+      bronzeCoins: bronzeCoinsPerStudent,
       silverCoins: silverCoinsPerStudent,
       password: hashedPassword,
       role: 'learner'
@@ -1811,9 +1811,9 @@ exports.addSingleStudent = async (req, res) => {
     institute.studentsCount = studentIds.size;
     
     // Update institute coin tracking
-    if (silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0) {
+    if (silverCoinsPerStudent > 0 || bronzeCoinsPerStudent > 0) {
       institute.perStudentSilverCoins = (institute.perStudentSilverCoins || 0) + silverCoinsPerStudent;
-      institute.perStudentGoldCoins = (institute.perStudentGoldCoins || 0) + goldCoinsPerStudent;
+      institute.perStudentbronzeCoins = (institute.perStudentbronzeCoins || 0) + bronzeCoinsPerStudent;
       
       // Create transaction record
       const transaction = new InstituteRewardTransaction({
@@ -1824,10 +1824,10 @@ exports.addSingleStudent = async (req, res) => {
         ambassadorEmail: req.user.email,
         source: 'MANUAL_ADD',
         perStudentSilver: silverCoinsPerStudent,
-        perStudentGolden: goldCoinsPerStudent,
+        perStudentBronze: bronzeCoinsPerStudent,
         totalStudentsCount: 1,
         totalSilverDistributed: silverCoinsPerStudent,
-        totalGoldenDistributed: goldCoinsPerStudent,
+        totalBronzeDistributed: bronzeCoinsPerStudent,
         remarks: `Manual student addition - ${name}`,
         status: 'completed',
         distributionDate: new Date()
@@ -1844,9 +1844,9 @@ exports.addSingleStudent = async (req, res) => {
           instituteName: institute.instituteName,
           metadata: {
             totalStudents: 1,
-            coinsAssigned: silverCoinsPerStudent > 0 || goldCoinsPerStudent > 0,
+            coinsAssigned: silverCoinsPerStudent > 0 || bronzeCoinsPerStudent > 0,
             silverCoinsPerStudent,
-            goldenCoinsPerStudent: goldCoinsPerStudent
+            bronzeCoinsPerStudent: bronzeCoinsPerStudent
           }
         });
       } catch (logError) {
@@ -1863,7 +1863,7 @@ exports.addSingleStudent = async (req, res) => {
           password: generatedPassword,
           studentId: newUser.studentId,
           instituteName: institute.instituteName,
-          goldCoins: goldCoinsPerStudent,
+          bronzeCoins: bronzeCoinsPerStudent,
           silverCoins: silverCoinsPerStudent
         });
         await sendMail({ to: newUser.email, subject: tpl.subject, html: tpl.html });
@@ -1877,7 +1877,7 @@ exports.addSingleStudent = async (req, res) => {
       success: true,
       message: 'Student created successfully',
       student: { email, name },
-      coinsAdded: { silver: silverCoinsPerStudent, golden: goldCoinsPerStudent }
+      coinsAdded: { silver: silverCoinsPerStudent, golden: bronzeCoinsPerStudent }
     });
 
   } catch (error) {
@@ -2350,7 +2350,7 @@ exports.getMyActivityStats = async (req, res) => {
           totalGoldenCoins: { $sum: { 
             $multiply: [
               { $ifNull: ['$metadata.totalStudents', 0] },
-              { $ifNull: ['$metadata.goldenCoinsPerStudent', 0] }
+              { $ifNull: ['$metadata.bronzeCoinsPerStudent', 0] }
             ]
           } }
         }

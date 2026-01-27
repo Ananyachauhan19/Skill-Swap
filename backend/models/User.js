@@ -76,7 +76,6 @@ const userSchema = new mongoose.Schema({
   github: { type: String, default: '', required: false },
   twitter: { type: String, default: '', required: false },
   credits: { type: Number, default: 1200, required: false },
-  goldCoins: { type: Number, default: 0, required: false },
   silverCoins: { type: Number, default: 0, required: false },
   bronzeCoins: { type: Number, default: 100, required: false },
   badges: [{ type: String, default: ['Starter', 'Helper'], required: false }],

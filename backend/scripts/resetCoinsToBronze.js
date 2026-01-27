@@ -20,7 +20,6 @@ async function run() {
 
     const result = await User.updateMany({}, {
       $set: {
-        goldCoins: 0,
         silverCoins: 0,
         bronzeCoins: 100,
       },

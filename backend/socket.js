@@ -1249,14 +1249,13 @@ module.exports = (io) => {
           // Send initial balances (single DB fetch; no per-minute updates)
           try {
             const [reqUser, tutUser] = await Promise.all([
-              User.findById(requesterId).select('silverCoins goldCoins bronzeCoins'),
-              User.findById(tutorId).select('silverCoins goldCoins bronzeCoins'),
+              User.findById(requesterId).select('silverCoins bronzeCoins'),
+              User.findById(tutorId).select('silverCoins bronzeCoins'),
             ]);
             if (reqUser) {
               getSocketIdsForUserId(requesterId).forEach(sid => {
                 io.to(sid).emit('coin-update', {
                   silverCoins: reqUser.silverCoins || 0,
-                  goldCoins: reqUser.goldCoins || 0,
                   bronzeCoins: reqUser.bronzeCoins || 0,
                 });
               });
@@ -1265,7 +1264,6 @@ module.exports = (io) => {
               getSocketIdsForUserId(tutorId).forEach(sid => {
                 io.to(sid).emit('coin-update', {
                   silverCoins: tutUser.silverCoins || 0,
-                  goldCoins: tutUser.goldCoins || 0,
                   bronzeCoins: tutUser.bronzeCoins || 0,
                 });
               });
@@ -1281,14 +1279,13 @@ module.exports = (io) => {
         // Send initial balances (single DB fetch; no per-minute updates)
         try {
           const [reqUser, tutUser] = await Promise.all([
-            User.findById(requesterId).select('silverCoins goldCoins bronzeCoins'),
-            User.findById(tutorId).select('silverCoins goldCoins bronzeCoins'),
+            User.findById(requesterId).select('silverCoins bronzeCoins'),
+            User.findById(tutorId).select('silverCoins bronzeCoins'),
           ]);
           if (reqUser) {
             getSocketIdsForUserId(requesterId).forEach(sid => {
               io.to(sid).emit('coin-update', {
                 silverCoins: reqUser.silverCoins || 0,
-                goldCoins: reqUser.goldCoins || 0,
                 bronzeCoins: reqUser.bronzeCoins || 0,
               });
             });
@@ -1297,7 +1294,6 @@ module.exports = (io) => {
             getSocketIdsForUserId(tutorId).forEach(sid => {
               io.to(sid).emit('coin-update', {
                 silverCoins: tutUser.silverCoins || 0,
-                goldCoins: tutUser.goldCoins || 0,
                 bronzeCoins: tutUser.bronzeCoins || 0,
               });
             });

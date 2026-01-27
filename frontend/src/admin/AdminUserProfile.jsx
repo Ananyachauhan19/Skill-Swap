@@ -357,7 +357,7 @@ const AdminUserProfile = () => {
           website: user.website || '',
           github: user.github || '',
           twitter: user.twitter || '',
-          goldCoins: user.goldCoins || 0,
+          bronzeCoins: user.bronzeCoins || 0,
           silverCoins: user.silverCoins || 0,
           badges: user.badges || [],
           rank: user.rank || '',

@@ -526,7 +526,7 @@ router.get('/user/profile', requireAuth, async (req, res) => {
       github: user.github,
       twitter: user.twitter,
       credits: user.credits,
-      goldCoins: user.goldCoins,
+      bronzeCoins: user.bronzeCoins,
       silverCoins: user.silverCoins,
       badges: user.badges,
       rank: user.rank,
@@ -544,7 +544,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
   const {
     firstName, lastName, bio, country, profilePic, education, experience,
     certificates, linkedin, website, github, twitter, skillsToTeach,
-    skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
+    skillsToLearn, credits, bronzeCoins, silverCoins, badges, rank, username
   } = req.body;
 
   try {
@@ -572,7 +572,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
     if (skillsToTeach !== undefined) updateData.skillsToTeach = skillsToTeach;
     if (skillsToLearn !== undefined) updateData.skillsToLearn = skillsToLearn;
     if (credits !== undefined) updateData.credits = credits;
-    if (goldCoins !== undefined) updateData.goldCoins = goldCoins;
+    if (bronzeCoins !== undefined) updateData.bronzeCoins = bronzeCoins;
     if (silverCoins !== undefined) updateData.silverCoins = silverCoins;
     if (badges !== undefined) updateData.badges = badges;
     if (rank !== undefined) updateData.rank = rank;
@@ -620,7 +620,7 @@ router.put('/user/profile', requireAuth, async (req, res) => {
       github: user.github,
       twitter: user.twitter,
       credits: user.credits,
-      goldCoins: user.goldCoins,
+      bronzeCoins: user.bronzeCoins,
       silverCoins: user.silverCoins,
       badges: user.badges,
       rank: user.rank,
@@ -660,7 +660,7 @@ router.get('/profile', requireAuth, async (req, res) => {
       github: user.github,
       twitter: user.twitter,
       credits: user.credits,
-      goldCoins: user.goldCoins,
+      bronzeCoins: user.bronzeCoins,
       silverCoins: user.silverCoins,
       badges: user.badges,
       rank: user.rank
@@ -732,7 +732,7 @@ router.put('/profile', requireAuth, async (req, res) => {
   const {
     firstName, lastName, bio, country, profilePic, education, experience,
     certificates, linkedin, website, github, twitter, skillsToTeach,
-    skillsToLearn, credits, goldCoins, silverCoins, badges, rank, username
+    skillsToLearn, credits, bronzeCoins, silverCoins, badges, rank, username
   } = req.body;
 
   try {
@@ -745,7 +745,6 @@ router.put('/profile', requireAuth, async (req, res) => {
       updateData.experience = sanitizeArrayFields(experience, ['company', 'position', 'duration', 'description']);
     }
     if (certificates !== undefined) {
-      coverImageUrl: user.coverImageUrl,
       updateData.certificates = sanitizeArrayFields(certificates, ['name', 'issuer', 'date', 'url']);
     }
 
@@ -761,7 +760,7 @@ router.put('/profile', requireAuth, async (req, res) => {
     if (skillsToTeach !== undefined) updateData.skillsToTeach = skillsToTeach;
     if (skillsToLearn !== undefined) updateData.skillsToLearn = skillsToLearn;
     if (credits !== undefined) updateData.credits = credits;
-    if (goldCoins !== undefined) updateData.goldCoins = goldCoins;
+    if (bronzeCoins !== undefined) updateData.bronzeCoins = bronzeCoins;
     if (silverCoins !== undefined) updateData.silverCoins = silverCoins;
     if (badges !== undefined) updateData.badges = badges;
     if (rank !== undefined) updateData.rank = rank;
@@ -807,7 +806,7 @@ router.put('/profile', requireAuth, async (req, res) => {
       github: user.github,
       twitter: user.twitter,
       credits: user.credits,
-      goldCoins: user.goldCoins,
+      bronzeCoins: user.bronzeCoins,
       silverCoins: user.silverCoins,
       badges: user.badges,
       rank: user.rank
@@ -889,18 +888,16 @@ router.get('/user/public/:username', async (req, res) => {
 // Coins endpoint
 router.get('/coins', requireAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('goldCoins silverCoins bronzeCoins');
+    const user = await User.findById(req.user._id).select('bronzeCoins silverCoins');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
     res.json({
-      goldCoins: user.goldCoins || 0,
-      silverCoins: user.silverCoins || 0,
       bronzeCoins: user.bronzeCoins || 0,
+      silverCoins: user.silverCoins || 0,
       // Keep old format for backward compatibility
-      golden: user.goldCoins || 0,
-      silver: user.silverCoins || 0,
       bronze: user.bronzeCoins || 0,
+      silver: user.silverCoins || 0,
     });
   } catch (error) {
     console.error('[DEBUG] Coins error:', error);

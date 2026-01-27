@@ -19,7 +19,7 @@ exports.register = async (req, res) => {
     firstName, lastName, email, phone, gender, password: hashedPassword,
     username, role, skillsToTeach, skillsToLearn,
     silverCoins: 0,
-    goldCoins: 0,
+    bronzeCoins: 0,
     bronzeCoins: 100,
   });
 
@@ -158,8 +158,8 @@ exports.verifyOtp = async (req, res) => {
 
   // Ensure coins are set (only if undefined, don't reset existing values)
   let updated = false;
-  if (typeof user.goldCoins !== 'number') {
-    user.goldCoins = 0;
+  if (typeof user.bronzeCoins !== 'number') {
+    user.bronzeCoins = 0;
     updated = true;
   }
   // Initialize bronze coins ONLY if missing (not if user spent them)
@@ -263,7 +263,7 @@ exports.verifyOtp = async (req, res) => {
     skillsToTeach: user.skillsToTeach,
     skillsToLearn: user.skillsToLearn,
     silverCoins: user.silverCoins,
-    goldCoins: user.goldCoins,
+    bronzeCoins: user.bronzeCoins,
     bronzeCoins: user.bronzeCoins || 0,
     isAdmin,
   };

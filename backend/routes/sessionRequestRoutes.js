@@ -44,14 +44,14 @@ async function checkRequesterBalance(sessionRequest) {
   const coinTypeKey = (sessionRequest.coinType || 'silver').toLowerCase();
   const minRequired = MIN_BALANCE[coinTypeKey] || MIN_BALANCE.silver;
 
-  const requester = await User.findById(sessionRequest.requester).select('silverCoins goldCoins bronzeCoins');
+  const requester = await User.findById(sessionRequest.requester).select('silverCoins bronzeCoins');
   if (!requester) {
     return { ok: false, reason: 'requester-not-found' };
   }
 
   let field;
   if (coinTypeKey === 'bronze') field = 'bronzeCoins';
-  else if (coinTypeKey === 'gold') field = 'goldCoins';
+  else if (coinTypeKey === 'bronze') field = 'bronzeCoins';
   else field = 'silverCoins';
 
   const balance = Number(requester[field] || 0);
@@ -908,7 +908,7 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
     try {
       let debitField;
       if (coinTypeKey === 'bronze') debitField = 'bronzeCoins';
-      else if (coinTypeKey === 'gold') debitField = 'goldCoins';
+      else if (coinTypeKey === 'bronze') debitField = 'bronzeCoins';
       else debitField = 'silverCoins';
 
       const debitAmount = coinsSpentFinal > 0 ? coinsSpentFinal : 0;
@@ -918,7 +918,7 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
       let updatedTutor = null;
 
       if (debitAmount > 0 && requesterId) {
-        const beforeRequester = await User.findById(requesterId).select('silverCoins goldCoins bronzeCoins');
+        const beforeRequester = await User.findById(requesterId).select('silverCoins bronzeCoins');
         
         const filter = { _id: requesterId };
         filter[debitField] = { $gte: debitAmount };
@@ -945,7 +945,7 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
       }
 
       if (creditAmount > 0 && tutorId) {
-        const beforeTutor = await User.findById(tutorId).select('silverCoins goldCoins bronzeCoins');
+        const beforeTutor = await User.findById(tutorId).select('silverCoins bronzeCoins');
         
         updatedTutor = await User.findByIdAndUpdate(
           tutorId,
@@ -966,14 +966,12 @@ router.post('/complete/:requestId', requireAuth, requestLimiter, validateRequest
           if (updatedRequester) {
             io.to(String(requesterId)).emit('coin-update', {
               silverCoins: updatedRequester.silverCoins || 0,
-              goldCoins: updatedRequester.goldCoins || 0,
               bronzeCoins: updatedRequester.bronzeCoins || 0,
             });
           }
           if (updatedTutor) {
             io.to(String(tutorId)).emit('coin-update', {
               silverCoins: updatedTutor.silverCoins || 0,
-              goldCoins: updatedTutor.goldCoins || 0,
               bronzeCoins: updatedTutor.bronzeCoins || 0,
             });
           }

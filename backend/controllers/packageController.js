@@ -73,7 +73,7 @@ exports.getPackageById = async (req, res) => {
 // Create new package (admin only)
 exports.createPackage = async (req, res) => {
   try {
-    const { name, description, type, silverCoins, bronzeCoins, displayOrder } = req.body;
+    const { name, description, type, silverCoins, bronzeCoins, silverCoinPrice, bronzeCoinPrice, displayOrder } = req.body;
 
     // Validation
     if (!name || !description || !type) {
@@ -111,6 +111,8 @@ exports.createPackage = async (req, res) => {
       type,
       silverCoins: silverCoins || 0,
       bronzeCoins: bronzeCoins || 0,
+      silverCoinPrice: silverCoinPrice || 0.25,
+      bronzeCoinPrice: bronzeCoinPrice || 0.5,
       displayOrder: displayOrder || 0
     });
 
@@ -135,7 +137,7 @@ exports.createPackage = async (req, res) => {
 exports.updatePackage = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, type, silverCoins, bronzeCoins, displayOrder, isActive } = req.body;
+    const { name, description, type, silverCoins, bronzeCoins, silverCoinPrice, bronzeCoinPrice, displayOrder, isActive } = req.body;
 
     const package = await Package.findById(id);
     
@@ -152,6 +154,8 @@ exports.updatePackage = async (req, res) => {
     if (type) package.type = type;
     if (silverCoins !== undefined) package.silverCoins = silverCoins;
     if (bronzeCoins !== undefined) package.bronzeCoins = bronzeCoins;
+    if (silverCoinPrice !== undefined) package.silverCoinPrice = silverCoinPrice;
+    if (bronzeCoinPrice !== undefined) package.bronzeCoinPrice = bronzeCoinPrice;
     if (displayOrder !== undefined) package.displayOrder = displayOrder;
     if (isActive !== undefined) package.isActive = isActive;
 

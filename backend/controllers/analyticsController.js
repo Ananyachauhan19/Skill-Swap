@@ -2024,42 +2024,42 @@ exports.getRewards = async (req, res) => {
 
     // 1) Load all users with coin + activity info
     const allUsers = await User.find().select(
-      'firstName lastName username silverCoins goldCoins lastActivityAt lastLogin createdAt'
+      'firstName lastName username silverCoins bronzeCoins lastActivityAt lastLogin createdAt'
     );
 
     const totalUsers = allUsers.length;
     const userCoinStats = allUsers.map(u => {
       const silver = u.silverCoins || 0;
-      const gold = u.goldCoins || 0;
-      const total = silver + gold;
-      return { user: u, silver, gold, total };
+      const bronze = u.bronzeCoins || 0;
+      const total = silver + bronze;
+      return { user: u, silver, bronze, total };
     });
 
     const totalSilverCoins = userCoinStats.reduce((sum, u) => sum + u.silver, 0);
-    const totalGoldCoins = userCoinStats.reduce((sum, u) => sum + u.gold, 0);
-    const totalCoins = totalSilverCoins + totalGoldCoins;
+    const totalBronzeCoins = userCoinStats.reduce((sum, u) => sum + u.bronze, 0);
+    const totalCoins = totalSilverCoins + totalBronzeCoins;
 
     // 2) Economy health
     const totalEarners = userCoinStats.filter(u => u.total > 0).length;
     const nonEarners = totalUsers - totalEarners;
-    const onlySilver = userCoinStats.filter(u => u.silver > 0 && u.gold === 0).length;
-    const goldEarners = userCoinStats.filter(u => u.gold > 0).length;
+    const onlySilver = userCoinStats.filter(u => u.silver > 0 && u.bronze === 0).length;
+    const bronzeEarners = userCoinStats.filter(u => u.bronze > 0).length;
 
     const economyHealth = {
       totalEarners,
       nonEarners,
       percentageEarningCoins: totalUsers > 0 ? Math.round((totalEarners / totalUsers) * 100) : 0,
       percentageOnlySilver: totalUsers > 0 ? Math.round((onlySilver / totalUsers) * 100) : 0,
-      percentageEarningGold: totalUsers > 0 ? Math.round((goldEarners / totalUsers) * 100) : 0,
+      percentageEarningBronze: totalUsers > 0 ? Math.round((bronzeEarners / totalUsers) * 100) : 0,
     };
 
-    // 3) Silver vs Gold balance
-    const silverGoldBalance = {
+    // 3) Silver vs Bronze balance
+    const silverBronzeBalance = {
       totalSilver: totalSilverCoins,
-      totalGold: totalGoldCoins,
-      ratio: totalGoldCoins > 0 ? parseFloat((totalSilverCoins / totalGoldCoins).toFixed(2)) : 0,
+      totalBronze: totalBronzeCoins,
+      ratio: totalBronzeCoins > 0 ? parseFloat((totalSilverCoins / totalBronzeCoins).toFixed(2)) : 0,
       avgSilverPerUser: totalUsers > 0 ? Math.round(totalSilverCoins / totalUsers) : 0,
-      avgGoldPerUser: totalUsers > 0 ? Math.round(totalGoldCoins / totalUsers) : 0,
+      avgBronzePerUser: totalUsers > 0 ? Math.round(totalBronzeCoins / totalUsers) : 0,
     };
 
     // 4) Coin earning trend (per day, silver vs gold)
@@ -2161,7 +2161,7 @@ exports.getRewards = async (req, res) => {
     ]);
 
     const totalCoinsEarned = contributionsByDate.reduce(
-      (sum, d) => sum + (d.silver || 0) + (d.gold || 0),
+      (sum, d) => sum + (d.silver || 0) + (d.bronze || 0),
       0
     );
 
@@ -2288,7 +2288,7 @@ exports.getRewards = async (req, res) => {
 
     res.json({
       economyHealth,
-      silverGoldBalance,
+      silverBronzeBalance,
       earningTrend,
       earningSources,
       topEarners: userCoinStats

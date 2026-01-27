@@ -284,8 +284,8 @@ const Users = () => {
         case "email":
           return (a.email || "").localeCompare(b.email || "");
         case "coins":
-          const coinsA = (a.goldCoins || 0) * 10 + (a.silverCoins || 0);
-          const coinsB = (b.goldCoins || 0) * 10 + (b.silverCoins || 0);
+          const coinsA = (a.bronzeCoins || 0) * 10 + (a.silverCoins || 0);
+          const coinsB = (b.bronzeCoins || 0) * 10 + (b.silverCoins || 0);
           return coinsB - coinsA;
         case "lastLogin":
           const dateA = a.lastLogin
@@ -545,7 +545,7 @@ const Users = () => {
                             <p className="text-sm text-gray-600 truncate">@{user.username} • {user.email}</p>
                             <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                               <span className="flex items-center gap-1">
-                                <span className="text-yellow-500">🪙</span> {user.goldCoins || 0}
+                                <span className="text-amber-600">🥉</span> {user.bronzeCoins || 0}
                               </span>
                               <span className="flex items-center gap-1">
                                 <span className="text-gray-400">⚪</span> {user.silverCoins || 0}

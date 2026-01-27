@@ -508,7 +508,6 @@ exports.unlockTest = async (req, res) => {
       balance: {
         bronzeCoins: user.bronzeCoins || 0,
         silverCoins: user.silverCoins || 0,
-        goldCoins: user.goldCoins || 0,
       },
     });
   } catch (error) {

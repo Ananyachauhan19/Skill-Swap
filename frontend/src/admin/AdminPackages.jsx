@@ -16,6 +16,8 @@ const AdminPackages = () => {
     type: 'ONLY_SILVER',
     silverCoins: 0,
     bronzeCoins: 0,
+    silverCoinPrice: 0.25,
+    bronzeCoinPrice: 0.5,
     displayOrder: 0
   });
 
@@ -56,6 +58,8 @@ const AdminPackages = () => {
       type: 'ONLY_SILVER',
       silverCoins: 0,
       bronzeCoins: 0,
+      silverCoinPrice: 0.25,
+      bronzeCoinPrice: 0.5,
       displayOrder: 0
     });
     setEditingPackage(null);
@@ -69,6 +73,8 @@ const AdminPackages = () => {
         type: pkg.type,
         silverCoins: pkg.silverCoins,
         bronzeCoins: pkg.bronzeCoins || 0,
+        silverCoinPrice: pkg.silverCoinPrice || 0.25,
+        bronzeCoinPrice: pkg.bronzeCoinPrice || 0.5,
         displayOrder: pkg.displayOrder || 0
       });
       setEditingPackage(pkg);
@@ -89,6 +95,8 @@ const AdminPackages = () => {
       ...prev,
       [name]: name === 'silverCoins' || name === 'bronzeCoins' || name === 'displayOrder'
         ? parseInt(value) || 0
+        : name === 'silverCoinPrice' || name === 'bronzeCoinPrice'
+        ? parseFloat(value) || 0
         : value
     }));
   };
@@ -102,7 +110,7 @@ const AdminPackages = () => {
   };
 
   const calculatePrice = () => {
-    return (formData.silverCoins * 0.25) + (formData.bronzeCoins * 0.5);
+    return (formData.silverCoins * (formData.silverCoinPrice || 0)) + (formData.bronzeCoins * (formData.bronzeCoinPrice || 0));
   };
 
   const handleSubmit = async (e) => {
@@ -285,15 +293,29 @@ const AdminPackages = () => {
               {/* Coins */}
               <div className="space-y-2 mb-4">
                 {pkg.silverCoins > 0 && (
-                  <div className="flex items-center text-gray-700">
-                    <FaCoins className="text-gray-400 mr-2" />
-                    <span className="font-semibold">{pkg.silverCoins} Silver Coins</span>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between text-gray-700 mb-1">
+                      <div className="flex items-center">
+                        <FaCoins className="text-gray-400 mr-2" />
+                        <span className="font-semibold">{pkg.silverCoins} Silver Coins</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      @ ₹{(pkg.silverCoinPrice || 0.25).toFixed(2)} per coin = ₹{(pkg.silverCoins * (pkg.silverCoinPrice || 0.25)).toFixed(2)}
+                    </div>
                   </div>
                 )}
                 {pkg.bronzeCoins > 0 && (
-                  <div className="flex items-center text-amber-700">
-                    <GiTwoCoins className="text-amber-600 mr-2" />
-                    <span className="font-semibold">{pkg.bronzeCoins} Bronze Coins</span>
+                  <div className="bg-amber-50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between text-amber-700 mb-1">
+                      <div className="flex items-center">
+                        <GiTwoCoins className="text-amber-600 mr-2" />
+                        <span className="font-semibold">{pkg.bronzeCoins} Bronze Coins</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-amber-700">
+                      @ ₹{(pkg.bronzeCoinPrice || 0.5).toFixed(2)} per coin = ₹{(pkg.bronzeCoins * (pkg.bronzeCoinPrice || 0.5)).toFixed(2)}
+                    </div>
                   </div>
                 )}
               </div>
@@ -373,38 +395,81 @@ const AdminPackages = () => {
                 </div>
 
                 {/* Coins */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Silver Coins {formData.type !== 'ONLY_BRONZE' && '*'}
-                    </label>
-                    <input
-                      type="number"
-                      name="silverCoins"
-                      value={formData.silverCoins}
-                      onChange={handleInputChange}
-                      min="0"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required={formData.type !== 'ONLY_BRONZE'}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">₹0.25 per coin</p>
+                {formData.type !== 'ONLY_BRONZE' && (
+                  <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-semibold text-gray-700">Silver Coin Settings</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Silver Coins *
+                        </label>
+                        <input
+                          type="number"
+                          name="silverCoins"
+                          value={formData.silverCoins}
+                          onChange={handleInputChange}
+                          min="0"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Price per Silver Coin (₹) *
+                        </label>
+                        <input
+                          type="number"
+                          name="silverCoinPrice"
+                          value={formData.silverCoinPrice}
+                          onChange={handleInputChange}
+                          min="0"
+                          step="0.01"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Set your rate per silver coin</p>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Bronze Coins {formData.type !== 'ONLY_SILVER' && '*'}
-                    </label>
-                    <input
-                      type="number"
-                      name="bronzeCoins"
-                      value={formData.bronzeCoins}
-                      onChange={handleInputChange}
-                      min="0"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required={formData.type !== 'ONLY_SILVER'}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">₹0.50 per coin</p>
+                )}
+
+                {formData.type !== 'ONLY_SILVER' && (
+                  <div className="space-y-4 p-4 bg-amber-50 rounded-lg">
+                    <h4 className="font-semibold text-gray-700">Bronze Coin Settings</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Bronze Coins *
+                        </label>
+                        <input
+                          type="number"
+                          name="bronzeCoins"
+                          value={formData.bronzeCoins}
+                          onChange={handleInputChange}
+                          min="0"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Price per Bronze Coin (₹) *
+                        </label>
+                        <input
+                          type="number"
+                          name="bronzeCoinPrice"
+                          value={formData.bronzeCoinPrice}
+                          onChange={handleInputChange}
+                          min="0"
+                          step="0.01"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Set your rate per bronze coin</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Display Order */}
                 <div>

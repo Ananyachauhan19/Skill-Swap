@@ -52,7 +52,7 @@ if (hasGoogleOauth) {
               github: '',
               twitter: '',
               credits: 1200,
-              goldCoins: 0,
+              bronzeCoins: 0,
               silverCoins: 0,
               bronzeCoins: 100,
               badges: ['Starter', 'Helper'],
@@ -70,8 +70,8 @@ if (hasGoogleOauth) {
               user.role = 'student';
               updated = true;
             }
-            if (typeof user.goldCoins !== 'number') {
-              user.goldCoins = 0;
+            if (typeof user.bronzeCoins !== 'number') {
+              user.bronzeCoins = 0;
               updated = true;
             }
             // Ensure bronze coins are initialized for legacy users (no auto top-up of silver coins)

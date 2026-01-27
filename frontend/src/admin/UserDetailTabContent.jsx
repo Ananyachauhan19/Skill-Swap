@@ -572,10 +572,10 @@ const UserDetailTabContent = ({
                 SkillCoins
               </h4>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="text-xs text-gray-600 mb-1">Gold</div>
-                  <div className="text-2xl font-bold text-yellow-700">
-                    {userDetails.user.goldCoins || 0}
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="text-xs text-gray-600 mb-1">Bronze</div>
+                  <div className="text-2xl font-bold text-amber-700">
+                    {userDetails.user.bronzeCoins || 0}
                   </div>
                 </div>
                 <div className="bg-gray-100 border border-gray-200 rounded-lg p-4">
@@ -1154,7 +1154,7 @@ const UserDetailTabContent = ({
                             <td className="px-2 py-1.5">
                               <span
                                 className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
-                                  tx.coinType === "gold"
+                                  tx.coinType === "bronze"
                                     ? "bg-yellow-100 text-yellow-800"
                                     : "bg-gray-100 text-gray-800"
                                 }`}

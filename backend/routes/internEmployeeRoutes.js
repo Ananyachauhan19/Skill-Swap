@@ -187,58 +187,67 @@ router.post('/intern-coordinator/interns', requireInternEmployee, async (req, re
     });
 
     if (!template) {
-      return res.status(500).json({ 
-        message: 'No active joining letter template found. Please contact admin.' 
-      });
+      console.warn('No active joining letter template found');
+      // Continue without template instead of failing
     }
 
-    // Generate QR code
-    const qrURL = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/joiningcertificate/${internEmployeeId}`;
-    const qrDataURL = await generateQRCodeDataURL(qrURL);
+    let pdfFilename;
+    let pdfPath;
+    
+    if (template) {
+      try {
+        // Generate QR code
+        const qrURL = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/joiningcertificate/${internEmployeeId}`;
+        const qrDataURL = await generateQRCodeDataURL(qrURL);
 
-    // Replace variables in template
-    const variables = {
-      name: intern.name,
-      role: intern.role,
-      joiningDate: new Date(intern.joiningDate).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-      duration: `${intern.internshipDuration} days`,
-      internEmployeeId: intern.internEmployeeId,
-      qrCode: qrDataURL,
-    };
+        // Replace variables in template
+        const variables = {
+          name: intern.name,
+          role: intern.role,
+          joiningDate: new Date(intern.joiningDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+          duration: `${intern.internshipDuration} days`,
+          internEmployeeId: intern.internEmployeeId,
+          qrCode: qrDataURL,
+        };
 
-    const htmlContent = replaceTemplateVariables(template.htmlContent, variables);
+        const htmlContent = replaceTemplateVariables(template.htmlContent, variables);
 
-    // Generate PDF
-    const pdfFilename = `joining_${internEmployeeId}_${Date.now()}.pdf`;
-    const pdfPath = await generatePDF(htmlContent, pdfFilename);
+        // Generate PDF
+        pdfFilename = `joining_${internEmployeeId}_${Date.now()}.pdf`;
+        pdfPath = await generatePDF(htmlContent, pdfFilename);
 
-    // Update intern with certificate path
-    intern.joiningCertificatePath = `/certificates/${pdfFilename}`;
-    await intern.save();
+        // Update intern with certificate path
+        intern.joiningCertificatePath = `/certificates/${pdfFilename}`;
+        await intern.save();
 
-    // Send joining email
-    try {
-      await sendTemplatedEmail({
-        to: intern.email,
-        templateType: 'intern_joining',
-        variables: {
-          ...variables,
-          certificateLink: qrURL,
-        },
-        attachments: [
-          {
-            filename: 'Joining_Letter.pdf',
-            path: pdfPath,
-          },
-        ],
-      });
-    } catch (emailError) {
-      console.error('Failed to send joining email:', emailError);
-      // Continue even if email fails
+        // Send joining email
+        try {
+          await sendTemplatedEmail({
+            to: intern.email,
+            templateType: 'intern_joining',
+            variables: {
+              ...variables,
+              certificateLink: qrURL,
+            },
+            attachments: [
+              {
+                filename: 'Joining_Letter.pdf',
+                path: pdfPath,
+              },
+            ],
+          });
+        } catch (emailError) {
+          console.error('Failed to send joining email:', emailError);
+          // Continue even if email fails
+        }
+      } catch (certError) {
+        console.error('Failed to generate certificate/send email:', certError);
+        // Continue even if certificate generation fails
+      }
     }
 
     // Log activity
@@ -260,7 +269,9 @@ router.post('/intern-coordinator/interns', requireInternEmployee, async (req, re
     });
   } catch (error) {
     console.error('Create intern error:', error);
-    res.status(500).json({ message: 'Failed to create intern' });
+    console.error('Error stack:', error.stack);
+    console.error('Error message:', error.message);
+    res.status(500).json({ message: 'Failed to create intern', error: error.message });
   }
 });
 
