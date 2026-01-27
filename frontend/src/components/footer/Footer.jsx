@@ -339,7 +339,7 @@ const Footer = () => {
 
               {/* Copyright */}
               <div className="text-gray-400 border-t border-gray-700/50 pt-3 space-y-1">
-                <p className="text-xs">© {new Date().getFullYear()} SkillSwapHub. All rights reserved.</p>
+                <p className="text-xs">© {new Date().getFullYear()} SkillSwapHub Pvt Ltd. All rights reserved.</p>
                 
               </div>
             </div>
