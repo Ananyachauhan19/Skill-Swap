@@ -38,6 +38,22 @@ const HomeDashboard = () => {
 
   const isActive = (tab) => activeTab === tab;
 
+  // Sync activeTab with current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('/campus/one-on-one')) {
+      setActiveTab('oneonone');
+    } else if (path.includes('/campus/assessment')) {
+      setActiveTab('assessment');
+    } else if (path.includes('/campus/reports')) {
+      setActiveTab('reports');
+    } else if (path.includes('/session-requests')) {
+      setActiveTab('requests');
+    } else if (path === '/campus-dashboard') {
+      setActiveTab('dashboard');
+    }
+  }, [location.pathname]);
+
   const fetchCoins = async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/coins`, {

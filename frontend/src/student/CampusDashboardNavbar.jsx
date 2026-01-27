@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Notifications from '../components/Navbar/Notifications';
 
 const CampusDashboardNavbar = ({
@@ -51,17 +52,15 @@ const CampusDashboardNavbar = ({
               { id: 'reports', label: 'Reports', path: '/campus/reports' },
               { id: 'requests', label: 'Requests', path: '/session-requests?tab=campus&view=received' },
             ].map(({ id, label, path }) => (
-              <button
+              <Link
                 key={id}
+                to={path}
                 className={`text-[11px] lg:text-xs xl:text-sm font-bold px-2 md:px-2.5 lg:px-3 py-1.5 rounded-full text-blue-900 bg-blue-100/50 shadow-sm transition-all duration-300 whitespace-nowrap ${
                   isActive(id)
                     ? 'bg-gradient-to-r from-blue-900 to-blue-800 text-white shadow-md'
                     : 'hover:bg-gradient-to-r hover:from-blue-900 hover:to-blue-800 hover:text-white hover:shadow-md hover:scale-105'
-                } touch-manipulation`}
-                onClick={() => {
-                  setActiveTab(id);
-                  navigate(path);
-                }}
+                } touch-manipulation inline-block`}
+                onClick={() => setActiveTab(id)}
               >
                 <span className="flex items-center gap-1">
                   <span>{label}</span>
@@ -71,7 +70,7 @@ const CampusDashboardNavbar = ({
                     </span>
                   )}
                 </span>
-              </button>
+              </Link>
             ))}
           </div>
 
@@ -320,16 +319,16 @@ const CampusDashboardNavbar = ({
                 { id: 'reports', label: 'Reports', path: '/campus/reports' },
                 { id: 'requests', label: 'Requests', path: '/session-requests?tab=campus&view=received' },
               ].map(({ id, label, path }) => (
-                <button
+                <Link
                   key={id}
-                  className={`w-full text-left text-sm font-bold px-4 py-3 rounded-xl transition-all ${
+                  to={path}
+                  className={`w-full text-left text-sm font-bold px-4 py-3 rounded-xl transition-all block ${
                     activeTab === id
                       ? 'bg-blue-100 text-blue-900 border-l-4 border-blue-800 shadow-sm'
                       : 'bg-white/70 text-blue-900 hover:bg-blue-50 shadow-sm'
                   }`}
                   onClick={() => {
                     setActiveTab(id);
-                    navigate(path);
                     setMenuOpen(false);
                   }}
                 >
@@ -341,7 +340,7 @@ const CampusDashboardNavbar = ({
                       </span>
                     )}
                   </span>
-                </button>
+                </Link>
               ))}
 
               {!isLoggedIn && (

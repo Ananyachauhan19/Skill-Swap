@@ -29,23 +29,29 @@ const CampusOneOnOne = () => {
   const [campusRequestCount, setCampusRequestCount] = useState(0);
   
   const coinsRef = useRef(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Sync activeTab with current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('/campus/one-on-one')) {
+      setActiveTab('oneonone');
+    } else if (path.includes('/campus/assessment')) {
+      setActiveTab('assessment');
+    } else if (path.includes('/campus/reports')) {
+      setActiveTab('reports');
+    } else if (path.includes('/session-requests')) {
+      setActiveTab('requests');
+    } else if (path === '/campus-dashboard') {
+      setActiveTab('dashboard');
+    }
+  }, [location.pathname]);
 
   // Check for campus validation
   useEffect(() => {
     const campusValidated = localStorage.getItem('campusValidated');
     if (!campusValidated) {
-      // Redirect to login if not validated
       navigate('/campus-dashboard/login', { replace: true });
-      return;
     }
-    
-    // Give time for authUser to load
-    const timer = setTimeout(() => {
-      setIsCheckingAuth(false);
-    }, 500);
-    
-    return () => clearTimeout(timer);
   }, [navigate]);
 
   const fetchCoins = async () => {
@@ -263,41 +269,6 @@ const HowItWorks = () => {
     </section>
   );
 };
-
-  // Redirect if user doesn't have institute info (only after initial check)
-  useEffect(() => {
-    if (!isCheckingAuth && !authUser?.instituteId) {
-      navigate('/campus-dashboard');
-    }
-  }, [authUser, navigate, isCheckingAuth]);
-
-  if (isCheckingAuth) {
-    return (
-      <div className="min-h-screen bg-home-bg flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!authUser?.instituteId) {
-    return (
-      <div className="min-h-screen bg-home-bg flex items-center justify-center p-4">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Access Restricted</h2>
-          <p className="text-gray-600 mb-6">You need to join a campus to access this feature.</p>
-          <button
-            onClick={() => navigate('/campus-dashboard')}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Go to Campus Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>

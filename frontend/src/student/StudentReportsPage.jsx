@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Cookies from 'js-cookie';
 import CampusDashboardNavbar from './CampusDashboardNavbar';
 import StudentReportsTab from './StudentReportsTab';
@@ -7,6 +7,7 @@ import { BACKEND_URL } from '../config';
 
 const StudentReportsPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [activeTab, setActiveTab] = useState('reports');
   const [isLoggedIn] = useState(!!Cookies.get('user'));
@@ -18,6 +19,22 @@ const StudentReportsPage = () => {
   const [campusRequestCount, setCampusRequestCount] = useState(0);
   
   const coinsRef = useRef(null);
+
+  // Sync activeTab with current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes('/campus/one-on-one')) {
+      setActiveTab('oneonone');
+    } else if (path.includes('/campus/assessment')) {
+      setActiveTab('assessment');
+    } else if (path.includes('/campus/reports')) {
+      setActiveTab('reports');
+    } else if (path.includes('/session-requests')) {
+      setActiveTab('requests');
+    } else if (path === '/campus-dashboard') {
+      setActiveTab('dashboard');
+    }
+  }, [location.pathname]);
 
   // Check for campus validation
   useEffect(() => {
