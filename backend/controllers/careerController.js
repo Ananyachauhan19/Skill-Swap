@@ -186,6 +186,16 @@ exports.submitJobApplication = async (req, res) => {
   try {
     const applicationData = req.body;
 
+    console.log('📝 New application submission:', {
+      jobPosting: applicationData.jobPosting,
+      applicantEmail: applicationData.email,
+      firstName: applicationData.firstName,
+      lastName: applicationData.lastName,
+      hasUser: !!req.user,
+      userId: req.user?._id,
+      userEmail: req.user?.email
+    });
+
     if (!applicationData.jobPosting || !applicationData.firstName || !applicationData.email || !applicationData.resumeUrl) {
       return res.status(400).json({ message: 'Required fields missing' });
     }
@@ -206,16 +216,20 @@ exports.submitJobApplication = async (req, res) => {
     });
 
     if (existingApplication) {
+      console.log('⚠️ Duplicate application attempt:', applicationData.email);
       return res.status(400).json({ message: 'You have already applied for this position' });
     }
 
     // Add user ID if logged in
     if (req.user) {
       applicationData.user = req.user._id;
+      console.log('✅ Linking application to user:', req.user._id);
     }
 
     const application = new JobApplication(applicationData);
     await application.save();
+
+    console.log('✅ Application saved successfully:', application._id);
 
     // Increment application count
     job.applicationCount += 1;
@@ -303,6 +317,43 @@ exports.updateApplicationStatus = async (req, res) => {
   }
 };
 
+// Admin: Delete job application
+exports.deleteJobApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const application = await JobApplication.findById(id);
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    console.log('🗑️ Deleting application:', {
+      id: application._id,
+      email: application.email,
+      jobPosting: application.jobPosting
+    });
+
+    // Decrement application count on the job posting
+    if (application.jobPosting) {
+      await JobPosting.findByIdAndUpdate(
+        application.jobPosting,
+        { $inc: { applicationCount: -1 } },
+        { new: true }
+      );
+    }
+
+    // Delete the application
+    await JobApplication.findByIdAndDelete(id);
+
+    console.log('✅ Application deleted successfully');
+
+    res.status(200).json({ message: 'Application deleted successfully' });
+  } catch (error) {
+    console.error('Delete application error:', error);
+    res.status(500).json({ message: 'Error deleting application', error: error.message });
+  }
+};
+
 // Admin: Get career statistics
 exports.getCareerStats = async (req, res) => {
   try {
@@ -334,5 +385,46 @@ exports.getCareerStats = async (req, res) => {
   } catch (error) {
     console.error('Get career stats error:', error);
     res.status(500).json({ message: 'Error fetching career statistics', error: error.message });
+  }
+};
+
+// User: Get my job applications
+exports.getMyApplications = async (req, res) => {
+  try {
+    if (!req.user) {
+      console.log('❌ No user found in request');
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    console.log('✅ Fetching applications for user:', req.user._id, 'Email:', req.user.email);
+
+    // First, let's check ALL applications in the database
+    const allApplications = await JobApplication.find({});
+    console.log(`📊 Total applications in database: ${allApplications.length}`);
+    allApplications.forEach((app, idx) => {
+      console.log(`  App ${idx + 1}:`, {
+        id: app._id,
+        email: app.email,
+        userId: app.user,
+        jobPosting: app.jobPosting
+      });
+    });
+
+    // Find applications by user ID or email
+    const applications = await JobApplication.find({
+      $or: [
+        { user: req.user._id },
+        { email: req.user.email }
+      ]
+    })
+      .populate('jobPosting', 'jobTitle jobType location department shortDescription _id')
+      .sort({ createdAt: -1 });
+
+    console.log(`✅ Found ${applications.length} applications for user ${req.user.email}`);
+
+    res.status(200).json({ applications });
+  } catch (error) {
+    console.error('Get my applications error:', error);
+    res.status(500).json({ message: 'Error fetching your applications', error: error.message });
   }
 };

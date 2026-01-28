@@ -13,7 +13,9 @@ import {
   FiUsers,
   FiCheckCircle,
   FiClock,
-  FiDownload
+  FiDownload,
+  FiX,
+  FiTrash
 } from 'react-icons/fi';
 
 const AdminCareer = () => {
@@ -31,6 +33,8 @@ const AdminCareer = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [jobTypeFilter, setJobTypeFilter] = useState('');
+  const [viewingApplication, setViewingApplication] = useState(null);
+  const [showApplicationModal, setShowApplicationModal] = useState(false);
   
   const [formData, setFormData] = useState({
     jobTitle: '',
@@ -143,6 +147,7 @@ const AdminCareer = () => {
       setShowJobModal(false);
       fetchJobs();
       fetchStats();
+      fetchApplications();
     } catch (error) {
       console.error('Error saving job:', error);
       alert(error.response?.data?.message || 'Failed to save job posting');
@@ -152,12 +157,13 @@ const AdminCareer = () => {
   };
 
   const handleDeleteJob = async (jobId) => {
-    if (!window.confirm('Are you sure you want to delete this job posting?')) return;
+    if (!window.confirm('Are you sure you want to delete this job posting? All related applications will also be deleted.')) return;
     
     try {
       await axios.delete(`${BACKEND_URL}/api/career/admin/jobs/${jobId}`, getAuthConfig());
       fetchJobs();
       fetchStats();
+      fetchApplications();
     } catch (error) {
       console.error('Error deleting job:', error);
       alert('Failed to delete job posting');
@@ -191,6 +197,28 @@ const AdminCareer = () => {
     }
   };
 
+  const handleViewApplication = (application) => {
+    setViewingApplication(application);
+    setShowApplicationModal(true);
+  };
+
+  const handleDeleteApplication = async (applicationId, applicantName) => {
+    if (!window.confirm(`Are you sure you want to delete the application from ${applicantName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${BACKEND_URL}/api/career/admin/applications/${applicationId}`, getAuthConfig());
+      fetchApplications();
+      fetchStats();
+      fetchJobs(); // Refresh jobs to update application counts
+      alert('Application deleted successfully');
+    } catch (error) {
+      console.error('Error deleting application:', error);
+      alert(error.response?.data?.message || 'Failed to delete application');
+    }
+  };
+
   const filteredJobs = jobs.filter(job => {
     const matchesSearch = job.jobTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          job.department?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -216,6 +244,7 @@ const AdminCareer = () => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Jobs</p>
                 <h3 className="text-3xl font-bold text-gray-900 mt-2">{stats.totalJobs}</h3>
+                <p className="text-xs text-green-600 mt-1">{stats.activeJobs} active</p>
               </div>
               <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
                 <FiBriefcase className="text-2xl text-blue-600" />
@@ -238,7 +267,7 @@ const AdminCareer = () => {
           <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Applications</p>
+                <p className="text-sm font-medium text-gray-600">Total Applications</p>
                 <h3 className="text-3xl font-bold text-gray-900 mt-2">{stats.totalApplications}</h3>
               </div>
               <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
@@ -275,13 +304,20 @@ const AdminCareer = () => {
             </button>
             <button
               onClick={() => setActiveTab('applications')}
-              className={`px-6 py-2.5 rounded-md font-medium transition-all ${
+              className={`px-6 py-2.5 rounded-md font-medium transition-all flex items-center gap-2 ${
                 activeTab === 'applications'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              Applications ({stats.totalApplications})
+              <span>Applications</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                activeTab === 'applications'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-blue-100 text-blue-600'
+              }`}>
+                {stats.totalApplications}
+              </span>
             </button>
           </div>
         </div>
@@ -509,15 +545,32 @@ const AdminCareer = () => {
                       </select>
                     </td>
                     <td className="px-6 py-4">
-                      <a
-                        href={app.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
-                      >
-                        <FiDownload className="h-4 w-4" />
-                        Resume
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleViewApplication(app)}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
+                        >
+                          <FiEye className="h-4 w-4" />
+                          View Details
+                        </button>
+                        <a
+                          href={app.resumeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
+                        >
+                          <FiDownload className="h-4 w-4" />
+                          Resume
+                        </a>
+                        <button
+                          onClick={() => handleDeleteApplication(app._id, `${app.firstName} ${app.lastName}`)}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
+                          title="Delete Application"
+                        >
+                          <FiTrash className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -697,6 +750,242 @@ const AdminCareer = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Application Details Modal */}
+      {showApplicationModal && viewingApplication && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-4xl w-full my-8 shadow-2xl border border-gray-200 max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Application Details</h2>
+                <p className="text-gray-600 mt-1 text-sm">
+                  {viewingApplication.firstName} {viewingApplication.lastName} - {viewingApplication.jobPosting?.jobTitle}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowApplicationModal(false)}
+                className="p-2 hover:bg-white/50 rounded-lg transition-colors"
+              >
+                <FiX className="text-2xl text-gray-600" />
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {/* Status and Actions */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-indigo-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-2">Application Status</p>
+                    <select
+                      value={viewingApplication.status}
+                      onChange={(e) => {
+                        handleUpdateApplicationStatus(viewingApplication._id, e.target.value);
+                        setViewingApplication({...viewingApplication, status: e.target.value});
+                      }}
+                      className={`text-sm font-bold px-4 py-2 rounded-lg border-0 cursor-pointer focus:ring-2 focus:ring-offset-2 outline-none transition-all ${
+                        viewingApplication.status === 'pending' ? 'bg-yellow-100 text-yellow-700 focus:ring-yellow-500' :
+                        viewingApplication.status === 'reviewed' ? 'bg-blue-100 text-blue-700 focus:ring-blue-500' :
+                        viewingApplication.status === 'shortlisted' ? 'bg-purple-100 text-purple-700 focus:ring-purple-500' :
+                        viewingApplication.status === 'accepted' ? 'bg-green-100 text-green-700 focus:ring-green-500' :
+                        'bg-red-100 text-red-700 focus:ring-red-500'
+                      }`}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="reviewed">Reviewed</option>
+                      <option value="shortlisted">Shortlisted</option>
+                      <option value="accepted">Accepted</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-600 mb-1">Applied On</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {new Date(viewingApplication.createdAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Basic Information */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <FiUsers className="text-blue-600" />
+                  </div>
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 rounded-xl p-4">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Full Name</p>
+                    <p className="text-sm font-bold text-gray-900">{viewingApplication.firstName} {viewingApplication.lastName}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Email</p>
+                    <p className="text-sm font-medium text-gray-900">{viewingApplication.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Phone</p>
+                    <p className="text-sm font-medium text-gray-900">{viewingApplication.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Address</p>
+                    <p className="text-sm font-medium text-gray-900">{viewingApplication.address}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Education Details */}
+              <div className="mb-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <FiBriefcase className="text-purple-600" />
+                  </div>
+                  Education Details
+                </h3>
+
+                {/* School */}
+                <div className="mb-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                  <h4 className="font-bold text-gray-900 mb-3 text-sm">School Education</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">School Name</p>
+                      <p className="text-sm font-medium text-gray-900">{viewingApplication.schoolName}</p>
+                    </div>
+                    {viewingApplication.schoolBoard && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Board</p>
+                        <p className="text-sm font-medium text-gray-900">{viewingApplication.schoolBoard}</p>
+                      </div>
+                    )}
+                    {viewingApplication.schoolMarks && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Marks/Percentage</p>
+                        <p className="text-sm font-bold text-green-600">{viewingApplication.schoolMarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Intermediate */}
+                <div className="mb-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+                  <h4 className="font-bold text-gray-900 mb-3 text-sm">Intermediate/12th</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">College Name</p>
+                      <p className="text-sm font-medium text-gray-900">{viewingApplication.intermediateName}</p>
+                    </div>
+                    {viewingApplication.intermediateBoard && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Board</p>
+                        <p className="text-sm font-medium text-gray-900">{viewingApplication.intermediateBoard}</p>
+                      </div>
+                    )}
+                    {viewingApplication.intermediateMarks && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Marks/Percentage</p>
+                        <p className="text-sm font-bold text-green-600">{viewingApplication.intermediateMarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Graduation */}
+                <div className="mb-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
+                  <h4 className="font-bold text-gray-900 mb-3 text-sm">Graduation</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">College Name</p>
+                      <p className="text-sm font-medium text-gray-900">{viewingApplication.graduationCollege}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Degree</p>
+                      <p className="text-sm font-medium text-gray-900">{viewingApplication.graduationDegree}</p>
+                    </div>
+                    {viewingApplication.graduationUniversity && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">University</p>
+                        <p className="text-sm font-medium text-gray-900">{viewingApplication.graduationUniversity}</p>
+                      </div>
+                    )}
+                    {viewingApplication.graduationMarks && (
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Marks/Percentage</p>
+                        <p className="text-sm font-bold text-green-600">{viewingApplication.graduationMarks}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Post Graduation (if exists) */}
+                {viewingApplication.postGraduationCollege && (
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-100">
+                    <h4 className="font-bold text-gray-900 mb-3 text-sm">Post Graduation</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">College Name</p>
+                        <p className="text-sm font-medium text-gray-900">{viewingApplication.postGraduationCollege}</p>
+                      </div>
+                      {viewingApplication.postGraduationDegree && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Degree</p>
+                          <p className="text-sm font-medium text-gray-900">{viewingApplication.postGraduationDegree}</p>
+                        </div>
+                      )}
+                      {viewingApplication.postGraduationUniversity && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">University</p>
+                          <p className="text-sm font-medium text-gray-900">{viewingApplication.postGraduationUniversity}</p>
+                        </div>
+                      )}
+                      {viewingApplication.postGraduationMarks && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Marks/Percentage</p>
+                          <p className="text-sm font-bold text-green-600">{viewingApplication.postGraduationMarks}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Resume Section */}
+              <div className="mb-4">
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <FiDownload className="text-green-600" />
+                  </div>
+                  Resume
+                </h3>
+                <a
+                  href={viewingApplication.resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl font-bold"
+                >
+                  <FiDownload className="text-xl" />
+                  Download Resume
+                </a>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => setShowApplicationModal(false)}
+                className="px-6 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-bold"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

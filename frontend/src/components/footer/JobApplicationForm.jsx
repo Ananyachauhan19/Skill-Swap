@@ -180,10 +180,21 @@ const JobApplicationForm = ({ job, onClose, onSuccess }) => {
         jobPosting: job._id
       };
       
-      await axios.post(`${BACKEND_URL}/api/career/applications`, applicationData);
+      // Get token if user is logged in
+      const token = localStorage.getItem('token');
+      const config = token ? {
+        headers: { Authorization: `Bearer ${token}` }
+      } : {};
+      
+      await axios.post(`${BACKEND_URL}/api/career/applications`, applicationData, config);
       
       alert('Application submitted successfully!');
-      onSuccess && onSuccess();
+      
+      // Call onSuccess callback to refresh applications
+      if (onSuccess) {
+        await onSuccess();
+      }
+      
       onClose();
     } catch (error) {
       console.error('Error submitting application:', error);
