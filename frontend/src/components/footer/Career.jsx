@@ -187,7 +187,7 @@ const Career = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/career/public/jobs');
+      const response = await axios.get(`${BACKEND_URL}/api/career/public/jobs`);
       const jobsData = Array.isArray(response.data?.jobs)
         ? response.data.jobs
         : Array.isArray(response.data)

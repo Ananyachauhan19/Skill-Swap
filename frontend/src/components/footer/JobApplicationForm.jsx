@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { BACKEND_URL } from '../../config';
 import { FiX, FiUpload, FiCheck, FiArrowRight, FiArrowLeft } from 'react-icons/fi';
 import { createClient } from '@supabase/supabase-js';
 
@@ -179,7 +180,7 @@ const JobApplicationForm = ({ job, onClose, onSuccess }) => {
         jobPosting: job._id
       };
       
-      await axios.post('/api/career/applications', applicationData);
+      await axios.post(`${BACKEND_URL}/api/career/applications`, applicationData);
       
       alert('Application submitted successfully!');
       onSuccess && onSuccess();

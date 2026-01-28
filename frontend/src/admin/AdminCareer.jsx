@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { BACKEND_URL } from '../config';
 import {
   FiPlus,
   FiEdit2,
@@ -64,7 +65,7 @@ const AdminCareer = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get('/api/career/admin/stats', getAuthConfig());
+      const response = await axios.get(`${BACKEND_URL}/api/career/admin/stats`, getAuthConfig());
       setStats(response.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -74,7 +75,7 @@ const AdminCareer = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/career/admin/jobs', getAuthConfig());
+      const response = await axios.get(`${BACKEND_URL}/api/career/admin/jobs`, getAuthConfig());
       const jobsData = Array.isArray(response.data?.jobs) ? response.data.jobs : [];
       setJobs(jobsData);
     } catch (error) {
@@ -87,7 +88,7 @@ const AdminCareer = () => {
 
   const fetchApplications = async () => {
     try {
-      const response = await axios.get('/api/career/admin/applications', getAuthConfig());
+      const response = await axios.get(`${BACKEND_URL}/api/career/admin/applications`, getAuthConfig());
       const applicationsData = Array.isArray(response.data?.applications) ? response.data.applications : [];
       setApplications(applicationsData);
     } catch (error) {
@@ -134,9 +135,9 @@ const AdminCareer = () => {
       setLoading(true);
       
       if (editingJob) {
-        await axios.put(`/api/career/admin/jobs/${editingJob._id}`, formData, getAuthConfig());
+        await axios.put(`${BACKEND_URL}/api/career/admin/jobs/${editingJob._id}`, formData, getAuthConfig());
       } else {
-        await axios.post('/api/career/admin/jobs', formData, getAuthConfig());
+        await axios.post(`${BACKEND_URL}/api/career/admin/jobs`, formData, getAuthConfig());
       }
       
       setShowJobModal(false);
@@ -154,7 +155,7 @@ const AdminCareer = () => {
     if (!window.confirm('Are you sure you want to delete this job posting?')) return;
     
     try {
-      await axios.delete(`/api/career/admin/jobs/${jobId}`, getAuthConfig());
+      await axios.delete(`${BACKEND_URL}/api/career/admin/jobs/${jobId}`, getAuthConfig());
       fetchJobs();
       fetchStats();
     } catch (error) {
@@ -166,7 +167,7 @@ const AdminCareer = () => {
   const handleToggleJobStatus = async (jobId) => {
     try {
       await axios.patch(
-        `/api/career/admin/jobs/${jobId}/toggle-status`,
+        `${BACKEND_URL}/api/career/admin/jobs/${jobId}/toggle-status`,
         {},
         getAuthConfig()
       );
@@ -179,7 +180,7 @@ const AdminCareer = () => {
 
   const handleUpdateApplicationStatus = async (applicationId, newStatus) => {
     try {
-      await axios.patch(`/api/career/admin/applications/${applicationId}/status`,
+      await axios.patch(`${BACKEND_URL}/api/career/admin/applications/${applicationId}/status`,
         { status: newStatus },
         getAuthConfig()
       );
