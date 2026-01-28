@@ -57,8 +57,16 @@ const SessionRequestSchema = new mongoose.Schema({
   ratedByTutorAt: { type: Date, default: null },
   status: { 
     type: String, 
-    enum: ['pending', 'approved', 'rejected', 'active', 'completed', 'cancelled'],
+    enum: ['pending', 'approved', 'rejected', 'active', 'completed', 'cancelled', 'rescheduled'],
     default: 'pending' 
+  },
+  // Reschedule fields
+  rescheduleProposed: { type: Boolean, default: false },
+  proposedTime: { type: Date, default: null },
+  rescheduleStatus: { 
+    type: String, 
+    enum: ['none', 'pending', 'accepted', 'rejected'], 
+    default: 'none' 
   },
   createdAt: { 
     type: Date, 

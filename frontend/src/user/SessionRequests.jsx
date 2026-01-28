@@ -44,6 +44,8 @@ const SessionRequests = () => {
   const [ratingContext, setRatingContext] = useState(null); // { sessionId, expertName, sessionType }
   const [negotiationModalState, setNegotiationModalState] = useState({ open: false, request: null });
   const [postponeModalState, setPostponeModalState] = useState({ open: false, request: null });
+  const [rescheduleModalState, setRescheduleModalState] = useState({ open: false, request: null });
+  const [rescheduleTime, setRescheduleTime] = useState('');
 
   // Deep-link support: /session-requests?tab=expert&view=sent
   useEffect(() => {
@@ -709,6 +711,85 @@ const SessionRequests = () => {
     }
   };
 
+  const handleReschedule = (request) => {
+    setRescheduleModalState({ open: true, request });
+    setRescheduleTime('');
+  };
+
+  const handleConfirmReschedule = async () => {
+    if (!rescheduleModalState.request || !rescheduleTime) {
+      addToast({ title: 'Error', message: 'Please select a time for reschedule.', variant: 'error', timeout: 3000 });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/session-requests/reschedule/${rescheduleModalState.request._id}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proposedTime: rescheduleTime }),
+      });
+
+      if (response.ok) {
+        addToast({ title: 'Success', message: 'Reschedule proposal sent to student.', variant: 'success', timeout: 2500 });
+        setRescheduleModalState({ open: false, request: null });
+        setRescheduleTime('');
+        fetchSessionRequests();
+        notifyRequestCountUpdate();
+      } else {
+        const data = await response.json();
+        addToast({ title: 'Error', message: data.message || 'Failed to propose reschedule.', variant: 'error', timeout: 3000 });
+      }
+    } catch (error) {
+      console.error('Error proposing reschedule:', error);
+      addToast({ title: 'Error', message: 'Failed to propose reschedule.', variant: 'error', timeout: 3000 });
+    }
+  };
+
+  const handleAcceptReschedule = async (requestId) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/session-requests/reschedule-accept/${requestId}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        addToast({ title: 'Accepted', message: 'Reschedule accepted. Session scheduled!', variant: 'success', timeout: 2500 });
+        fetchSessionRequests();
+        notifyRequestCountUpdate();
+      } else {
+        const data = await response.json();
+        addToast({ title: 'Error', message: data.message || 'Failed to accept reschedule.', variant: 'error', timeout: 3000 });
+      }
+    } catch (error) {
+      console.error('Error accepting reschedule:', error);
+      addToast({ title: 'Error', message: 'Failed to accept reschedule.', variant: 'error', timeout: 3000 });
+    }
+  };
+
+  const handleRejectReschedule = async (requestId) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/session-requests/reschedule-reject/${requestId}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (response.ok) {
+        addToast({ title: 'Rejected', message: 'Reschedule proposal rejected.', variant: 'warning', timeout: 2500 });
+        fetchSessionRequests();
+        notifyRequestCountUpdate();
+      } else {
+        const data = await response.json();
+        addToast({ title: 'Error', message: data.message || 'Failed to reject reschedule.', variant: 'error', timeout: 3000 });
+      }
+    } catch (error) {
+      console.error('Error rejecting reschedule:', error);
+      addToast({ title: 'Error', message: 'Failed to reject reschedule.', variant: 'error', timeout: 3000 });
+    }
+  };
+
   const handleStartSession = async () => {
     if (readyToStartSession) {
       try {
@@ -1187,7 +1268,32 @@ const SessionRequests = () => {
                 <FaCheck size={10} /> Approve
               </button>
               <button
+                onClick={() => handleReschedule(request)}
+                className="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-blue-200"
+              >
+                <FaClock size={10} /> Reschedule
+              </button>
+              <button
                 onClick={() => handleReject(request._id, type)}
+                className="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-rose-200"
+              >
+                <FaTimes size={10} /> Reject
+              </button>
+            </>
+          )}
+          {!isReceived && request.status === 'pending' && request.rescheduleProposed && request.rescheduleStatus === 'pending' && (
+            <>
+              <div className="text-xs text-blue-600 font-medium mr-2">
+                New time: {request.proposedTime ? new Date(request.proposedTime).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '-'}
+              </div>
+              <button
+                onClick={() => handleAcceptReschedule(request._id)}
+                className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-emerald-200"
+              >
+                <FaCheck size={10} /> Accept
+              </button>
+              <button
+                onClick={() => handleRejectReschedule(request._id)}
                 className="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 border border-rose-200"
               >
                 <FaTimes size={10} /> Reject
@@ -2801,6 +2907,56 @@ const SessionRequests = () => {
       </div>
       <InterviewTimeNegotiationModal />
       <PostponeInterviewModal />
+      
+      {/* Reschedule Modal */}
+      {rescheduleModalState.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <h3 className="text-xl font-bold text-slate-800 mb-4">Propose Reschedule Time</h3>
+            <p className="text-sm text-slate-600 mb-4">
+              Select a new time for the session with{' '}
+              <span className="font-semibold">
+                {rescheduleModalState.request?.requester?.firstName} {rescheduleModalState.request?.requester?.lastName}
+              </span>
+            </p>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Proposed Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+                min={new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16)}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                The student will be notified and can accept or reject this time
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setRescheduleModalState({ open: false, request: null });
+                  setRescheduleTime('');
+                }}
+                className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmReschedule}
+                disabled={!rescheduleTime}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
+              >
+                Send Proposal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </div>
   );

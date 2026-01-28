@@ -623,7 +623,7 @@ module.exports = (io) => {
         const { tutorId, subject, topic, message, question, questionImageUrl, coinType } = data;
         const requesterId = socket.userId;
 
-        console.log('[Session Request] Data received:', { tutorId, subject, topic, requesterId });
+        console.log('[Session Request] Data received:', { tutorId, subject, topic, requesterId, coinType });
 
         let requesterData = null;
         for (const [socketId, userData] of onlineUsers.entries()) {
@@ -636,6 +636,42 @@ module.exports = (io) => {
         if (!requesterData) {
           console.error('[Session Request] Requester not found in onlineUsers:', requesterId);
           socket.emit('session-request-error', { message: 'User not found' });
+          return;
+        }
+
+        // Check if requester has enough coins
+        const requester = await User.findById(requesterId).select('silverCoins bronzeCoins');
+        if (!requester) {
+          console.error('[Session Request] Requester not found in DB:', requesterId);
+          socket.emit('session-request-error', { message: 'User not found' });
+          return;
+        }
+
+        const selectedCoinType = (coinType || 'silver').toLowerCase();
+        const minimumCoins = {
+          silver: 10,
+          bronze: 40,
+          gold: 5
+        };
+
+        const userCoins = {
+          silver: requester.silverCoins || 0,
+          bronze: requester.bronzeCoins || 0
+        };
+
+        if (selectedCoinType === 'silver' && userCoins.silver < minimumCoins.silver) {
+          console.log('[Session Request] Insufficient silver coins:', userCoins.silver);
+          socket.emit('session-request-error', { 
+            message: `You need at least ${minimumCoins.silver} silver coins to send a request. You have ${userCoins.silver} silver coins.` 
+          });
+          return;
+        }
+
+        if (selectedCoinType === 'bronze' && userCoins.bronze < minimumCoins.bronze) {
+          console.log('[Session Request] Insufficient bronze coins:', userCoins.bronze);
+          socket.emit('session-request-error', { 
+            message: `You need at least ${minimumCoins.bronze} bronze coins to send a request. You have ${userCoins.bronze} bronze coins.` 
+          });
           return;
         }
 
