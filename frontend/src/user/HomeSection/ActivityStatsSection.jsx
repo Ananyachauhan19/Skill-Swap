@@ -19,6 +19,24 @@ const ActivityStatsSection = () => {
     triggerOnce: true
   });
 
+  // Function to convert exact count to estimated even number
+  const getEstimatedCount = (count) => {
+    if (count <= 10) return 10;
+    if (count <= 20) return 20;
+    if (count <= 50) return 50;
+    if (count <= 100) return 100;
+    if (count <= 150) return 150;
+    if (count <= 200) return 200;
+    if (count <= 300) return 300;
+    if (count <= 500) return 500;
+    if (count <= 1000) return 1000;
+    if (count <= 2000) return 2000;
+    if (count <= 5000) return 5000;
+    if (count <= 10000) return 10000;
+    // For larger numbers, round to nearest 10000
+    return Math.ceil(count / 10000) * 10000;
+  };
+
   useEffect(() => {
     const fetchActivityStats = async () => {
       try {
@@ -48,7 +66,7 @@ const ActivityStatsSection = () => {
     {
       id: 1,
       label: 'Active Learners',
-      value: stats.totalUsers,
+      value: getEstimatedCount(stats.totalUsers),
       icon: <FaUsers className="text-white" />,
       color: 'blue',
       description: 'Join our growing community',
@@ -57,7 +75,7 @@ const ActivityStatsSection = () => {
     {
       id: 2,
       label: 'Expert Tutors',
-      value: stats.expertUsers,
+      value: getEstimatedCount(stats.expertUsers),
       icon: <FaChalkboardTeacher className="text-white" />,
       color: 'purple',
       description: 'Learn from the best',
@@ -66,7 +84,7 @@ const ActivityStatsSection = () => {
     {
       id: 3,
       label: 'Expert Interviewers',
-      value: stats.expertInterviewers,
+      value: getEstimatedCount(stats.expertInterviewers),
       icon: <FaUsers className="text-white" />,
       color: 'indigo',
       description: 'Practice with professionals',
@@ -75,7 +93,7 @@ const ActivityStatsSection = () => {
     {
       id: 4,
       label: 'Total Users',
-      value: stats.registeredUsers,
+      value: getEstimatedCount(stats.registeredUsers),
       icon: <FaUsers className="text-white" />,
       color: 'green',
       description: 'Registered members',
