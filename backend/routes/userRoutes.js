@@ -12,9 +12,13 @@ const {
   getActiveDevices,
   logoutDevice,
   logoutAllDevices,
+  getUserCount,
 } = require('../controllers/userController');
 
 const router = express.Router();
+
+// Public routes
+router.get('/users/count', getUserCount);
 
 // PATCH /api/user/profile-photo
 router.patch('/user/profile-photo', requireAuth, (req, res, next) => {

@@ -8,6 +8,7 @@ const navLinks = [
   // { path: '/discuss', label: 'Discuss' },
   { path: '/interview', label: 'Interview' },
   { path: '/quizement', label: 'Quizement' },
+  { path: '/campus-info', label: 'CampusDashboard' },
 ];
 
 const MobileMenu = ({

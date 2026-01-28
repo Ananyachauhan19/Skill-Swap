@@ -22,9 +22,8 @@ const Home = () => {
     <main className="bg-home-bg text-gray-900 min-h-screen font-[Inter,Poppins,sans-serif] pt-16 md:pt-[72px] xl:pt-20">
       <div>
         <HeroSection />
-        <WhoAreWeSection />
-       
         <ExploreOpportunitiesSection />
+        <WhoAreWeSection />
         <ActivityStatsSection />
         <TopPerformersSection />
       
@@ -34,7 +33,7 @@ const Home = () => {
           imageSrc="https://res.cloudinary.com/dbltazdsa/image/upload/v1766937373/campusdashboard_n0ammq.png"
           onJoin={handleJoinCampusDashboard}
         />
-        <GlobalTopPerformersSection />
+       
           <UserTestimonials />
         <RecruitmentSection />
 

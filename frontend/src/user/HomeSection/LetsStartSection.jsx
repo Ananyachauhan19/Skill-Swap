@@ -48,7 +48,14 @@ const LetsStartSection = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/home')}
+                onClick={() => {
+                  const exploreSection = document.getElementById('explore');
+                  if (exploreSection) {
+                    exploreSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    navigate('/home#explore');
+                  }
+                }}
                 className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold text-base sm:text-lg shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all"
               >
                 Get Started Now <FaArrowRight className="text-sm sm:text-base" />

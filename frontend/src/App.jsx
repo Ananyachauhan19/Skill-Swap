@@ -127,6 +127,7 @@ import QuizementEmployeeActivityLog from './quizementEmployee/QuizementEmployeeA
 import InternCoordinatorRoute from './routes/InternCoordinatorRoute.jsx';
 import JoiningCertificateVerify from './intern/JoiningCertificateVerify.jsx';
 import CompletionCertificateVerify from './intern/CompletionCertificateVerify.jsx';
+import CampusDashboardPage from './pages/campus-dashboard/index.jsx';
 
 const collectVisitorData = () => {
   const getDeviceType = () => {
@@ -254,6 +255,7 @@ const appRoutes = [
   { path: '/teaching-history', element: <ProtectedRoute><TeachingHistory /></ProtectedRoute> },
   { path: '/blog', element: <ProtectedRoute><Blog /></ProtectedRoute> },
   { path: '/change-password', element: <ProtectedRoute><ChangePassword /></ProtectedRoute> },
+  { path: '/campus-info', element: <CampusDashboardPage /> },
   { path: '/campus-ambassador', element: <ProtectedRoute><CampusAmbassadorDashboard /></ProtectedRoute> },
   { path: '/campus-dashboard/login', element: <ProtectedRoute><CampusLogin /></ProtectedRoute> },
   { path: '/campus-dashboard', element: <ProtectedRoute><HomeDashboard /></ProtectedRoute> },

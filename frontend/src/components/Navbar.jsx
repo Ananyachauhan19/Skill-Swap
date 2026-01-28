@@ -1008,6 +1008,7 @@ const Navbar = () => {
               { path: '/interview', label: 'Interview' },
               { path: '/session-requests', label: 'Requests' },
               { path: '/quizement', label: 'Quizement' },
+              { path: '/campus-info', label: 'CampusDashboard' },
             ].map(({ path, label }) => (
               <button
                 key={path}

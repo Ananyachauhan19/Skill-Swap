@@ -183,7 +183,21 @@ const updateCoverPhoto = async (req, res) => {
   }
 };
 
-module.exports = { uploadProfileImage, updateProfilePhoto, uploadCoverImage, updateCoverPhoto };
+module.exports = { 
+  uploadProfileImage, 
+  updateProfilePhoto, 
+  uploadCoverImage, 
+  updateCoverPhoto,
+  updateEmail,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+  changePassword,
+  getActiveDevices,
+  logoutDevice,
+  logoutAllDevices,
+  toggleInterviewAvailability,
+  getUserCount
+};
 
 // Update email address for logged-in user, ensuring uniqueness
 async function updateEmail(req, res) {
@@ -301,10 +315,6 @@ async function verifyPhoneOtp(req, res) {
   }
 }
 
-module.exports.updateEmail = updateEmail;
-module.exports.sendPhoneOtp = sendPhoneOtp;
-module.exports.verifyPhoneOtp = verifyPhoneOtp;
-
 // Change password for logged-in user
 async function changePassword(req, res) {
   try {
@@ -341,8 +351,6 @@ async function changePassword(req, res) {
     return res.status(500).json({ message: 'Failed to update password.' });
   }
 }
-
-module.exports.changePassword = changePassword;
 
 // List active device sessions for the logged-in user
 async function getActiveDevices(req, res) {
@@ -432,10 +440,6 @@ async function logoutAllDevices(req, res) {
   }
 }
 
-module.exports.getActiveDevices = getActiveDevices;
-module.exports.logoutDevice = logoutDevice;
-module.exports.logoutAllDevices = logoutAllDevices;
-
 // Toggle interview availability
 async function toggleInterviewAvailability(req, res) {
   try {
@@ -463,4 +467,13 @@ async function toggleInterviewAvailability(req, res) {
   }
 }
 
-module.exports.toggleInterviewAvailability = toggleInterviewAvailability;
+// Get total user count (public endpoint for stats)
+async function getUserCount(req, res) {
+  try {
+    const count = await User.countDocuments();
+    return res.json({ count });
+  } catch (err) {
+    console.error('[getUserCount] error:', err);
+    return res.status(500).json({ message: 'Failed to get user count' });
+  }
+}
