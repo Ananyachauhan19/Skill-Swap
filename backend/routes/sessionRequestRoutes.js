@@ -539,6 +539,225 @@ router.post('/reject/:requestId', requireAuth, requestLimiter, validateRequestId
 });
 
 /**
+ * @route POST /api/session-requests/reschedule/:requestId
+ * @desc Tutor proposes a reschedule time for a session request
+ * @access Private
+ */
+router.post('/reschedule/:requestId', requireAuth, requestLimiter, validateRequestId, [
+  body('proposedTime').isISO8601().withMessage('Valid proposed time is required')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
+  try {
+    const { requestId } = req.params;
+    const { proposedTime } = req.body;
+    const tutorId = req.user._id;
+
+    const sessionRequest = await SessionRequest.findOne({
+      _id: requestId,
+      tutor: tutorId,
+      status: 'pending',
+    });
+
+    if (!sessionRequest) {
+      return handleErrors(res, 404, 'Session request not found or not pending');
+    }
+
+    // Validate proposed time is in the future
+    const proposedDate = new Date(proposedTime);
+    if (proposedDate <= new Date()) {
+      return handleErrors(res, 400, 'Proposed time must be in the future');
+    }
+
+    sessionRequest.rescheduleProposed = true;
+    sessionRequest.proposedTime = proposedDate;
+    sessionRequest.rescheduleStatus = 'pending';
+    await sessionRequest.save();
+
+    // Populate user details
+    await sessionRequest.populate('requester', 'firstName lastName profilePic username');
+    await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
+
+    // Send notification to requester
+    const io = req.app.get('io');
+    const tutorName = `${req.user.firstName} ${req.user.lastName}`;
+    const formattedTime = proposedDate.toLocaleString('en-US', { 
+      dateStyle: 'medium', 
+      timeStyle: 'short' 
+    });
+    const notificationMessage = `${tutorName} has proposed to reschedule your session on ${sessionRequest.subject} - ${sessionRequest.topic} to ${formattedTime}. Please accept or reject.`;
+    await sendNotification(
+      io,
+      sessionRequest.requester._id,
+      'session-reschedule-proposed',
+      notificationMessage,
+      sessionRequest._id,
+      tutorId,
+      tutorName
+    );
+
+    // Emit real-time event if requester is online
+    const io_instance = req.app.get('io');
+    if (io_instance) {
+      io_instance.to(sessionRequest.requester._id.toString()).emit('session-reschedule-proposed', {
+        sessionRequest
+      });
+    }
+
+    res.json({
+      message: 'Reschedule proposal sent',
+      sessionRequest,
+    });
+  } catch (error) {
+    console.error('Error proposing reschedule:', error);
+    handleErrors(res, 500, 'Failed to propose reschedule');
+  }
+});
+
+/**
+ * @route POST /api/session-requests/reschedule-accept/:requestId
+ * @desc Student accepts the reschedule proposal
+ * @access Private
+ */
+router.post('/reschedule-accept/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
+  try {
+    const { requestId } = req.params;
+    const studentId = req.user._id;
+
+    const sessionRequest = await SessionRequest.findOne({
+      _id: requestId,
+      requester: studentId,
+      status: 'pending',
+      rescheduleProposed: true,
+      rescheduleStatus: 'pending',
+    });
+
+    if (!sessionRequest) {
+      return handleErrors(res, 404, 'Reschedule proposal not found or already processed');
+    }
+
+    // Accept the reschedule - mark it as rescheduled and approved
+    sessionRequest.rescheduleStatus = 'accepted';
+    sessionRequest.status = 'approved'; // Approved to start at the proposed time
+    await sessionRequest.save();
+
+    // Populate user details
+    await sessionRequest.populate('requester', 'firstName lastName profilePic username');
+    await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
+
+    // Send notification to tutor
+    const io = req.app.get('io');
+    const studentName = `${req.user.firstName} ${req.user.lastName}`;
+    const formattedTime = sessionRequest.proposedTime.toLocaleString('en-US', { 
+      dateStyle: 'medium', 
+      timeStyle: 'short' 
+    });
+    const notificationMessage = `${studentName} has accepted your reschedule proposal. Session on ${sessionRequest.subject} - ${sessionRequest.topic} is now scheduled for ${formattedTime}.`;
+    await sendNotification(
+      io,
+      sessionRequest.tutor._id,
+      'session-reschedule-accepted',
+      notificationMessage,
+      sessionRequest._id,
+      studentId,
+      studentName
+    );
+
+    // Emit real-time event if tutor is online
+    const io_instance = req.app.get('io');
+    if (io_instance) {
+      io_instance.to(sessionRequest.tutor._id.toString()).emit('session-reschedule-accepted', {
+        sessionRequest
+      });
+    }
+
+    res.json({
+      message: 'Reschedule accepted. Session scheduled successfully.',
+      sessionRequest,
+    });
+  } catch (error) {
+    console.error('Error accepting reschedule:', error);
+    handleErrors(res, 500, 'Failed to accept reschedule');
+  }
+});
+
+/**
+ * @route POST /api/session-requests/reschedule-reject/:requestId
+ * @desc Student rejects the reschedule proposal
+ * @access Private
+ */
+router.post('/reschedule-reject/:requestId', requireAuth, requestLimiter, validateRequestId, async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return handleErrors(res, 400, errors.array()[0].msg);
+  }
+
+  try {
+    const { requestId } = req.params;
+    const studentId = req.user._id;
+
+    const sessionRequest = await SessionRequest.findOne({
+      _id: requestId,
+      requester: studentId,
+      status: 'pending',
+      rescheduleProposed: true,
+      rescheduleStatus: 'pending',
+    });
+
+    if (!sessionRequest) {
+      return handleErrors(res, 404, 'Reschedule proposal not found or already processed');
+    }
+
+    // Reject the reschedule - mark the entire request as rejected
+    sessionRequest.rescheduleStatus = 'rejected';
+    sessionRequest.status = 'rejected';
+    await sessionRequest.save();
+
+    // Populate user details
+    await sessionRequest.populate('requester', 'firstName lastName profilePic username');
+    await sessionRequest.populate('tutor', 'firstName lastName profilePic username');
+
+    // Send notification to tutor
+    const io = req.app.get('io');
+    const studentName = `${req.user.firstName} ${req.user.lastName}`;
+    const notificationMessage = `${studentName} has rejected your reschedule proposal for the session on ${sessionRequest.subject} - ${sessionRequest.topic}.`;
+    await sendNotification(
+      io,
+      sessionRequest.tutor._id,
+      'session-reschedule-rejected',
+      notificationMessage,
+      sessionRequest._id,
+      studentId,
+      studentName
+    );
+
+    // Emit real-time event if tutor is online
+    const io_instance = req.app.get('io');
+    if (io_instance) {
+      io_instance.to(sessionRequest.tutor._id.toString()).emit('session-reschedule-rejected', {
+        sessionRequest
+      });
+    }
+
+    res.json({
+      message: 'Reschedule rejected. Request has been declined.',
+      sessionRequest,
+    });
+  } catch (error) {
+    console.error('Error rejecting reschedule:', error);
+    handleErrors(res, 500, 'Failed to reject reschedule');
+  }
+});
+
+/**
  * @route POST /api/session-requests/campus/approve/:requestId
  * @desc Approve a campus session request
  * @access Private
